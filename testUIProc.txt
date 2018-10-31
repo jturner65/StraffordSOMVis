@@ -1,0 +1,27 @@
+UI Window
+UI Window_custUIComps
+
+Animation Result
+ui_idx: 0 |name: # of spheres |value: 120.0 |flags:  false false false false true
+ui_idx: 1 |name: # of samples per sphere |value: 200.0 |flags:  false false false false true
+ui_idx: 2 |name: Min sphere radius |value: 5.0 |flags:  false false false false false
+ui_idx: 3 |name: Max sphere radius |value: 50.0 |flags:  false false false false false
+ui_idx: 4 |name: ID of sphere to select |value: 0.0 |flags:  false false false false true
+Animation Result_custUIComps
+
+SOM Map UI
+ui_idx: 0 |name: # Map Rows |value: 40.0 |flags:  false false false false true
+ui_idx: 1 |name: # Map Columns |value: 40.0 |flags:  false false false false true
+ui_idx: 2 |name: # Training Epochs |value: 10.0 |flags:  false false false false true
+ui_idx: 3 |name: Map Node Shape |value: 0.0 |flags:  false false false false true
+ui_idx: 4 |name: Map Boundaries |value: 1.0 |flags:  false false false false true
+ui_idx: 5 |name: Dense/Sparse (C/G)PU |value: 0.0 |flags:  false false false false true
+ui_idx: 6 |name: Neighborhood Func |value: 0.0 |flags:  false false false false true
+ui_idx: 7 |name: Radius Cooling |value: 0.0 |flags:  false false false false true
+ui_idx: 8 |name: Learn rate Cooling |value: 0.0 |flags:  false false false false true
+ui_idx: 9 |name: Start Learn Rate |value: 0.1 |flags:  false false false false false
+ui_idx: 10 |name: End Learn Rate |value: 0.01 |flags:  false false false false false
+ui_idx: 11 |name: Start Cool Radius |value: 20.0 |flags:  false false false false true
+ui_idx: 12 |name: End Cool Radius |value: 1.0 |flags:  false false false false true
+SOM Map UI_custUIComps
+
