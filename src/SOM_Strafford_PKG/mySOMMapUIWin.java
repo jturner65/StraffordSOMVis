@@ -85,7 +85,7 @@ public class mySOMMapUIWin extends myDispWindow {
 	//which map is currently being shown
 	private int curMapImgIDX;
 	//scaling value - use this to decrease the image size and increase the scaling so it is rendered the same size
-	private float mapScaleVal = 2.0f;
+	private float mapScaleVal = 5.0f;
 	//current index of map to display
 	private int curMapIDX;
 

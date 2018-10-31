@@ -119,7 +119,8 @@ public class StraffWeightCalc {
 	}
 	
 	//calculate feature vector for this example
-	public TreeMap<Integer, Float> calcFeatureVector(ProspectExample ex, HashSet<Integer> jps) {
+	public TreeMap<Integer, Float> calcFeatureVector(ProspectExample ex, HashSet<Integer> jps, TreeMap<Integer, jpOccurrenceData> orderOccs, TreeMap<Integer, jpOccurrenceData> optOccs) {
+		jpOccurrenceData optOcc;
 		TreeMap<Integer, Float> res = new TreeMap<Integer, Float>();
 		float ftrVecSqMag = 0.0f;
 		//for each jp present in ex, perform calculation
@@ -129,12 +130,15 @@ public class StraffWeightCalc {
 			//find destIDX
 			destIDX = map.jpToFtrIDX.get(jp);
 			if (destIDX==null) {continue;}//ignore unknown/unmapped jps
-			float val = eqs.get(jp).calcVal(ex);
+			optOcc = optOccs.get(jp);
+			if (optOcc == null) {optOcc = optOccs.get(-9);}//this is if all values have positive opts
+			float val = eqs.get(jp).calcVal(ex,orderOccs.get(jp), optOcc);
 			if ((isZeroMagExample) && (val != 0)) {isZeroMagExample = false;}
 			res.put(destIDX,val);
 			ftrVecSqMag += (val*val);
 			checkValInBnds(jp,destIDX, val);
 		}		
+
 		ex.ftrVecMag = (float) Math.sqrt(ftrVecSqMag);
 		ex.setIsBadExample(isZeroMagExample);
 		return res;
@@ -220,24 +224,25 @@ class JPWeightEquation {
 	}//aggregateOccs
 	
 	//returns this jp's contribution to the weight vector of a particular prospect
-	public float calcVal(ProspectExample ex) {		
+	public float calcVal(ProspectExample ex, jpOccurrenceData orderJpOccurrences, jpOccurrenceData optJpOccurrences) {		
 		calcObj.incrBnds(jp, jpIdx);
 		float res = 0.0f;
 		if (ex.prs_JP == jp) {//scale propsect contribution by update date of record - assumes accurate at time of update
 			res +=scaleCalc(prspctCoeffIDX, 1, ex.prs_LUDate);
 		}
 		//get all occurences for this jp.  if 
-		jpOccurrenceData orderJpOccurrences = ex.orderJpOccurrences.get(jp);
+		//jpOccurrenceData orderJpOccurrences = ex.orderJpOccurrences.get(jp);
 		if (orderJpOccurrences != null) {//aggregate every order occurrence, with decay on importance based on date
 			res += aggregateOccs(orderJpOccurrences, orderCoeffIDX);		
 		}
-		jpOccurrenceData optJpOccurrences = ex.optJpOccurrences.get(jp);
+		//jpOccurrenceData optJpOccurrences = ex.optJpOccurrences.get(jp);
 		if (optJpOccurrences != null) {
 			//TODO
 			//multiple opt occurences of same jp should have no bearing - want most recent opt event - may want to research multiple opt events for same jp, if opt values differ
-			//if opt val is -2 for all records, there might be something we want to learn from this prospect even though they don't want to get emails;  we won't see those entries here
+			//if opt val is -2 for all jps, there might be something we want to learn from this prospect even though they don't want to get emails;  we won't see those people's opt here
 			//on the other hand, if opt is -2 for some jps and not others, this would infer that something about this particular JP may not be attractive to this person, 
-			//so other prospects that look like them may not want to see these jps either, so we learn from that.
+			//so other prospects that look like them may not want to see these jps either, so we learn from that - we set this ftr value to be 0 for an opt < 0 , 
+			//regardless of what other behavior they have for this jp
 			Entry<Date, Tuple<Integer,Integer>> vals = optJpOccurrences.getLastOccurrence();
 			Date mostRecentDate = vals.getKey();
 			Integer optChoice = vals.getValue().y;
@@ -256,11 +261,7 @@ class JPWeightEquation {
 		res += " + ("+ String.format("%.4f", Mult[orderCoeffIDX]) + " [ sum(NumOcc[i]/(1 + "+String.format("%.4f", Decay[orderCoeffIDX])+" * DEV) for each event[i]] + "+String.format("%.4f", Offset[orderCoeffIDX])+")"; 		
 		//opt
 		res +=  " + (("+ String.format("%.4f", Mult[optCoeffIDX]) + "* OptV + "+String.format("%.4f", Offset[optCoeffIDX])+")"; 		
-//		res += "\t(Prospect : ) "+ String.format("%.4f", Mult[prspctCoeffIDX]) + "(1.0/(1 + "+String.format("%.4f", Decay[prspctCoeffIDX])+"(Days since Last Look up))) + "+String.format("%.4f", Offset[prspctCoeffIDX]); 
-//		//order
-//		res += "\t(Order : ) "+ String.format("%.4f", Mult[orderCoeffIDX]) + " [ sum(numOccurrences[i]/(1 + "+String.format("%.4f", Decay[orderCoeffIDX])+"(Days since event[i]))) for each event[i]] + "+String.format("%.4f", Offset[orderCoeffIDX]); 		
-//		//opt
-//		res += "\t(Opt : ) ("+ String.format("%.4f", Mult[optCoeffIDX]) + "1.0 + "+String.format("%.4f", Offset[optCoeffIDX])+") * opt multiplier reflecting opt choice for jp (TBD)."; 		
+		
 		return res;
 	}//toString
 		

@@ -1,7 +1,5 @@
 package SOM_Strafford_PKG;
 
-//import java.text.DateFormat;
-//import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
@@ -17,7 +15,7 @@ import java.util.regex.Pattern;
  *
  */
 public abstract class StraffSOMExample extends baseDataPtVis{	
-	public static SOMMapData map;
+	protected static SOMMapData mapData;
 	//corresponds to OID in prospect database - primary key of all this data is OID in prospects
 	public final String OID;	
 	
@@ -45,16 +43,13 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	/////////////////////////////
 	// from old DataPoint data
 	
-	//sequence # used for building training data
-	//public int seqNum =0;
-	
 	//reference to map node that best matches this node
 	protected SOMMapNodeExample bmu;			
 	protected dataClass label;
 	
 	public StraffSOMExample(SOMMapData _map, String _id) {
 		super();
-		map=_map;
+		mapData=_map;
 		OID = _id;
 		ftrsBuilt = false;
 		stdFtrsBuilt = false;
@@ -105,8 +100,8 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		if (null == objMap) {objMap = new TreeMap<Integer, StraffEvntTrainData>();}
 		//get list of events from specific event id
 		StraffEvntTrainData evtTrainData = objMap.get(eid);
-		if (null == evtTrainData) {		evtTrainData = buildNewTrainDataFromEv(_optObj,type);	}
-		else { 							evtTrainData.addEventDataFromEventObj(_optObj);}
+		if (null == evtTrainData) {		evtTrainData = buildNewTrainDataFromEv(_optObj,type);	}//build new event train data component
+		else { 							evtTrainData.addEventDataFromEventObj(_optObj);}		//augment existing event training data component
 		//add list to obj map
 		objMap.put(eid, evtTrainData);
 		//add eventID object to 
@@ -116,10 +111,10 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	//debugging tool to find issues behind occasional BMU seg faults
 	protected boolean checkForErrors(SOMMapNodeExample _n, float[] dataVar){
 		boolean inError = false;
-		if(map == null){						System.out.println("SOMMapNodeExample::checkForErrors : FATAL ERROR : SOMMapData object is null!");		return true;}//if mapdata is null then stop - should have come up before here anyway
-		if(_n==null){							map.dispMessage("SOMMapNodeExample::checkForErrors : _n is null!");		inError=true;} 
-		else if(_n.mapLoc == null){				map.dispMessage("SOMMapNodeExample::checkForErrors : _n has no maploc!");	inError=true;}
-		if(dataVar == null){					map.dispMessage("SOMMapNodeExample::checkForErrors : map variance not calculated : datavar is null!");	inError=true;	}
+		if(mapData == null){						System.out.println("SOMMapNodeExample::checkForErrors : FATAL ERROR : SOMMapData object is null!");		return true;}//if mapdata is null then stop - should have come up before here anyway
+		if(_n==null){							mapData.dispMessage("SOMMapNodeExample::checkForErrors : _n is null!");		inError=true;} 
+		else if(_n.mapLoc == null){				mapData.dispMessage("SOMMapNodeExample::checkForErrors : _n has no maploc!");	inError=true;}
+		if(dataVar == null){					mapData.dispMessage("SOMMapNodeExample::checkForErrors : map variance not calculated : datavar is null!");	inError=true;	}
 		return inError;
 	}//checkForErrors
 	
@@ -127,7 +122,7 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		if (checkForErrors(_n, dataVar)) {return;}
 		bmu = _n;	
 		mapLoc.set(_n.mapLoc);
-		double dist = map.dpDistFunc(_n, this,dataVar);
+		double dist = mapData.dpDistFunc(_n, this,dataVar);
 		_n.addBMUExample(dist, this);
 	}//setBMU
 	
@@ -142,7 +137,7 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	//build feature vector - call externally after finalize
 	public void buildFeatureVector() {//allJPs must exist by here
 		allJPFtrIDXs = new ArrayList<Integer>();
-		for(Integer jp : allJPs) {allJPFtrIDXs.add(map.jpToFtrIDX.get(jp));}		
+		for(Integer jp : allJPs) {allJPFtrIDXs.add(mapData.jpToFtrIDX.get(jp));}		
 		buildFeaturesMap();
 		ftrsBuilt = true;		
 		buildNormFtrData();
@@ -160,14 +155,14 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		HashSet<Integer> jps = new HashSet<Integer>();
 		for (int i=0;i<_ftrAra.length;++i) {
 			Float ftr = ftrMap.get(i);
-			if ((ftr!= null) && (ftr > thresh)) {jps.add(map.jpByIdx[i]);			}
+			if ((ftr!= null) && (ftr > thresh)) {jps.add(mapData.jpByIdx[i]);			}
 		}
 		return jps;	
 	}//buildJPsFromFtrVec
 	
 	//build normalized vector of data - only after features have been set
 	private void buildNormFtrData() {
-		if(!ftrsBuilt) {map.dispMessage("OID : " + OID + " : Features not built, cannot normalize feature data");return;}
+		if(!ftrsBuilt) {mapData.dispMessage("OID : " + OID + " : Features not built, cannot normalize feature data");return;}
 		normFtrMap=new TreeMap<Integer, Float>();
 		if(this.ftrVecMag == 0) {return;}
 		for (Integer IDX : allJPFtrIDXs) {normFtrMap.put(IDX,ftrMap.get(IDX)/this.ftrVecMag);}	
@@ -177,7 +172,7 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	
 	private String _toCSVString(TreeMap<Integer, Float> ftrs) {
 		String res = ""+OID+",";
-		for(int i=0;i<map.numFtrs;++i){
+		for(int i=0;i<mapData.numFtrs;++i){
 			Float ftr = ftrs.get(i);			
 			res += String.format("%1.7g", (ftr==null ? 0 : ftr)) + ",";
 			}
@@ -194,7 +189,7 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 
 	private String _toLRNString(TreeMap<Integer, Float> ftrs, String sep) {
 		String res = ""+OID+sep;
-		for(int i=0;i<map.numFtrs;++i){
+		for(int i=0;i<mapData.numFtrs;++i){
 			Float ftr = ftrs.get(i);			
 			res += String.format("%1.7g", (ftr==null ? 0 : ftr)) + sep;
 		}
@@ -226,7 +221,7 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	}//toLRNString
 
 	private float[] _getFtrsFromMap(TreeMap<Integer, Float> ftrMap) {
-		float[] ftrs = new float[map.numFtrs];
+		float[] ftrs = new float[mapData.numFtrs];
 		for (Integer ftrIdx : ftrMap.keySet()) {ftrs[ftrIdx]=ftrMap.get(ftrIdx);		}
 		return ftrs;
 	}
@@ -254,24 +249,26 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	
 	private String dispFtrs(TreeMap<Integer, Float> ftrs) {
 		String res = "";
-		if((ftrs==null) || (ftrs.size() == 0)){res+="\tNone\n";} 
+		if((ftrs==null) || (ftrs.size() == 0)){res+=" None\n";} 
 		//else {res +="\n\t";for(int i=0;i<ftrs.length;++i){res += ""+String.format("%03d", i) +":"+ String.format("%1.4g", ftrs[i]) + " | "; if((numFtrs > 40) && ((i+1)%30 == 0)){res +="\n\t";}}}
-		else {res +="\n\t";for(int i=0;i<map.numFtrs;++i){
+		else {res +="\n\t";for(int i=0;i<mapData.numFtrs;++i){
 			Float ftr = ftrs.get(i);
-			res += String.format("%1.4g",  (ftr==null ? 0 : ftr)) + " | "; if((map.numFtrs > 40) && ((i+1)%30 == 0)){res +="\n\t";}}}
+			res += String.format("%1.4g",  (ftr==null ? 0 : ftr)) + " | "; if((mapData.numFtrs > 40) && ((i+1)%30 == 0)){res +="\n\t";}}}
 		return res;
 	}
 
 	@Override
 	public String toString(){
-		String res = "Example OID# : "+OID+ (  "" != OID ? "Dense format lrnID : " + OID + "\t" : "" ) + (null == label ?  "Unknown DataClass\t" : "DataClass : " + label.toString() +"\t");
+		String res = "Example OID# : "+OID+ (  "" != OID ? " Dense format lrnID : " + OID + "\t" : "" ) + (null == label ?  "Unknown DataClass\t" : "DataClass : " + label.toString() +"\t");
 		if(null!=mapLoc){res+="Location on SOM map : " + mapLoc.toStrBrf();}
-		res += "\nUnscaled Features (" +map.numFtrs+ " ) :";
-		res += dispFtrs(ftrMap);
-		res +="\nScaled Features : ";
-		res += dispFtrs(stdFtrMap);
-		res +="\nNormed Features : ";
-		res += dispFtrs(normFtrMap);
+		if (mapData.numFtrs > 0) {
+			res += "\nUnscaled Features (" +mapData.numFtrs+ " ) :";
+			res += dispFtrs(ftrMap);
+			res +="Scaled Features : ";
+			res += dispFtrs(stdFtrMap);
+			res +="Normed Features : ";
+			res += dispFtrs(normFtrMap);
+		}
 		return res;
 	}
 }//straffSOMExample 
@@ -305,7 +302,11 @@ class ProspectExample extends StraffSOMExample{
 	private TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>> orderEventsByDateMap, optEventsByDateMap; //add link objs eventually	
 
 	//structs to hold all order occurences and opt occurences of each JP for this OID
-	public TreeMap<Integer, jpOccurrenceData> orderJpOccurrences, optJpOccurrences;
+	public TreeMap<String, TreeMap<Integer, jpOccurrenceData>> JpOccurrences;//orderJpOccurrences, optJpOccurrences;
+	//list of jpgjp records from opt records that need to be rebuilt once all jp presences have been specified.
+	//these records denote positive opt choices by the user applying to -all- jps.
+	//private TreeMap<String, ArrayList<JpgJpDataRecord>> mapOfListsOfJpgsJpsToRebuild;
+	private TreeMap<String, TreeMap<Date,Integer>> mapOfListsOfJpgsJpsToRebuild;
 	
 	//build this object based on prospect object
 	public ProspectExample(SOMMapData _map,prospectData _prspctData) {
@@ -376,6 +377,12 @@ class ProspectExample extends StraffSOMExample{
 		}		
 	}//buildEventTrainDataFromCsvStr
 	
+	public  TreeMap<Integer, jpOccurrenceData> getOcccurenceMap(String key) {
+		TreeMap<Integer, jpOccurrenceData> res = JpOccurrences.get(key);
+		if (res==null) {mapData.dispMessage("ProspectExample::getOcccurenceMap : JpOccurrences map does not have key : " + key); return null;}
+		return res;
+	}
+	
 	protected void buildDataFromCSVString(int numOrderEvnts, int numOptEvnts, String _csvDataStr) {
 		String [] strAraBegin = _csvDataStr.trim().split(Pattern.quote(orderCSVSentinelLbl)); //idx 1 holds all event data
 		String [] strAraEvents = strAraBegin[1].trim().split(Pattern.quote(optCSVSentinelLbl)); //idx 0 holds order event data string, idx 1 holds all opt event data string
@@ -396,9 +403,8 @@ class ProspectExample extends StraffSOMExample{
 	protected void initObjsData() {
 		orderEventsByDateMap = new TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>> (); //add link objs eventually	
 		optEventsByDateMap = new TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>>();
-		//occurrence structures - keyed by JP
-		orderJpOccurrences = new TreeMap<Integer, jpOccurrenceData>();
-		optJpOccurrences = new TreeMap<Integer, jpOccurrenceData>();
+		//occurrence structures - keyed by type, then by JP
+		JpOccurrences = new TreeMap<String, TreeMap<Integer, jpOccurrenceData>> ();
 	}//initObjsData
 
 	//any processing that must occur once all constituent data records are added to this example - must be called externally, before ftr vec is built
@@ -407,25 +413,78 @@ class ProspectExample extends StraffSOMExample{
 		buildOccurrenceStructs();	
 		//all jps holds all jps in this example
 		allJPs = buildJPListFromOccs();
+		if(allJPs.size() == 0) {//means there's no valid jp's 
+			if (OID.toUpperCase().equals("PR_000000019")) {
+				System.out.println("No jps exist for OID : " + OID + " so setting to be bad example : \n" + this.toString());
+			}
+			setIsBadExample(true);		}//no mapped jps
 	}//finalize
-
+	
+//	//build 
+//	public void processHoldOutOptRecs() {//private TreeMap<String, TreeMap<Date,ArrayList<JpgJpDataRecord>>> mapOfListsOfJpgsJpsToRebuild;
+//		if(!hasHoldOuts) {return;}
+//		//go through this and rebuild mapOfListsOfJpgsJpsToRebuild
+//		for (String typeOfEvents : mapOfListsOfJpgsJpsToRebuild.keySet()) {
+//			TreeMap<Date,Integer> rebuildsAllDates = mapOfListsOfJpgsJpsToRebuild.get(typeOfEvents);
+//			if (!typeOfEvents.equals("opts")){
+////				//if (rebuildsAllDates.size() > 0){this.mapData.dispMessage("processHoldOutOptRecs : possible error : type of events : " + typeOfEvents + " - non-opt event applied to -all- jps : verify : " + this.toString());} 
+////				for (Date date : rebuildsAllDates.keySet()) {
+////					ArrayList<JpgJpDataRecord> rebuilds = rebuildsAllDates.get(date);
+////					if (rebuilds.size() > 0) {mapData.dispMessage("processHoldOutOptRecs : : type of events : " + typeOfEvents + " - non-opt event applied to -all- jps  : # : " +rebuilds.size());	}
+////				}
+//				continue;
+//			} else {//rebuild opts records with empty lists to have all jps
+//				TreeMap<Integer, jpOccurrenceData> jpOccMap = JpOccurrences.get(typeOfEvents);
+//				for (Date date : rebuildsAllDates.keySet()) {
+//					Integer optVal = rebuildsAllDates.get(date);		
+//					mapData.buildAllJpgJpOccMap(jpOccMap, date, optVal);
+//					continue;
+//				}			
+//			}
+//		}	
+//	}//processHoldOutOptRecs
+	
+//	private boolean hasHoldOuts = false;
+//	public static int countofRebuild = 0;
+	//build occurence structure for type of events in this data, including aggregating build-later opt event data
+	private void _buildIndivOccStructs(String key, TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>> mapByDate ) {
+		TreeMap<Date, Integer> rebuildsAllDates = new TreeMap<Date,Integer>();		
+		TreeMap<Integer, jpOccurrenceData> occs = new TreeMap<Integer, jpOccurrenceData>();
+		for (TreeMap<Integer, StraffEvntTrainData> map : mapByDate.values()) {
+			for (StraffEvntTrainData ev : map.values()) {
+				Integer curOpt = rebuildsAllDates.get(ev.eventDate);
+				if(curOpt == null) {curOpt = -10;}
+				Integer[] rebuilds = new Integer[] {curOpt};
+				//hasHoldOuts = hasHoldOuts || ev.procJPOccForAllJps(occs, rebuilds, key);
+				ev.procJPOccForAllJps(occs, rebuilds, key);
+				if(rebuilds[0] > curOpt) {	rebuildsAllDates.put(ev.eventDate, rebuilds[0]);}
+			}			
+		}
+//		for (Integer rebuilds : rebuildsAllDates.values()) {
+//			countofRebuild += 1;
+//		}		
+		if(rebuildsAllDates.size()>0) {		mapOfListsOfJpgsJpsToRebuild.put(key, rebuildsAllDates);}
+		JpOccurrences.put(key, occs);
+	}//_buildIndivOccStructs
+	
 	//build occurence structures based on mappings - must be called once mappings are completed but before the features are built
 	private void buildOccurrenceStructs() { // should be executed when finished building both xxxEventsByDateMap(s)
 		//occurrence structures
-		orderJpOccurrences = new TreeMap<Integer, jpOccurrenceData>();
-		optJpOccurrences = new TreeMap<Integer, jpOccurrenceData>();
+		JpOccurrences = new TreeMap<String, TreeMap<Integer, jpOccurrenceData>> ();
 		//for orders and opts, pivot structure to build map holding occurrence records keyed by jp - must be done after all events are aggregated for each prospect
-		//for every date, for every event, aggregate occurences
-		for (TreeMap<Integer, StraffEvntTrainData> map : orderEventsByDateMap.values()) {for (StraffEvntTrainData ev : map.values()) {ev.procJPOccForAllJps(orderJpOccurrences);}}
-		for (TreeMap<Integer, StraffEvntTrainData> map : optEventsByDateMap.values()) {for (StraffEvntTrainData ev : map.values()) {ev.procJPOccForAllJps(optJpOccurrences);}}		
+		//for every date, for every event, aggregate occurences		
+		mapOfListsOfJpgsJpsToRebuild = new TreeMap<String, TreeMap<Date,Integer>>();
+		_buildIndivOccStructs("orders", orderEventsByDateMap);
+		_buildIndivOccStructs("opts", optEventsByDateMap);
+		
 	}//buildOccurrenceStructs	
 	
 	//check whether this prospect has a particular jp in either his prospect data, events or opts
 	//idxs : 0==whether present at all; 1==if prospect; 2==if any event; 3==if in an order; 4==if in an opt
 	public boolean[] hasJP(Integer _jp) {
 		boolean hasJP_prspct = (prs_JP == _jp),
-				hasJP_ordr =  (orderJpOccurrences.get(_jp) != null) ,
-				hasJP_opt = (optJpOccurrences.get(_jp) != null),
+				hasJP_ordr =  (JpOccurrences.get("orders").get(_jp) != null) ,
+				hasJP_opt = (JpOccurrences.get("opts").get(_jp) != null),
 				hasJP_ev = hasJP_ordr || hasJP_opt,
 				hasJP = hasJP_prspct || hasJP_ev;
 		boolean[] res = new boolean[] {hasJP, hasJP_prspct, hasJP_ev, hasJP_ordr,hasJP_opt};
@@ -437,8 +496,11 @@ class ProspectExample extends StraffSOMExample{
 		HashSet<Tuple<Integer,Integer>> res = new HashSet<Tuple<Integer,Integer>>();
 		//for prospect rec
 		if ((prs_JPGrp != 0) && (prs_JP != 0)) {res.add(new Tuple<Integer,Integer>(prs_JPGrp, prs_JP));}
-		for (jpOccurrenceData occ : orderJpOccurrences.values()) {		res.add(occ.getJpgJp());}		
-		for (jpOccurrenceData occ : optJpOccurrences.values()) {		res.add(occ.getJpgJp());}	
+		for(TreeMap<Integer, jpOccurrenceData> occs : JpOccurrences.values()) {
+			for (jpOccurrenceData occ :occs.values()) {res.add(occ.getJpgJp());}	
+		}
+//		for (jpOccurrenceData occ : JpOccurrences.get("orders").values()) {		res.add(occ.getJpgJp());}		
+//		for (jpOccurrenceData occ : JpOccurrences.get("opts").values()) {		res.add(occ.getJpgJp());}	
 		return res;
 	}
 	
@@ -489,27 +551,55 @@ class ProspectExample extends StraffSOMExample{
 	protected HashSet<Integer> buildJPListFromOccs(){
 		HashSet<Integer> jps = new HashSet<Integer>();
 		if (prs_JP > 0) {jps.add(prs_JP);}//if prospect jp specified, add this
-		for (Integer jp : orderJpOccurrences.keySet()) {jps.add(jp);}//add all order occs jps
-		for (Integer jp : optJpOccurrences.keySet()) {jps.add(jp);}//add all opt occs jps
+		for(TreeMap<Integer, jpOccurrenceData> occs : JpOccurrences.values()) {
+			for (Integer jp :occs.keySet()) {jps.add(jp);}	
+		}
+//		
+//		for (Integer jp : orderJpOccurrences.keySet()) {jps.add(jp);}//add all order occs jps
+//		for (Integer jp : optJpOccurrences.keySet()) {jps.add(jp);}//add all opt occs jps
 		return jps;
 	}
 	//take loaded data and convert to feature data via calc object
 	@Override
 	protected void buildFeaturesMap() {
 		//access calc object
-		if (allJPs.size() > 0) {ftrMap = map.ftrCalcObj.calcFeatureVector(this,allJPs);}
+		if (allJPs.size() > 0) {ftrMap = mapData.ftrCalcObj.calcFeatureVector(this,allJPs,JpOccurrences.get("orders"), JpOccurrences.get("opts"));}
 		else {ftrMap = new TreeMap<Integer, Float>();}
 	}//buildFeaturesMap
 	@Override
 	//standardize this feature vector
 	protected void buildStdFtrsMap() {		
-		if (allJPs.size() > 0) {stdFtrMap = map.calcStdFtrVector(this, allJPs);}
+		if (allJPs.size() > 0) {stdFtrMap = mapData.calcStdFtrVector(this, allJPs);}
 		else {stdFtrMap = new TreeMap<Integer, Float>();}
 	}//buildStdFtrsMap
 	
+	private String toStringDateMap(TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>> map, String mapName) {
+		String res = "\n# of " + mapName + " in Date Map (count of unique dates - multiple " + mapName + " per same date possible) : "+ map.size()+"\n";		
+		for (Date dat : map.keySet() ) {
+			res+="Date : " + dat+"\n";
+			TreeMap<Integer, StraffEvntTrainData> evMap = map.get(dat);
+			for (StraffEvntTrainData ev : evMap.values()) {	res += ev.toString();	}
+		}		
+		return res;
+	}//toStringDateMap	
+	
+	private String toStringOptOccMap(TreeMap<Integer, jpOccurrenceData> map, String mapName) {
+		String res = "\n# of jp occurences in " + mapName + " : "+ map.size()+"\n";	
+		for (Integer jp : map.keySet() ) {
+			jpOccurrenceData occ = map.get(jp);
+			res += occ.toString();			
+		}	
+		return res;		
+	}
+		//optJpOccurrences = new TreeMap<Integer, jpOccurrenceData>();
+	
 	@Override
 	public String toString() {	
-		String res = super.toString() + " | # of orders (count of unique dates) : "+ orderEventsByDateMap.size() + " | # of opt events (count of unique dates) : " + optEventsByDateMap.size();		
+		String res = super.toString();
+		res += toStringDateMap(orderEventsByDateMap, "orders");
+		res += toStringOptOccMap(JpOccurrences.get("orders"), "order occurences");
+		res += toStringDateMap(optEventsByDateMap, "opts");
+		res += toStringOptOccMap(JpOccurrences.get("opts"), "opt occurences");
 		return res;
 	}
 }//class prospectExample
@@ -591,14 +681,13 @@ class DispSOMMapExample extends StraffSOMExample{
 		for(Integer ftrIDX : _ftrs.keySet()) {
 			Float ftr = _ftrs.get(ftrIDX);
 			if(ftr >= ftrThresh) {	
-				Integer jp = map.jpByIdx[ftrIDX];
+				Integer jp = mapData.jpByIdx[ftrIDX];
 				allJPs.add(jp);
 				allJPFtrIDXs.add(ftrIDX);	
 				ftrMap.put(ftrIDX, ftr);
 				strongestFtrs.put(ftr, ""+jp);
 			}
-		}
-		
+		}		
  		//descriptive mouse-over label - top x jp's
 		labelDat = "JPs : ";
 		if (allJPs.size()== 0) {	labelDat += "None";	}
@@ -629,7 +718,7 @@ class DispSOMMapExample extends StraffSOMExample{
 
 	@Override
 	protected void buildStdFtrsMap() {	
-		if (allJPs.size() > 0) {stdFtrMap = map.calcStdFtrVector(this, allJPs);}
+		if (allJPs.size() > 0) {stdFtrMap = mapData.calcStdFtrVector(this, allJPs);}
 	}
 }//DispSOMMapExample
 
@@ -646,7 +735,7 @@ class SOMMapNodeExample extends StraffSOMExample{
 		super(_map, "MapNode_"+_mapNode.x+"_"+_mapNode.y);
 		ftrMap = new TreeMap<Integer, Float>();	
 		allJPs = buildJPsFromFtrAra(_ftrs, ftrThresh);
-		for (Integer jp : allJPs) {int idx = map.jpToFtrIDX.get(jp);ftrMap.put(idx, _ftrs[idx]);}
+		for (Integer jp : allJPs) {int idx = mapData.jpToFtrIDX.get(jp);ftrMap.put(idx, _ftrs[idx]);}
 		initMapNode( _mapNode);
 	}
 	public SOMMapNodeExample(SOMMapData _map,Tuple<Integer,Integer> _mapNode, String[] _strftrs) {
@@ -665,7 +754,7 @@ class SOMMapNodeExample extends StraffSOMExample{
 			if (val > ftrThresh) {
 				ftrVecSqMag+=val*val;
 				ftrMap.put(i, val);
-				allJPs.add(map.jpByIdx[i]);
+				allJPs.add(mapData.jpByIdx[i]);
 			}
 		}
 		ftrVecMag = (float) Math.sqrt(ftrVecSqMag);
@@ -674,7 +763,7 @@ class SOMMapNodeExample extends StraffSOMExample{
 	private void initMapNode(Tuple<Integer,Integer> _mapNode){
 		mapNodeLoc = _mapNode;
 		//this will never be scaled or normed...?
-		mapLoc = map.buildScaledLoc(mapNodeLoc);
+		mapLoc = mapData.buildScaledLoc(mapNodeLoc);
 		numMappedTEx = 0;
 		examplesBMU = new TreeMap<Double,StraffSOMExample>();		//defaults to small->large ordering	
 		//allJPs should be made by here
@@ -704,7 +793,7 @@ class SOMMapNodeExample extends StraffSOMExample{
 		if (allJPs.size() > 0) {
 			Integer destIDX;
 			for (Integer jp : allJPs) {
-				destIDX = map.jpToFtrIDX.get(jp);
+				destIDX = mapData.jpToFtrIDX.get(jp);
 				Float lb = minsAra[destIDX], 
 						diff = diffsAra[destIDX];
 				if (diff==0) {//same min and max
@@ -729,7 +818,7 @@ class SOMMapNodeExample extends StraffSOMExample{
 	@Override
 	public dataClass getLabel(){
 		if(numMappedTEx == 0){
-			map.dispMessage("Mapnode :"+mapNodeLoc.toString()+" has no mapped BMU examples.");
+			mapData.dispMessage("Mapnode :"+mapNodeLoc.toString()+" has no mapped BMU examples.");
 			return null;
 		}
 		return examplesBMU.firstEntry().getValue().getLabel();}
@@ -860,6 +949,18 @@ class jpOccurrenceData{
 	public Tuple<Integer, Integer> getJpgJp(){return new Tuple<Integer,Integer>(jpg, jp);}
 	
 	public TreeMap<Date, Tuple<Integer, Integer>> getOccurrenceMap(){return occurrences;}
+	
+	public String toString() {
+		String res = "JP : " + jp + " | JPGrp : " + jpg + "\n";
+		for (Date dat : occurrences.keySet()) {
+			Tuple<Integer, Integer> occData = occurrences.get(dat);
+			Integer opt = occData.y;
+			String optStr = "";
+			if ((-2 <= opt) && (opt <= 2)) {optStr = " | Opt : " + opt;} //is an opt occurence
+			res += "\t# occurences : " + occData.x + optStr+"\n";		
+		}
+		return res;
+	}
 		
 }//class jpOccurenceData
 
@@ -895,12 +996,21 @@ abstract class StraffEvntTrainData {
 	
 	//process JP occurence data for this event
 	//passed is ref to map of all occurrences of jps in this kind of event's data for a specific prospect
-	public void procJPOccForAllJps(TreeMap<Integer, jpOccurrenceData> jpOccMap) {
+	public void procJPOccForAllJps(TreeMap<Integer, jpOccurrenceData> jpOccMap,Integer[] araOfOptVals, String type) {
 		//for each existing JPDataRecord, process occurences 
+		//boolean hasHoldOuts = false;
 		for (JpgJpDataRecord rec : listOfJpgsJps) {
+			int opt = rec.getOptVal();
 			Integer jpg = rec.getJPG();
-			if(jpg == -2) {continue;}
-			ArrayList<Integer>jps = rec.getJPlist();
+			ArrayList<Integer> jps = rec.getJPlist();
+			if((jpg == -10) && (jps.get(0) == -9) && (opt <= 0)) {continue;}				//PR_000870572 has opt 1 empty jpg/jp list				
+//				if (opt <= 0) {continue;}				//don't consider a negative opt of all jps as an occurence for purposes of the occurrence map - occurence map is used to build training data, don't want to train off these folks' opts.
+//				//here means some kind of opt all that's not negative (not an opt out all).  User chose to opt for all jps, so probably has some relevance
+//				if(opt > araOfOptVals[0]) {		araOfOptVals[0] = opt;	}
+//				//this is an opt event with opt in/out for all jps - apply opt value in rec to all jps/jpgs
+//				//System.out.println("Ignoring opt event with only jpg==-2 and empty jps");
+//				continue;
+//			}
 			for (Integer jp : jps) {
 				jpOccurrenceData jpOcc = jpOccMap.get(jp);
 				if (jpOcc==null) {jpOcc = new jpOccurrenceData(jp, jpg);}
@@ -909,6 +1019,7 @@ abstract class StraffEvntTrainData {
 				jpOccMap.put(jp, jpOcc);
 			}			
 		}	
+		//return hasHoldOuts;
 	}//procJPOccForAllJps
 	 
 	public abstract void addEventDataFromCSVString(String _csvDataStr);
@@ -937,14 +1048,18 @@ abstract class StraffEvntTrainData {
 				System.out.println("Warning : Attempting to add a non-Opt event with an empty JPgroup-keyed JP list - event had no corresponding usable data");
 				return;
 			} else {										//empty jpg-jp array means apply to all
-				//use -2, -1 as sentinel value to denote executing an opt on all jpgs/jps - usually means opt out on everything
-				ArrayList<Integer>tmp=new ArrayList<Integer>(Arrays.asList(-1));
-				newEvMapOfJPAras.put(-2, tmp);				
+				//Adding an opt event with an empty JPgroup-keyed JP list - means apply opt value to all jps;
+				//use jpg -10, jp -9 as sentinel value to denote executing an opt on all jpgs/jps - usually means opt out on everything, but other opts possible
+				ArrayList<Integer>tmp=new ArrayList<Integer>(Arrays.asList(-9));
+				newEvMapOfJPAras.put(-10, tmp);				
 			}
 		}			
+		//-1 means this array is the list, in order, of JPGs in this eventrawdata.  if there's no entry then that means there's only 1 jpg in this eventrawdata
 		ArrayList<Integer> newJPGOrderArray = newEvMapOfJPAras.get(-1);
 		if(newJPGOrderArray == null) {//adding only single jpg, without existing preference order
 			newJPGOrderArray = new ArrayList<Integer> ();
+			Integer jpgPresent = newEvMapOfJPAras.firstKey();
+			//if -2 then this means this is an empty list, means applies to all jps
 			newJPGOrderArray.add(newEvMapOfJPAras.firstKey());
 		} 	
 		JpgJpDataRecord rec;
@@ -977,7 +1092,8 @@ abstract class StraffEvntTrainData {
 
 	@Override
 	public String toString() {
-		String res = "EventID : " + eventID + "|Event Date : " +  eventDate + "|Event Type : " +  eventType;
+		String res = "EventID : " + eventID + "|Event Date : " +  eventDate + "|Event Type : " +  eventType + "\n";
+		for (JpgJpDataRecord jpRec : listOfJpgsJps) { res += "\t" + jpRec.toString()+"\n";}
 		return res;
  	}
 	
@@ -1101,7 +1217,7 @@ class JpgJpDataRecord implements Comparable<JpgJpDataRecord>{
 
 	@Override
 	public String toString() {
-		String res = "JPG:"+JPG+"\t|Priority:"+optPriority+"\t|opt:"+optVal+"\t|JPList: [";
+		String res = "JPG:"+JPG+" |Priority:"+optPriority+" |opt:"+optVal+" |JPList: [";
 		int szm1 = JPlist.size()-1;
 		for (int i=0; i<szm1;++i) {res += JPlist.get(i)+",";}
 		res += JPlist.get(szm1)+"]";
