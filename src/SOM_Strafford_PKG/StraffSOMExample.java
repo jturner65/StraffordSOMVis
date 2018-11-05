@@ -1176,7 +1176,6 @@ class OptEventTrainData extends StraffEvntTrainData{
 		super(ev);		
 		addEventDataFromEventObj(ev);}	//put in child ctor in case child-event specific data needed for training	
 	
-	
 	public OptEventTrainData(Integer _evIDStr, String _evTypeStr, String _evDateStr, String _evntStr){
 		super(_evIDStr, _evTypeStr, _evDateStr);
 		addEventDataFromCSVString(_evntStr);}	//put in child ctor in case child-event specific data needed for training		
