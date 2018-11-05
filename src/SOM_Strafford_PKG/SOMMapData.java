@@ -8,17 +8,19 @@ import java.util.concurrent.*;
 //this class holds the data describing a SOM and the data used to both build and query the som
 
 public class SOMMapData {
-	//source directory for reading all source csv files, writing intermediate outputs, executing somoclu and writing results
+	//source directory for reading all source csv files, writing intermediate outputs, executing SOM_MAP and writing results
 	//TODO : move this to main java stub, pass it around via ctor
-	public static final String straffBasefDir = "F:" + File.separator + "StraffordProject" + File.separator;
-	//public final String straffBasefDir = ".." + File.separator + "StraffordProject" + File.separator;
+	//public static final String straffBasefDir = "F:" + File.separator + "StraffordProject" + File.separator;
+	public final String straffBasefDir = "StraffordProject" + File.separator;
 	//calcFileWeights is file holding config for calc object
 	public static final String calcWtFileName = "WeightEqConfig.csv";
 
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	
-	//description of somoclu exe params
-	private somocluDat SOMExeDat;	
+	//description of SOM_MAP exe params
+	private SOM_MAPDat SOMExeDat;	
+	//string to invoke som executable - platform dependent
+	private final String SOM_Map_EXECSTR;
 	//public TreeMap<Float,ArrayList<Tuple<Integer,Integer>>> MapSqMagToFtrs;		//precalculate the squared sum of all ftrs to facilitate lookup for locations of points on map
 	public final Calendar now;
 	//all nodes of som map, keyed by node location
@@ -54,17 +56,22 @@ public class SOMMapData {
 			prospectDataLoadedIDX	= 4,			//raw prospect data has been loaded but not yet processed
 			optDataLoadedIDX		= 5,			//raw opt data has been loaded but not processed
 			orderDataLoadedIDX		= 6,			//raw order data loaded not proced
-			rawDataProcedIDX		= 7,			//all raw data has been loaded and processed into StraffSOMExamples
-			lrnDataSavedIDX 		= 8,			//all current prospect data has been saved as a training data file for SOM (.lrn format)
-			svmDataSavedIDX 		= 9,			//sparse data format using .svm file descriptions (basically a map with a key:value pair of ftr index : ftr value
-			testDataSavedIDX		= 10;
+			linkDataLoadedIDX		= 7,			//raw link data loaded not proced
+			rawDataProcedIDX		= 8,			//all raw data has been loaded and processed into StraffSOMExamples
+			lrnDataSavedIDX 		= 9,			//all current prospect data has been saved as a training data file for SOM (.lrn format)
+			svmDataSavedIDX 		= 10,			//sparse data format using .svm file descriptions (basically a map with a key:value pair of ftr index : ftr value
+			testDataSavedIDX		= 11;
 
-	public static final int numFlags = 11;	
+	public static final int numFlags = 12;	
 	
-	//data in files created by somoclu separated by spaces
+	//size of intermediate per-OID record csv files : 
+	public static final int preProcDatPartSz = 50000;
+	//data in files created by SOM_MAP separated by spaces
 	public static final String SOM_FileToken = " ", csvFileToken = "\\s*,\\s*";	
 	//subdir to put preproc data files
 	public static final String straffPreProcSubDir = "PreprocData" + File.separator;
+	//subdir to hold source csv files
+	public static final String straffSourceCSVSubDir = "source_csvs" + File.separator;
 	//subdir for all sql info - connect config file
 	public static final String straffSQLProcSubDir = "Sql"+ File.separator;
 	//subdir for all SOM functionality
@@ -76,11 +83,11 @@ public class SOMMapData {
 	public String SOMDataDir;
 	
 	//idxs for each type of data in arrays holding relevant data info
-	public static final int prspctIDX = 0, orderEvntIDX = 1, optEvntIDX = 2;
+	public static final int prspctIDX = 0, orderEvntIDX = 1, optEvntIDX = 2, linkEvntIDX = 3;
 	//file names of each type of file
-	public final String[] straffDataFileNames = new String[] {"prospect_objects", "order_event_objects", "opt_event_objects"};
+	public final String[] straffDataFileNames = new String[] {"prospect_objects", "order_event_objects", "opt_event_objects", "link_event_objects"};
 	//list of idxs related to each table for data
-	public static final int[] straffObjFlagIDXs = new int[] {prospectDataLoadedIDX, orderDataLoadedIDX, optDataLoadedIDX};
+	public static final int[] straffObjFlagIDXs = new int[] {prospectDataLoadedIDX, orderDataLoadedIDX, optDataLoadedIDX, linkDataLoadedIDX};
 	//total # of source data types
 	public static final int numStraffDataTypes = straffObjFlagIDXs.length;
 	
@@ -107,8 +114,6 @@ public class SOMMapData {
 	private TreeMap<Integer, Integer> jpEvSeenCount;// = new TreeMap<Integer, Integer>();//jpEvSeen
 	//reference to ids and counts of all jps seen only in prospect record data
 	private TreeMap<Integer, Integer> jpPrspctSeenCount;// = new TreeMap<Integer, Integer>();//jpEvSeen
-		
-	
 	//map from jp to idx in resultant feature vector
 	public TreeMap<Integer, Integer> jpToFtrIDX;// = new TreeMap<Integer, Integer>();
 	//map from jpgroup to integer
@@ -139,14 +144,21 @@ public class SOMMapData {
 	private float[] mapDims;
 	
 	//used by UI, ignored if NULL (passed by command line program)
-	public SOM_StraffordMain pa;
+	public SOM_StraffordMain p;
 	public mySOMMapUIWin win;				//owning window
 	
 	private ExecutorService th_exec;	//to access multithreading
 	private final int numUsableThreads;		//# of threads usable by the application
 	
 	public SOMMapData(SOM_StraffordMain _pa, mySOMMapUIWin _win, ExecutorService _th_exec, float[] _dims) {
-		pa=_pa; win=_win;th_exec=_th_exec;
+		p=_pa; win=_win;th_exec=_th_exec;
+		//find platform this is executing on
+		String osName = System.getProperty("os.name");
+		dispMessage("SOMMapData::Constructor : OS this application is running on : "  + osName);
+		//set invoking string for map executable - is platform dependent
+		String execStr = "straff_SOM";
+		if (osName.toLowerCase().contains("windows")) {execStr += ".exe";	}
+		SOM_Map_EXECSTR = execStr;
 		//want # of usable background threads.  Leave 2 for primary process (and potential draw loop)
 		numUsableThreads = Runtime.getRuntime().availableProcessors() - 2;
 		initFlags();
@@ -157,7 +169,7 @@ public class SOMMapData {
 		prospectMap = new ConcurrentSkipListMap<String, ProspectExample>();		
 		now = Calendar.getInstance();
 		try {
-			straffObjLoaders = new Class[] {Class.forName("SOM_Strafford_PKG.ProspectDataLoader"),  Class.forName("SOM_Strafford_PKG.OrderEventDataLoader"),Class.forName("SOM_Strafford_PKG.OptEventDataLoader")};
+			straffObjLoaders = new Class[] {Class.forName("SOM_Strafford_PKG.ProspectDataLoader"),  Class.forName("SOM_Strafford_PKG.OrderEventDataLoader"),Class.forName("SOM_Strafford_PKG.OptEventDataLoader"),Class.forName("SOM_Strafford_PKG.LinkEventDataLoader")};
 		} catch (Exception e) {
 			dispMessage("Failed to instance straffObjLoaders : " + e);			
 		}
@@ -217,7 +229,7 @@ public class SOMMapData {
 	public String getSOMLocClrImgForJPFName(int jpIDX) {return "jp_"+jpByIdx[jpIDX]+"_"+StraffordSOMLrnFN[6];}
 	
 
-	//build new somoclu map using UI-entered values, then load resultant data
+	//build new SOM_MAP map using UI-entered values, then load resultant data
 	//with maps of required SOM exe params
 	protected void buildNewSOMMap(String SOM_Dir, boolean mapLoadFtrBMUsIDX, HashMap<String, Integer> mapInts, HashMap<String, Float> mapFloats, HashMap<String, String> mapStrings){
 		String lrnFileName = getStraffMapLRNFileName(), 		//dense training data .lrn file
@@ -228,8 +240,8 @@ public class SOMMapData {
 				
 				outFilePrfx = getStraffMapOutFileBase() + "_x"+mapInts.get("mapCols")+"_y"+mapInts.get("mapRows")+"_k"+mapInts.get("mapKType");
 		//build new map descriptor and execute
-		//structure holding somoclu specific cmd line args and file names and such
-		somocluDat SOMExecDat = new somocluDat(SOM_Dir, mapInts,mapFloats, mapStrings, lrnFileName, svmFileName,  outFilePrfx);
+		//structure holding SOM_MAP specific cmd line args and file names and such
+		SOM_MAPDat SOMExecDat = new SOM_MAPDat(SOM_Dir, SOM_Map_EXECSTR, mapInts,mapFloats, mapStrings, lrnFileName, svmFileName,  outFilePrfx);
 		dispMessage("SOM map descriptor : " + SOMExecDat + " exec str : ");
 		dispMessageAra(SOMExecDat.execStrAra(),2);//2 strings per line
 		//launch in a thread?
@@ -287,6 +299,18 @@ public class SOMMapData {
 		} catch (IOException e) {	e.printStackTrace();}
 		finally {			if (pw != null) {pw.close();}}
 	}//saveStrings
+
+	public void saveStrings(String fname, ArrayList<String> data) {
+		PrintWriter pw = null;
+		try {
+		     File file = new File(fname);
+		     FileWriter fw = new FileWriter(file, false);
+		     pw = new PrintWriter(fw);
+		     for (int i=0;i<data.size();++i) { pw.println(data.get(i));}
+		     
+		} catch (IOException e) {	e.printStackTrace();}
+		finally {			if (pw != null) {pw.close();}}
+	}//saveStrings
 	
 	//only appropriate if using UI
 	public void setMapImgClrs(){if (win != null) {win.setMapImgClrs();} else {dispMessage("Display window doesn't exist, can't build images; ignoring.");}}
@@ -324,7 +348,7 @@ public class SOMMapData {
 		return res;
 	}//loadFileContents
 	
-	//launch process to exec somoclu
+	//launch process to exec SOM_MAP
 	public void runMap(String[] cmdExecStr) throws IOException{
 		boolean showDebug = getFlag(debugIDX);
 		//http://stackoverflow.com/questions/10723346/why-should-avoid-using-runtime-exec-in-java		
@@ -352,8 +376,8 @@ public class SOMMapData {
 		String result = strbld.toString();//result of running map TODO save to log?
 		dispMessage("runMap Finished");
 	}
-	//Build map from data by aggregating all training data, building SOM exec string from UI input, and calling OS cmd to run somoclu
-	private boolean buildNewMap(somocluDat _dat){
+	//Build map from data by aggregating all training data, building SOM exec string from UI input, and calling OS cmd to run SOM_MAP
+	private boolean buildNewMap(SOM_MAPDat _dat){
 		SOMExeDat = _dat;				
 		try {	runMap(SOMExeDat.execStrAra());	} 
 		catch (IOException e){	dispMessage("Error running map : " + e.getMessage());	return false;}		
@@ -511,10 +535,10 @@ public class SOMMapData {
 		dispLoadMessage(baseFName, fromFiles);
 		String dataLocStrData = "";//fully qualified path to either csv of data or csv of connection string info for sql to data
 		if (fromFiles) {
-			dataLocStrData = straffBasefDir + baseFName + File.separator + baseFName+".csv";
+			dataLocStrData = straffBasefDir + straffSourceCSVSubDir + baseFName + File.separator + baseFName+".csv";
 		} else {
 			dataLocStrData = straffBasefDir + straffSQLProcSubDir + "sqlConnData_"+baseFName+".csv";
-			dispMessage("Need to construct appropriate sql connection info and put in text config file : " + dataLocStrData);
+			dispMessage("SOMMapData::getLoadRawDataStrs : Need to construct appropriate sql connection info and put in text config file : " + dataLocStrData);
 		}
 		return new String[] {baseFName,dataLocStrData};
 	}//getLoadRawDataStrs
@@ -588,19 +612,20 @@ public class SOMMapData {
 
 	//write all prospect map data to a csv to be able to be reloaded to build training data from, so we don't have to re-read database every time
 	public void saveAllProspectMapData(boolean eventsOnly) {
-		dispMessage("Saving all prospect map data");
+		dispMessage("SOMMapData::saveAllProspectMapData : Saving all prospect map data : " + prospectMap.size() + " examples to save.");
 		String[] saveDestFNamePrefixAra = buildPrspctDataCSVFNames(eventsOnly);
 		ArrayList<ArrayList<String>> csvRes = new ArrayList<ArrayList<String>>();
 		ArrayList<String> csvResTmp = new ArrayList<String>();		
 		int counter = 0;
-		int numRecsPerPartion = 50000;
 		ProspectExample ex1 = prospectMap.get(prospectMap.firstKey());
 		String hdrStr = ex1.getRawDescColNamesForCSV();
 		csvResTmp.add( hdrStr);
+		int nameCounter = 0;
 		for (ProspectExample ex : prospectMap.values()) {			
 			csvResTmp.add(ex.getRawDescrForCSV());
 			++counter;
-			if(counter % numRecsPerPartion ==0) {
+			if(counter % preProcDatPartSz ==0) {
+				dispMessage("Done Building String Array : " +(nameCounter++));
 				counter = 0;
 				csvRes.add(csvResTmp); 
 				csvResTmp = new ArrayList<String>();
@@ -609,15 +634,17 @@ public class SOMMapData {
 		}
 		csvRes.add(csvResTmp);
 		//save array of arrays of strings, partitioned and named so that no file is too large
-		int nameCounter = 0;
-		for (ArrayList<String> csvResSubAra : csvRes) {			
-			saveStrings(saveDestFNamePrefixAra[0]+"_"+nameCounter+".csv", csvResSubAra.toArray(new String[0]));
+		nameCounter = 0;
+		for (ArrayList<String> csvResSubAra : csvRes) {		
+			dispMessage("Saving String array : " +nameCounter);
+			//saveStrings(saveDestFNamePrefixAra[0]+"_"+nameCounter+".csv", csvResSubAra.toArray(new String[0]));
+			saveStrings(saveDestFNamePrefixAra[0]+"_"+nameCounter+".csv", csvResSubAra);
 			++nameCounter;
 		}
 		//save the data in a format file
 		String[] data = new String[] {"Number of file partitions for " + saveDestFNamePrefixAra[1] +" data : "+ nameCounter + "\n"};
 		saveStrings(saveDestFNamePrefixAra[0]+"_format.csv", data);		
-		dispMessage("Finished saving all prospect map data");
+		dispMessage("SOMMapData::saveAllProspectMapData : Finished saving all prospect map data");
 	}//saveAllProspectMapData	
 	
 	private void incrJPCounts(Integer jp, TreeMap<Integer, Integer> map) {
@@ -637,13 +664,11 @@ public class SOMMapData {
 		//we need the jp-jpg counts and relationships dictated by the data by here.
 		setJPDataFromProspectData(map);
 		dispMessage("End setJPDateFromProspectData");// | Start processHoldOutOptRecs");		
-//		//once all jp-jpg data has been set, go through all opt records that require building occurences for all jp/jpgs (positive opts with empty lists of requests)
-//		for (ProspectExample ex : map.values()) {
-//			ex.processHoldOutOptRecs();
-//		}
+//		//NOT DONE (changed calc to handle this instead) once all jp-jpg data has been set, go through all opt records that require building occurences for all jp/jpgs (positive opts with empty lists of requests)
+//		for (ProspectExample ex : map.values()) {ex.processHoldOutOptRecs();}
 //		dispMessage("End processHoldOutOptRecs");
 		for (ProspectExample ex : map.values()) {
-			if (ex.OID.toUpperCase().equals("PR_000000019")) {dispMessage("Prospect Example buildFeatureVector for prospect with key pr_000000019");}//pr_000000019 is a record that only has an opt out all event
+			//if (ex.OID.toUpperCase().equals("PR_000000019")) {dispMessage("Prospect Example buildFeatureVector for prospect with key pr_000000019");}//pr_000000019 is a record that only has an opt out all event
 			ex.buildFeatureVector();}
 		//now get mins and diffs from calc object
 		diffsVals = ftrCalcObj.getDiffsBndsAra();
@@ -695,8 +720,7 @@ public class SOMMapData {
 		dispMessage("Saving data to training file.");
 		//set inputdata array to be all prospect map examples
 		inputData = prospectMap.values().toArray(new StraffSOMExample[0]);			
-		numTrainData = (int) (inputData.length * testTrainPartition);
-		
+		numTrainData = (int) (inputData.length * testTrainPartition);		
 		
 		numTestData = inputData.length - numTrainData;
 		//trainData, inputData, testData;
@@ -767,7 +791,7 @@ public class SOMMapData {
 				
 				outFilePrfx = getStraffMapOutFileBase() + "_x10_y10_k2";
 		//build new map descriptor and execute
-		//structure holding somoclu specific cmd line args and file names and such
+		//structure holding SOM_MAP specific cmd line args and file names and such
 		//now load new map data and configure SOMMapData obj to hold all appropriate data
 		/**
 		 * load data to represent map results
@@ -858,6 +882,52 @@ public class SOMMapData {
 		ftrCalcObj = new StraffWeightCalc(this, calcDirName + calcWtFileName);
 	}//setJPDataFromProspectData
 	
+	//process all events into training examples
+	private void procRawEventData(ConcurrentSkipListMap<String, ProspectExample> tmpProspectMap, boolean saveBadRecs) {			
+		
+		for (int idx = 1; idx <straffDataFileNames.length;++idx) {
+			ArrayList<BaseRawData> events = rawDataArrays.get(straffDataFileNames[idx]);
+			String eventType = straffDataFileNames[idx].split("_")[0];		
+			String eventBadFName = straffBasefDir + straffDataFileNames[idx] +"_bad_OIDs.csv";		
+			ArrayList<String> badEventOIDs = new ArrayList<String>();
+			HashSet<String> uniqueBadEventOIDs = new HashSet<String>();
+			
+			if (idx == optEvntIDX){
+				//to monitor bad event formats - events with OIDs that are not found in prospect DB data
+				TreeMap<String, Integer> badOptOIDsOps = new TreeMap<String, Integer>();		
+				for (BaseRawData obj : events) {
+					ProspectExample ex = tmpProspectMap.get(obj.OID);
+					if (ex == null) {
+						if (saveBadRecs) {//means no prospect object corresponding to the OID in this event
+							badEventOIDs.add(obj.OID);
+							uniqueBadEventOIDs.add(obj.OID);
+							badOptOIDsOps.put(obj.OID, ((OptEvent)obj).getOptType());
+						}
+						continue;}
+					ex.addObj(obj, idx);
+				}//for every event
+				
+			} else {
+				for (BaseRawData obj : events) {
+					ProspectExample ex = tmpProspectMap.get(obj.OID);
+					if (ex == null) {
+						if (saveBadRecs) {//means no prospect object corresponding to the OID in this event
+							badEventOIDs.add(obj.OID);
+							uniqueBadEventOIDs.add(obj.OID);
+						}
+						continue;}
+					ex.addObj(obj, idx);
+				}//for every event
+			}
+			
+			if (saveBadRecs && (badEventOIDs.size() > 0)) {
+				saveStrings(eventBadFName, uniqueBadEventOIDs.toArray(new String[0]));		
+				dispMessage("SOMMapData::procRawEventData : # of "+eventType+" events without corresponding prospect records : "+badEventOIDs.size() + " | # Unique bad "+eventType+" event prospect OID refs (missing OIDs in prospect) : "+uniqueBadEventOIDs.size());
+			}
+		}
+	}//procRawEventData
+	
+	
 	//this will go through all the prospects, opts, and events and build a map of prospectExample keyed by prospect OID and holding all the known data
 	private void procRawLoadedData(boolean eventsOnly, boolean appendToExistingData){
 		if(appendToExistingData) {
@@ -878,52 +948,56 @@ public class SOMMapData {
 		for (BaseRawData prs : prospects) {
 			 ProspectExample ex = prospectMap.get(prs.OID);
 			 if (ex == null) {ex = new ProspectExample(this, (prospectData) prs);}
+			 else {dispMessage("SOMMapData::procRawLoadedData : Prospect with OID : "+  prs.OID + " existed in map already and was replaced.");}
 			 tmpProspectMap.put(ex.OID, ex);
-			 //if (ex.OID.toUpperCase().equals("US_000060959")) {dispMessage("Prospect Example loaded with key US_000060959");	 }//US_000060959 is a record with opt out of specific jps
 		}
+		procRawEventData(tmpProspectMap, true);
+//		//to monitor bad event formats - events with OIDs that are not found in prospect DB data
+//		TreeMap<String, Integer> badOptOIDsOps = new TreeMap<String, Integer>();		
+//		//now add order events
+//		String ordrBadFName = straffBasefDir + straffDataFileNames[orderEvntIDX] +"_bad_OIDs.csv";		
+//		ArrayList<String> badOrdrOIDs = new ArrayList<String>();
+//		ArrayList<BaseRawData> orders = rawDataArrays.get(straffDataFileNames[orderEvntIDX]);
+//		HashSet<String> uniqueBadOrderOIDs = new HashSet<String>();
+//		for (BaseRawData obj : orders) {
+//			ProspectExample ex = tmpProspectMap.get(obj.OID);
+//			if (ex == null) {//means no prospect object corresponding to the OID in this event
+//				badOrdrOIDs.add(obj.OID);
+//				uniqueBadOrderOIDs.add(obj.OID);
+//				continue;}
+//			ex.addOrderObj((OrderEvent) obj);
+//		}
+//		//now add opt events
+//		String optBadFName = straffBasefDir + straffDataFileNames[optEvntIDX] +"_bad_OIDs.csv";
+//		ArrayList<String> badOptOIDs = new ArrayList<String>();
+//		ArrayList<BaseRawData> opts = rawDataArrays.get(straffDataFileNames[optEvntIDX]);
+//		HashSet<String> uniqueBadOptOIDs = new HashSet<String>();		
+//		for (BaseRawData obj : opts) {
+//			ProspectExample ex = tmpProspectMap.get(obj.OID);
+//			if (ex == null) {//means no prospect object corresponding to the OID in this event
+//				badOptOIDs.add(obj.OID);
+//				uniqueBadOptOIDs.add(obj.OID);		
+//				badOptOIDsOps.put(obj.OID, ((OptEvent)obj).getOptType());
+//				continue;}			
+//			//if (ex.OID.toUpperCase().equals("US_000060959")) {dispMessage("Prospect Example opts proced for prospect with key US_000060959 : "+obj.toString());	 }//US_000060959 is a record with opt out of specific jps
+//			ex.addOptObj((OptEvent) obj);					
+//		}		
+//		if (badOrdrOIDs.size() > 0) {saveStrings(ordrBadFName, uniqueBadOrderOIDs.toArray(new String[0]));		}
+//		if (badOptOIDs.size() > 0) {saveStrings(optBadFName, uniqueBadOptOIDs.toArray(new String[0]));		}
+//		int numMissingGoodOpts = 0;
+//		for(String OID : badOptOIDsOps.keySet()) {
+//			Integer opt = badOptOIDsOps.get(OID);
+//			if (opt > -2) {++numMissingGoodOpts;}
+//		}
+//		
+//		dispMessage("# bad orders : "+badOrdrOIDs.size()+"| # bad opts : " + badOptOIDs.size());
+//		dispMessage("# unique bad orders : "+uniqueBadOrderOIDs.size()+"| # unique bad opts : " + uniqueBadOptOIDs.size()+" | # of opt records with opt > -2: "+numMissingGoodOpts);
 		
-		//to monitor bad event formats - events with OIDs that are not found in prospect DB data
-		String optBadFName = straffBasefDir + straffDataFileNames[optEvntIDX] +"_bad_OIDs.csv";
-		String ordrBadFName = straffBasefDir + straffDataFileNames[orderEvntIDX] +"_bad_OIDs.csv";		
-		ArrayList<String> badOrdrOIDs = new ArrayList<String>(), badOptOIDs = new ArrayList<String>();
-		HashSet<String> uniqueBadOrderOIDs = new HashSet<String>(),uniqueBadOptOIDs = new HashSet<String>();		
-		TreeMap<String, Integer> badOptOIDsOps = new TreeMap<String, Integer>();
-		
-		//now add order events
-		ArrayList<BaseRawData> orders = rawDataArrays.get(straffDataFileNames[orderEvntIDX]);
-		for (BaseRawData obj : orders) {
-			ProspectExample ex = tmpProspectMap.get(obj.OID);
-			if (ex == null) {//means no prospect object corresponding to the OID in this event
-				badOrdrOIDs.add(obj.OID);
-				uniqueBadOrderOIDs.add(obj.OID);
-				continue;}
-			ex.addOrderObj((OrderEvent) obj);
-		}
-		//now add opt events
-		ArrayList<BaseRawData> opts = rawDataArrays.get(straffDataFileNames[optEvntIDX]);
-		for (BaseRawData obj : opts) {
-			ProspectExample ex = tmpProspectMap.get(obj.OID);
-			if (ex == null) {//means no prospect object corresponding to the OID in this event
-				badOptOIDs.add(obj.OID);
-				uniqueBadOptOIDs.add(obj.OID);		
-				badOptOIDsOps.put(obj.OID, ((OptEvent)obj).getOptType());
-				continue;}			
-			//if (ex.OID.toUpperCase().equals("US_000060959")) {dispMessage("Prospect Example opts proced for prospect with key US_000060959 : "+obj.toString());	 }//US_000060959 is a record with opt out of specific jps
-			ex.addOptObj((OptEvent) obj);					
-		}	
 		//finalize each prospect record, aggregate data-driven static vals, rebuild ftr vectors
 		finishProspectBuild(tmpProspectMap);
+
 		
-		if (badOrdrOIDs.size() > 0) {saveStrings(ordrBadFName, uniqueBadOrderOIDs.toArray(new String[0]));		}
-		if (badOptOIDs.size() > 0) {saveStrings(optBadFName, uniqueBadOptOIDs.toArray(new String[0]));		}
-		int numMissingGoodOpts = 0;
-		for(String OID : badOptOIDsOps.keySet()) {
-			Integer opt = badOptOIDsOps.get(OID);
-			if (opt > -2) {++numMissingGoodOpts;}
-		}
 		
-		dispMessage("# bad orders : "+badOrdrOIDs.size()+"| # bad opts : " + badOptOIDs.size());
-		dispMessage("# unique bad orders : "+uniqueBadOrderOIDs.size()+"| # unique bad opts : " + uniqueBadOptOIDs.size()+" | # of opt records with opt > -2: "+numMissingGoodOpts);
 		
 		//save all data here,clear rawDataArrays, reset raw data array flags
 		//build actual prospect map only from prospectExamples that hold trainable information
@@ -931,21 +1005,7 @@ public class SOMMapData {
 		if(eventsOnly) {//only records with events will be used to train
 			for (String OID : tmpProspectMap.keySet()) {
 				ProspectExample ex = tmpProspectMap.get(OID);
-				if(ex.OID.equals("pr_000000019")) {
-					System.out.print("Testing if pr_000000019 is a good 'events only' example  : ");
-					
-				}
-				if (ex.isTrainableRecordEvent()) {		
-					if(ex.OID.equals("pr_000000019")) {
-						System.out.println("Test of pr_000000019 came back true - is a trainable example");						
-					}					
-					prospectMap.put(OID, ex);			
-				} else {
-					if(ex.OID.equals("pr_000000019")) {
-						System.out.println("Test of pr_000000019 came back false - is not a trainable example");						
-					}		
-				}
-				
+				if (ex.isTrainableRecordEvent()) {			prospectMap.put(OID, ex);		} 
 			}
 		} else {//any jpgs/jps present will be used to train
 			for (String OID : tmpProspectMap.keySet()) {
@@ -1084,7 +1144,7 @@ public class SOMMapData {
 		}
 	}
 	public void dispMessage(String msg) {
-		if (pa == null) {System.out.println(msg);} else {pa.outStr2Scr(msg);}
+		if (p == null) {System.out.println(msg);} else {p.outStr2Scr(msg);}
 	}//dispMessage
 	
 
@@ -1147,9 +1207,10 @@ public class SOMMapData {
 	}	
 }//SOMMapData
 
-//class to hold the data that defines a somoclu map execution
-class somocluDat{
-	private String execDir;			//somoclu execution directory
+//class to hold the data that defines a SOM_MAP map execution
+class SOM_MAPDat{
+	private String execDir;			//SOM_MAP execution directory
+	private String execStr;
 	private HashMap<String, Integer> mapInts;			// mapCols (x), mapRows (y), mapEpochs, mapKType, mapStRad, mapEndRad;
 	private HashMap<String, Float> mapFloats;			// mapStLrnRate, mapEndLrnRate;
 	private HashMap<String, String> mapStrings;			// mapGridShape, mapBounds, mapRadCool, mapNHood, mapLearnCool;	
@@ -1158,8 +1219,9 @@ class somocluDat{
 			outFilesPrefix;			//output from map prefix
 	private boolean isSparse;
 	
-	public somocluDat(String _SOM_Dir, HashMap<String, Integer> _mapInts, HashMap<String, Float> _mapFloats, HashMap<String, String> _mapStrings, String _trndDenseFN, String _trndSparseFN, String _outPfx){
+	public SOM_MAPDat(String _SOM_Dir, String _execStr, HashMap<String, Integer> _mapInts, HashMap<String, Float> _mapFloats, HashMap<String, String> _mapStrings, String _trndDenseFN, String _trndSparseFN, String _outPfx){
 		execDir = _SOM_Dir;
+		execStr = _execStr;
 		mapInts = _mapInts;
 		isSparse = (mapInts.get("mapKType") > 1);//0 and 1 are dense cpu/gpu, 2 is sparse cpu
 		mapFloats = _mapFloats;
@@ -1169,9 +1231,9 @@ class somocluDat{
 		outFilesPrefix = _outPfx;
 	}
 	
-	//build execution string for somoclu
+	//build execution string for SOM_MAP
 	public String[] execStrAra(){
-		String[] res = new String[]{execDir, "somoclu.exe",
+		String[] res = new String[]{execDir, execStr,
 				"-k",""+mapInts.get("mapKType"),"-x",""+mapInts.get("mapCols"),"-y",""+mapInts.get("mapRows"), "-e",""+mapInts.get("mapEpochs"),"-r",""+mapInts.get("mapStRad"),"-R",""+mapInts.get("mapEndRad"),
 				"-l",""+String.format("%.4f",mapFloats.get("mapStLrnRate")),"-L",""+String.format("%.4f",mapFloats.get("mapEndLrnRate")), 
 				"-m",""+mapStrings.get("mapBounds"),"-g",""+mapStrings.get("mapGridShape"),"-n",""+mapStrings.get("mapNHood"), "-T",""+mapStrings.get("mapLearnCool"), 
@@ -1184,7 +1246,7 @@ class somocluDat{
 	
 	@Override
 	public String toString(){
-		String res = "Map config : Somoclu Dir : " + execDir +"\n";
+		String res = "Map config : SOM_MAP Dir : " + execDir +"\n";
 		res += "Kernel(k) : "+mapInts.get("mapKType") + "\t#Cols : " + mapInts.get("mapCols") + "\t#Rows : " + mapInts.get("mapRows") + "\t#Epochs : " + mapInts.get("mapEpochs") + "\tStart Radius : " +mapInts.get("mapStRad") + "\tEnd Radius : " + +mapInts.get("mapEndRad")+"\n";
 		res += "Start Learning Rate : " + String.format("%.4f",mapFloats.get("mapStLrnRate"))+"\tEnd Learning Rate : " + String.format("%.4f",mapFloats.get("mapEndLrnRate"))+"\n";
 		res += "Boundaries : "+mapStrings.get("mapBounds") + "\tGrid Shape : "+mapStrings.get("mapGridShape")+"\tNeighborhood Function : " + mapStrings.get("mapNHood") + "\nLearning Cooling: " + mapStrings.get("mapLearnCool") + "\tRadius Cooling : "+ mapStrings.get("mapRadCool")+"\n";		
@@ -1192,7 +1254,7 @@ class somocluDat{
 		return res;
 	}
 	
-}//somocluDat
+}//SOM_MAPDat
 
 /////////////////////////////////////////////////////////////////////
 //class holding data about a som feature

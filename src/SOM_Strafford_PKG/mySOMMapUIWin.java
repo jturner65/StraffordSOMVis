@@ -71,7 +71,7 @@ public class mySOMMapUIWin extends myDispWindow {
 	public final int numGUIObjs = 18;	
 	
 	private double[] uiVals;				//raw values from ui components
-	//source datapoints to be used to build files to send to somoclu
+	//source datapoints to be used to build files to send to SOM_MAP
 	//public dataPoint[] straffTrainData, straffTestData, straffSmplData;
 	
 	//////////////////////////////
@@ -231,7 +231,7 @@ public class mySOMMapUIWin extends myDispWindow {
 	
 
 	//first verify that new .lrn file exists, then
-	//build new somoclu map using UI-entered values, then load resultant data
+	//build new SOM_MAP map using UI-entered values, then load resultant data
 	protected void buildNewSOMMap(){
 		pa.outStr2Scr("SOM_data.buildNewMap called");
 		int kVal = (int)this.guiObjs[uiMapKTypIDX].getVal();

@@ -17,9 +17,9 @@ public class StraffWeightCalc {
 	public final Date now;
 	//arrays are for idxs of various eq components (mult, offset, decay) in the format file for 
 	//each component contributor (prospect, order, opt), in order.  0-idx is jp name or "default"
-	private static final int[] mIdx = new int[] {1, 4, 7},
-			   					oIdx = new int[] {2, 5, 8},
-			   					dIdx = new int[] {3, 6, 9};
+	private static final int[] mIdx = new int[] {1, 4, 7, 10},
+			   					oIdx = new int[] {2, 5, 8, 11},
+			   					dIdx = new int[] {3, 6, 9, 12};
 	//map of per-jp equations to calculate feature vector from prospect, order, 
 	//and opt data (expandable to more sources eventually if necessary).  keyed by jp
 	private TreeMap<Integer, JPWeightEquation> eqs;
@@ -119,7 +119,7 @@ public class StraffWeightCalc {
 	}
 	
 	//calculate feature vector for this example
-	public TreeMap<Integer, Float> calcFeatureVector(ProspectExample ex, HashSet<Integer> jps, TreeMap<Integer, jpOccurrenceData> orderOccs, TreeMap<Integer, jpOccurrenceData> optOccs) {
+	public TreeMap<Integer, Float> calcFeatureVector(ProspectExample ex, HashSet<Integer> jps, TreeMap<Integer, jpOccurrenceData> orderOccs,TreeMap<Integer, jpOccurrenceData> linkOccs, TreeMap<Integer, jpOccurrenceData> optOccs) {
 		jpOccurrenceData optOcc;
 		TreeMap<Integer, Float> res = new TreeMap<Integer, Float>();
 		float ftrVecSqMag = 0.0f;
@@ -132,7 +132,7 @@ public class StraffWeightCalc {
 			if (destIDX==null) {continue;}//ignore unknown/unmapped jps
 			optOcc = optOccs.get(jp);
 			if (optOcc == null) {optOcc = optOccs.get(-9);}//this is if all values have positive opts
-			float val = eqs.get(jp).calcVal(ex,orderOccs.get(jp), optOcc);
+			float val = eqs.get(jp).calcVal(ex,orderOccs.get(jp),linkOccs.get(jp), optOcc);
 			if ((isZeroMagExample) && (val != 0)) {isZeroMagExample = false;}
 			res.put(destIDX,val);
 			ftrVecSqMag += (val*val);
@@ -180,8 +180,9 @@ class JPWeightEquation {
 	public static int 						//idxs in eq coefficient arrays
 			prspctCoeffIDX = 0, 
 			orderCoeffIDX = 1, 
-			optCoeffIDX = 2;
-	private static int numEqs = 3;
+			optCoeffIDX = 2,
+			linkCoeffIDX = 3;
+	private static int numEqs = 4;
 	
 	private final Float[] Mult;						//multiplier for membership functions
 	private final Float[] Offset;					//offsets for membership functions
@@ -224,7 +225,7 @@ class JPWeightEquation {
 	}//aggregateOccs
 	
 	//returns this jp's contribution to the weight vector of a particular prospect
-	public float calcVal(ProspectExample ex, jpOccurrenceData orderJpOccurrences, jpOccurrenceData optJpOccurrences) {		
+	public float calcVal(ProspectExample ex, jpOccurrenceData orderJpOccurrences, jpOccurrenceData linkJpOccurrences, jpOccurrenceData optJpOccurrences) {		
 		calcObj.incrBnds(jp, jpIdx);
 		float res = 0.0f;
 		if (ex.prs_JP == jp) {//scale propsect contribution by update date of record - assumes accurate at time of update
@@ -235,6 +236,11 @@ class JPWeightEquation {
 		if (orderJpOccurrences != null) {//aggregate every order occurrence, with decay on importance based on date
 			res += aggregateOccs(orderJpOccurrences, orderCoeffIDX);		
 		}
+		//for links use same mechanism as orders - handle differences through weightings
+		if (linkJpOccurrences != null) {//aggregate every order occurrence, with decay on importance based on date
+			res += aggregateOccs(linkJpOccurrences, linkCoeffIDX);		
+		}
+		
 		//jpOccurrenceData optJpOccurrences = ex.optJpOccurrences.get(jp);
 		if (optJpOccurrences != null) {
 			//TODO

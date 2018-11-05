@@ -74,6 +74,7 @@ public abstract class StraffordDataLoader implements Callable<Boolean> {
 		Scanner sc = null;
 	    int line = 1, badEntries = 0;
 		try {
+			System.out.println("Working Directory = " +System.getProperty("user.dir"));
 		    inputStream = new FileInputStream(fileNameAndPath);
 		    sc = new Scanner(inputStream);
 		    //get rid of headers
@@ -93,7 +94,12 @@ public abstract class StraffordDataLoader implements Callable<Boolean> {
 			        String[] vals = strAras1[0].replace("\"","").split(",");
 			        //convert string to object to be used to train map		        
 			    	//System.out.println("col string : "+strAras1[0]+"\njson string : ---"+jsonStr+"---");
-			        dAra.add(parseStringToObj(vals, jsonStr));
+			        BaseRawData obj = parseStringToObj(vals, jsonStr);
+			        if (obj.isBadRec) {
+			        	System.out.println("Object : " + obj.toString() + " is a bad record due to having no jp/jpg data.  Entry is Ignored.");
+			        } else {
+			        	dAra.add(obj);
+			        }
 		    	}
 		        ++line;		        
 		        if (line % 100000 == 0) {
@@ -149,6 +155,16 @@ class OrderEventDataLoader extends StraffordDataLoader{
 	}
 }//
 //stream Order Events and build the objects that will then decipher their json content and build the training/testing data based on them
+class LinkEventDataLoader extends StraffordDataLoader{
+	public LinkEventDataLoader(boolean _isFileLoader, String _dataLocInfoStr) {super(_isFileLoader,_dataLocInfoStr);}
+	@Override
+	protected BaseRawData parseStringToObj(String[] strAra, String jsonStr) {
+		LinkEvent obj = new LinkEvent(strAra[0].trim(), jsonStr.trim(),jsonMapper);
+		obj.procInitData(strAra);
+		return obj;
+	}
+}//
+//stream Order Events and build the objects that will then decipher their json content and build the training/testing data based on them
 class OptEventDataLoader extends StraffordDataLoader{
 	public OptEventDataLoader(boolean _isFileLoader, String _dataLocInfoStr) {super(_isFileLoader,_dataLocInfoStr);}
 	@Override
@@ -158,6 +174,7 @@ class OptEventDataLoader extends StraffordDataLoader{
 		return obj;
 	}
 }//
+
 
 
 
@@ -173,20 +190,22 @@ abstract class BaseRawData {
 	public static TreeMap<Integer, Integer> jpEvSeen = new TreeMap<Integer, Integer>();
 	//construction to keep track of the jps associated with particular jpg
 	public static TreeMap<Integer, TreeSet <Integer>> jpgroupsAndJps = new TreeMap<Integer, TreeSet <Integer>>();	
-
+	//type of data object this is
+	public final String TypeOfData;
+	
 	//OID field linking events to prospects
 	public final String OID;
 	//descriptor object holds translation of json description
 	protected jsonDescr dscrObject;
 	//set this if has no relevant info for calculations
-	public boolean isBadRec;
+	protected boolean isBadRec;
 	
 	//map of key==jpgroup, value ==array of jps in decreasing significance
 	//index -1 holds array of jpgs in specified order of (assumed) decreasing significance
 	public TreeMap<Integer, ArrayList<Integer>> rawJpMapOfArrays;
 	
-	public BaseRawData(String _id, String _json, ObjectMapper _mapper) {
-		OID=_id.trim().toLowerCase();
+	public BaseRawData(String _id, String _json, ObjectMapper _mapper, String _typ) {
+		OID=_id.trim().toLowerCase(); TypeOfData = _typ;
 		isBadRec = false;
 		Map<String, Object> jsonMap = null;
 		try {jsonMap = _mapper.readValue(_json,new TypeReference<Map<String,Object>>(){});}
@@ -312,7 +331,7 @@ abstract class BaseRawData {
 
 	@Override	
 	public String toString() {
-		String res = "OID : " +  OID;
+		String res = "OID : " +  OID + "|Type : " + TypeOfData;
 		return res;
 	}
 }//BaseRawData
@@ -322,20 +341,21 @@ class prospectData extends BaseRawData {
 	private static final String[] relevantExactKeys = {"jp","lu"};
 	//lu date from json
 	private Date luDate;
+	//if this prospect record is empty/lacking all info.  might not be bad
+	public boolean isEmptyPrspctRec = false;
 
 	public prospectData(String _id, String _json, ObjectMapper _mapper) {
-		super(_id, _json, _mapper);
+		super(_id, _json, _mapper, "prospect");
 		String jpsList = dscrObject.mapOfRelevantJson.get("jp").toString();
 		String luDateStr = dscrObject.mapOfRelevantJson.get("lu").toString();
 		if(luDateStr.length() > 0) {luDate = BaseRawData.buildDateFromString(luDateStr);}
 		else {
-			isBadRec = jpsList.length() - 2 == 0;//if jpsList is length 2, then no jps in this record, and no last update means this record has very little pertinent data-neither a date nor a jp associated with it
+			isEmptyPrspctRec = jpsList.length() - 2 == 0;//if jpsList is length 2, then no jps in this record, and no last update means this record has very little pertinent data-neither a date nor a jp associated with it
 		}
 		if (null==jpsList) {
-			System.out.println("Null jpsList for json string " + _json);
+			System.out.println("prospectData::constructor : Null jpsList for json string " + _json);
 		} else {
-			rawJpMapOfArrays = dscrObject.convert(jpsList);
-			//if(jpMapOfArrays.size() > 0) {dbgDispJpData(jpsList);}			
+			rawJpMapOfArrays = dscrObject.convert(jpsList);			
 		}
 	}//ctor
 	
@@ -371,8 +391,8 @@ abstract class EventRawData extends BaseRawData {
 	//event type
 	private String eventType;
 	
-	public EventRawData(String _id, String _json, ObjectMapper _mapper) {
-		super(_id, _json, _mapper);
+	public EventRawData(String _id, String _json, ObjectMapper _mapper, String _typ) {
+		super(_id, _json, _mapper,_typ);
 		String jpsList = dscrObject.mapOfRelevantJson.get("jps").toString();
 		rawJpMapOfArrays = dscrObject.convert(jpsList);
 		//if(jpMapOfArrays.size() > 0) {dbgDispJpData(jpsList);}
@@ -393,8 +413,7 @@ abstract class EventRawData extends BaseRawData {
 			res += vals.get(szm1)+",JPEnd,";
 		}		
 		return res;
-	}//getJpsToString
-	
+	}//getJpsToString	
 		
 	//return CSV data relevant for building training/testing example for this event data point
 	public String getAllTrainDataForCSV(boolean inclDate) {
@@ -442,7 +461,31 @@ class OrderEvent extends EventRawData{
 	//these should all be lowercase - these are exact key substrings we wish to match in json, to keep and use to build training data - all the rest of json data is being tossed
 	private static final String[] relevantExactKeys = {"jps"};
 	
-	public OrderEvent(String _id, String _json, ObjectMapper _mapper) {super(_id, _json, _mapper);}
+	public OrderEvent(String _id, String _json, ObjectMapper _mapper) {super(_id, _json, _mapper,"orders"); this.isBadRec = rawJpMapOfArrays.size() == 0;}
+
+	//return the order event's relevant query keys for json
+	@Override
+	public String[] getRelevantExactKeys() {		return relevantExactKeys;	}	
+	//custom event-specific info to return to build CSV to use to build examples
+	@Override
+	public String getIndivTrainDataForCSV() {		return "";}	//must include trailing comma if ever returns data
+	//custom descriptive debug info relevant to this class
+	@Override
+	protected String dbgGetCustInfoStr() {	return "";}
+	@Override
+	public String toString() {
+		String res = super.toString();
+		res +=getJpsToString();
+		return res;
+	}
+	
+}//OrderEvent
+
+class LinkEvent extends EventRawData{
+	//these should all be lowercase - these are exact key substrings we wish to match in json, to keep and use to build training data - all the rest of json data is being tossed
+	private static final String[] relevantExactKeys = {"jps"};
+	
+	public LinkEvent(String _id, String _json, ObjectMapper _mapper) {super(_id, _json, _mapper,"links");this.isBadRec = rawJpMapOfArrays.size() == 0;}
 
 	//return the order event's relevant query keys for json
 	@Override
@@ -469,7 +512,7 @@ class OptEvent extends EventRawData{
 	private Integer optType;
 	
 	public OptEvent(String _id, String _json, ObjectMapper _mapper) {
-		super(_id, _json, _mapper);
+		super(_id, _json, _mapper,"opts");
 		optType = Integer.parseInt(dscrObject.mapOfRelevantJson.get("type").toString());	
 	}
 	

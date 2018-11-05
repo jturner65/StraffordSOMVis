@@ -57,8 +57,6 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		isBadTrainExample = false;	
 		label = new dataClass(OID,"lbl:"+OID,"unitialized Description", null);
 		label.clrVal = new int[] {255,0,0,255};
-
-		
 	}//ctor
 
 	//build feature vector
@@ -75,11 +73,12 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	public boolean isBadExample() {return isBadTrainExample;}
 	public void setIsBadExample(boolean val) { isBadTrainExample=val;}
 	
-	protected StraffEvntTrainData buildNewTrainDataFromEv(EventRawData _optObj, int type) {
+	protected StraffEvntTrainData buildNewTrainDataFromEv(EventRawData _evntObj, int type) {
 		switch (type) {
-		case 0 :{			return new OrderEventTrainData((OrderEvent) _optObj);	}//order event object
-		case 1 : {			return new OptEventTrainData((OptEvent) _optObj);}//opt event  object
-		default : {			return new OrderEventTrainData((OrderEvent) _optObj);	}//default to order event object - probably will fail.  need to make sure type is accurately specified.
+		case 0 :{			return new OrderEventTrainData((OrderEvent) _evntObj);	}//order event object
+		case 1 : {			return new OptEventTrainData((OptEvent) _evntObj);}//opt event  object
+		case 2 : { 			return new LinkEventTrainData((LinkEvent) _evntObj);}//link event
+		default : {			return new OrderEventTrainData((OrderEvent) _evntObj);	}//default to order event object - probably will fail.  need to make sure type is accurately specified.
 		}//switch
 	}//buildNewTrainData
 	
@@ -87,12 +86,13 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		switch (type) {
 		case 0 :{			return new OrderEventTrainData(_evIDStr, _evTypeStr, _evDateStr, _evntStr);	}//order event object
 		case 1 : {			return new OptEventTrainData(_evIDStr, _evTypeStr, _evDateStr, _evntStr);}//opt event  object
+		case 2 : {			return new LinkEventTrainData(_evIDStr, _evTypeStr, _evDateStr, _evntStr);}//opt event  object
 		default : {			return new OrderEventTrainData(_evIDStr, _evTypeStr, _evDateStr, _evntStr);	}//default to order event object - probably will fail.  need to make sure type is accurately specified.
 		}//switch
 	}//buildNewTrainData	
 	
 	//add object keyed by addDate, either adding to existing list or building a new list if none exists
-	protected void addDataToTrainMap(EventRawData _optObj, TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>> map, int type){
+	protected void addDataToTrainMap(EventRawData _optObj, TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>> map, int type){		
 		Date addDate = _optObj.getDate();
 		Integer eid = _optObj.getEventID();	//identical events may occur - multiple same event ids on same date, even with same jpg/jp data.  should all be recorded
 		//get date's specific submap
@@ -282,11 +282,13 @@ public abstract class StraffSOMExample extends baseDataPtVis{
  */
 class ProspectExample extends StraffSOMExample{
 	//labels for csv to denote the beginning of a particular event section
-	public static final String orderCSVSentinelLbl = "ORD|,";
-	public static final String optCSVSentinelLbl = "OPT|,";
+//	public static final String orderCSVSentinelLbl = "ORD|,";
+//	public static final String linkCSVSentinelLbl = "LNK|,";
+//	public static final String optCSVSentinelLbl = "OPT|,";
+	
 	
 	//column names for csv of this SOM example
-	private static final String csvColDescrPrfx = "OID,Prospect_LU_Date,Prospect_JPG,Prospect_JP,Num Order Event Dates,Num Opt Event Dates";
+	private static final String csvColDescrPrfx = "OID,Prospect_LU_Date,Prospect_JPG,Prospect_JP,Num Order Event Dates,Num Opt Event Dates,Num Link Event Dates";
 	
 	//////////////////////////////////////
 	//Training data description
@@ -298,8 +300,12 @@ class ProspectExample extends StraffSOMExample{
 	public Date prs_LUDate;
 	//object used by all training/testing data examples to determine the actual feature vector used to interact with the SOM
 	protected static StraffWeightCalc wtCalc;		
+	
+	private static final String[] mapKeys = new String[] {"orders", "opts", "links"};
+	private static final String[] CSVSentinelLbls = new String[] {"ORD|,","OPT|,", "LNK|," };
 	//may have multiple events on same date/time, map by event ID 
-	private TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>> orderEventsByDateMap, optEventsByDateMap; //add link objs eventually	
+	//private TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>> orderEventsByDateMap, linkEventsByDateMap, optEventsByDateMap; //add link objs eventually	
+	private TreeMap<String, TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>>> eventsByDateMap;//, linkEventsByDateMap, optEventsByDateMap; //add link objs eventually	
 
 	//structs to hold all order occurences and opt occurences of each JP for this OID
 	public TreeMap<String, TreeMap<Integer, jpOccurrenceData>> JpOccurrences;//orderJpOccurrences, optJpOccurrences;
@@ -328,29 +334,31 @@ class ProspectExample extends StraffSOMExample{
 		prs_JPGrp = Integer.parseInt(dataAra[2]);
 		prs_JP = Integer.parseInt(dataAra[3]);
 		//System.out.println("_csvDataStr : " + _csvDataStr+"\n\t|prs_LUDate : " +prs_LUDate + "|prs_JPGrp "+prs_JPGrp+"|prs_JP "+ prs_JP);
-		int numOrderEvs = Integer.parseInt(dataAra[4]);
-		int numOptEvs = Integer.parseInt(dataAra[5]);
+//		int numOrderEvs = Integer.parseInt(dataAra[4]);
+//		int numOptEvs = Integer.parseInt(dataAra[5]);
+		int[] numEvsAra = new int[] {Integer.parseInt(dataAra[4]),Integer.parseInt(dataAra[5]),Integer.parseInt(dataAra[6])};
 //		if ((numOrderEvs == 0) || (numOptEvs == 0)){
 //			System.out.println("numOrderEvs : " +numOrderEvs + "|numOptEvs : "+numOptEvs+ "|_csvDataStr : " + _csvDataStr);
 //		}
 		initObjsData();	
 		//Build data here from csv strint
-		buildDataFromCSVString(numOrderEvs,numOptEvs, _csvDataStr);		
+		buildDataFromCSVString(numEvsAra, _csvDataStr);		
 	}//csv string ctor
 	
 	//build a single type of event's training data from Csv string
 	private void buildEventTrainDataFromCSVStr(int numEvents, String allEventsStr, TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>> mapToAdd, int type) {
+		String evntType = mapKeys[type];
 		int numEventsToShow = 0; boolean dbgOutput = false;
 		String [] allEventsStrAra = allEventsStr.trim().split("EvSt,");
 		//will have an extra entry holding OPT key
 		if(allEventsStrAra.length != (numEvents+1)) {//means not same number of event listings in csv as there are events counted in original event list - shouldn't be possible
-			System.out.println("buildEventTrainDataFromCsvStr : Error building train data from csv file : " + (type==0 ? "Order" : "Opt") + " Event : "+allEventsStr + " string does not have expected # of events : " +allEventsStrAra.length + " vs. expected :" +numEvents );
+			System.out.println("buildEventTrainDataFromCsvStr : Error building train data from csv file : " + evntType + " Event : "+allEventsStr + " string does not have expected # of events : " +allEventsStrAra.length + " vs. expected :" +numEvents );
 			return;
 		}
 		if ((type == 1) &&(numEvents > numEventsToShow) && dbgOutput) {
-			System.out.println("type : " +type  +" | AllEventsStr : " + allEventsStr );
+			System.out.println("type : " +evntType  +" | AllEventsStr : " + allEventsStr );
 		}
-			//for(String s : allEventsStrAra) {System.out.println("\t-"+s+"-");		}
+		//for(String s : allEventsStrAra) {System.out.println("\t-"+s+"-");		}
 		//EvSt,EvType,opt,EvID,118282,EvDt,2014-07-01 16:46:53,JPGJP_Start,optKey,1,JPG,26,JPst,220,JPEnd,JPG,27,JPst,56,58,50,54,JPEnd,JPGJP_End,EvEnd,
 		//buildNewTrainDataFromStr(String _evIDStr, String _evTypeStr, String _evDateStr, String _evntStr, int type)
 		for (String eventStr : allEventsStrAra) {
@@ -360,7 +368,6 @@ class ProspectExample extends StraffSOMExample{
 			Integer evID = Integer.parseInt(eventStrAra[3]);
 			String evDateStr = eventStrAra[5];
 			//need to print out string to make sure that there is only a single instance of every event id in each record in csv files
-			//TODO
 			StraffEvntTrainData newEv = buildNewTrainDataFromStr(evID, evType, evDateStr, eventStr, type);
 			if ((type == 1) &&(numEvents > numEventsToShow) && dbgOutput) {
 				System.out.println("\tEvent : " + newEv.toString());
@@ -383,26 +390,43 @@ class ProspectExample extends StraffSOMExample{
 		return res;
 	}
 	
-	protected void buildDataFromCSVString(int numOrderEvnts, int numOptEvnts, String _csvDataStr) {
-		String [] strAraBegin = _csvDataStr.trim().split(Pattern.quote(orderCSVSentinelLbl)); //idx 1 holds all event data
-		String [] strAraEvents = strAraBegin[1].trim().split(Pattern.quote(optCSVSentinelLbl)); //idx 0 holds order event data string, idx 1 holds all opt event data string
-		//for(String s : strAraEvents) {System.out.println("-"+s+"-");		}
-		String orderEventsDataStr ="", optEventsDataStr="";
-		if (numOrderEvnts > 0) {
-			orderEventsDataStr = strAraEvents[0].trim();
-			buildEventTrainDataFromCSVStr(numOrderEvnts,orderEventsDataStr,orderEventsByDateMap, 0);
+	protected void buildDataFromCSVString(int[] numEvntsAra, String _csvDataStr) {
+		//each type of event list exists between the sentinel flag and the subsequent sentinel flag
+		for (int i = 0; i<mapKeys.length;++i) {
+			if (numEvntsAra[i] > 0) {
+				String key = mapKeys[i];
+				String stSentFlag = CSVSentinelLbls[i];
+				String endSntnlFlag = (i <mapKeys.length-1 ? CSVSentinelLbls[i+1] : null );
+				String [] strAraBegin = _csvDataStr.trim().split(Pattern.quote(stSentFlag)); //idx 1 holds all event data	
+				String strBegin = (strAraBegin.length < 2) ? "" : strAraBegin[1];
+				String strEvents = (endSntnlFlag != null ? strBegin.trim().split(Pattern.quote(endSntnlFlag))[0] : strBegin).trim(); //idx 0 holds relevant data
+				buildEventTrainDataFromCSVStr(numEvntsAra[i],strEvents,eventsByDateMap.get(key), i);				
+			}			
 		}
-		if (numOptEvnts > 0) {
-			optEventsDataStr = strAraEvents[1].trim();
-			if (numOptEvnts > 3) {System.out.println("OPT : _csvDataStr : " + _csvDataStr);}
-			buildEventTrainDataFromCSVStr(numOptEvnts,optEventsDataStr,optEventsByDateMap, 1);	
-		}
-		//there are numOrderEvents encoded in orderEventsDataStr, and numOptEvnts in optEventsDataStr
 	}//buildDataFromCSVString	
+	
+//	protected void buildDataFromCSVString(int numOrderEvnts, int numOptEvnts, String _csvDataStr) {
+//		String [] strAraBegin = _csvDataStr.trim().split(Pattern.quote(orderCSVSentinelLbl)); //idx 1 holds all event data
+//		String [] strAraEvents = strAraBegin[1].trim().split(Pattern.quote(optCSVSentinelLbl)); //idx 0 holds order event data string, idx 1 holds all opt and subsequent (link) event data string
+//		//for(String s : strAraEvents) {System.out.println("-"+s+"-");		}
+//		String orderEventsDataStr ="", optEventsDataStr="";
+//		if (numOrderEvnts > 0) {
+//			orderEventsDataStr = strAraEvents[0].trim();
+//			buildEventTrainDataFromCSVStr(numOrderEvnts,orderEventsDataStr,orderEventsByDateMap, 0);
+//		}
+//		if (numOptEvnts > 0) {
+//			optEventsDataStr = strAraEvents[1].trim();
+//			if (numOptEvnts > 3) {System.out.println("OPT : _csvDataStr : " + _csvDataStr);}
+//			buildEventTrainDataFromCSVStr(numOptEvnts,optEventsDataStr,optEventsByDateMap, 1);	
+//		}
+//		//there are numOrderEvents encoded in orderEventsDataStr, and numOptEvnts in optEventsDataStr
+//	}//buildDataFromCSVString	
 
 	protected void initObjsData() {
-		orderEventsByDateMap = new TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>> (); //add link objs eventually	
-		optEventsByDateMap = new TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>>();
+		eventsByDateMap = new TreeMap<String, TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>>>();
+		for (String key : mapKeys) {eventsByDateMap.put(key, new TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>> ());	}
+//		orderEventsByDateMap = new TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>> (); //add link objs eventually	
+//		optEventsByDateMap = new TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>>();
 		//occurrence structures - keyed by type, then by JP
 		JpOccurrences = new TreeMap<String, TreeMap<Integer, jpOccurrenceData>> ();
 	}//initObjsData
@@ -419,30 +443,6 @@ class ProspectExample extends StraffSOMExample{
 			}
 			setIsBadExample(true);		}//no mapped jps
 	}//finalize
-	
-//	//build 
-//	public void processHoldOutOptRecs() {//private TreeMap<String, TreeMap<Date,ArrayList<JpgJpDataRecord>>> mapOfListsOfJpgsJpsToRebuild;
-//		if(!hasHoldOuts) {return;}
-//		//go through this and rebuild mapOfListsOfJpgsJpsToRebuild
-//		for (String typeOfEvents : mapOfListsOfJpgsJpsToRebuild.keySet()) {
-//			TreeMap<Date,Integer> rebuildsAllDates = mapOfListsOfJpgsJpsToRebuild.get(typeOfEvents);
-//			if (!typeOfEvents.equals("opts")){
-////				//if (rebuildsAllDates.size() > 0){this.mapData.dispMessage("processHoldOutOptRecs : possible error : type of events : " + typeOfEvents + " - non-opt event applied to -all- jps : verify : " + this.toString());} 
-////				for (Date date : rebuildsAllDates.keySet()) {
-////					ArrayList<JpgJpDataRecord> rebuilds = rebuildsAllDates.get(date);
-////					if (rebuilds.size() > 0) {mapData.dispMessage("processHoldOutOptRecs : : type of events : " + typeOfEvents + " - non-opt event applied to -all- jps  : # : " +rebuilds.size());	}
-////				}
-//				continue;
-//			} else {//rebuild opts records with empty lists to have all jps
-//				TreeMap<Integer, jpOccurrenceData> jpOccMap = JpOccurrences.get(typeOfEvents);
-//				for (Date date : rebuildsAllDates.keySet()) {
-//					Integer optVal = rebuildsAllDates.get(date);		
-//					mapData.buildAllJpgJpOccMap(jpOccMap, date, optVal);
-//					continue;
-//				}			
-//			}
-//		}	
-//	}//processHoldOutOptRecs
 	
 //	private boolean hasHoldOuts = false;
 //	public static int countofRebuild = 0;
@@ -474,8 +474,9 @@ class ProspectExample extends StraffSOMExample{
 		//for orders and opts, pivot structure to build map holding occurrence records keyed by jp - must be done after all events are aggregated for each prospect
 		//for every date, for every event, aggregate occurences		
 		mapOfListsOfJpgsJpsToRebuild = new TreeMap<String, TreeMap<Date,Integer>>();
-		_buildIndivOccStructs("orders", orderEventsByDateMap);
-		_buildIndivOccStructs("opts", optEventsByDateMap);
+		for (String key : mapKeys) {
+			_buildIndivOccStructs(key, eventsByDateMap.get(key));			
+		}
 		
 	}//buildOccurrenceStructs	
 	
@@ -485,7 +486,8 @@ class ProspectExample extends StraffSOMExample{
 		boolean hasJP_prspct = (prs_JP == _jp),
 				hasJP_ordr =  (JpOccurrences.get("orders").get(_jp) != null) ,
 				hasJP_opt = (JpOccurrences.get("opts").get(_jp) != null),
-				hasJP_ev = hasJP_ordr || hasJP_opt,
+				hasJP_link = (JpOccurrences.get("links").get(_jp) != null),				
+				hasJP_ev = hasJP_ordr || hasJP_opt | hasJP_link,
 				hasJP = hasJP_prspct || hasJP_ev;
 		boolean[] res = new boolean[] {hasJP, hasJP_prspct, hasJP_ev, hasJP_ordr,hasJP_opt};
 		return res;		
@@ -504,13 +506,35 @@ class ProspectExample extends StraffSOMExample{
 		return res;
 	}
 	
-	public void addOrderObj(OrderEvent _obj) {addDataToTrainMap(_obj,orderEventsByDateMap, 0);}		
-	public void addOptObj(OptEvent _obj) {addDataToTrainMap(_obj,optEventsByDateMap, 1);}
+	public void addObj(BaseRawData obj, int type) {
+		switch(type) {
+		case SOMMapData.prspctIDX : 	{mapData.dispMessage("ProspectExample::addObj : ERROR attempting to add prospect raw data as event data. Ignored");return;}
+		case SOMMapData.orderEvntIDX : 	{
+			addDataToTrainMap((OrderEvent)obj,eventsByDateMap.get(mapKeys[0]), 0); 
+			return;}
+		case SOMMapData.optEvntIDX : 	{
+			addDataToTrainMap((OptEvent)obj,eventsByDateMap.get(mapKeys[1]), 1); 
+			return;}
+		case SOMMapData.linkEvntIDX : 	{
+			addDataToTrainMap((LinkEvent)obj,eventsByDateMap.get(mapKeys[2]), 2); 
+			return;}
+		default :{mapData.dispMessage("ProspectExample::addObj : ERROR attempting to add unknown raw data type : " + type + " as event data. Ignored");return;}
+		}		
+	}
 	
 	//whether this record has any information to be used to train - presence of prospect jpg/jp can't be counted on
 	//isBadExample means resulting ftr data is all 0's for this example.  can't learn from this, so no need to keep it.
-	public boolean isTrainableRecord() {return !isBadTrainExample && ((prs_JP != 0) || (orderEventsByDateMap.size()>0) || (optEventsByDateMap.size()> 0));}
-	public boolean isTrainableRecordEvent() {return !isBadTrainExample && ((orderEventsByDateMap.size()>0) || (optEventsByDateMap.size()> 0));}
+//	public boolean isTrainableRecord() {return !isBadTrainExample && ((prs_JP != 0) || (orderEventsByDateMap.size()>0) || (optEventsByDateMap.size()> 0));}
+//	public boolean isTrainableRecordEvent() {return !isBadTrainExample && ((orderEventsByDateMap.size()>0) || (optEventsByDateMap.size()> 0));}
+	public boolean isTrainableRecord() {return !isBadTrainExample && ((prs_JP != 0) || hasRelelventEvents());}
+	public boolean isTrainableRecordEvent() {return !isBadTrainExample && (hasRelelventEvents());}
+	
+	private boolean hasRelelventEvents() {
+		boolean res = false;
+		for (String key : mapKeys) {if (eventsByDateMap.get(key).size() > 0) {return true;}	}	
+		return res;
+	}//hasRelelventEvents
+	
 	
 	private String buildEventCSVString(Date date, TreeMap<Integer, StraffEvntTrainData> submap) {		
 		String res = "";
@@ -531,11 +555,22 @@ class ProspectExample extends StraffSOMExample{
 		//first build prospect data
 		String dateStr = BaseRawData.buildStringFromDate(prs_LUDate);//(prs_LUDate == null) ? "" : BaseRawData.buildStringFromDate(prs_LUDate);
 		String res = ""+OID+","+dateStr+","+prs_JPGrp+","+prs_JP+",";
-		res += getSizeOfDataMap(orderEventsByDateMap)+"," + getSizeOfDataMap(optEventsByDateMap)+",";
-		res +=  orderCSVSentinelLbl;
-		for (Date date : orderEventsByDateMap.keySet()) {			res += buildEventCSVString(date, orderEventsByDateMap.get(date));		}		
-		res += optCSVSentinelLbl;
-		for (Date date : optEventsByDateMap.keySet()) {		res += buildEventCSVString(date, optEventsByDateMap.get(date));		}				
+		for (String key : mapKeys) {
+			res += getSizeOfDataMap(eventsByDateMap.get(key))+",";
+		}
+		//res += getSizeOfDataMap(orderEventsByDateMap)+"," + getSizeOfDataMap(optEventsByDateMap)+",";
+		//now build res string for all event data objects
+		for(int i=0;i<mapKeys.length;++i) {
+			String key = mapKeys[i];
+			res += CSVSentinelLbls[i];
+			TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>> eventsByDate = eventsByDateMap.get(key);
+			for (Date date : eventsByDate.keySet()) {			res += buildEventCSVString(date, eventsByDate.get(date));		}				
+		}
+//		res +=  orderCSVSentinelLbl;
+//		for (Date date : orderEventsByDateMap.keySet()) {			res += buildEventCSVString(date, orderEventsByDateMap.get(date));		}		
+//		res += optCSVSentinelLbl;
+//		for (Date date : optEventsByDateMap.keySet()) {		res += buildEventCSVString(date, optEventsByDateMap.get(date));		}
+//		res += linkCSVSentinelLbl;		
 		return res;
 	}	
 
@@ -563,7 +598,7 @@ class ProspectExample extends StraffSOMExample{
 	@Override
 	protected void buildFeaturesMap() {
 		//access calc object
-		if (allJPs.size() > 0) {ftrMap = mapData.ftrCalcObj.calcFeatureVector(this,allJPs,JpOccurrences.get("orders"), JpOccurrences.get("opts"));}
+		if (allJPs.size() > 0) {ftrMap = mapData.ftrCalcObj.calcFeatureVector(this,allJPs,JpOccurrences.get("orders"), JpOccurrences.get("links"), JpOccurrences.get("opts"));}
 		else {ftrMap = new TreeMap<Integer, Float>();}
 	}//buildFeaturesMap
 	@Override
@@ -596,10 +631,14 @@ class ProspectExample extends StraffSOMExample{
 	@Override
 	public String toString() {	
 		String res = super.toString();
-		res += toStringDateMap(orderEventsByDateMap, "orders");
-		res += toStringOptOccMap(JpOccurrences.get("orders"), "order occurences");
-		res += toStringDateMap(optEventsByDateMap, "opts");
-		res += toStringOptOccMap(JpOccurrences.get("opts"), "opt occurences");
+		for (String key : mapKeys) {
+			res += toStringDateMap(eventsByDateMap.get(key), key);
+			res += toStringOptOccMap(JpOccurrences.get(key), key + " occurences");
+		}
+//		res += toStringDateMap(orderEventsByDateMap, "orders");
+//		res += toStringOptOccMap(JpOccurrences.get("orders"), "order occurences");
+//		res += toStringDateMap(optEventsByDateMap, "opts");
+//		res += toStringOptOccMap(JpOccurrences.get("opts"), "opt occurences");
 		return res;
 	}
 }//class prospectExample
@@ -1024,7 +1063,7 @@ abstract class StraffEvntTrainData {
 	 
 	public abstract void addEventDataFromCSVString(String _csvDataStr);
 	protected void addEventDataRecsFromCSVStr(Integer optKey, String _csvDataStr) {
-		boolean isOptEvent = ((-2 <= optKey) && (optKey <= 2));
+		//boolean isOptEvent = ((-2 <= optKey) && (optKey <= 2));
 		listOfJpgsJps = new ArrayList<JpgJpDataRecord>(); 
 		String[] strAra1 = _csvDataStr.split("numJPGs,");//use idx 1
 		String[] strAraVals = strAra1[1].trim().split(",JPGJP_Start,");//1st element will be # of JPDataRecs, next elements will be Data rec vals
@@ -1040,18 +1079,17 @@ abstract class StraffEvntTrainData {
 	
 	public abstract void addEventDataFromEventObj(EventRawData ev);
 	protected void addEventDataRecsFromRaw(Integer optVal, EventRawData ev) {
-		//if -2 <= optVal <= 2 then this is an opt event
 		boolean isOptEvent = ((-2 <= optVal) && (optVal <= 2));
 		TreeMap<Integer, ArrayList<Integer>> newEvMapOfJPAras = ev.rawJpMapOfArrays;
 		if (newEvMapOfJPAras.size() == 0) {					//if returns an empty list from event raw data then either unspecified, which is bad record, or infers entire list of jp data
-			if (!isOptEvent){								//should never happen, means empty jp array of non-opt events (like order events) - should always have an order jpg/jp data.
-				System.out.println("Warning : Attempting to add a non-Opt event with an empty JPgroup-keyed JP list - event had no corresponding usable data");
-				return;
-			} else {										//empty jpg-jp array means apply to all
+			if (isOptEvent){							//for opt events, empty jpg-jp array means apply specified opt val to all jps						
 				//Adding an opt event with an empty JPgroup-keyed JP list - means apply opt value to all jps;
 				//use jpg -10, jp -9 as sentinel value to denote executing an opt on all jpgs/jps - usually means opt out on everything, but other opts possible
 				ArrayList<Integer>tmp=new ArrayList<Integer>(Arrays.asList(-9));
 				newEvMapOfJPAras.put(-10, tmp);				
+			} else {										//should never happen, means empty jp array of non-opt events (like order events) - should always have an order jpg/jp data.
+				System.out.println("StraffEvntTrainData::addEventDataRecsFromRaw : Warning : Attempting to add a non-Opt event (" + ev.TypeOfData + "-type) with an empty JPgroup-keyed JP list - event had no corresponding usable data so being ignored.");
+				return;
 			}
 		}			
 		//-1 means this array is the list, in order, of JPGs in this eventrawdata.  if there's no entry then that means there's only 1 jpg in this eventrawdata
@@ -1103,34 +1141,45 @@ class OrderEventTrainData extends StraffEvntTrainData{
 
 	public OrderEventTrainData(OrderEvent ev) {
 		super(ev);
-		addEventDataFromEventObj(ev);	//put in child ctor incase child-event specific data needed for training	
-	}
+		addEventDataFromEventObj(ev);}	//put in child ctor in case child-event specific data needed for training	
+	
 	public OrderEventTrainData(Integer _evIDStr, String _evTypeStr, String _evDateStr, String _evntStr){
 		super(_evIDStr, _evTypeStr, _evDateStr);
-		addEventDataFromCSVString(_evntStr);	//put in child ctor incase child-event specific data needed for training	
-	}
+		addEventDataFromCSVString(_evntStr);	}//put in child ctor in case child-event specific data needed for training	
 	
 	@Override
-	public void addEventDataFromEventObj(EventRawData ev) {
-		super.addEventDataRecsFromRaw(FauxOptVal,ev);
-	}//addEventDataFromEventObj
+	public void addEventDataFromEventObj(EventRawData ev) {	super.addEventDataRecsFromRaw(FauxOptVal,ev);}//addEventDataFromEventObj
 	@Override
-	public void addEventDataFromCSVString(String _csvDataStr) {
-		super.addEventDataRecsFromCSVStr(FauxOptVal,_csvDataStr);	
-	}//addEventDataFromCSVString
+	public void addEventDataFromCSVString(String _csvDataStr) {super.addEventDataRecsFromCSVStr(FauxOptVal,_csvDataStr);	}//addEventDataFromCSVString
+}//class OrderEventTrainData
 
-}//class OptEventTrainData
+class LinkEventTrainData extends StraffEvntTrainData{
+
+	public LinkEventTrainData(LinkEvent ev) {
+		super(ev);
+		addEventDataFromEventObj(ev);}	//put in child ctor in case child-event specific data needed for training	
+	
+	public LinkEventTrainData(Integer _evIDStr, String _evTypeStr, String _evDateStr, String _evntStr){
+		super(_evIDStr, _evTypeStr, _evDateStr);
+		addEventDataFromCSVString(_evntStr);}	//put in child ctor in case child-event specific data needed for training		
+	
+	@Override
+	public void addEventDataFromEventObj(EventRawData ev) {super.addEventDataRecsFromRaw(FauxOptVal,ev);}//addEventDataFromEventObj
+	@Override
+	public void addEventDataFromCSVString(String _csvDataStr) {	
+		//System.out.println("link event csvDataStr : " + _csvDataStr);
+		super.addEventDataRecsFromCSVStr(FauxOptVal,_csvDataStr);}//addEventDataFromCSVString
+}//class LinkEventTrainData
 
 class OptEventTrainData extends StraffEvntTrainData{
 	public OptEventTrainData(OptEvent ev) {
 		super(ev);		
-		addEventDataFromEventObj(ev);	//put in child ctor incase child-event specific data needed for training	
-	}
+		addEventDataFromEventObj(ev);}	//put in child ctor in case child-event specific data needed for training	
+	
 	
 	public OptEventTrainData(Integer _evIDStr, String _evTypeStr, String _evDateStr, String _evntStr){
 		super(_evIDStr, _evTypeStr, _evDateStr);
-		addEventDataFromCSVString(_evntStr);	//put in child ctor incase child-event specific data needed for training	
-	}
+		addEventDataFromCSVString(_evntStr);}	//put in child ctor in case child-event specific data needed for training		
 	
 	@Override
 	public void addEventDataFromEventObj(EventRawData ev) {
@@ -1151,7 +1200,6 @@ class OptEventTrainData extends StraffEvntTrainData{
 		Integer optValKey = getOptValFromCSVStr(_csvDataStr);
 		super.addEventDataRecsFromCSVStr(optValKey, _csvDataStr);
 	}
-
 }//class OptEventTrainData
 
 /////////////////////////////////////////////////////////////////////////////////

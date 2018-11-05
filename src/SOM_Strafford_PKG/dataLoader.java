@@ -116,7 +116,7 @@ public class dataLoader implements Runnable {
 			return false;} 
 		return true;		
 	}
-	//load map wts from file built by SOMOCLU
+	//load map wts from file built by SOM_MAP
 	private boolean loadSOMWts(){//builds mapnodes structure - each map node's weights 
 		String wtsFileName = fnames.getSOMResFName(wtsIDX);
 		map.MapNodes = new TreeMap<Tuple<Integer,Integer>, SOMMapNodeExample>();
@@ -435,7 +435,7 @@ class straffDataWriter implements Runnable{
 		//0 : # of examples
 		//1 : # of features + 1 for name column
 		//2 : format of columns -> 9 1 1 1 1 ...
-		//3 : names of columns (not used by somoclu)
+		//3 : names of columns (not used by SOM_MAP)
 		//format : 0 is training data to lrn, 1 is training data to svm format, 2 is testing data
 		
 		switch (savFileFrmt) {

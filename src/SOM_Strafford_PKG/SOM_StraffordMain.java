@@ -19,7 +19,7 @@ public class SOM_StraffordMain extends PApplet {
 	//project-specific variables
 	public String prjNmLong = "Testbed for development of Strafford Prospects SOM", prjNmShrt = "SOM_Strafford";
 	
-	//data in files created by somoclu separated by spaces
+	//data in files created by SOM_MAP separated by spaces
 	public String SOM_FileToken = " ", csvFileToken = "\\s*,\\s*";
 	//platform independent path separator
 	public String dirSep = File.separator;
@@ -29,8 +29,8 @@ public class SOM_StraffordMain extends PApplet {
 	public String exeDir = Paths.get("").toAbsolutePath().toString();
 	//base directory to write output from spheres/samples and from som analysis
 	public String BaseWriteDir = exeDir + dirSep + "data" + dirSep;
-	//location of somoclu exe
-	//NOTE this program uses a modified version of the somoclu library, modified to also build a file holding the per-feature best nodes
+	//location of SOM_MAP exe
+	//NOTE this program uses a modified version of the SOM_MAP library, modified to also build a file holding the per-feature best nodes
 	public String SOM_Dir = BaseWriteDir;
 			
 	//holds training data
