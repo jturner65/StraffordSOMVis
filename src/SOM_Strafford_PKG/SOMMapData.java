@@ -231,7 +231,7 @@ public class SOMMapData {
 
 	//build new SOM_MAP map using UI-entered values, then load resultant data
 	//with maps of required SOM exe params
-	protected void buildNewSOMMap(String SOM_Dir, boolean mapLoadFtrBMUsIDX, HashMap<String, Integer> mapInts, HashMap<String, Float> mapFloats, HashMap<String, String> mapStrings){
+	protected void buildNewSOMMap(boolean mapLoadFtrBMUsIDX, HashMap<String, Integer> mapInts, HashMap<String, Float> mapFloats, HashMap<String, String> mapStrings){
 		String lrnFileName = getStraffMapLRNFileName(), 		//dense training data .lrn file
 				svmFileName = getStraffMapSVMFileName(),		//sparse training data svm file name
 				testFileName = getStraffMapTestFileName(),		//testing data .csv file
@@ -240,9 +240,10 @@ public class SOMMapData {
 				
 				outFilePrfx = getStraffMapOutFileBase() + "_x"+mapInts.get("mapCols")+"_y"+mapInts.get("mapRows")+"_k"+mapInts.get("mapKType");
 		//build new map descriptor and execute
+		String SOM_Dir = getDirNameAndBuild(straffSOMProcSubDir);
 		//structure holding SOM_MAP specific cmd line args and file names and such
 		SOM_MAPDat SOMExecDat = new SOM_MAPDat(SOM_Dir, SOM_Map_EXECSTR, mapInts,mapFloats, mapStrings, lrnFileName, svmFileName,  outFilePrfx);
-		dispMessage("SOM map descriptor : " + SOMExecDat + " exec str : ");
+		dispMessage("SOM map descriptor : \n" + SOMExecDat.toString() + "Exec str : ");
 		dispMessageAra(SOMExecDat.execStrAra(),2);//2 strings per line
 		//launch in a thread?
 		buildNewMap(SOMExecDat);
@@ -269,7 +270,7 @@ public class SOMMapData {
 	
 	public boolean mapCanBeTrained(int kVal) {
 		//eventually enable training map on existing files - save all file names, enable file names to be loaded and map built directly
-		return ((kVal < 1) && (getFlag(lrnDataSavedIDX)) || ((kVal == 2) && getFlag(svmDataSavedIDX)));
+		return ((kVal <= 1) && (getFlag(lrnDataSavedIDX)) || ((kVal == 2) && getFlag(svmDataSavedIDX)));
 	}
 	
 	//build the callable strafford data loaders list
@@ -1201,8 +1202,8 @@ class SOM_MAPDat{
 				"-k",""+mapInts.get("mapKType"),"-x",""+mapInts.get("mapCols"),"-y",""+mapInts.get("mapRows"), "-e",""+mapInts.get("mapEpochs"),"-r",""+mapInts.get("mapStRad"),"-R",""+mapInts.get("mapEndRad"),
 				"-l",""+String.format("%.4f",mapFloats.get("mapStLrnRate")),"-L",""+String.format("%.4f",mapFloats.get("mapEndLrnRate")), 
 				"-m",""+mapStrings.get("mapBounds"),"-g",""+mapStrings.get("mapGridShape"),"-n",""+mapStrings.get("mapNHood"), "-T",""+mapStrings.get("mapLearnCool"), 
-				"-v 2",
-				"-t",""+mapStrings.get("mapRadCool"), (isSparse ? trainDataSparseFN : trainDataDenseFN) , outFilesPrefix};
+				"-v", "2",
+				"-t",""+mapStrings.get("mapRadCool"), "\"" +(isSparse ? trainDataSparseFN : trainDataDenseFN) + "\"" , "\"" + outFilesPrefix +  "\""};
 		return res;		
 	}//execString
 	

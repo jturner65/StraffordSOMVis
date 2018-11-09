@@ -236,7 +236,7 @@ public class mySOMMapUIWin extends myDispWindow {
 	//first verify that new .lrn file exists, then
 	//build new SOM_MAP map using UI-entered values, then load resultant data
 	protected void buildNewSOMMap(){
-		pa.outStr2Scr("SOM_data.buildNewMap called");
+		pa.outStr2Scr("mySOMMapUIWin::buildNewSOMMap");
 		int kVal = (int)this.guiObjs[uiMapKTypIDX].getVal();
 		//verify sphere train/test data exists, otherwise save it
 		if(!SOM_Data.mapCanBeTrained(kVal)){
@@ -267,10 +267,10 @@ public class mySOMMapUIWin extends myDispWindow {
 		for (String key : mapStrings.keySet()) {pa.outStr2Scr("mapStrings["+key+"] = "+mapStrings.get(key));}
 		
 		//call map data object to build and execute map call
-		SOM_Data.buildNewSOMMap(pa.SOM_Dir, getPrivFlags(mapLoadFtrBMUsIDX), mapInts, mapFloats, mapStrings);
+		SOM_Data.buildNewSOMMap(getPrivFlags(mapLoadFtrBMUsIDX), mapInts, mapFloats, mapStrings);
 
 		setFlagsDoneMapBuild();
-		pa.outStr2Scr("SOM_data.buildNewMap complete");
+		pa.outStr2Scr("mySOMMapUIWin::buildNewSOMMap complete");
 		setPrivFlags(buildSOMExe, false);
 	}//buildNewSOMMap	
 	
@@ -303,14 +303,14 @@ public class mySOMMapUIWin extends myDispWindow {
 	
 		};					
 		guiStVals = new double[]{	
-			0,		//uiTrainDataFrmtIDX
+			2,		//uiTrainDataFrmtIDX
 			90,		//uiTrainDatPartIDX
 			10,		//uiMapRowsIDX 	 	
 			10,		//uiMapColsIDX	 	
 			10,		//uiMapEpochsIDX	
 			0,		//uiMapShapeIDX	 	
 			1,		//uiMapBndsIDX	 	
-			0,		//uiMapKTypIDX	 	
+			2,		//uiMapKTypIDX	 	
 			0,		//uiMapNHdFuncIDX	
 			0,		//uiMapRadCoolIDX	
 			0,		//uiMapLrnCoolIDX	
