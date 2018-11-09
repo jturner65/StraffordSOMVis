@@ -73,6 +73,8 @@ public class mySOMMapUIWin extends myDispWindow {
 	private double[] uiVals;				//raw values from ui components
 	//source datapoints to be used to build files to send to SOM_MAP
 	//public dataPoint[] straffTrainData, straffTestData, straffSmplData;
+	//data format is from uiTrainDataFrmtIDX
+	private int dataFrmtToUseToTrain;
 	
 	//////////////////////////////
 	//map drawing 	draw/interaction variables
@@ -149,6 +151,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		setPrivFlags(mapDrawMapNodesIDX,true);
 		setPrivFlags(mapUseChiSqDistIDX,true);
 		setPrivFlags(useOnlyEvntsToTrainIDX, true);
+		dataFrmtToUseToTrain = (int)(this.guiObjs[uiTrainDataFrmtIDX].getVal());
 
 		//moved from SOM_Data ctor, to remove dependence on papplet in that object
 		dpFillClr = pa.getClr(SOM_StraffordMain.gui_White);
@@ -346,7 +349,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		//idx 0 is treat as int, idx 1 is obj has list vals, idx 2 is object gets sent to windows, 3 is object allows for lclick-up/rclick-down mod
 		guiBoolVals = new boolean [][]{
 			{true, true, true},								//uiTrainDataFrmtIDX
-			{true, false, true},							//uiTrainDataFrmtIDX
+			{true, false, true},							//uiTrainDatPartIDX
 			{true, false, true},      						//uiMapRowsIDX 	 	
 			{true, false, true},      						//uiMapColsIDX	 	
 			{true, false, true},      						//uiMapEpochsIDX	 	
@@ -440,6 +443,7 @@ public class mySOMMapUIWin extends myDispWindow {
 			case uiMseRegionSensIDX : {
 				break;}
 			case uiTrainDataFrmtIDX : {//format of training data
+				dataFrmtToUseToTrain = (int)(this.guiObjs[uiTrainDataFrmtIDX].getVal());
 				break;}
 		}
 	}//setUIWinVals
@@ -465,7 +469,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		}
 		return res;		
 	}
-	
+	//get treemap of features that interpolates between two maps of features
 	private TreeMap<Integer, Float> interpTreeMap(TreeMap<Integer, Float> a, TreeMap<Integer, Float> b, float t, float mult){
 		TreeMap<Integer, Float> res = new TreeMap<Integer, Float>();
 		float Onemt = 1.0f-t;
@@ -478,8 +482,9 @@ public class mySOMMapUIWin extends myDispWindow {
 			}
 			//next all b values
 			for(Integer key : b.keySet()) {
-				Float aVal = a.get(key), bVal = b.get(key);
-				if(aVal == null) {aVal = 0.0f;}
+				Float aVal = a.get(key);
+				if(aVal == null) {aVal = 0.0f;} else {continue;}		//if aVal is not null then calced already
+				Float bVal = b.get(key);
 				res.put(key, (aVal*Onemt) + (bVal*t));			
 			}
 		} else {//scale by mult - precomputes color values
@@ -492,8 +497,9 @@ public class mySOMMapUIWin extends myDispWindow {
 			}
 			//next all b values
 			for(Integer key : b.keySet()) {
-				Float aVal = a.get(key), bVal = b.get(key);
-				if(aVal == null) {aVal = 0.0f;}
+				Float aVal = a.get(key);
+				if(aVal == null) {aVal = 0.0f;} else {continue;}		//if aVal is not null then calced already
+				Float bVal = b.get(key);
 				res.put(key, (aVal*m1t) + (bVal*mt));			
 			}			
 		}		
@@ -526,13 +532,10 @@ public class mySOMMapUIWin extends myDispWindow {
 		//need to divide by width/height of map * # cols/rows to get mapped to actual map nodes
 		//dispMessage("In getDataPointAtLoc : Mouse loc in Nodes : " + x + ","+y+ "\txInt : "+ xInt + " yInt : " + yInt );
 		float xInterp = x - xInt, yInterp = y - yInt;//, xIsq = xInterp*xInterp, yIsq = yInterp*yInterp,oneMxIsq = (1-xInterp)*(1-xInterp),oneMyIsq = (1-yInterp)*(1-yInterp);
-//		SOMMapNodeExample LowXLowY = SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt)), LowXHiY= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xInt,yIntp1)),
-//				 HiXLowY= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yInt)),  HiXHiY= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yIntp1));
-		TreeMap<Integer, Float> LowXLowYFtrs = SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt)).getStdFtrMap(), LowXHiYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xInt,yIntp1)).getStdFtrMap(),
-				 HiXLowYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yInt)).getStdFtrMap(),  HiXHiYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yIntp1)).getStdFtrMap();
+		TreeMap<Integer, Float> LowXLowYFtrs = SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt)).getCurrentFtrMap(dataFrmtToUseToTrain), LowXHiYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xInt,yIntp1)).getCurrentFtrMap(dataFrmtToUseToTrain),
+				 HiXLowYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yInt)).getCurrentFtrMap(dataFrmtToUseToTrain),  HiXHiYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yIntp1)).getCurrentFtrMap(dataFrmtToUseToTrain);
 		try{
 			TreeMap<Integer, Float> ftrs = interpTreeMap(interpTreeMap(LowXLowYFtrs, LowXHiYFtrs,yInterp,1.0f),interpTreeMap(HiXLowYFtrs, HiXHiYFtrs,yInterp,1.0f),xInterp,255.0f);	
-
 			DispSOMMapExample dp = SOM_Data.buildTmpDataExample(locPt, ftrs, sensitivity);
 			//dp.setCorrectScaling();
 			//dp.setLabel(res);
@@ -560,13 +563,13 @@ public class mySOMMapUIWin extends myDispWindow {
 //		}
 //	}//getDataClrAtLoc
 	
-	//return a color for a location, where a color is an int scaled by the value of the weight at that location
+	//return a ftrMap at a location
 	public TreeMap<Integer, Float> getDataMapAtLoc(float x, float y){
 		int xInt = (int) Math.floor(x), yInt = (int) Math.floor(y), xIntp1 = (xInt+1)%SOM_Data.mapX, yIntp1 = (yInt+1)%SOM_Data.mapY;		//assume torroidal map		
 		//dispMessage("In getDataClrAtLoc :  loc in Nodes : " + x + ","+y+ "\txInt : "+ xInt + " yInt : " + yInt );
 		float xInterp = x - xInt, yInterp = y - yInt;		
-		TreeMap<Integer, Float> LowXLowYFtrs = SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt)).getStdFtrMap(), LowXHiYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xInt,yIntp1)).getStdFtrMap(),
-				 HiXLowYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yInt)).getStdFtrMap(),  HiXHiYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yIntp1)).getStdFtrMap();
+		TreeMap<Integer, Float> LowXLowYFtrs = SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt)).getCurrentFtrMap(dataFrmtToUseToTrain), LowXHiYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xInt,yIntp1)).getCurrentFtrMap(dataFrmtToUseToTrain),
+				 HiXLowYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yInt)).getCurrentFtrMap(dataFrmtToUseToTrain),  HiXHiYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yIntp1)).getCurrentFtrMap(dataFrmtToUseToTrain);
 		try{
 			TreeMap<Integer, Float> ftrs = interpTreeMap(interpTreeMap(LowXLowYFtrs, LowXHiYFtrs,yInterp,1.0f),interpTreeMap(HiXLowYFtrs, HiXHiYFtrs,yInterp,1.0f),xInterp,255.0f);	
 			return ftrs;//(((int)ftrs[0] & 0xff) << 16) + (((int)ftrs[1] & 0xff) << 8) + ((int)ftrs[2] & 0xff);			
@@ -578,15 +581,26 @@ public class mySOMMapUIWin extends myDispWindow {
 		
 	//make color based on ftr value at particular index
 	//jpIDX is index in feature vector we are querying
-	private int getDataClrFromFtrVec(TreeMap<Integer, Float> ftrMap, Integer jpIDX) {
+	//call this if map is trained on unmodified data
+	private int getDataClrFromFtrVecUnModded(TreeMap<Integer, Float> ftrMap, Integer jpIDX) {
+		
 		Float ftrVal = ftrMap.get(jpIDX);
 		int ftr = 0;
 		if(ftrVal != null) {
-			ftr=Math.round(ftrVal);
+			ftr = SOM_Data.scaleUnfrmttedFtrData(ftrVal, jpIDX); 
 		}
-		//int clrVal = (0xff << 24) + ((ftr & 0xff) << 16) + ((ftr & 0xff) << 8) + (ftr & 0xff);
 		int clrVal = ((ftr & 0xff) << 16) + ((ftr & 0xff) << 8) + (ftr & 0xff);
-		//if (ftr > 0) {SOM_Data.dispMessage("ftr : " +ftr + " | clrVal : " + clrVal);}
+		return clrVal;
+	}//getDataClrFromFtrVec
+	
+	//make color based on ftr value at particular index
+	//jpIDX is index in feature vector we are querying
+	//call this if map is trained on scaled or normed ftr data
+	private int getDataClrFromFtrVec(TreeMap<Integer, Float> ftrMap, Integer jpIDX) {
+		Float ftrVal = ftrMap.get(jpIDX);
+		int ftr = 0;
+		if(ftrVal != null) {	ftr = Math.round(255 * ftrVal);		}
+		int clrVal = ((ftr & 0xff) << 16) + ((ftr & 0xff) << 8) + (ftr & 0xff);
 		return clrVal;
 	}//getDataClrFromFtrVec
 	
@@ -670,14 +684,26 @@ public class mySOMMapUIWin extends myDispWindow {
 		for (int i=0;i<mapLocClrImg.length;++i) {
 			mapLocClrImg[i].loadPixels();
 		}
-		for(int y = 0; y<mapLocClrImg[0].height; ++y){
-			int yCol = y * mapLocClrImg[0].width;
-			for(int x = 0; x < mapLocClrImg[0].width; ++x){
-				c = getMapNodeLocFromPxlLoc(x, y,mapScaleVal);
-				//TreeMap<Integer, Float> getDataMapAtLoc(float x, float y)
-				TreeMap<Integer, Float> ftrs = getDataMapAtLoc(c[0],c[1]);
-				for (int i=0;i<mapLocClrImg.length;++i) {				
-					mapLocClrImg[i].pixels[x+yCol] = getDataClrFromFtrVec(ftrs, i);
+		//TODO this must be set by loading the data from the trained map - data configuration information needs to be saved when the map is made
+		if(dataFrmtToUseToTrain == 0) {//0 == unmodded data
+			for(int y = 0; y<mapLocClrImg[0].height; ++y){
+				int yCol = y * mapLocClrImg[0].width;
+				for(int x = 0; x < mapLocClrImg[0].width; ++x){
+					//this returns a full vector of values, this is why we build per pix per image, instead of per image per pix.
+					c = getMapNodeLocFromPxlLoc(x, y,mapScaleVal);
+					TreeMap<Integer, Float> ftrs = getDataMapAtLoc(c[0],c[1]);
+					for (int i=0;i<mapLocClrImg.length;++i) {				
+						mapLocClrImg[i].pixels[x+yCol] = getDataClrFromFtrVecUnModded(ftrs, i);
+					}
+				}
+			}
+		} else {	
+			for(int y = 0; y<mapLocClrImg[0].height; ++y){
+				int yCol = y * mapLocClrImg[0].width;
+				for(int x = 0; x < mapLocClrImg[0].width; ++x){
+					c = getMapNodeLocFromPxlLoc(x, y,mapScaleVal);
+					TreeMap<Integer, Float> ftrs = getDataMapAtLoc(c[0],c[1]);
+					for (int i=0;i<mapLocClrImg.length;++i) {	mapLocClrImg[i].pixels[x+yCol] = getDataClrFromFtrVec(ftrs, i);}
 				}
 			}
 		}
@@ -716,7 +742,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		clearFuncBtnState(2,false);
 	}			
 	private void custFunc3(){	
-		SOM_Data.buildAndSaveTrainingData((int)(this.guiObjs[uiTrainDataFrmtIDX].getVal()), (float)(.01*this.guiObjs[uiTrainDatPartIDX].getVal()));
+		SOM_Data.buildAndSaveTrainingData(dataFrmtToUseToTrain, (float)(.01*this.guiObjs[uiTrainDatPartIDX].getVal()));
 		clearFuncBtnState(3,false);
 	}			
 	private void custFunc4(){	

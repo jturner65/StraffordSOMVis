@@ -263,7 +263,7 @@ public class SOMMapData {
 		fnames = new SOMDatFileConfig(this);
 		fnames.setAllFileNames(cFN,diffsFileName,minsFileName, lrnFileName, outFilePrfx, csvOutBaseFName);
 		dispMessage("Current fnames before dataLoader Call : " + fnames.toString());
-		th_exec.execute(new dataLoader(this,mapLoadFtrBMUsIDX,fnames));//fire and forget load task to load	
+		th_exec.execute(new SOMDataLoader(this,mapLoadFtrBMUsIDX,fnames));//fire and forget load task to load	
 
 	}//buildNewSOMMap	
 	
@@ -585,7 +585,6 @@ public class SOMMapData {
 		//clear out current prospect data
 		resetProspectMap();
 		//load in variables describing jpgroup/jp configurations in current data - not used, rebuild this info with prospect map
-		//loadAllJPGData();
 		String[] loadSrcFNamePrefixAra = buildPrspctDataCSVFNames(eventsOnly);
 		
 		String fmtFile = loadSrcFNamePrefixAra[0]+"_format.csv";
@@ -593,7 +592,7 @@ public class SOMMapData {
 		int numPartitions = 0;
 		try {
 			numPartitions = Integer.parseInt(loadRes[0].split(" : ")[1].trim());
-		} catch (Exception e) {e.printStackTrace(); } 
+		} catch (Exception e) {e.printStackTrace(); dispMessage("Due to error with not finding format file : " + fmtFile+ " no data will be loaded.");} 
 		for (int i=0; i<numPartitions;++i) {
 			String dataFile =  loadSrcFNamePrefixAra[0]+"_"+i+".csv";
 			String[] csvLoadRes = loadFileIntoStringAra(dataFile, "Data file " + i +" loaded", "Data File " + i +" Failed to load");
@@ -637,7 +636,6 @@ public class SOMMapData {
 		nameCounter = 0;
 		for (ArrayList<String> csvResSubAra : csvRes) {		
 			dispMessage("Saving String array : " +nameCounter);
-			//saveStrings(saveDestFNamePrefixAra[0]+"_"+nameCounter+".csv", csvResSubAra.toArray(new String[0]));
 			saveStrings(saveDestFNamePrefixAra[0]+"_"+nameCounter+".csv", csvResSubAra);
 			++nameCounter;
 		}
@@ -664,35 +662,35 @@ public class SOMMapData {
 		//we need the jp-jpg counts and relationships dictated by the data by here.
 		setJPDataFromProspectData(map);
 		dispMessage("End setJPDateFromProspectData");// | Start processHoldOutOptRecs");		
-//		//NOT DONE (changed calc to handle this instead) once all jp-jpg data has been set, go through all opt records that require building occurences for all jp/jpgs (positive opts with empty lists of requests)
-//		for (ProspectExample ex : map.values()) {ex.processHoldOutOptRecs();}
-//		dispMessage("End processHoldOutOptRecs");
+
 		for (ProspectExample ex : map.values()) {
 			//if (ex.OID.toUpperCase().equals("PR_000000019")) {dispMessage("Prospect Example buildFeatureVector for prospect with key pr_000000019");}//pr_000000019 is a record that only has an opt out all event
-			ex.buildFeatureVector();}
+			ex.buildFeatureVector();
+		}
 		//now get mins and diffs from calc object
 		diffsVals = ftrCalcObj.getDiffsBndsAra();
 		minsVals = ftrCalcObj.getMinBndsAra();
-		for (ProspectExample ex : map.values()) {ex.buildPostFeatureVectorStructs();}
+		for (ProspectExample ex : map.values()) {//this builds std ftr vector
+			ex.buildPostFeatureVectorStructs();
+		}
 		setFlag(rawDataProcedIDX, true);
+		//dispMessage("SOMMapData::finishProspectBuild : Calc Object : "+ftrCalcObj.toString());
 		dispMessage("SOMMapData::finishProspectBuild : Finished calculating prospect feature vectors");
 	}//finishProspectBuild
 	
-	public TreeMap<Integer, Float> calcStdFtrVector(StraffSOMExample ex, HashSet<Integer> jps){
-		return calcStdFtrVector(ex, jps, minsVals, diffsVals);
+	
+	//this is here so can more easily use the mins and diffs equations
+	public TreeMap<Integer, Float> calcStdFtrVector(TreeMap<Integer, Float> ftrs, ArrayList<Integer> jpIdxs){
+		return calcStdFtrVector(ftrs, jpIdxs, minsVals, diffsVals);
 	}
 	//scale each feature value to be between 0->1 based on min/max values seen for this feature
 	//all examples features will be scaled with respect to seen calc results 0- do not use this for
 	//exemplar objects (those that represent a particular product, for example)
 	//MUST BE SET WITH APPROPRIATE MINS AND DIFFS
-	public TreeMap<Integer, Float> calcStdFtrVector(StraffSOMExample ex, HashSet<Integer> jps, Float[] mins, Float[] diffs) {
-		TreeMap<Integer, Float> ftrs = ex.ftrMap;
+	private TreeMap<Integer, Float> calcStdFtrVector(TreeMap<Integer, Float> ftrs, ArrayList<Integer> jpIdxs, Float[] mins, Float[] diffs) {
 		TreeMap<Integer, Float> sclFtrs = new TreeMap<Integer, Float>();
-		Integer destIDX;
-		for (Integer jp : jps) {
-			destIDX = jpToFtrIDX.get(jp);
-			Float lb = mins[destIDX], 
-					diff = diffs[destIDX];
+		for (Integer destIDX : jpIdxs) {
+			Float lb = mins[destIDX], 	diff = diffs[destIDX];
 			if (diff==0) {//same min and max
 				if (lb > 0) {	sclFtrs.put(destIDX,1.0f);}//only a single value same min and max-> set feature value to 1.0
 				else {			sclFtrs.put(destIDX,0.0f);}
@@ -809,27 +807,27 @@ public class SOMMapData {
 		fnames = new SOMDatFileConfig(this);
 		fnames.setAllFileNames(cFN,diffsFileName,minsFileName, lrnFileName, outFilePrfx, csvOutBaseFName);
 		dispMessage("Current fnames before dataLoader Call : " + fnames.toString());
-		th_exec.execute(new dataLoader(this,true,fnames));//fire and forget load task to load	
+		th_exec.execute(new SOMDataLoader(this,true,fnames));//fire and forget load task to load	
 		
 	}//dbgBuildExistingMap
 	
-	//called from StraffSOMExample after all occurences are built
-	//this will add entries into an occ map with the passed date and opt value - opts are possible with no jps specified, if so this means all
-	//not making occurences for negative opts, but for non-negative opts we can build the occurence information for all jps/jpgs.  This will be used for training data
-	//only
-	public void buildAllJpgJpOccMap(TreeMap<Integer, jpOccurrenceData> jpOccMap, Date eventDate, int opt) {
-		if(jpgsToJps.size()==0) {		dispMessage("SOMMapData::buildAllJpgJpOccMap : Error - attempting to add all jpg's/jp's  to occurence data but haven't been aggregated yet."); return;}
-		for (Integer jpg : jpgsToJps.keySet()) {
-			TreeSet<Integer> jps = jpgsToJps.get(jpg);
-			for (Integer jp : jps) {
-				jpOccurrenceData jpOcc = jpOccMap.get(jp);
-				if (jpOcc==null) {jpOcc = new jpOccurrenceData(jp, jpg);}
-				jpOcc.addOccurence(eventDate, opt);		
-				//add this occurence object to map at idx jp
-				jpOccMap.put(jp, jpOcc);
-			}
-		}
-	}//buildAllJpgJpOccMap
+//	//called from StraffSOMExample after all occurences are built
+//	//this will add entries into an occ map with the passed date and opt value - opts are possible with no jps specified, if so this means all
+//	//not making occurences for negative opts, but for non-negative opts we can build the occurence information for all jps/jpgs.  This will be used for training data
+//	//only
+//	private void buildAllJpgJpOccMap(TreeMap<Integer, jpOccurrenceData> jpOccMap, Date eventDate, int opt) {
+//		if(jpgsToJps.size()==0) {		dispMessage("SOMMapData::buildAllJpgJpOccMap : Error - attempting to add all jpg's/jp's  to occurence data but haven't been aggregated yet."); return;}
+//		for (Integer jpg : jpgsToJps.keySet()) {
+//			TreeSet<Integer> jps = jpgsToJps.get(jpg);
+//			for (Integer jp : jps) {
+//				jpOccurrenceData jpOcc = jpOccMap.get(jp);
+//				if (jpOcc==null) {jpOcc = new jpOccurrenceData(jp, jpg);}
+//				jpOcc.addOccurence(eventDate, opt);		
+//				//add this occurence object to map at idx jp
+//				jpOccMap.put(jp, jpOcc);
+//			}
+//		}
+//	}//buildAllJpgJpOccMap
 	
 	//this will set the current jp->jpg data maps based on passed prospect data map
 	//When acquiring new data, this must be performed after all data is loaded, but before
@@ -927,6 +925,15 @@ public class SOMMapData {
 		}
 	}//procRawEventData
 	
+	//this will scale unmodified ftr data - scaled or normalized data does not need this
+	public int scaleUnfrmttedFtrData(Float ftrVal, Integer jpIDX) {
+		//what to use to scale features - if dataFmt == 0 then need to use mins/maxs, otherwise ftrs can be just treated as if they are scaled already - either normalized or standardized will be between 0-1 for all ftr values
+		Float min = this.minsVals[jpIDX], 
+				diffs = this.diffsVals[jpIDX],
+				calcVal = (ftrVal - min)/diffs;
+		return Math.round(255 * calcVal);
+	}//scaleUnfrmttedFtrData
+	
 	
 	//this will go through all the prospects, opts, and events and build a map of prospectExample keyed by prospect OID and holding all the known data
 	private void procRawLoadedData(boolean eventsOnly, boolean appendToExistingData){
@@ -952,53 +959,10 @@ public class SOMMapData {
 			 tmpProspectMap.put(ex.OID, ex);
 		}
 		procRawEventData(tmpProspectMap, true);
-//		//to monitor bad event formats - events with OIDs that are not found in prospect DB data
-//		TreeMap<String, Integer> badOptOIDsOps = new TreeMap<String, Integer>();		
-//		//now add order events
-//		String ordrBadFName = straffBasefDir + straffDataFileNames[orderEvntIDX] +"_bad_OIDs.csv";		
-//		ArrayList<String> badOrdrOIDs = new ArrayList<String>();
-//		ArrayList<BaseRawData> orders = rawDataArrays.get(straffDataFileNames[orderEvntIDX]);
-//		HashSet<String> uniqueBadOrderOIDs = new HashSet<String>();
-//		for (BaseRawData obj : orders) {
-//			ProspectExample ex = tmpProspectMap.get(obj.OID);
-//			if (ex == null) {//means no prospect object corresponding to the OID in this event
-//				badOrdrOIDs.add(obj.OID);
-//				uniqueBadOrderOIDs.add(obj.OID);
-//				continue;}
-//			ex.addOrderObj((OrderEvent) obj);
-//		}
-//		//now add opt events
-//		String optBadFName = straffBasefDir + straffDataFileNames[optEvntIDX] +"_bad_OIDs.csv";
-//		ArrayList<String> badOptOIDs = new ArrayList<String>();
-//		ArrayList<BaseRawData> opts = rawDataArrays.get(straffDataFileNames[optEvntIDX]);
-//		HashSet<String> uniqueBadOptOIDs = new HashSet<String>();		
-//		for (BaseRawData obj : opts) {
-//			ProspectExample ex = tmpProspectMap.get(obj.OID);
-//			if (ex == null) {//means no prospect object corresponding to the OID in this event
-//				badOptOIDs.add(obj.OID);
-//				uniqueBadOptOIDs.add(obj.OID);		
-//				badOptOIDsOps.put(obj.OID, ((OptEvent)obj).getOptType());
-//				continue;}			
-//			//if (ex.OID.toUpperCase().equals("US_000060959")) {dispMessage("Prospect Example opts proced for prospect with key US_000060959 : "+obj.toString());	 }//US_000060959 is a record with opt out of specific jps
-//			ex.addOptObj((OptEvent) obj);					
-//		}		
-//		if (badOrdrOIDs.size() > 0) {saveStrings(ordrBadFName, uniqueBadOrderOIDs.toArray(new String[0]));		}
-//		if (badOptOIDs.size() > 0) {saveStrings(optBadFName, uniqueBadOptOIDs.toArray(new String[0]));		}
-//		int numMissingGoodOpts = 0;
-//		for(String OID : badOptOIDsOps.keySet()) {
-//			Integer opt = badOptOIDsOps.get(OID);
-//			if (opt > -2) {++numMissingGoodOpts;}
-//		}
-//		
-//		dispMessage("# bad orders : "+badOrdrOIDs.size()+"| # bad opts : " + badOptOIDs.size());
-//		dispMessage("# unique bad orders : "+uniqueBadOrderOIDs.size()+"| # unique bad opts : " + uniqueBadOptOIDs.size()+" | # of opt records with opt > -2: "+numMissingGoodOpts);
-		
+
 		//finalize each prospect record, aggregate data-driven static vals, rebuild ftr vectors
 		finishProspectBuild(tmpProspectMap);
-
-		
-		
-		
+	
 		//save all data here,clear rawDataArrays, reset raw data array flags
 		//build actual prospect map only from prospectExamples that hold trainable information
 		//need to have every entered prospect example finalized before this - the finalization process is necessary to determine if a good example or not

@@ -2,10 +2,11 @@ package SOM_Strafford_PKG;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
 
 //class that describes the hierarchy of files required for running and analysing a SOM
-public class dataLoader implements Runnable {
+public class SOMDataLoader implements Runnable {
 	public SOMMapData map;				//the map these files will use
 	public SOMDatFileConfig fnames;			//struct maintaining file names for all files in som, along with 
 	
@@ -25,7 +26,7 @@ public class dataLoader implements Runnable {
 			loadFtrBMUsIDX			= 1;
 	public static final int numFlags = 2;
 	
-	public dataLoader(SOMMapData _map, boolean _lBMUs, SOMDatFileConfig _fnames) {
+	public SOMDataLoader(SOMMapData _map, boolean _lBMUs, SOMDatFileConfig _fnames) {
 		map = _map;
 		fnames = _fnames;
 		initFlags();
@@ -164,7 +165,6 @@ public class dataLoader implements Runnable {
 		map.map_ftrsDiffs = new float[map.numFtrs];
 		//build map array of images to map to
 		map.initMapAras(map.numFtrs);
-		
 		
 		for(int d = 0; d<map.numFtrs; ++d){map.map_ftrsMean[d] /= 1.0f*numEx;map.map_ftrsDiffs[d]=tmpMapMaxs[d]-map.map_ftrsMin[d];}
 		//set stdftrs for map nodes and variance calc
@@ -358,7 +358,26 @@ public class dataLoader implements Runnable {
 	public boolean getFlag(int idx){int bitLoc = 1<<(idx%32);return (stFlags[idx/32] & bitLoc) == bitLoc;}		
 }//dataLoader
 
+//this class will load the pre-procced csv data into the prospect data structure owned by the SOMMapData object
+class straffCSVDataLoader implements Callable<Boolean>{
+	public SOMMapData map;
+	
+	public straffCSVDataLoader(SOMMapData _map) {map=_map;
+		
+	}
+	//load the partitioned file into the prospect data map
+	private void loadData() {
+		
+	}
 
+	@Override
+	public Boolean call() throws Exception {
+		
+		
+		return true;
+	}
+	
+}
 //save all Strafford training/testing data to appropriate format for SOM
 class straffDataWriter implements Runnable{
 	//public SOM_StraffordMain pa;
@@ -422,7 +441,6 @@ class straffDataWriter implements Runnable{
 		String fileName = map.getStraffMapSVMFileName();
 		for (int i=0;i<exAra.length; ++i) {outStrings[i]=exAra[i].toSVMString(dataFrmt);	}
 		map.saveStrings(fileName,outStrings);		
-	
 		map.dispMessage("Finished saving .svm (sparse) file with " + exAra.length+ " elements to file : "+ fileName);			
 	}
 
