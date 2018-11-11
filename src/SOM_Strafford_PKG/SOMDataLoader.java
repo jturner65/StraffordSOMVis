@@ -384,9 +384,10 @@ class straffDataWriter implements Runnable{
 	public SOMMapData map;	
 	public int dataFrmt;
 	public StraffSOMExample[] exAra;
-	public int numFtrs,numSmpls,savFileFrmt;
+	public int numFtrs,numSmpls;
+	public String savFileFrmt;
 	
-	public straffDataWriter(SOMMapData _map, int _dataFrmt, int _savFileFrmt, StraffSOMExample[] _exAra) {
+	public straffDataWriter(SOMMapData _map, int _dataFrmt, String _savFileFrmt, StraffSOMExample[] _exAra) {
 		map = _map;
 		dataFrmt = _dataFrmt;		//either unmodified, standardized or normalized -> 0,1,2
 		exAra = _exAra;
@@ -457,17 +458,22 @@ class straffDataWriter implements Runnable{
 		//format : 0 is training data to lrn, 1 is training data to svm format, 2 is testing data
 		
 		switch (savFileFrmt) {
-			case 0 : {
+			case "denseTrain" : {
 				saveLRNData();
 				map.setFlag(map.lrnDataSavedIDX, true);	
 				break;
 			}
-			case 1 : {
+			case "sparseTrain" : {
 				saveSVMData();
 				map.setFlag(map.svmDataSavedIDX, true);		
 				break;
 			}
-			case 2 : {				
+			case "denseTest" : {				
+				saveCSVData();
+				map.setFlag(map.testDataSavedIDX, true);
+				break;
+			}
+			case "sparseTest" : {				
 				saveCSVData();
 				map.setFlag(map.testDataSavedIDX, true);
 				break;

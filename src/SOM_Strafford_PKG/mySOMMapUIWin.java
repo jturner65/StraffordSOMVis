@@ -75,6 +75,7 @@ public class mySOMMapUIWin extends myDispWindow {
 	//public dataPoint[] straffTrainData, straffTestData, straffSmplData;
 	//data format is from uiTrainDataFrmtIDX
 	private int dataFrmtToUseToTrain;
+	//
 	
 	//////////////////////////////
 	//map drawing 	draw/interaction variables
