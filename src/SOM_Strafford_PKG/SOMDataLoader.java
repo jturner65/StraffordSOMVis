@@ -8,7 +8,7 @@ import java.util.concurrent.ThreadLocalRandom;
 //class that describes the hierarchy of files required for running and analysing a SOM
 public class SOMDataLoader implements Runnable {
 	public SOMMapData map;				//the map these files will use
-	public SOMDatFileConfig fnames;			//struct maintaining file names for all files in som, along with 
+	public SOMProjConfigData fnames;			//struct maintaining file names for all files in som, along with 
 	
 	public final static float nodeDistThresh = 100000.0f;
 	//idxs of different kinds of files
@@ -26,7 +26,7 @@ public class SOMDataLoader implements Runnable {
 			loadFtrBMUsIDX			= 1;
 	public static final int numFlags = 2;
 	
-	public SOMDataLoader(SOMMapData _map, boolean _lBMUs, SOMDatFileConfig _fnames) {
+	public SOMDataLoader(SOMMapData _map, boolean _lBMUs, SOMProjConfigData _fnames) {
 		map = _map;
 		fnames = _fnames;
 		initFlags();
@@ -76,7 +76,7 @@ public class SOMDataLoader implements Runnable {
 	
 	//this will make sure that all scaled features are actually scaled and nonscaled are actually nonscaled
 	public boolean condAllData(){
-		String diffsFileName = fnames.getDiffsFname(), minsFileName = fnames.getMinsFname();
+		String diffsFileName = fnames.getDiffsFName(), minsFileName = fnames.getMinsFName();
 		//load normalizing values for datapoints in weights - differences and mins, used to scale/descale training and map data
 		map.diffsVals = loadCSVSrcDataPoint(diffsFileName);
 		if((null==map.diffsVals) || (map.diffsVals.length < 1)){map.dispMessage("DataLoader : !!error reading diffsFile : " + diffsFileName); return false;}

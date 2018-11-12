@@ -1,0 +1,19 @@
+### begin initial read of all db data config
+###
+### specify here if raw data needs to be read into project to be used to build new training/testing data
+### readNewData : whether or not to access raw csv/db data to build new proproc data 
+###		TODO : possibly expand to handle different sources for all data
+readNewData, false
+### whether to read from csv or from db
+getRawDataFromCSV, true
+### end initial read of all db data config
+###
+### begin prospect info preprocessed data 
+### put the subdirectory name in here of the directory holding the desired/most recent preprocessed csv data
+### targetPreprocDataDir : all subdirs will be assumed to be under the directory this file resides in.  
+targetPreprocDataDir, default
+### useOnlyEvents : whether training data should be built to only include prospects that 
+###		have event data, or whether it should also include prospects that only have jp/jpg data specified in the prospect record
+useOnlyEvents : true
+
+### end prospect info preprocessed data 

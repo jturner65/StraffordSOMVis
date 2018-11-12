@@ -1,29 +1,41 @@
 package SOM_Strafford_PKG;
 
-//structure to hold all the file names and file configurations required to load the SOM data and save the derived SOM info
+//structure to hold all the file names, file configurations and general program configurations required to run the SOM project
 //will manage that all file names need to be reset when any are changed
-public class SOMDatFileConfig {
+public class SOMProjConfigData {
 	public SOMMapData map;
 	private String[] fnames; 
-	public static final int numFiles = 5;	
-
+	private static final int numFiles = 5;		
+	//TODO
+	//info required for raw data read from csv/db and preprocessing
+	
+	
+	//info required to save/load preproced data to be converted to map-usable format
+	
+	
+	//info required to build map experiment - should be savable and buildable/loadable from file configuration
+	
+	//info required to read results of map experiment and convert to UI vis, if used
+	
+	
+	//boolean flags
 	private int[] stFlags;						//state flags - bits in array holding relevant process info
-	public static final int 
+	private static final int 
 		trainDatFNameIDX	= 0,				//training data file name has been set
 		somResFPrfxIDX		= 1,				//som results file prefix has been set
 		diffsFNameIDX		= 2,				//file name holding per-ftr max-min differences in training data
 		minsFNameIDX		= 3,				//file name holding per ftr mins in training data
 		csvSavFNameIDX		= 4,				//file name prefix holding class saving file prefixs
-		isDirty				= 5,				//current fnames is dirty - not all files are in sync
-		useCSVforTrainIDX	= 6;				//use .csv files for training data, otherwise uses .lrn files
-	public static final int numFlags = 7;		
+		isDirty				= 5;				//current fnames is dirty - not all files are in sync
+		//useCSVforTrainIDX	= 6;				//use .csv files for training data, otherwise uses .lrn files
+	private static final int numFlags = 6;		
 	
-	public static String[] SOMResExtAra = new String[]{".wts",".fwts",".bm",".umx"};			//extensions for different SOM output file types
-	//all flags corresponding to file names
+	public static final String[] SOMResExtAra = new String[]{".wts",".fwts",".bm",".umx"};			//extensions for different SOM output file types
+	//all flags corresponding to file names required to run SOM
 	private int[] reqFileNameFlags = new int[]{trainDatFNameIDX, somResFPrfxIDX, diffsFNameIDX, minsFNameIDX, csvSavFNameIDX};
 	private String[] reqFileNames = new String[]{"trainDatFNameIDX", "somResFPrfxIDX", "diffsFNameIDX", "minsFNameIDX", "csvSavFNameIDX"};
 
-	public SOMDatFileConfig(SOMMapData _map) {
+	public SOMProjConfigData(SOMMapData _map) {
 		map=_map;
 		fnames = new String[numFiles];
 		for(int i=0;i<numFiles;++i){fnames[i]="";}
@@ -33,8 +45,8 @@ public class SOMDatFileConfig {
 	//sets all file names - assumes names to be valid
 	public void setAllFileNames(String _dFN, String _mnFN, String _trainDataFName, String _somResBaseFName, String _somCSVBaseFName){
 		setFileName(trainDatFNameIDX, _trainDataFName);
-		setFlag(useCSVforTrainIDX, _trainDataFName.toLowerCase().contains(".csv"));
-		map.dispMessage("Use CSV for train is set : "+getFlag(useCSVforTrainIDX)+" for string " + _trainDataFName);
+
+
 		setFileName(somResFPrfxIDX, _somResBaseFName);
 		setFileName(diffsFNameIDX, _dFN);
 		setFileName(minsFNameIDX, _mnFN);
@@ -52,12 +64,13 @@ public class SOMDatFileConfig {
 	
 	//call only 1 time, when setting isDirty to true - only run once per dirty flag being in true state
 	private void setDirty(){for(int i=0;i<reqFileNameFlags.length;++i){setFlag(reqFileNameFlags[i],false);}}	
-	//return true of all required files are loaded
+	//return true if all required files are loaded
 	public boolean allReqFilesLoaded(){for(int i=0;i<reqFileNameFlags.length;++i){if(!getFlag(reqFileNameFlags[i])){return false;}}return true;}
 	
-	public String getTrainFname(){return fnames[trainDatFNameIDX];	}
-	public String getDiffsFname(){return fnames[diffsFNameIDX];	}
-	public String getMinsFname(){return fnames[minsFNameIDX]; }
+	public String getTrainFName(){return fnames[trainDatFNameIDX];	}
+	public String getTestFName(){return fnames[csvSavFNameIDX];	}
+	public String getDiffsFName(){return fnames[diffsFNameIDX];	}
+	public String getMinsFName(){return fnames[minsFNameIDX]; }
 	
 	public String getAllDirtyFiles(){
 		String res = "";
@@ -85,7 +98,7 @@ public class SOMDatFileConfig {
 	public boolean getFlag(int idx){int bitLoc = 1<<(idx%32);return (stFlags[idx/32] & bitLoc) == bitLoc;}		
 	@Override
 	public String toString(){
-		String res = "FName Cnstrct : \n";
+		String res = "SOM Project Data Config Cnstrct : \n";
 		res += "\ttrainDatFNameIDX = " + fnames[trainDatFNameIDX]+"\n";
 		res += "\tsomResFNameIDX = " + fnames[somResFPrfxIDX]+"\n";
 		res += "\tdiffsFNameIDX = " + fnames[diffsFNameIDX]+"\n";

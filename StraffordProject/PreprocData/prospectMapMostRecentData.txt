@@ -1,3 +1,0 @@
-### put the subdirectory name in here of the directory holding the desired/most recent preprocessed csv data
-### all subdirs will be assumed to be under the directory this file resides in
-targetPreprocDataDir, default

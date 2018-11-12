@@ -17,7 +17,9 @@ public class SOMMapData {
 	//short name to be used in file names to denote this project
 	private final String SOMProjName = "straff";
 	
-	
+	//struct maintaining complete project configuration and information from config files
+	public SOMProjConfigData fnames;			
+
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	
 	//description of SOM_MAP exe params
@@ -102,11 +104,8 @@ public class SOMMapData {
 	public List<Future<Boolean>> straffDataLdrFtrs;
 	public List<StraffordDataLoader> straffDataLoaders;
 	
-	
 	//map of prospectExamples built from database data, keyed by prospect OID
 	public ConcurrentSkipListMap<String, ProspectExample> prospectMap;	
-	//struct maintaining file names for all files in som, along with 
-	public SOMDatFileConfig fnames;			
 	
 	////////////////////////////////////////
 	//TODO save these to file, to faciliate reloading without re-reading db
@@ -163,9 +162,10 @@ public class SOMMapData {
 			straffBasefDir = new File(baseDir).getCanonicalPath() + File.separator ;
 		} catch (Exception e) {
 			straffBasefDir =  baseDir;
-			dispMessage("Failed to find base application directory "+ baseDir + " due to : " + e);
+			dispMessage("SOMMapData::Constructor : Failed to find base application directory "+ baseDir + " due to : " + e);
 		}
-		System.out.println("Canonical Path to application directory : " + straffBasefDir);		
+		System.out.println("Canonical Path to application directory : " + straffBasefDir + "\nLoading Project configuration file.");	
+		
 		//set invoking string for map executable - is platform dependent
 		String execStr = "straff_SOM";
 		if (osName.toLowerCase().contains("windows")) {execStr += ".exe";	}
@@ -294,7 +294,7 @@ public class SOMMapData {
 		String csvOutBaseFName = outFilePrfx + "_outCSV";
 		initData();			
 		setFlag(loaderRtnIDX, false);
-		fnames = new SOMDatFileConfig(this);
+		fnames = new SOMProjConfigData(this);
 		fnames.setAllFileNames(diffsFileName,minsFileName, lrnFileName, outFilePrfx, csvOutBaseFName);
 		dispMessage("Current fnames before dataLoader Call : " + fnames.toString());
 		th_exec.execute(new SOMDataLoader(this,mapLoadFtrBMUsIDX,fnames));//fire and forget load task to load	
@@ -625,12 +625,17 @@ public class SOMMapData {
 		return new String[] {destForPrspctFName, suffix, rootDestDir};
 	}//buildPrspctDataCSVFNames	
 	
+	//return the fully qualified directory to the most recent prospect data as specified in config file
+	//private String getProspectDataFName()
+	
 	//load prospect mapped training data into StraffSOMExamples from disk
 	public void loadAllPropsectMapData(boolean eventsOnly) {
 		dispMessage("Loading all prospect map data " + (eventsOnly ? "that only have event-based training info" : "that have any training info (including only prospect jpg/jp specification)"));
 		//clear out current prospect data
 		resetProspectMap();
 		//load in variables describing jpgroup/jp configurations in current data - not used, rebuild this info with prospect map
+		
+		
 		String[] loadSrcFNamePrefixAra = buildPrspctDataCSVFNames(eventsOnly);
 		
 		String fmtFile = loadSrcFNamePrefixAra[0]+"_format.csv";
@@ -870,7 +875,7 @@ public class SOMMapData {
 		String csvOutBaseFName = outFilePrfx + "_outCSV";
 		initData();			
 		setFlag(loaderRtnIDX, false);
-		fnames = new SOMDatFileConfig(this);
+		fnames = new SOMProjConfigData(this);
 		fnames.setAllFileNames(diffsFileName,minsFileName, lrnFileName, outFilePrfx, csvOutBaseFName);
 		dispMessage("Current fnames before dataLoader Call : " + fnames.toString());
 		th_exec.execute(new SOMDataLoader(this,true,fnames));//fire and forget load task to load	
