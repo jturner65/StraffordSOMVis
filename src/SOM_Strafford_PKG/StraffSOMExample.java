@@ -73,8 +73,9 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	public boolean isBadExample() {return isBadTrainExample;}
 	public void setIsBadExample(boolean val) { isBadTrainExample=val;}
 	
-	protected StraffEvntTrainData buildNewTrainDataFromEv(EventRawData _evntObj, int type) {
-		switch (type) {
+	//eventtype : 0 : order, 1 : opt, 2 : link
+	protected StraffEvntTrainData buildNewTrainDataFromEv(EventRawData _evntObj, int eventtype) {
+		switch (eventtype) {
 		case 0 :{			return new OrderEventTrainData((OrderEvent) _evntObj);	}//order event object
 		case 1 : {			return new OptEventTrainData((OptEvent) _evntObj);}//opt event  object
 		case 2 : { 			return new LinkEventTrainData((LinkEvent) _evntObj);}//link event
@@ -82,8 +83,9 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		}//switch
 	}//buildNewTrainData
 	
-	protected StraffEvntTrainData buildNewTrainDataFromStr(Integer _evIDStr, String _evTypeStr, String _evDateStr, String _evntStr, int type) {
-		switch (type) {
+	//eventtype : 0 : order, 1 : opt, 2 : link
+	protected StraffEvntTrainData buildNewTrainDataFromStr(Integer _evIDStr, String _evTypeStr, String _evDateStr, String _evntStr, int eventtype) {
+		switch (eventtype) {
 		case 0 :{			return new OrderEventTrainData(_evIDStr, _evTypeStr, _evDateStr, _evntStr);	}//order event object
 		case 1 : {			return new OptEventTrainData(_evIDStr, _evTypeStr, _evDateStr, _evntStr);}//opt event  object
 		case 2 : {			return new LinkEventTrainData(_evIDStr, _evTypeStr, _evDateStr, _evntStr);}//opt event  object
@@ -123,6 +125,7 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		bmu = _n;	
 		mapLoc.set(_n.mapLoc);
 		double dist = mapData.dpDistFunc(_n, this,dataVar);
+		//dist here is distance of this training example to map node
 		_n.addBMUExample(dist, this);
 	}//setBMU
 	
@@ -136,12 +139,16 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 
 	//build feature vector - call externally after finalize
 	public void buildFeatureVector() {//all jps seen by all examples must exist by here so that mapData.jpToFtrIDX has accurate data
-		allJPFtrIDXs = new ArrayList<Integer>();
-		for(Integer jp : allJPs) {allJPFtrIDXs.add(mapData.jpToFtrIDX.get(jp));}		
+		buildAllJPFtrIDXsJPs();
 		buildFeaturesMap();
 		ftrsBuilt = true;		
 		buildNormFtrData();
 	}//buildFeatureVector
+	
+	protected void buildAllJPFtrIDXsJPs() {
+		allJPFtrIDXs = new ArrayList<Integer>();
+		for(Integer jp : allJPs) {allJPFtrIDXs.add(mapData.jpToFtrIDX.get(jp));}
+	}
 	
 	//build structures that require that the feature vector be built before hand
 	public void buildPostFeatureVectorStructs() {
@@ -160,11 +167,13 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	}//buildJPsFromFtrVec
 	
 	//build normalized vector of data - only after features have been set
-	private void buildNormFtrData() {
+	protected void buildNormFtrData() {
 		if(!ftrsBuilt) {mapData.dispMessage("OID : " + OID + " : Features not built, cannot normalize feature data");return;}
 		normFtrMap=new TreeMap<Integer, Float>();
 		if(this.ftrVecMag == 0) {return;}
-		for (Integer IDX : allJPFtrIDXs) {normFtrMap.put(IDX,ftrMap.get(IDX)/this.ftrVecMag);}	
+		for (Integer IDX : allJPFtrIDXs) {
+			Float val  = ftrMap.get(IDX);
+			normFtrMap.put(IDX,val/this.ftrVecMag);}	
 		normFtrsBuilt = true;
 	}//buildNormFtrData
 	
@@ -178,11 +187,12 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		}
 		return res;}
 	//return csv string of this object's features, depending on which type is selected - check to make sure 2ndary features exist before attempting to build data strings
+	////useUnmoddedDat = 0, useScaledDat = 1, useNormedDat
 	public String toCSVString(int _type) {
 		switch(_type){
-			case 0 : {return _toCSVString(ftrMap); }
-			case 1 : {return _toCSVString(normFtrsBuilt ? normFtrMap : ftrMap);}
-			case 2 : {return _toCSVString(stdFtrsBuilt ? stdFtrMap : ftrMap); }
+			case SOMMapData.useUnmoddedDat : {return _toCSVString(ftrMap); }
+			case SOMMapData.useNormedDat  : {return _toCSVString(normFtrsBuilt ? normFtrMap : ftrMap);}
+			case SOMMapData.useScaledDat  : {return _toCSVString(stdFtrsBuilt ? stdFtrMap : ftrMap); }
 			default : {return _toCSVString(ftrMap); }
 		}
 	}//toCSVString
@@ -197,9 +207,9 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	//return LRN-format (dense) string of this object's features, depending on which type is selected - check to make sure 2ndary features exist before attempting to build data strings
 	public String toLRNString(int _type, String sep) {
 		switch(_type){
-			case 0 : {return _toLRNString(ftrMap, sep); }
-			case 1 : {return _toLRNString(normFtrsBuilt ? normFtrMap : ftrMap, sep);}
-			case 2 : {return _toLRNString(stdFtrsBuilt ? stdFtrMap : ftrMap, sep); }
+			case SOMMapData.useUnmoddedDat : {return _toLRNString(ftrMap, sep); }
+			case SOMMapData.useNormedDat   : {return _toLRNString(normFtrsBuilt ? normFtrMap : ftrMap, sep);}
+			case SOMMapData.useScaledDat   : {return _toLRNString(stdFtrsBuilt ? stdFtrMap : ftrMap, sep); }
 			default : {return _toLRNString(ftrMap, sep); }
 		}		
 	}//toLRNString
@@ -213,9 +223,9 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	//return LRN-format (dense) string of this object's features, depending on which type is selected - check to make sure 2ndary features exist before attempting to build data strings
 	public String toSVMString(int _type) {
 		switch(_type){
-			case 0 : {return _toSVMString(ftrMap); }
-			case 1 : {return _toSVMString(normFtrsBuilt ? normFtrMap : ftrMap);}
-			case 2 : {return _toSVMString(stdFtrsBuilt ? stdFtrMap : ftrMap); }
+			case SOMMapData.useUnmoddedDat : {return _toSVMString(ftrMap); }
+			case SOMMapData.useNormedDat   : {return _toSVMString(normFtrsBuilt ? normFtrMap : ftrMap);}
+			case SOMMapData.useScaledDat   : {return _toSVMString(stdFtrsBuilt ? stdFtrMap : ftrMap); }
 			default : {return _toSVMString(ftrMap); }
 		}		
 	}//toLRNString
@@ -236,9 +246,9 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	
 	public TreeMap<Integer, Float> getCurrentFtrMap(int _type){
 		switch(_type){
-			case 0 : {return ftrMap; }
-			case 1 : {return (normFtrsBuilt ? normFtrMap : ftrMap);}
-			case 2 : {return (stdFtrsBuilt ? stdFtrMap : ftrMap); }
+			case SOMMapData.useUnmoddedDat : {return ftrMap; }
+			case SOMMapData.useNormedDat   : {return (normFtrsBuilt ? normFtrMap : ftrMap);}
+			case SOMMapData.useScaledDat   : {return (stdFtrsBuilt ? stdFtrMap : ftrMap); }
 			default : {return ftrMap; }
 		}		
 	}
@@ -266,9 +276,9 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		if (mapData.numFtrs > 0) {
 			res += "\nUnscaled Features (" +mapData.numFtrs+ " ) :";
 			res += dispFtrs(ftrMap);
-			res +="Scaled Features : ";
+			res +="\nScaled Features : ";
 			res += dispFtrs(stdFtrMap);
-			res +="Normed Features : ";
+			res +="\nNormed Features : ";
 			res += dispFtrs(normFtrMap);
 		}
 		return res;
@@ -742,24 +752,53 @@ class SOMMapNodeExample extends StraffSOMExample{
 	public Tuple<Integer,Integer> mapNodeLoc;	
 	private TreeMap<Double,StraffSOMExample> examplesBMU;	//best training examples in this unit, keyed by distance
 	private int numMappedTEx;						//# of mapped training examples to this node
+	//private int ftrTypeMapBuilt;					//the feature type the map was built with - 0 == unmodded, 1 == std'ized, 2 == normalized  (or no normalized ?? , no way of telling what appropriate magnitude should be)
 	
 // ftrMap, stdFtrMap, normFtrMap;
+	//feature type denotes what kind of features the tkns being sent represent - 0 is unmodded, 1 is standardized across all data for each feature, 2 is normalized across all features for single data point
+	//TODO need to support normalized data by setting original magnitude of data
 	public SOMMapNodeExample(SOMMapData _map, Tuple<Integer,Integer> _mapNode, float[] _ftrs) {
 		super(_map, "MapNode_"+_mapNode.x+"_"+_mapNode.y);
-		ftrMap = new TreeMap<Integer, Float>();	
-		allJPs = buildJPsFromFtrAra(_ftrs, ftrThresh);
-		for (Integer jp : allJPs) {int idx = mapData.jpToFtrIDX.get(jp);ftrMap.put(idx, _ftrs[idx]);}
+		ftrMap = new TreeMap<Integer, Float>();			//feature map for SOM Map Nodes may not correspond directly to magnitudes seen in training data. 
+		stdFtrMap = new TreeMap<Integer, Float>();	
+		normFtrMap = new TreeMap<Integer, Float>();	
+		allJPs = new HashSet<Integer> ();
+		//ftrTypeMapBuilt = _ftrType;
+		if(_ftrs.length != 0){	setFtrsFromFloatAra(_ftrs);	}
+		//allJPs = buildJPsFromFtrAra(_ftrs, ftrThresh);
 		initMapNode( _mapNode);
 	}
+	
+	//feature type denotes what kind of features the tkns being sent represent
 	public SOMMapNodeExample(SOMMapData _map,Tuple<Integer,Integer> _mapNode, String[] _strftrs) {
 		super(_map, "MapNode_"+_mapNode.x+"_"+_mapNode.y);
+		ftrMap = new TreeMap<Integer, Float>();	
+		stdFtrMap = new TreeMap<Integer, Float>();	
+		normFtrMap = new TreeMap<Integer, Float>();	
 		allJPs = new HashSet<Integer> ();
+		//ftrTypeMapBuilt = _ftrType;
 		if(_strftrs.length != 0){	setFtrsFromStrAra(_strftrs);	}
 		initMapNode( _mapNode);
 	}
 	
+	private void setFtrsFromFloatAra(float[] _ftrs) {
+		ftrMap = new TreeMap<Integer, Float>();
+		float ftrVecSqMag = 0.0f;
+		for(int i = 0; i < _ftrs.length; i++) {	
+			Float val =  _ftrs[i];
+			if (val > ftrThresh) {
+				ftrVecSqMag+=val*val;
+				ftrMap.put(i, val);
+				allJPs.add(mapData.jpByIdx[i]);
+			}
+		}
+		buildAllJPFtrIDXsJPs();
+		ftrVecMag = (float) Math.sqrt(ftrVecSqMag);		
+		ftrsBuilt = true;		
+		buildNormFtrData();		
+	}//setFtrsFromFloatAra	
+	
 	private void setFtrsFromStrAra(String [] tkns){
-		int numFtrs = tkns.length;
 		ftrMap = new TreeMap<Integer, Float>();
 		float ftrVecSqMag = 0.0f;
 		for(int i = 0; i < tkns.length; i++) {	
@@ -770,7 +809,10 @@ class SOMMapNodeExample extends StraffSOMExample{
 				allJPs.add(mapData.jpByIdx[i]);
 			}
 		}
-		ftrVecMag = (float) Math.sqrt(ftrVecSqMag);
+		buildAllJPFtrIDXsJPs();
+		ftrVecMag = (float) Math.sqrt(ftrVecSqMag);	
+		ftrsBuilt = true;		
+		buildNormFtrData();			
 	}//setFtrsFromStrAra
 
 	private void initMapNode(Tuple<Integer,Integer> _mapNode){
@@ -798,8 +840,41 @@ class SOMMapNodeExample extends StraffSOMExample{
 	protected void buildStdFtrsMap() {
 		System.out.println("SOMMapNodeExample::buildStdFtrsMap : Calling inappropriate buildStdFtrsMap for SOMMapNodeExample : should call buildStdFtrsMap_MapNode from SOMDataLoader using trained map w/arrays of per feature mins and diffs");		
 	}
-	//called by SOMDataLoader
-	public void buildStdFtrsMap_MapNode(float[] minsAra, float[] diffsAra) {
+	
+//	//either build standardized features from raw features, if map built from raw features, or build raw features from standardized features, if map built using std'ized features
+//	public void buildFtrsOrStdFtrs_MapNode(float[] minsAra, float[] diffsAra) {
+//		if(ftrTypeMapBuilt==1) {//built with standardized features, build raw and normalized using mins and diffs
+//			buildFtrsMapFromStdFtrData_MapNode(minsAra, diffsAra);
+//		} else {//built using raw features = derive standardized from 
+//			buildStdFtrsMapFromFtrData_MapNode(minsAra, diffsAra);
+//		}		
+//	}//buildFtrsOrStdFtrs_MapNode
+//
+//	//called by SOMDataLoader - if trained on std'ized data, use this to build actual ftrMap data
+//	private void buildFtrsMapFromStdFtrData_MapNode(float[] minsAra, float[] diffsAra) {
+//		ftrMap = new TreeMap<Integer, Float>();	
+//		if (allJPs.size() > 0) {
+//			Integer destIDX;
+//			for (Integer jp : allJPs) {
+//				destIDX = mapData.jpToFtrIDX.get(jp);
+//				Float lb = minsAra[destIDX], 
+//						diff = diffsAra[destIDX];
+//				if (diff==0) {//same min and max
+//					if (lb > 0) {	ftrMap.put(destIDX,diff+lb);}//only a single value same min and max-> set feature value to 1.0
+//					else {			ftrMap.put(destIDX,0.0f);}
+//				} else {
+//					float val = (stdFtrMap.get(destIDX) *diff) + lb;
+//					ftrMap.put(destIDX,val);
+//				}			
+//			}//for each jp
+//		}
+//		ftrsBuilt = true;	
+//		buildNormFtrData();
+//	}//buildStdFtrsMap_MapNode
+	
+	//called by SOMDataLoader - these are standardized based on data mins and diffs seen in -map nodes- feature data, not in training data
+	//
+	public void buildStdFtrsMapFromFtrData_MapNode(float[] minsAra, float[] diffsAra) {
 		stdFtrMap = new TreeMap<Integer, Float>();
 		if (allJPs.size() > 0) {
 			Integer destIDX;

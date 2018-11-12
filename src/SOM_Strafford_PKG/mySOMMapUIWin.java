@@ -45,7 +45,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		uiMapNHoodList = new String[] {"gaussian","bubble"},
 		uiMapRadClList = new String[] {"linear","exponential"},
 		uiMapLrnClList = new String[] {"linear","exponential"},		
-		uiMapTrainFtrTypeList = new String[] {"Unmodified","Normalized (vector mag==1)", "Standardized (0->1 per ftr)"};
+		uiMapTrainFtrTypeList = SOMMapData.uiMapTrainFtrTypeList;//new String[] {"Unmodified","Standardized (0->1 per ftr)","Normalized (vector mag==1)"};
 			
 	//	//GUI Objects	
 	public final static int 
@@ -268,7 +268,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		for (String key : mapStrings.keySet()) {pa.outStr2Scr("mapStrings["+key+"] = "+mapStrings.get(key));}
 		
 		//call map data object to build and execute map call
-		SOM_Data.buildNewSOMMap(getPrivFlags(mapLoadFtrBMUsIDX), mapInts, mapFloats, mapStrings);
+		SOM_Data.buildNewSOMMap(getPrivFlags(mapLoadFtrBMUsIDX),dataFrmtToUseToTrain, mapInts, mapFloats, mapStrings);
 
 		setFlagsDoneMapBuild();
 		pa.outStr2Scr("mySOMMapUIWin::buildNewSOMMap complete");
@@ -304,7 +304,7 @@ public class mySOMMapUIWin extends myDispWindow {
 	
 		};					
 		guiStVals = new double[]{	
-			2,		//uiTrainDataFrmtIDX
+			1,		//uiTrainDataFrmtIDX
 			90,		//uiTrainDatPartIDX
 			10,		//uiMapRowsIDX 	 	
 			10,		//uiMapColsIDX	 	
@@ -533,8 +533,12 @@ public class mySOMMapUIWin extends myDispWindow {
 		//need to divide by width/height of map * # cols/rows to get mapped to actual map nodes
 		//dispMessage("In getDataPointAtLoc : Mouse loc in Nodes : " + x + ","+y+ "\txInt : "+ xInt + " yInt : " + yInt );
 		float xInterp = x - xInt, yInterp = y - yInt;//, xIsq = xInterp*xInterp, yIsq = yInterp*yInterp,oneMxIsq = (1-xInterp)*(1-xInterp),oneMyIsq = (1-yInterp)*(1-yInterp);
-		TreeMap<Integer, Float> LowXLowYFtrs = SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt)).getCurrentFtrMap(dataFrmtToUseToTrain), LowXHiYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xInt,yIntp1)).getCurrentFtrMap(dataFrmtToUseToTrain),
-				 HiXLowYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yInt)).getCurrentFtrMap(dataFrmtToUseToTrain),  HiXHiYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yIntp1)).getCurrentFtrMap(dataFrmtToUseToTrain);
+		//always compare standardized feature data in test/train data to standardized feature data in map
+		TreeMap<Integer, Float> LowXLowYFtrs = SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt)).getCurrentFtrMap(SOMMapData.useScaledDat), LowXHiYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xInt,yIntp1)).getCurrentFtrMap(SOMMapData.useScaledDat),
+				 HiXLowYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yInt)).getCurrentFtrMap(SOMMapData.useScaledDat),  HiXHiYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yIntp1)).getCurrentFtrMap(SOMMapData.useScaledDat);
+		
+//		TreeMap<Integer, Float> LowXLowYFtrs = SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt)).getCurrentFtrMap(dataFrmtToUseToTrain), LowXHiYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xInt,yIntp1)).getCurrentFtrMap(dataFrmtToUseToTrain),
+//				 HiXLowYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yInt)).getCurrentFtrMap(dataFrmtToUseToTrain),  HiXHiYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yIntp1)).getCurrentFtrMap(dataFrmtToUseToTrain);
 		try{
 			TreeMap<Integer, Float> ftrs = interpTreeMap(interpTreeMap(LowXLowYFtrs, LowXHiYFtrs,yInterp,1.0f),interpTreeMap(HiXLowYFtrs, HiXHiYFtrs,yInterp,1.0f),xInterp,255.0f);	
 			DispSOMMapExample dp = SOM_Data.buildTmpDataExample(locPt, ftrs, sensitivity);
@@ -569,8 +573,11 @@ public class mySOMMapUIWin extends myDispWindow {
 		int xInt = (int) Math.floor(x), yInt = (int) Math.floor(y), xIntp1 = (xInt+1)%SOM_Data.mapX, yIntp1 = (yInt+1)%SOM_Data.mapY;		//assume torroidal map		
 		//dispMessage("In getDataClrAtLoc :  loc in Nodes : " + x + ","+y+ "\txInt : "+ xInt + " yInt : " + yInt );
 		float xInterp = x - xInt, yInterp = y - yInt;		
-		TreeMap<Integer, Float> LowXLowYFtrs = SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt)).getCurrentFtrMap(dataFrmtToUseToTrain), LowXHiYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xInt,yIntp1)).getCurrentFtrMap(dataFrmtToUseToTrain),
-				 HiXLowYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yInt)).getCurrentFtrMap(dataFrmtToUseToTrain),  HiXHiYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yIntp1)).getCurrentFtrMap(dataFrmtToUseToTrain);
+		//always compare standardized feature data in test/train data to standardized feature data in map
+		TreeMap<Integer, Float> LowXLowYFtrs = SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt)).getCurrentFtrMap(SOMMapData.useScaledDat), LowXHiYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xInt,yIntp1)).getCurrentFtrMap(SOMMapData.useScaledDat),
+				 HiXLowYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yInt)).getCurrentFtrMap(SOMMapData.useScaledDat),  HiXHiYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yIntp1)).getCurrentFtrMap(SOMMapData.useScaledDat);
+//		TreeMap<Integer, Float> LowXLowYFtrs = SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt)).getCurrentFtrMap(dataFrmtToUseToTrain), LowXHiYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xInt,yIntp1)).getCurrentFtrMap(dataFrmtToUseToTrain),
+//				 HiXLowYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yInt)).getCurrentFtrMap(dataFrmtToUseToTrain),  HiXHiYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yIntp1)).getCurrentFtrMap(dataFrmtToUseToTrain);
 		try{
 			TreeMap<Integer, Float> ftrs = interpTreeMap(interpTreeMap(LowXLowYFtrs, LowXHiYFtrs,yInterp,1.0f),interpTreeMap(HiXLowYFtrs, HiXHiYFtrs,yInterp,1.0f),xInterp,255.0f);	
 			return ftrs;//(((int)ftrs[0] & 0xff) << 16) + (((int)ftrs[1] & 0xff) << 8) + ((int)ftrs[2] & 0xff);			
@@ -583,8 +590,7 @@ public class mySOMMapUIWin extends myDispWindow {
 	//make color based on ftr value at particular index
 	//jpIDX is index in feature vector we are querying
 	//call this if map is trained on unmodified data
-	private int getDataClrFromFtrVecUnModded(TreeMap<Integer, Float> ftrMap, Integer jpIDX) {
-		
+	private int getDataClrFromFtrVecUnModded(TreeMap<Integer, Float> ftrMap, Integer jpIDX) {		
 		Float ftrVal = ftrMap.get(jpIDX);
 		int ftr = 0;
 		if(ftrVal != null) {
@@ -594,13 +600,32 @@ public class mySOMMapUIWin extends myDispWindow {
 		return clrVal;
 	}//getDataClrFromFtrVec
 	
+//	private float[] minFtrValSeen, maxFtrValSeen;
+//	public void initDBG_MapImgFtrVals(int numftrs) {
+//		minFtrValSeen=new float[numftrs];
+//		maxFtrValSeen = new float[numftrs];
+//		for(int i=0;i<numftrs;++i) {
+//			minFtrValSeen[i]=10000000;
+//			maxFtrValSeen[i]=-10000000;
+//		}
+//	}
+//	
+//	public void dispMinMaxFtrValsSeen() {
+//		for(int i=0;i<minFtrValSeen.length;++i) {
+//			this.SOM_Data.dispMessage(" ftr IDX : " + i + " jp : " + SOM_Data.jpByIdx[i]+" | Vals Seen building map :  Min : " + String.format("%.6f", minFtrValSeen[i]) + " | Max : " + String.format("%.6f", maxFtrValSeen[i]));
+//		}
+//	}
+	
 	//make color based on ftr value at particular index
 	//jpIDX is index in feature vector we are querying
 	//call this if map is trained on scaled or normed ftr data
 	private int getDataClrFromFtrVec(TreeMap<Integer, Float> ftrMap, Integer jpIDX) {
 		Float ftrVal = ftrMap.get(jpIDX);
+//		if(ftrVal == null) {	ftrVal=0.0f;		}
+//		if (minFtrValSeen[jpIDX] > ftrVal) {minFtrValSeen[jpIDX]=ftrVal;}
+//		else if (maxFtrValSeen[jpIDX] < ftrVal) {maxFtrValSeen[jpIDX]=ftrVal;}
 		int ftr = 0;
-		if(ftrVal != null) {	ftr = Math.round(255 * ftrVal);		}
+		if(ftrVal != null) {	ftr = Math.round(ftrVal);		}
 		int clrVal = ((ftr & 0xff) << 16) + ((ftr & 0xff) << 8) + (ftr & 0xff);
 		return clrVal;
 	}//getDataClrFromFtrVec
@@ -679,26 +704,28 @@ public class mySOMMapUIWin extends myDispWindow {
 		pa.popStyle();pa.popMatrix();
 	}//drawMap()		
 	
+	
 	//sets colors of background image of map
 	public void setMapImgClrs(){ //mapRndClrImg
 		float[] c;		
+		//initDBG_MapImgFtrVals(mapLocClrImg.length);
 		for (int i=0;i<mapLocClrImg.length;++i) {
 			mapLocClrImg[i].loadPixels();
 		}
 		//TODO this must be set by loading the data from the trained map - data configuration information needs to be saved when the map is made
-		if(dataFrmtToUseToTrain == 0) {//0 == unmodded data
-			for(int y = 0; y<mapLocClrImg[0].height; ++y){
-				int yCol = y * mapLocClrImg[0].width;
-				for(int x = 0; x < mapLocClrImg[0].width; ++x){
-					//this returns a full vector of values, this is why we build per pix per image, instead of per image per pix.
-					c = getMapNodeLocFromPxlLoc(x, y,mapScaleVal);
-					TreeMap<Integer, Float> ftrs = getDataMapAtLoc(c[0],c[1]);
-					for (int i=0;i<mapLocClrImg.length;++i) {				
-						mapLocClrImg[i].pixels[x+yCol] = getDataClrFromFtrVecUnModded(ftrs, i);
-					}
-				}
-			}
-		} else {	
+//		if(dataFrmtToUseToTrain == 0) {//0 == unmodded data
+//			for(int y = 0; y<mapLocClrImg[0].height; ++y){
+//				int yCol = y * mapLocClrImg[0].width;
+//				for(int x = 0; x < mapLocClrImg[0].width; ++x){
+//					//this returns a full vector of values, this is why we build per pix per image, instead of per image per pix.
+//					c = getMapNodeLocFromPxlLoc(x, y,mapScaleVal);
+//					TreeMap<Integer, Float> ftrs = getDataMapAtLoc(c[0],c[1]);
+//					for (int i=0;i<mapLocClrImg.length;++i) {				
+//						mapLocClrImg[i].pixels[x+yCol] = getDataClrFromFtrVecUnModded(ftrs, i);
+//					}
+//				}
+//			}
+//		} else {	
 			for(int y = 0; y<mapLocClrImg[0].height; ++y){
 				int yCol = y * mapLocClrImg[0].width;
 				for(int x = 0; x < mapLocClrImg[0].width; ++x){
@@ -707,7 +734,8 @@ public class mySOMMapUIWin extends myDispWindow {
 					for (int i=0;i<mapLocClrImg.length;++i) {	mapLocClrImg[i].pixels[x+yCol] = getDataClrFromFtrVec(ftrs, i);}
 				}
 			}
-		}
+		//dispMinMaxFtrValsSeen();
+		//}
 		for (int i=0;i<mapLocClrImg.length;++i) {
 			mapLocClrImg[i].updatePixels();		
 		}

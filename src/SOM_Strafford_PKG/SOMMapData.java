@@ -6,7 +6,6 @@ import java.util.concurrent.*;
 
 
 //this class holds the data describing a SOM and the data used to both build and query the som
-
 public class SOMMapData {
 	//source directory for reading all source csv files, writing intermediate outputs, executing SOM_MAP and writing results
 	//TODO : move this to main java stub, pass it around via ctor
@@ -18,7 +17,7 @@ public class SOMMapData {
 	private final String SOMProjName = "straff";
 	
 	//struct maintaining complete project configuration and information from config files
-	public SOMProjConfigData fnames;			
+	public SOMProjConfigData projConfigData;			
 
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	
@@ -35,7 +34,11 @@ public class SOMMapData {
 	//data set to be training data, etc
 	public StraffSOMExample[] trainData, inputData, testData;
 	
-	public float[] map_ftrsMean, map_ftrsVar, map_ftrsDiffs, map_ftrsMin,
+	public float[] 
+			map_ftrsMean, 
+			map_ftrsVar, 
+			map_ftrsDiffs, 
+			map_ftrsMin,			//per feature mean, variance, difference, mins, in -map features- data
 			td_ftrsMean, td_ftrsVar, 
 			in_ftrsMean, in_ftrsVar; //per feature training and input data means and variances
 	
@@ -131,15 +134,10 @@ public class SOMMapData {
 	//public static final String jpseenFName = "jpSeen.txt", jpgroupsAndJpsFName = "jpgroupsAndJps.txt";
 	//calc object to be used to derive feature vector for each prospect
 	public StraffWeightCalc ftrCalcObj;
-	
-	//extensions of files for SOM data
-	public static String[] SOMResExtAra = new String[]{".wts",".fwts",".bm",".umx"};
-	public static final int
-		wtsIDX = 0,
-		fwtsIDX = 1,
-		bmuIDX = 2,
-		umtxIDX = 3;	
-	
+
+	//data type to use
+	public static final int useUnmoddedDat = 0, useScaledDat = 1, useNormedDat = 2;
+	public static final String[] uiMapTrainFtrTypeList = new String[] {"Unmodified","Standardized (0->1 per ftr)","Normalized (vector mag==1)"};
 	//distance to use : 2 : scaled features, 1: chisq features or 0 : regular feature dists
 	public int distType = 0;
 	//map dims is used to calculate distances for BMUs - based on screen dimensions - need to change this?
@@ -181,9 +179,7 @@ public class SOMMapData {
 		instancedNow = Calendar.getInstance();
 		try {
 			straffObjLoaders = new Class[] {Class.forName("SOM_Strafford_PKG.ProspectDataLoader"),  Class.forName("SOM_Strafford_PKG.OrderEventDataLoader"),Class.forName("SOM_Strafford_PKG.OptEventDataLoader"),Class.forName("SOM_Strafford_PKG.LinkEventDataLoader")};
-		} catch (Exception e) {
-			dispMessage("Failed to instance straffObjLoader classes : " + e);			
-		}
+		} catch (Exception e) {dispMessage("Failed to instance straffObjLoader classes : " + e);	}
 		//to launch loader callable instances
 		buildStraffDataLoaders();		
 		initData();
@@ -209,16 +205,18 @@ public class SOMMapData {
 	
 	private String[] SOMFileNamesAra;		//idx 0 = file name for SOM training data -> .lrn file, 1 = file name for sphere sample data -> .csv file	
 	//call when src data are first initialized - sets file names for .lrn file  and testing file output database query
-	public void setSOM_ExpFileNames(int _numSmpls, int _numTrain, int _numTest, String dType){
+	//dataFrmt : format used to train SOM == 0:unmodded; 1:std'ized; 2:normed
+	public void setSOM_ExpFileNames(int _numSmpls, int _numTrain, int _numTest, int dataFrmt){
 		//enable these to be set manually based on passed "now"
 		String[] dateTimeStrAra = getDateTimeString(false, "_", instancedNow);//idx 0 has year, idx 1 does not
 		String nowDirTmp = straffSOMProcSubDir+ "StraffSOM_"+dateTimeStrAra[0]+File.separator;
 		String fileNow = dateTimeStrAra[1];
-		setSOM_ExpFileNames( _numSmpls, _numTrain, _numTest, dType, fileNow, nowDirTmp);		
+		setSOM_ExpFileNames( _numSmpls, _numTrain, _numTest, dataFrmt, fileNow, nowDirTmp);		
 	}//setSOM_ExpFileNames
 	
-	public void setSOM_ExpFileNames(int _numSmpls, int _numTrain, int _numTest, String dType, String fileNow, String nowDirTmp){
+	public void setSOM_ExpFileNames(int _numSmpls, int _numTrain, int _numTest, int dataFrmt, String fileNow, String nowDirTmp){
 		String nowDir = getDirNameAndBuild(nowDirTmp);
+		String dType = getDataTypeNameFromInt(dataFrmt);
 		String[] tmp = {"Out_"+SOMProjName+"_Smp_"+_numSmpls,
 						"Train_"+SOMProjName+"_Smp_"+_numTrain+"_of_"+_numSmpls+"_typ_" +dType + "_Dt_"+fileNow+".lrn",
 						"Train_"+SOMProjName+"_Smp_"+_numTrain+"_of_"+_numSmpls+"_typ_" + dType+"_Dt_"+fileNow+".svm",				
@@ -252,9 +250,11 @@ public class SOMMapData {
 	
 	//this will save all essential information for a SOM-based experimental run.
 	public void saveSOM_Exp() {
+		//build file describing experiment and put here : 
+		String expFileName = getSOMMapExpFileName();
 		//save file holding names of source csv data from which training and testing data are built
-		
-		
+		//
+		//TODO
 		
 	}
 	
@@ -265,7 +265,7 @@ public class SOMMapData {
 
 	//build new SOM_MAP map using UI-entered values, then load resultant data
 	//with maps of required SOM exe params
-	protected void buildNewSOMMap(boolean mapLoadFtrBMUsIDX, HashMap<String, Integer> mapInts, HashMap<String, Float> mapFloats, HashMap<String, String> mapStrings){
+	protected void buildNewSOMMap(boolean mapLoadFtrBMUsIDX, int dataFrmt, HashMap<String, Integer> mapInts, HashMap<String, Float> mapFloats, HashMap<String, String> mapStrings){
 		String lrnFileName = getSOMMapLRNFileName(), 		//dense training data .lrn file
 				svmFileName = getSOMMapSVMFileName(),		//sparse training data svm file name
 				testFileName = getSOMMapTestFileName(),		//testing data .csv file
@@ -276,11 +276,11 @@ public class SOMMapData {
 		//determine directory where map exe resides, build map data object to point there
 		String SOM_Dir = getDirNameAndBuild(straffSOMProcSubDir);
 		//structure holding SOM_MAP specific cmd line args and file names and such
-		SOM_MAPDat SOMExecDat = new SOM_MAPDat(SOM_Dir, SOM_Map_EXECSTR, mapInts,mapFloats, mapStrings, lrnFileName, svmFileName,  outFilePrfx);
-		dispMessage("SOM map descriptor : \n" + SOMExecDat.toString() + "Exec str : ");
-		dispMessageAra(SOMExecDat.execStrAra(),2);//2 strings per line
+		SOMExeDat = new SOM_MAPDat(SOM_Dir, SOM_Map_EXECSTR, mapInts,mapFloats, mapStrings, lrnFileName, svmFileName,  outFilePrfx);
+		dispMessage("SOM map descriptor : \n" + SOMExeDat.toString() + "Exec str : ");
+		dispMessageAra(SOMExeDat.execStrAra(),2);//2 strings per line
 		//launch in a thread?
-		buildNewMap(SOMExecDat);
+		buildNewMap();
 		//now load new map data and configure SOMMapData obj to hold all appropriate data
 		/**
 		 * load data to represent map results
@@ -292,12 +292,12 @@ public class SOMMapData {
 		 * @param csvOutBaseFName file name prefix used to save class data in multiple formats to csv files
 		 */
 		String csvOutBaseFName = outFilePrfx + "_outCSV";
-		initData();			
+		//initData();			
 		setFlag(loaderRtnIDX, false);
-		fnames = new SOMProjConfigData(this);
-		fnames.setAllFileNames(diffsFileName,minsFileName, lrnFileName, outFilePrfx, csvOutBaseFName);
-		dispMessage("Current fnames before dataLoader Call : " + fnames.toString());
-		th_exec.execute(new SOMDataLoader(this,mapLoadFtrBMUsIDX,fnames));//fire and forget load task to load	
+		projConfigData = new SOMProjConfigData(this);
+		projConfigData.setAllFileNames(diffsFileName,minsFileName, lrnFileName, outFilePrfx, csvOutBaseFName);
+		dispMessage("Current projConfigData before dataLoader Call : " + projConfigData.toString());
+		th_exec.execute(new SOMDataLoader(this,mapLoadFtrBMUsIDX,projConfigData, dataFrmt));//fire and forget load task to load	
 
 	}//buildNewSOMMap	
 	
@@ -349,7 +349,7 @@ public class SOMMapData {
 	//only appropriate if using UI
 	public void setMapImgClrs(){if (win != null) {win.setMapImgClrs();} else {dispMessage("Display window doesn't exist, can't build images; ignoring.");}}
 	//only appropriate if using UI
-	public void initMapAras(int numFtrs) {if (win != null) {win.initMapAras(numFtrs);} else {dispMessage("Display window doesn't exist, can't build image arrays; ignoring.");}}
+	public void initMapAras(int numFtrs) {if (win != null) {win.initMapAras(numFtrs);} else {dispMessage("Display window doesn't exist, can't build map visualization image arrays; ignoring.");}}
 	
 	//only appropriate if using UI
 	public void setSaveLocClrImg(boolean val) {if (win != null) { win.setPrivFlags(win.saveLocClrImgIDX,val);}}
@@ -411,8 +411,7 @@ public class SOMMapData {
 		dispMessage("runMap Finished");
 	}
 	//Build map from data by aggregating all training data, building SOM exec string from UI input, and calling OS cmd to run SOM_MAP
-	private boolean buildNewMap(SOM_MAPDat _dat){
-		SOMExeDat = _dat;				
+	private boolean buildNewMap(){
 		try {	runMap(SOMExeDat.execStrAra());	} 
 		catch (IOException e){	dispMessage("Error running map : " + e.getMessage());	return false;}		
 		return true;
@@ -440,7 +439,7 @@ public class SOMMapData {
 	
 	
 	public void initData(){
-		dispMessage("Init Called");
+		dispMessage("SOMMapData::initData : Init Called");
 		trainData = new StraffSOMExample[0];
 		testData = new StraffSOMExample[0];
 		inputData = new StraffSOMExample[0];
@@ -555,10 +554,8 @@ public class SOMMapData {
 			try {straffDataLdrFtrs = th_exec.invokeAll(straffDataLoaders);for(Future<Boolean> f: straffDataLdrFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }		
 		}
 		dispMessage("# of features seen : " + numFtrs);
-
 		//process loaded data
-		procRawLoadedData(eventsOnly, appendToExisting);
-		
+		procRawLoadedData(eventsOnly, appendToExisting);		
 		//for debugging purposes 
 		//dbgDispKnownJPsJPGs();
 	}//loadAllRawData
@@ -596,6 +593,7 @@ public class SOMMapData {
 	}//loadRawDataVals	
 	
 	//this will retrieve a subdirectory name under the main directory of this project and build the subdir if it doesn't exist
+	//subdir assumed to have file.separator already appended (might not be necessary)
 	private String getDirNameAndBuild(String subdir) {return getDirNameAndBuild(straffBasefDir,subdir);} 
 	//baseDir must exist already
 	private String getDirNameAndBuild(String baseDir, String subdir) {
@@ -608,9 +606,9 @@ public class SOMMapData {
 	//build prospect data directory structures based on current date
 	private String[] buildPrspctDataCSVFNames(boolean eventsOnly) {
 		String[] dateTimeStrAra = getDateTimeString(false, "_", instancedNow);
-		String subDir = dateTimeStrAra[0] + File.separator;
+		String subDir = "preprocData_" + dateTimeStrAra[0] + File.separator;
 		return buildPrspctDataCSVFNames(subDir, eventsOnly);
-	}
+	}//buildPrspctDataCSVFNames
 	
 	//build the file names for the csv files used to save intermediate data from db that has been partially preprocessed
 	private String[] buildPrspctDataCSVFNames(String subDir, boolean eventsOnly) {
@@ -626,7 +624,10 @@ public class SOMMapData {
 	}//buildPrspctDataCSVFNames	
 	
 	//return the fully qualified directory to the most recent prospect data as specified in config file
-	//private String getProspectDataFName()
+	//TODO replace this with info from global project config data 
+	private String getProspectDataDesDirName() {
+		return "default" + File.separator;
+	}
 	
 	//load prospect mapped training data into StraffSOMExamples from disk
 	public void loadAllPropsectMapData(boolean eventsOnly) {
@@ -635,8 +636,8 @@ public class SOMMapData {
 		resetProspectMap();
 		//load in variables describing jpgroup/jp configurations in current data - not used, rebuild this info with prospect map
 		
-		
-		String[] loadSrcFNamePrefixAra = buildPrspctDataCSVFNames(eventsOnly);
+		String desSubDir = getProspectDataDesDirName();
+		String[] loadSrcFNamePrefixAra = buildPrspctDataCSVFNames(desSubDir, eventsOnly);
 		
 		String fmtFile = loadSrcFNamePrefixAra[0]+"_format.csv";
 		String[] loadRes = loadFileIntoStringAra(fmtFile, "Format file loaded", "Format File Failed to load");
@@ -752,12 +753,12 @@ public class SOMMapData {
 		}//for each jp
 		return sclFtrs;
 	}//standardizeFeatureVector
-	
-	private String dTypeNameFromInt(int dataFrmt) {
+	//useUnmoddedDat = 0, useScaledDat = 1, useNormedDat
+	private String getDataTypeNameFromInt(int dataFrmt) {
 		switch(dataFrmt) {
-		case 0 : {return "unModFtrs";}
-		case 1 : {return "stdFtrs";}
-		case 2 : {return "normFtrs";}
+		case useUnmoddedDat : {return "unModFtrs";}
+		case useScaledDat : {return "stdFtrs";}
+		case useNormedDat : {return "normFtrs";}
 		default : {return null;}		//unknown data frmt type
 		}
 	}
@@ -790,8 +791,7 @@ public class SOMMapData {
 		testData = new StraffSOMExample[numTestData];
 		for (int i=0;i<testData.length;++i) {testData[i]=inputData[i+numTrainData];}		
 		//build file names, including info for data type used to train map
-		String dType = dTypeNameFromInt(dataFrmt);
-		setSOM_ExpFileNames(inputData.length, numTrainData, numTestData, dType);
+		setSOM_ExpFileNames(inputData.length, numTrainData, numTestData, dataFrmt);
 		dispMessage("Starting to save training/testing data partitions ");
 		String saveFileName = "";
 		//call threads to instance and save different file formats
@@ -860,6 +860,9 @@ public class SOMMapData {
 				diffsFileName = getSOMMapDiffsFileName(),	//diffs data percol .csv file
 				
 				outFilePrfx = getSOMMapOutFileBase() + "_x10_y10_k2";
+		
+		//TOOD replace this when saved file with appropriate format
+		int dataFrmt = 1;//1 means trained with std'ized data
 		//build new map descriptor and execute
 		//structure holding SOM_MAP specific cmd line args and file names and such
 		//now load new map data and configure SOMMapData obj to hold all appropriate data
@@ -875,10 +878,10 @@ public class SOMMapData {
 		String csvOutBaseFName = outFilePrfx + "_outCSV";
 		initData();			
 		setFlag(loaderRtnIDX, false);
-		fnames = new SOMProjConfigData(this);
-		fnames.setAllFileNames(diffsFileName,minsFileName, lrnFileName, outFilePrfx, csvOutBaseFName);
-		dispMessage("Current fnames before dataLoader Call : " + fnames.toString());
-		th_exec.execute(new SOMDataLoader(this,true,fnames));//fire and forget load task to load	
+		projConfigData = new SOMProjConfigData(this);
+		projConfigData.setAllFileNames(diffsFileName,minsFileName, lrnFileName, outFilePrfx, csvOutBaseFName);
+		dispMessage("Current projConfigData before dataLoader Call : " + projConfigData.toString());
+		th_exec.execute(new SOMDataLoader(this,true,projConfigData,dataFrmt));//fire and forget load task to load	
 		
 	}//dbgBuildExistingMap
 	
@@ -1128,7 +1131,6 @@ public class SOMMapData {
 		return _list;
 	}//shuffleStrList
 	
-	
 	//if connected to UI, draw data - only called from window
 	public void drawTrainData(SOM_StraffordMain pa, boolean drawLbls) {
 		if(drawLbls){
@@ -1338,7 +1340,6 @@ class SOM_MAPDat{
 		for(String key : tmpVars.keySet()) {mapStrings.put(key, tmpVars.get(key).trim());}
 		
 	}//buildSOMMapDatFromAra	
-	
 	
 	//return string array describing this SOM map execution in csv format so can be saved to a file - group each construct by string title
 	public ArrayList<String> buildStringDescAra() {

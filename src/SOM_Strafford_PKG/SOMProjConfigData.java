@@ -31,6 +31,12 @@ public class SOMProjConfigData {
 	private static final int numFlags = 6;		
 	
 	public static final String[] SOMResExtAra = new String[]{".wts",".fwts",".bm",".umx"};			//extensions for different SOM output file types
+	//idxs of different kinds of SOM output files
+	public static final int
+		wtsIDX = 0,
+		fwtsIDX = 1,
+		bmuIDX = 2,
+		umtxIDX = 3;	
 	//all flags corresponding to file names required to run SOM
 	private int[] reqFileNameFlags = new int[]{trainDatFNameIDX, somResFPrfxIDX, diffsFNameIDX, minsFNameIDX, csvSavFNameIDX};
 	private String[] reqFileNames = new String[]{"trainDatFNameIDX", "somResFPrfxIDX", "diffsFNameIDX", "minsFNameIDX", "csvSavFNameIDX"};

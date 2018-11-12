@@ -8,15 +8,9 @@ import java.util.concurrent.ThreadLocalRandom;
 //class that describes the hierarchy of files required for running and analysing a SOM
 public class SOMDataLoader implements Runnable {
 	public SOMMapData map;				//the map these files will use
-	public SOMProjConfigData fnames;			//struct maintaining file names for all files in som, along with 
+	public SOMProjConfigData projConfigData;			//struct maintaining configuration information for entire project
 	
 	public final static float nodeDistThresh = 100000.0f;
-	//idxs of different kinds of files
-	public static final int
-		wtsIDX = 0,
-		fwtsIDX = 1,
-		bmuIDX = 2,
-		umtxIDX = 3;	
 	
 	//public boolean loadFtrBMUs;
 
@@ -25,22 +19,25 @@ public class SOMDataLoader implements Runnable {
 			debugIDX 				= 0,
 			loadFtrBMUsIDX			= 1;
 	public static final int numFlags = 2;
+	//type of data used to train - 0 : unmodded, 1:std'ized, 2:normalized
+	private int dataFormat;
 	
-	public SOMDataLoader(SOMMapData _map, boolean _lBMUs, SOMProjConfigData _fnames) {
+	public SOMDataLoader(SOMMapData _map, boolean _lBMUs, SOMProjConfigData _configData, int _dFmt) {
 		map = _map;
-		fnames = _fnames;
+		projConfigData = _configData;
+		dataFormat = _dFmt;
 		initFlags();
 		setFlag(loadFtrBMUsIDX,  _lBMUs);
 	}
 
 	@Override
 	public void run(){
-		if(fnames.allReqFilesLoaded()){
+		if(projConfigData.allReqFilesLoaded()){
 			boolean success =  execDataLoad() ;
 			map.setFlag(SOMMapData.dataLoadedIDX,success);
 			map.setFlag(SOMMapData.loaderRtnIDX,true);
 			map.setMapImgClrs();
-			map.dispMessage("DataLoader : Finished data loader : data Loaded : " + map.getFlag(SOMMapData.dataLoadedIDX) + " | loader ret code : " +map.getFlag(SOMMapData.loaderRtnIDX) );			
+			map.dispMessage("DataLoader : Finished data loader : SOM Data Loaded : " + map.getFlag(SOMMapData.dataLoadedIDX) + " | loader ret code : " +map.getFlag(SOMMapData.loaderRtnIDX) );			
 		}
 		else {
 			map.setFlag(SOMMapData.loaderRtnIDX,false);
@@ -76,7 +73,7 @@ public class SOMDataLoader implements Runnable {
 	
 	//this will make sure that all scaled features are actually scaled and nonscaled are actually nonscaled
 	public boolean condAllData(){
-		String diffsFileName = fnames.getDiffsFName(), minsFileName = fnames.getMinsFName();
+		String diffsFileName = projConfigData.getDiffsFName(), minsFileName = projConfigData.getMinsFName();
 		//load normalizing values for datapoints in weights - differences and mins, used to scale/descale training and map data
 		map.diffsVals = loadCSVSrcDataPoint(diffsFileName);
 		if((null==map.diffsVals) || (map.diffsVals.length < 1)){map.dispMessage("DataLoader : !!error reading diffsFile : " + diffsFileName); return false;}
@@ -118,10 +115,11 @@ public class SOMDataLoader implements Runnable {
 		return true;		
 	}
 	
-	//load map wts from file built by SOM_MAP - need to know format of original data used to train map
-	
+	//load map wts from file built by SOM_MAP - need to know format of original data used to train map	
+	//Map nodes are similar in format to training examples but scaled based on -their own- data
+	//consider actual map data to be feature data, scale map nodes based on min/max feature data seen in wts file
 	private boolean loadSOMWts(){//builds mapnodes structure - each map node's weights 
-		String wtsFileName = fnames.getSOMResFName(wtsIDX);
+		String wtsFileName = projConfigData.getSOMResFName(projConfigData.wtsIDX);
 		map.MapNodes = new TreeMap<Tuple<Integer,Integer>, SOMMapNodeExample>();
 		if(wtsFileName.length() < 1){return false;}
 		String [] strs= map.loadFileIntoStringAra(wtsFileName, "Loaded wts data file : "+wtsFileName, "Error wts reading file : "+wtsFileName);
@@ -152,7 +150,19 @@ public class SOMDataLoader implements Runnable {
 			tkns = strs[i].split(map.SOM_FileToken);
 			if(tkns.length < 2){continue;}
 			mapLoc = new Tuple<Integer, Integer>((i-2)%mapX, (i-2)/mapX);//map locations in som data are increasing in x first, then y (row major)
-			dpt = new SOMMapNodeExample(map, mapLoc, tkns);//give each map node its color, so that if the map is displayed in color, the node and its text can be the opposite color and contrast
+			dpt = new SOMMapNodeExample(map, mapLoc, tkns);//give each map node its features
+//			if((mapLoc.x == 0) && (mapLoc.y == 0)) {
+//				System.out.print("Map node : (" +mapLoc.x + ", " +mapLoc.y +") : tkns : " );
+//				int idx = 0;
+//				String pstr = "";
+//				for(String t : tkns) {
+//					++idx;
+//					String termStr = (idx % 40 == 0) ? "\n" : ", ";
+//					pstr = "" + t + termStr;
+//					System.out.print(pstr);					
+//				}
+//				System.out.println("");
+//			}			
 			++numEx;
 			float[] ftrData = dpt.getFtrs();
 //			dbgDispFtrAra(tmp.getStdFtrs(), "raw ftrs");
@@ -164,6 +174,10 @@ public class SOMDataLoader implements Runnable {
 			map.MapNodes.put(mapLoc, dpt);			
 			map.nodesWithNoEx.add(dpt);				//add all nodes to set, will remove nodes when they get mappings
 		}
+		//make sure both unmoddified features and std'ized features are built before determining map mean/var
+		//need to have all features built to scale features
+		
+		
 		map.map_ftrsDiffs = new float[map.numFtrs];
 		//build map array of images to map to
 		map.initMapAras(map.numFtrs);
@@ -173,12 +187,16 @@ public class SOMDataLoader implements Runnable {
 		float diff;
 		for(Tuple<Integer, Integer> key : map.MapNodes.keySet()){
 			SOMMapNodeExample tmp = map.MapNodes.get(key);
+			tmp.buildStdFtrsMapFromFtrData_MapNode(map.map_ftrsMin, map.map_ftrsDiffs);
+			
 			float[] ftrData = tmp.getFtrs();
 			for(int d = 0; d<map.numFtrs; ++d){
 				diff = map.map_ftrsMean[d] - ftrData[d];
 				map.map_ftrsVar[d] += diff*diff;
 			}
-			tmp.buildStdFtrsMap_MapNode(map.map_ftrsMin, map.map_ftrsDiffs);
+//			if((key.x == 0) && (key.y == 0)) {//display the node that was built
+//				System.out.println(tmp.toString());
+//			}			
 			//dbgDispFtrAra(tmp.getStdFtrs(), "Std ftrs");
 		}
 		for(int d = 0; d<map.numFtrs; ++d){map.map_ftrsVar[d] /= 1.0f*numEx;}
@@ -195,7 +213,7 @@ public class SOMDataLoader implements Runnable {
 	
 	//load best matching units for each training example - has values : idx, mapy, mapx
 	private boolean loadSOM_BMUs(){//modifies existing nodes and datapoints only
-		String bmFileName = fnames.getSOMResFName(bmuIDX);
+		String bmFileName = projConfigData.getSOMResFName(projConfigData.bmuIDX);
 		if(bmFileName.length() < 1){return false;}
 		map.nodesWithEx.clear();
 		String [] strs= map.loadFileIntoStringAra(bmFileName, "Loaded best matching unit data file : "+bmFileName, "Error reading best matching unit file : "+bmFileName);
@@ -222,9 +240,10 @@ public class SOMDataLoader implements Runnable {
 			Integer dpIdx = Integer.parseInt(tkns[0]);
 			//dataPoint tmpDP = map.trainData[dpIdx];
 			if(null==map.trainData[dpIdx]){ map.dispMessage("DataLoader : !!Training Datapoint given by idx in BMU file str tok : " + tkns[0] + " of string : --" + strs[i] + "-- not found in training data. "); return false;}//catastrophic error shouldn't happen
-			//passing per-ftr variance for chi sq distance
-			//tmpDP.setBMU(tmpMapNode, map.map_ftrsVar);
-			map.trainData[dpIdx].setBMU(tmpMapNode, map.map_ftrsVar);
+			//passing per-ftr variance for chi sq distan
+			
+			//using variance for chi dq dist calculation
+			map.trainData[dpIdx].setBMU(tmpMapNode,map.map_ftrsVar);
 			map.nodesWithEx.add(tmpMapNode);
 			map.nodesWithNoEx.remove(tmpMapNode);
 			//map.dispMessage("DataLoader : Tuple "  + mapLoc + " from str @ i-2 = " + (i-2) + " node : " + tmpMapNode.toString());
@@ -258,7 +277,7 @@ public class SOMDataLoader implements Runnable {
 	}
 	
 	private boolean loadSOM_ftrBMUs(){
-		String ftrBMUFname =  fnames.getSOMResFName(fwtsIDX);
+		String ftrBMUFname =  projConfigData.getSOMResFName(projConfigData.fwtsIDX);
 		if(ftrBMUFname.length() < 1){return false;}
 		String [] strs= map.loadFileIntoStringAra(ftrBMUFname, "Loaded features with bmu data file : "+ftrBMUFname, "Error reading feature bmu file : "+ftrBMUFname);
 		if(strs==null){return false;}
