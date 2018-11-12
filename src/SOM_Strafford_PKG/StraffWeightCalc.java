@@ -39,7 +39,7 @@ public class StraffWeightCalc {
 	
 	public StraffWeightCalc(SOMMapData _map, String _fileName) {
 		map = _map;
-		now = map.now.getTime();
+		now = map.instancedNow.getTime();
 		loadConfigAndSetVars( _fileName);
 	}//ctor
 	

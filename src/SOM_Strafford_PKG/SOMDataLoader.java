@@ -117,7 +117,9 @@ public class SOMDataLoader implements Runnable {
 			return false;} 
 		return true;		
 	}
-	//load map wts from file built by SOM_MAP
+	
+	//load map wts from file built by SOM_MAP - need to know format of original data used to train map
+	
 	private boolean loadSOMWts(){//builds mapnodes structure - each map node's weights 
 		String wtsFileName = fnames.getSOMResFName(wtsIDX);
 		map.MapNodes = new TreeMap<Tuple<Integer,Integer>, SOMMapNodeExample>();
@@ -284,67 +286,6 @@ public class SOMDataLoader implements Runnable {
 		map.dispMessage("DataLoader : Finished Loading SOM per-feature BMU list from file : " + getFName(ftrBMUFname));
 		return true;
 	}//loadSOM_ftrBMUs	
-
-	
-//	//load scaled training data used to build SOM - CSV version of data
-//	public boolean loadCSVTrainingData(boolean _firstColIsTag){
-//		String trainDataFName = fnames.getTrainFname();
-//		if(trainDataFName.length() < 1){return false;}
-//		String [] strs= map.loadFileIntoStringAra(trainDataFName, "Loaded CSV training data file : "+trainDataFName, "Error reading CSV training data file : "+trainDataFName);
-//		if(strs==null){return false;}
-//		DataPoint tmp;
-//		int numTrainRecs = 0;
-//		ArrayList<DataPoint> _tmpTrainData = new ArrayList<DataPoint>();
-//		//since this is saved in a format to be conducive to the lrn file format, the first column is a node identifier.  for moments training data it is "subject"."clip#"
-//		for(int i = 0; i<strs.length; ++i){
-//			String[] _tkns = strs[i].split(map.csvFileToken);
-//			tmp = new DataPoint(map,_tkns, _firstColIsTag, ++numTrainRecs, _firstColIsTag);			
-//			//if(_firstColIsTag && (null != TrainDataLabels.get(tmp.texID))){tmp.label = TrainDataLabels.get(tmp.texID);}
-//			_tmpTrainData.add(tmp);
-//		}			
-//		map.trainData = _tmpTrainData.toArray(new DataPoint[0]);
-//		map.numTrainData = map.trainData.length;
-//		map.dispMessage("DataLoader : Finished Loading CSV SOM Training data from file : " + getFName(trainDataFName) + " Loaded " + map.numTrainData + " training examples");
-//		return true;
-//	}//loadTrainingData			
-//	//save current data set entered by user as csv file
-//	public void saveInputData(String saveFileName){
-//		String[] vals = new String[map.numInputData+1];
-//		vals[0] = map.dataHdr.toString();
-//		for(int i=0;i<map.numInputData;++i){vals[i+1]=map.inputData[i].toCSVString();}
-//		map.saveStrings(saveFileName,vals);		
-//		map.dispMessage("DataLoader : Done saving data points to file : " + saveFileName + "\tLength : " + map.numInputData + "\tSize of feature vector : " + map.numFtrs);
-//	}//saveEncodedData
-//	//save training data labels in map in various formats (exemplar, brief labels, verbose labels) as cvs files
-//	public void saveCSVTrainingClasses(String TrainMCClassCSVHdr){				
-//		String[] stringRes = new String[map.trainData.length+1], brfStringRes = new String[map.trainData.length], sparseStringRes = new String[map.trainData.length];
-//		TreeMap<Integer, String[]> perClassRes = new TreeMap<Integer, String[]>();
-//		stringRes[0] = TrainMCClassCSVHdr;
-//		for(int i = 0;i<map.trainData.length;++i){
-//			stringRes[i+1] = map.trainData[i].getLabelInfo();
-//			brfStringRes[i] = map.trainData[i].getLabelBriefInfo();
-//			sparseStringRes[i] = ((i+1)%10==0 ?  brfStringRes[i] : "");
-//			Integer key = map.trainData[i].getSubj();
-//			if(key != -1){
-//				String[] tmpAra = perClassRes.get(key);						
-//				if (tmpAra == null){
-//					tmpAra = new String[map.trainData.length];
-//					for(int j=0;j<map.trainData.length;++j){tmpAra[j]="";}
-//				}
-//				tmpAra[i]=brfStringRes[i];
-//				perClassRes.put(key, tmpAra);
-//			}						
-//		}
-//		String sfx = "_useAll_" + "1";//p.useAllMmnts;	
-//		map.saveStrings(fnames.getCSVSvFName(0,0, sfx), stringRes);  //fnames.getSvFName(0,0);
-//		map.saveStrings(fnames.getCSVSvFName(1,0, sfx), brfStringRes);
-//		map.saveStrings(fnames.getCSVSvFName(2,0, sfx), sparseStringRes);
-//		for (Integer key : perClassRes.keySet()){
-//			String tmpFileName = fnames.getCSVSvFName(3,key, sfx);
-//			map.saveStrings(tmpFileName, perClassRes.get(key));
-//		}
-//		map.dispMessage("DataLoader : Done with saveCSVTrainingClasses : saving training data classification files built from map's training data");		
-//	}//saveCSVTrainingClasses
 	
 	private void initFlags(){stFlags = new int[1 + numFlags/32]; for(int i = 0; i<numFlags; ++i){setFlag(i,false);}}
 	public void setFlag(int idx, boolean val){
@@ -359,20 +300,16 @@ public class SOMDataLoader implements Runnable {
 }//dataLoader
 
 //this class will load the pre-procced csv data into the prospect data structure owned by the SOMMapData object
+//TODO this will speed up initial load of preprocced csv data.  Not a current priority
 class straffCSVDataLoader implements Callable<Boolean>{
 	public SOMMapData map;
 	
-	public straffCSVDataLoader(SOMMapData _map) {map=_map;
-		
-	}
+	public straffCSVDataLoader(SOMMapData _map) {map=_map;}
 	//load the partitioned file into the prospect data map
-	private void loadData() {
-		
-	}
+	private void loadData() {}
 
 	@Override
-	public Boolean call() throws Exception {
-		
+	public Boolean call() throws Exception {	
 		
 		return true;
 	}
@@ -381,19 +318,23 @@ class straffCSVDataLoader implements Callable<Boolean>{
 //save all Strafford training/testing data to appropriate format for SOM
 class straffDataWriter implements Runnable{
 	//public SOM_StraffordMain pa;
-	public SOMMapData map;	
-	public int dataFrmt;
-	public StraffSOMExample[] exAra;
-	public int numFtrs,numSmpls;
-	public String savFileFrmt;
+	private SOMMapData map;	
+	private int dataFrmt;
+	private int dataSavedIDX;			//idx in flags array of SOMMapData object to denote what data was saved
+	private StraffSOMExample[] exAra;
+	private int numFtrs,numSmpls;
+	private String savFileFrmt;
+	private String fileName;
 	
-	public straffDataWriter(SOMMapData _map, int _dataFrmt, String _savFileFrmt, StraffSOMExample[] _exAra) {
+	public straffDataWriter(SOMMapData _map, int _dataFrmt, int _dataSavedIDX, String _fileName, String _savFileFrmt, StraffSOMExample[] _exAra) {
 		map = _map;
 		dataFrmt = _dataFrmt;		//either unmodified, standardized or normalized -> 0,1,2
 		exAra = _exAra;
 		numFtrs = map.numFtrs;
 		numSmpls = exAra.length;
 		savFileFrmt = _savFileFrmt;
+		fileName = _fileName;
+		dataSavedIDX = _dataSavedIDX;
 	}//ctor
 
 	//build LRN file header
@@ -418,7 +359,6 @@ class straffDataWriter implements Runnable{
 	//write file to save all data samples in appropriate format for 
 	private void saveLRNData() {
 		String[] outStrings = buildInitLRN();
-		String fileName = map.getStraffMapLRNFileName();
 		int strIDX = 4;
 		for (int i=0;i<exAra.length; ++i) {outStrings[i+strIDX]=exAra[i].toLRNString(dataFrmt, " ");	}
 		map.saveStrings(fileName,outStrings);		
@@ -429,17 +369,15 @@ class straffDataWriter implements Runnable{
 	private void saveCSVData() {
 		//use buildInitLRN for test and train
 		String[] outStrings = buildInitLRN();
-		String fileName = map.getStraffMapTestFileName();
 		int strIDX = 4;
 		for (int i=0;i<exAra.length; ++i) {outStrings[i+strIDX]=exAra[i].toCSVString(dataFrmt);	}
 		map.saveStrings(fileName,outStrings);		
 		map.dispMessage("Finished saving .csv file with " + exAra.length+ " elements to file : "+ fileName);			
 	}//save csv test data
 	
-	
+	//save data in SVM record form - each record is like a map/dict -> idx: val pair.  designed for sparse data
 	private void saveSVMData() {
 		String[] outStrings = new String[numSmpls];
-		String fileName = map.getStraffMapSVMFileName();
 		for (int i=0;i<exAra.length; ++i) {outStrings[i]=exAra[i].toSVMString(dataFrmt);	}
 		map.saveStrings(fileName,outStrings);		
 		map.dispMessage("Finished saving .svm (sparse) file with " + exAra.length+ " elements to file : "+ fileName);			
@@ -447,8 +385,7 @@ class straffDataWriter implements Runnable{
 
 	//write all sphere data to appropriate files
 	@Override
-	public void run() {
-		
+	public void run() {		
 		//save to lrnFileName - build lrn file
 		//4 extra lines that describe dense .lrn file - started with '%'
 		//0 : # of examples
@@ -456,32 +393,25 @@ class straffDataWriter implements Runnable{
 		//2 : format of columns -> 9 1 1 1 1 ...
 		//3 : names of columns (not used by SOM_MAP)
 		//format : 0 is training data to lrn, 1 is training data to svm format, 2 is testing data
-		
 		switch (savFileFrmt) {
-			case "denseTrain" : {
+			case "denseLRNData" : {
 				saveLRNData();
-				map.setFlag(map.lrnDataSavedIDX, true);	
+				map.setFlag(dataSavedIDX, true);	
 				break;
 			}
-			case "sparseTrain" : {
+			case "sparseSVMData" : {
 				saveSVMData();
-				map.setFlag(map.svmDataSavedIDX, true);		
+				map.setFlag(dataSavedIDX, true);		
 				break;
 			}
-			case "denseTest" : {				
+			case "denseCSVData" : {				
 				saveCSVData();
-				map.setFlag(map.testDataSavedIDX, true);
+				map.setFlag(dataSavedIDX, true);
 				break;
 			}
-			case "sparseTest" : {				
-				saveCSVData();
-				map.setFlag(map.testDataSavedIDX, true);
-				break;
-			}
-			default :{
+			default :{//default to save data in lrn format
 				saveLRNData();
-				map.setFlag(map.lrnDataSavedIDX, true);
-				
+				map.setFlag(dataSavedIDX, true);				
 			}
 		}
 	}//run
