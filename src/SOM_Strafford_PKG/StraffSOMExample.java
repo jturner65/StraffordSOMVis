@@ -39,7 +39,15 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	public HashSet<Integer> allJPs;
 	//idx's in feature vector that have non-zero values
 	public ArrayList<Integer> allJPFtrIDXs;
-
+	//use a map to hold the features sorted by weight as key, value is array of jps at that weight - map needs to be instanced in descending key order
+	//a map per feature type : unmodified, normalized, standardized
+	public TreeMap<String, TreeMap<Float, ArrayList<Integer>>> mapOfTopJps;
+	
+	//a map of jps and their relative "rank" in this particular example, keyed by 
+	public TreeMap<String, TreeMap<Integer,Integer>> mapOfJpsVsRank;
+	//keys for above maps
+	public static final String[] jpMapTypeKeys = new String[] {"ftrMap", "stdFtrMap", "normFtrMap"};
+	public static final int ftrMapTypeKey = 0, stdFtrMapTypeKey = 1, normFtrMapTypeKey = 2;
 	/////////////////////////////
 	// from old DataPoint data
 	
@@ -57,6 +65,19 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		isBadTrainExample = false;	
 		label = new dataClass(OID,"lbl:"+OID,"unitialized Description", null);
 		label.clrVal = new int[] {255,0,0,255};
+		ftrMap = new TreeMap<Integer, Float>();			//feature map for SOM Map Nodes may not correspond directly to magnitudes seen in training data. 
+		stdFtrMap = new TreeMap<Integer, Float>();	
+		normFtrMap=new TreeMap<Integer, Float>();	
+		allJPs = new HashSet<Integer> ();
+		//this map is a map of maps in descending order - called by calc object as well as buildNormFtrData
+		mapOfTopJps = new TreeMap<String, TreeMap<Float, ArrayList<Integer>>>();//(new Comparator<Float>() { @Override public int compare(Float o1, Float o2) {   return o2.compareTo(o1);}}); 
+		mapOfJpsVsRank = new TreeMap<String, TreeMap<Integer,Integer>>();
+		for(String key : jpMapTypeKeys) {
+			TreeMap<Float, ArrayList<Integer>> tmpFltMap = new TreeMap<Float, ArrayList<Integer>>(new Comparator<Float>() { @Override public int compare(Float o1, Float o2) {   return o2.compareTo(o1);}});
+			TreeMap<Integer,Integer> tmpIntMap = new TreeMap<Integer,Integer>();
+			mapOfTopJps.put(key, tmpFltMap);
+			mapOfJpsVsRank.put(key, tmpIntMap);
+		}
 	}//ctor
 
 	//build feature vector
@@ -120,6 +141,30 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		return inError;
 	}//checkForErrors
 	
+	//take map of jpwts to arrays of jps and build maps of jps to rank
+	//This will give a map of all present JPs for this example and the rank of that jp.  null entries mean no rank
+	public void buildMapOfJPsToRank() {
+		for (String mapToGet : jpMapTypeKeys) {//for each type
+			Integer rank = 0;
+			TreeMap<Float, ArrayList<Integer>> mapOfAras = mapOfTopJps.get(mapToGet);
+			TreeMap<Integer,Integer> mapOfRanks = mapOfJpsVsRank.get(mapToGet);
+			for (Float wtVal : mapOfAras.keySet()) {
+				ArrayList<Integer> jpsAtRank = mapOfAras.get(wtVal);
+				for (Integer jp : jpsAtRank) {	mapOfRanks.put(jp, rank);}
+				++rank;
+			}
+			mapOfJpsVsRank.put(mapToGet, mapOfRanks);//probably not necessary		
+		}		
+	}//buildMapOfJPsToRank
+	//return the rank of the passed jp
+	protected Integer getJPRankForMap(int mapToGetIDX, int jp) {
+		String mapToGet = jpMapTypeKeys[mapToGetIDX];
+		TreeMap<Integer,Integer> mapOfRanks = mapOfJpsVsRank.get(mapToGet);
+		Integer rank = mapOfRanks.get(jp);
+		if (rank==null) {rank = mapData.jpByIdx.length;}
+		return rank;
+	}	
+	
 	public void setBMU(SOMMapNodeExample _n, float[] dataVar){
 		if (checkForErrors(_n, dataVar)) {return;}
 		bmu = _n;	
@@ -136,6 +181,18 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		//map.dispMessage("Building DATA POINT chugga : "+OID);
 		
 	}//buildSOMDataPoint	
+	
+	//call from calc or from objects that manage norm/std ftrs - build structure registering weight of jps in ftr vector mapToGet in descending strength
+	protected void setMapOfJpWts(int jp, float wt, int mapToGetIDX) {
+		String mapToGet = jpMapTypeKeys[mapToGetIDX];
+		TreeMap<Float, ArrayList<Integer>> map = mapOfTopJps.get(mapToGet);
+		//shouldn't be null - means using inappropriate key
+		if(map == null) {this.mapData.dispMessage("setMapOfJpWts : Using inappropriate key to access mapOfTopJps : " + mapToGet + " No submap exists with this key."); return;}		 
+		ArrayList<Integer> jpIdxsAtWt = map.get(wt);
+		if (jpIdxsAtWt == null) {jpIdxsAtWt = new ArrayList<Integer>(); }
+		jpIdxsAtWt.add(jp);
+		map.put(wt, jpIdxsAtWt);
+	}//setMapOfJpWts
 
 	//build feature vector - call externally after finalize
 	public void buildFeatureVector() {//all jps seen by all examples must exist by here so that mapData.jpToFtrIDX has accurate data
@@ -153,6 +210,8 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	//build structures that require that the feature vector be built before hand
 	public void buildPostFeatureVectorStructs() {
 		buildStdFtrsMap();
+		//by here all maps of per-type, per-feature val arrays of jps should be built
+		buildMapOfJPsToRank();
 	}//buildPostFeatureVectorStructs
 
 	//return a hash set of the jps represented by non-zero values in this object's feature vector.
@@ -165,17 +224,47 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		}
 		return jps;	
 	}//buildJPsFromFtrVec
-	
 	//build normalized vector of data - only after features have been set
 	protected void buildNormFtrData() {
 		if(!ftrsBuilt) {mapData.dispMessage("OID : " + OID + " : Features not built, cannot normalize feature data");return;}
 		normFtrMap=new TreeMap<Integer, Float>();
 		if(this.ftrVecMag == 0) {return;}
 		for (Integer IDX : allJPFtrIDXs) {
-			Float val  = ftrMap.get(IDX);
-			normFtrMap.put(IDX,val/this.ftrVecMag);}	
+			int jp = mapData.jpByIdx[IDX];
+			Float val  = ftrMap.get(IDX)/this.ftrVecMag;
+			normFtrMap.put(IDX,val);
+			setMapOfJpWts(jp, val, normFtrMapTypeKey);			
+		}	
 		normFtrsBuilt = true;
 	}//buildNormFtrData
+	
+	//this is here so can more easily use the mins and diffs equations
+	protected TreeMap<Integer, Float> calcStdFtrVector(TreeMap<Integer, Float> ftrs, ArrayList<Integer> jpIdxs){
+		return calcStdFtrVector(ftrs, jpIdxs, mapData.minsVals, mapData.diffsVals);
+	}
+	//scale each feature value to be between 0->1 based on min/max values seen for this feature
+	//all examples features will be scaled with respect to seen calc results 0- do not use this for
+	//exemplar objects (those that represent a particular product, for example)
+	//MUST BE SET WITH APPROPRIATE MINS AND DIFFS
+	private TreeMap<Integer, Float> calcStdFtrVector(TreeMap<Integer, Float> ftrs, ArrayList<Integer> jpIdxs, Float[] mins, Float[] diffs) {
+		TreeMap<Integer, Float> sclFtrs = new TreeMap<Integer, Float>();
+		for (Integer destIDX : jpIdxs) {
+			int jp = mapData.jpByIdx[destIDX];
+			Float lb = mins[destIDX], 	diff = diffs[destIDX];
+			Float val = 0.0f;
+			if (diff==0) {//same min and max
+				if (lb > 0) { val = 1.0f;}//only a single value same min and max-> set feature value to 1.0
+				else {		  val = 0.0f;}
+			} else {
+				val = (ftrs.get(destIDX)-lb)/diff;
+			}	
+			sclFtrs.put(destIDX,val);
+			setMapOfJpWts(jp, val, stdFtrMapTypeKey);
+			
+		}//for each jp
+		return sclFtrs;
+	}//standardizeFeatureVector
+	
 	
 	public dataClass getLabel(){return label;}
 	
@@ -241,8 +330,7 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	//build stdfeature vector on demand
 	public float[] getStdFtrs() {return _getFtrsFromMap(this.stdFtrMap);}
 	//build normfeature vector on demand
-	public float[] getNormFtrs() {return _getFtrsFromMap(this.normFtrMap);}
-	
+	public float[] getNormFtrs() {return _getFtrsFromMap(this.normFtrMap);}	
 	
 	public TreeMap<Integer, Float> getCurrentFtrMap(int _type){
 		switch(_type){
@@ -312,9 +400,6 @@ class ProspectExample extends StraffSOMExample{
 	//structs to hold all order occurences and opt occurences of each JP for this OID
 	private TreeMap<String, TreeMap<Integer, jpOccurrenceData>> JpOccurrences;//orderJpOccurrences, optJpOccurrences;
 
-	//use a map to hold the features sorted by weight as key, value is array of jps at that weight - map needs to be instanced in descending key order
-	//a map per feature type : unmodified, normalized, standardized
-	public TreeMap<String, TreeMap<Float, ArrayList<Integer>>> mapOfTopJps;
 	//this object denotes a positive opt-all event for a user (i.e. an opts occurrence with a jp of -9)
 	private jpOccurrenceData posOptAllEventObj = null;
 	
@@ -560,24 +645,9 @@ class ProspectExample extends StraffSOMExample{
 		return jps;
 	}//buildJPListFromOccs
 	
-	//call from calc or from objects that manage norm/std ftrs - build structure registering weight of jps in ftr vector mapToGet in descending strength
-	public void setMapOfJpWts(int jp, float wt, String mapToGet) {
-		TreeMap<Float, ArrayList<Integer>> map = mapOfTopJps.get(mapToGet);
-		if(map == null) {
-			map = new TreeMap<Float, ArrayList<Integer>>(new Comparator<Float>() { @Override public int compare(Float o1, Float o2) {   return o2.compareTo(o1);}}); 
-			mapOfTopJps.put(mapToGet, map);
-		}		 
-		ArrayList<Integer> jpIdxsAtWt = map.get(wt);
-		if (jpIdxsAtWt == null) {jpIdxsAtWt = new ArrayList<Integer>(); }
-		jpIdxsAtWt.add(jp);
-		map.put(wt, jpIdxsAtWt);
-	}//setMapOfJpWts
-	
-	//take loaded data and convert to feature data via calc object
+    //take loaded data and convert to feature data via calc object
 	@Override
 	protected void buildFeaturesMap() {
-		//this map is a map of maps in descending order
-		mapOfTopJps = new TreeMap<String, TreeMap<Float, ArrayList<Integer>>>();//(new Comparator<Float>() { @Override public int compare(Float o1, Float o2) {   return o2.compareTo(o1);}}); 
 		//access calc object
 		if (allJPs.size() > 0) {
 			ftrMap = mapData.ftrCalcObj.calcFeatureVector(this,allJPs,JpOccurrences.get("orders"), JpOccurrences.get("links"), JpOccurrences.get("opts"));
@@ -589,7 +659,7 @@ class ProspectExample extends StraffSOMExample{
 	@Override
 	//standardize this feature vector
 	protected void buildStdFtrsMap() {		
-		if (allJPFtrIDXs.size() > 0) {stdFtrMap = mapData.calcStdFtrVector(ftrMap, allJPFtrIDXs);}
+		if (allJPFtrIDXs.size() > 0) {stdFtrMap = calcStdFtrVector(ftrMap, allJPFtrIDXs);}
 		else {stdFtrMap = new TreeMap<Integer, Float>();}
 		stdFtrsBuilt = true;
 	}//buildStdFtrsMap
@@ -740,7 +810,7 @@ class DispSOMMapExample extends StraffSOMExample{
 	@Override
 	protected void buildStdFtrsMap() {	
 		stdFtrMap = new TreeMap<Integer, Float>();
-		if (allJPFtrIDXs.size() > 0) {stdFtrMap = mapData.calcStdFtrVector(ftrMap, allJPFtrIDXs);}
+		if (allJPFtrIDXs.size() > 0) {stdFtrMap = calcStdFtrVector(ftrMap, allJPFtrIDXs);}
 		stdFtrsBuilt = true;
 	}
 }//DispSOMMapExample
@@ -759,10 +829,6 @@ class SOMMapNodeExample extends StraffSOMExample{
 	//TODO need to support normalized data by setting original magnitude of data
 	public SOMMapNodeExample(SOMMapData _map, Tuple<Integer,Integer> _mapNode, float[] _ftrs) {
 		super(_map, "MapNode_"+_mapNode.x+"_"+_mapNode.y);
-		ftrMap = new TreeMap<Integer, Float>();			//feature map for SOM Map Nodes may not correspond directly to magnitudes seen in training data. 
-		stdFtrMap = new TreeMap<Integer, Float>();	
-		normFtrMap = new TreeMap<Integer, Float>();	
-		allJPs = new HashSet<Integer> ();
 		//ftrTypeMapBuilt = _ftrType;
 		if(_ftrs.length != 0){	setFtrsFromFloatAra(_ftrs);	}
 		//allJPs = buildJPsFromFtrAra(_ftrs, ftrThresh);
@@ -772,10 +838,6 @@ class SOMMapNodeExample extends StraffSOMExample{
 	//feature type denotes what kind of features the tkns being sent represent
 	public SOMMapNodeExample(SOMMapData _map,Tuple<Integer,Integer> _mapNode, String[] _strftrs) {
 		super(_map, "MapNode_"+_mapNode.x+"_"+_mapNode.y);
-		ftrMap = new TreeMap<Integer, Float>();	
-		stdFtrMap = new TreeMap<Integer, Float>();	
-		normFtrMap = new TreeMap<Integer, Float>();	
-		allJPs = new HashSet<Integer> ();
 		//ftrTypeMapBuilt = _ftrType;
 		if(_strftrs.length != 0){	setFtrsFromStrAra(_strftrs);	}
 		initMapNode( _mapNode);
@@ -789,7 +851,9 @@ class SOMMapNodeExample extends StraffSOMExample{
 			if (val > ftrThresh) {
 				ftrVecSqMag+=val*val;
 				ftrMap.put(i, val);
-				allJPs.add(mapData.jpByIdx[i]);
+				int jp = mapData.jpByIdx[i];
+				allJPs.add(jp);
+				setMapOfJpWts(jp, val, ftrMapTypeKey);				
 			}
 		}
 		buildAllJPFtrIDXsJPs();
@@ -806,7 +870,9 @@ class SOMMapNodeExample extends StraffSOMExample{
 			if (val > ftrThresh) {
 				ftrVecSqMag+=val*val;
 				ftrMap.put(i, val);
-				allJPs.add(mapData.jpByIdx[i]);
+				int jp = mapData.jpByIdx[i];
+				allJPs.add(jp);
+				setMapOfJpWts(jp, val, ftrMapTypeKey);
 			}
 		}
 		buildAllJPFtrIDXsJPs();
@@ -841,37 +907,6 @@ class SOMMapNodeExample extends StraffSOMExample{
 		System.out.println("SOMMapNodeExample::buildStdFtrsMap : Calling inappropriate buildStdFtrsMap for SOMMapNodeExample : should call buildStdFtrsMap_MapNode from SOMDataLoader using trained map w/arrays of per feature mins and diffs");		
 	}
 	
-//	//either build standardized features from raw features, if map built from raw features, or build raw features from standardized features, if map built using std'ized features
-//	public void buildFtrsOrStdFtrs_MapNode(float[] minsAra, float[] diffsAra) {
-//		if(ftrTypeMapBuilt==1) {//built with standardized features, build raw and normalized using mins and diffs
-//			buildFtrsMapFromStdFtrData_MapNode(minsAra, diffsAra);
-//		} else {//built using raw features = derive standardized from 
-//			buildStdFtrsMapFromFtrData_MapNode(minsAra, diffsAra);
-//		}		
-//	}//buildFtrsOrStdFtrs_MapNode
-//
-//	//called by SOMDataLoader - if trained on std'ized data, use this to build actual ftrMap data
-//	private void buildFtrsMapFromStdFtrData_MapNode(float[] minsAra, float[] diffsAra) {
-//		ftrMap = new TreeMap<Integer, Float>();	
-//		if (allJPs.size() > 0) {
-//			Integer destIDX;
-//			for (Integer jp : allJPs) {
-//				destIDX = mapData.jpToFtrIDX.get(jp);
-//				Float lb = minsAra[destIDX], 
-//						diff = diffsAra[destIDX];
-//				if (diff==0) {//same min and max
-//					if (lb > 0) {	ftrMap.put(destIDX,diff+lb);}//only a single value same min and max-> set feature value to 1.0
-//					else {			ftrMap.put(destIDX,0.0f);}
-//				} else {
-//					float val = (stdFtrMap.get(destIDX) *diff) + lb;
-//					ftrMap.put(destIDX,val);
-//				}			
-//			}//for each jp
-//		}
-//		ftrsBuilt = true;	
-//		buildNormFtrData();
-//	}//buildStdFtrsMap_MapNode
-	
 	//called by SOMDataLoader - these are standardized based on data mins and diffs seen in -map nodes- feature data, not in training data
 	//
 	public void buildStdFtrsMapFromFtrData_MapNode(float[] minsAra, float[] diffsAra) {
@@ -882,16 +917,20 @@ class SOMMapNodeExample extends StraffSOMExample{
 				destIDX = mapData.jpToFtrIDX.get(jp);
 				Float lb = minsAra[destIDX], 
 						diff = diffsAra[destIDX];
+				float val = 0.0f;
 				if (diff==0) {//same min and max
-					if (lb > 0) {	stdFtrMap.put(destIDX,1.0f);}//only a single value same min and max-> set feature value to 1.0
-					else {			stdFtrMap.put(destIDX,0.0f);}
+					if (lb > 0) {	val = 1.0f;}//only a single value same min and max-> set feature value to 1.0
+					else {val= 0.0f;}
 				} else {
-					float val = (ftrMap.get(destIDX)-lb)/diff;
-					stdFtrMap.put(destIDX,val);
-				}			
+					val = (ftrMap.get(destIDX)-lb)/diff;
+				}
+				stdFtrMap.put(destIDX,val);
+				setMapOfJpWts(jp, val, stdFtrMapTypeKey);
 			}//for each jp
 		}
 		stdFtrsBuilt = true;
+		//by here all maps of per-type, per-feature val arrays of jps should be built
+		buildMapOfJPsToRank();		
 	}//buildStdFtrsMap_MapNode
 	
 	public void addBMUExample(double dist, StraffSOMExample straffSOMExample){
@@ -910,15 +949,31 @@ class SOMMapNodeExample extends StraffSOMExample{
 		}
 		return examplesBMU.firstEntry().getValue().getLabel();}
 	public int getExmplBMUSize() {return  examplesBMU.size();}
-	public void drawMeSmallBk(SOM_StraffordMain p){
+	
+	public void drawMeSmall(SOM_StraffordMain p){
 		p.pushMatrix();p.pushStyle();
-		p.show(mapLoc, 2, 2, 0, 0);		
+		//show(myPointf P, float rad, int det, int[] fclr, int[] sclr, int tclr, String txt, boolean useBKGBox) 
+		p.show(mapLoc, 2, 2, p.gui_Cyan, p.gui_Cyan, p.gui_White, this.OID); 		
+		p.popStyle();p.popMatrix();		
+	}
+	//only draw bmu if lower than rankThresh
+	@Override
+	public void drawMeMap(SOM_StraffordMain p, int clr, dataClass lblBlnk){
+//		Integer rank = getJPRankForMap(stdFtrMapTypeKey, curJP);
+//		if (rank > rankThresh) {return;}//some map nodes won't have any structures yet if they haven't been mapped to
+		p.pushMatrix();p.pushStyle();
+		//p.show(mapLoc, getRad(), drawDet, label.clrVal,label.clrVal);		
+		p.show(mapLoc, getRad(), drawDet, clr+1, clr+1);		
 		p.popStyle();p.popMatrix();		
 	}
 	@Override
-	public void drawMeMap(SOM_StraffordMain p, dataClass lblBlnk){
+	public void drawMeWithWt(SOM_StraffordMain p, float wt, int clr, dataClass lblBlnk){
+//		Integer rank = getJPRankForMap(stdFtrMapTypeKey, curJP);
+//		if (rank > rankThresh) {return;}//some map nodes won't have any structures yet if they haven't been mapped to
 		p.pushMatrix();p.pushStyle();
-		p.show(mapLoc, getRad(), drawDet, label.clrVal,label.clrVal);		
+		//p.show(mapLoc, getRad(), drawDet, label.clrVal,label.clrVal);		
+		//p.show(mapLoc, 10.0f*wt, drawDet, clr+1, clr+1);		
+		p.show(mapLoc, 10.0f*wt, 2,  clr+1, clr+1, p.gui_White, ""+this.OID+":"+String.format("%.4f", wt)); 		
 		p.popStyle();p.popMatrix();		
 	}
 	@Override
@@ -948,7 +1003,8 @@ abstract class baseDataPtVis{
 	
 	public baseDataPtVis() {
 		mapLoc = new myPointf();	
-		setRad( 2.0f);	
+		rad = 1.0f;
+		drawDet = 2;
 	}
 	//for debugging purposes, gives min and max radii of spheres that will be displayed on map for each node proportional to # of samples - only display related
 	public static float minRad = 100000, maxRad = -100000;
@@ -964,12 +1020,21 @@ abstract class baseDataPtVis{
 	public void setMapLoc(myPointf _pt){mapLoc = new myPointf(_pt);}
 	
 	//override drawing in map nodes
-	public void drawMeMap(SOM_StraffordMain p, dataClass label){
+	public void drawMeMap(SOM_StraffordMain p, int clr, dataClass label){
 		p.pushMatrix();p.pushStyle();
 		//draw point of radius rad at mapLoc
 		p.show(mapLoc, rad,drawDet, label.clrVal,label.clrVal);
 		p.popStyle();p.popMatrix();		
 	}//drawMe
+	
+	public void drawMeWithWt(SOM_StraffordMain p, float wt, int clr, dataClass lblBlnk){
+//		Integer rank = getJPRankForMap(stdFtrMapTypeKey, curJP);
+//		if (rank > rankThresh) {return;}//some map nodes won't have any structures yet if they haven't been mapped to
+		p.pushMatrix();p.pushStyle();
+		//p.show(mapLoc, getRad(), drawDet, label.clrVal,label.clrVal);		
+		p.show(mapLoc, 10.0f*wt, drawDet, clr+1, clr+1);		
+		p.popStyle();p.popMatrix();		
+	}
 	
 	public void drawMeLblMap(SOM_StraffordMain p, dataClass label, boolean mseOvr){
 		p.pushMatrix();p.pushStyle();

@@ -19,6 +19,9 @@ public class SOMMapData {
 	//struct maintaining complete project configuration and information from config files
 	public SOMProjConfigData projConfigData;			
 
+	//lowest rank to display of bmus/mapnodes
+	private static final int dispRankThresh = 10;
+	
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	
 	//description of SOM_MAP exe params
@@ -33,6 +36,9 @@ public class SOMMapData {
 	public TreeMap<String, dataClass> TrainDataLabels;	
 	//data set to be training data, etc
 	public StraffSOMExample[] trainData, inputData, testData;
+	//array of per jp treemaps of nodes keyed by jp weight
+	public TreeMap<Float,ArrayList<SOMMapNodeExample>>[] PerJPHiWtMapNodes;
+	
 	
 	public float[] 
 			map_ftrsMean, 
@@ -52,6 +58,8 @@ public class SOMMapData {
 	public Float[] diffsVals, minsVals;	//values to return scaled values to actual data points - multiply wts by diffsVals, add minsVals
 	//# of nodes in x/y
 	public int mapX =0, mapY =0;
+	//# of nodes / map dim  in x/y
+	public float nodeXPerPxl, nodeYPerPxl;
 	
 	//public String somResBaseFName, trainDataName, diffsFileName, minsFileName;//files holding diffs and mins (.csv extension)
 	private int[] stFlags;						//state flags - bits in array holding relevant process info
@@ -300,6 +308,25 @@ public class SOMMapData {
 		th_exec.execute(new SOMDataLoader(this,mapLoadFtrBMUsIDX,projConfigData, dataFrmt));//fire and forget load task to load	
 
 	}//buildNewSOMMap	
+	@SuppressWarnings("unchecked")
+	public void initPerJPMapOfNodes() {
+		PerJPHiWtMapNodes = new TreeMap[numFtrs];
+		for (int i=0;i<PerJPHiWtMapNodes.length; ++i) {PerJPHiWtMapNodes[i] = new TreeMap<Float,ArrayList<SOMMapNodeExample>>(new Comparator<Float>() { @Override public int compare(Float o1, Float o2) {   return o2.compareTo(o1);}});}
+	}//
+
+	//put a map node in PerJPHiWtMapNodes per-jp array
+	public void setMapNodeFtrStr(SOMMapNodeExample mapNode) {
+		TreeMap<Integer, Float> stdFtrMap = mapNode.getCurrentFtrMap(SOMMapData.useScaledDat);
+		for (Integer jpIDX : stdFtrMap.keySet()) {
+			Float ftrVal = stdFtrMap.get(jpIDX);
+			ArrayList<SOMMapNodeExample> nodeList = PerJPHiWtMapNodes[jpIDX].get(ftrVal);
+			if (nodeList== null) {
+				nodeList = new ArrayList<SOMMapNodeExample>();
+			}
+			nodeList.add(mapNode);
+			PerJPHiWtMapNodes[jpIDX].put(ftrVal, nodeList);
+		}		
+	}//setMapNodeFtrStr
 	
 	public boolean mapCanBeTrained(int kVal) {
 		//eventually enable training map on existing files - save all file names, enable file names to be loaded and map built directly
@@ -731,28 +758,6 @@ public class SOMMapData {
 	}//finishProspectBuild
 	
 	
-	//this is here so can more easily use the mins and diffs equations
-	public TreeMap<Integer, Float> calcStdFtrVector(TreeMap<Integer, Float> ftrs, ArrayList<Integer> jpIdxs){
-		return calcStdFtrVector(ftrs, jpIdxs, minsVals, diffsVals);
-	}
-	//scale each feature value to be between 0->1 based on min/max values seen for this feature
-	//all examples features will be scaled with respect to seen calc results 0- do not use this for
-	//exemplar objects (those that represent a particular product, for example)
-	//MUST BE SET WITH APPROPRIATE MINS AND DIFFS
-	private TreeMap<Integer, Float> calcStdFtrVector(TreeMap<Integer, Float> ftrs, ArrayList<Integer> jpIdxs, Float[] mins, Float[] diffs) {
-		TreeMap<Integer, Float> sclFtrs = new TreeMap<Integer, Float>();
-		for (Integer destIDX : jpIdxs) {
-			Float lb = mins[destIDX], 	diff = diffs[destIDX];
-			if (diff==0) {//same min and max
-				if (lb > 0) {	sclFtrs.put(destIDX,1.0f);}//only a single value same min and max-> set feature value to 1.0
-				else {			sclFtrs.put(destIDX,0.0f);}
-			} else {
-				float val = (ftrs.get(destIDX)-lb)/diff;
-				sclFtrs.put(destIDX,val);
-			}			
-		}//for each jp
-		return sclFtrs;
-	}//standardizeFeatureVector
 	//useUnmoddedDat = 0, useScaledDat = 1, useNormedDat
 	private String getDataTypeNameFromInt(int dataFrmt) {
 		switch(dataFrmt) {
@@ -876,7 +881,7 @@ public class SOMMapData {
 		 * @param csvOutBaseFName file name prefix used to save class data in multiple formats to csv files
 		 */
 		String csvOutBaseFName = outFilePrfx + "_outCSV";
-		initData();			
+		//initData();			
 		setFlag(loaderRtnIDX, false);
 		projConfigData = new SOMProjConfigData(this);
 		projConfigData.setAllFileNames(diffsFileName,minsFileName, lrnFileName, outFilePrfx, csvOutBaseFName);
@@ -1132,23 +1137,36 @@ public class SOMMapData {
 	}//shuffleStrList
 	
 	//if connected to UI, draw data - only called from window
-	public void drawTrainData(SOM_StraffordMain pa, boolean drawLbls) {
+	public void drawTrainData(SOM_StraffordMain pa, int curMapImgIDX, boolean drawLbls) {
 		if(drawLbls){
 			for(int i=0;i<trainData.length;++i){trainData[i].drawMeLblMap(pa,trainData[i].label,false);}} 
-		else {for(int i=0;i<trainData.length;++i){trainData[i].drawMeMap(pa,trainData[i].label);}}	
+		else {for(int i=0;i<trainData.length;++i){trainData[i].drawMeMap(pa, 2,trainData[i].label);}}	
 	}//drawTrainData
 	
 	public void drawAllNodes(SOM_StraffordMain pa, int[] dpFillClr, int[] dpStkClr) {
 		pa.pushMatrix();pa.pushStyle();
 		pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
-		for(SOMMapNodeExample node : MapNodes.values()){	node.drawMeSmallBk(pa);	}
+		for(SOMMapNodeExample node : MapNodes.values()){	node.drawMeSmall(pa);	}
 		pa.popStyle();pa.popMatrix();
 	} 
 		
-	public void drawExMapNodes(SOM_StraffordMain pa,int[] dpFillClr, int[] dpStkClr) {
+	public void drawNodesWithWt(SOM_StraffordMain pa, float valThresh, int curJPIdx, int[] dpFillClr, int[] dpStkClr) {
 		pa.pushMatrix();pa.pushStyle();
 		pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
-		for(SOMMapNodeExample node : nodesWithEx){			node.drawMeMap(pa, node.label);}
+		TreeMap<Float,ArrayList<SOMMapNodeExample>> map = PerJPHiWtMapNodes[curJPIdx];
+		SortedMap<Float,ArrayList<SOMMapNodeExample>> headMap = map.headMap(valThresh);
+		for(Float key : headMap.keySet()) {
+			ArrayList<SOMMapNodeExample> ara = headMap.get(key);
+			for (SOMMapNodeExample node : ara) {		node.drawMeWithWt(pa, key, 2,node.label);}
+		}
+		pa.popStyle();pa.popMatrix();
+	} 
+		
+	public void drawExMapNodes(SOM_StraffordMain pa, int curMapImgIDX, int[] dpFillClr, int[] dpStkClr) {
+		pa.pushMatrix();pa.pushStyle();
+		pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
+		//PerJPHiWtMapNodes
+		for(SOMMapNodeExample node : nodesWithEx){			node.drawMeMap(pa, 2,node.label);}
 		pa.popStyle();pa.popMatrix();		
 	}
 	
@@ -1188,6 +1206,7 @@ public class SOMMapData {
 	public void setMapX(int _x){
 		//need to update UI value in win
 		mapX = _x;
+		nodeXPerPxl = mapX/this.mapDims[2];
 		if (win != null) {			
 			boolean didSet = win.setWinToUIVals(win.uiMapColsIDX, mapX);
 			if(!didSet){dispMessage("Setting ui map x value failed for x = " + _x);}
@@ -1196,6 +1215,7 @@ public class SOMMapData {
 	public void setMapY(int _y){
 		//need to update UI value in win
 		mapY = _y;
+		nodeYPerPxl = mapY/this.mapDims[3];
 		if (win != null) {			
 			boolean didSet = win.setWinToUIVals(win.uiMapRowsIDX, mapY);
 			if(!didSet){dispMessage("Setting ui map y value failed for y = " + _y);}

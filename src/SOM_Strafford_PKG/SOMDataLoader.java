@@ -179,12 +179,15 @@ public class SOMDataLoader implements Runnable {
 		
 		
 		map.map_ftrsDiffs = new float[map.numFtrs];
-		//build map array of images to map to
+		//initialize array of images to display map of particular feature with
 		map.initMapAras(map.numFtrs);
 		
 		for(int d = 0; d<map.numFtrs; ++d){map.map_ftrsMean[d] /= 1.0f*numEx;map.map_ftrsDiffs[d]=tmpMapMaxs[d]-map.map_ftrsMin[d];}
 		//set stdftrs for map nodes and variance calc
 		float diff;
+		//reset this to manage all map nodes
+		map.initPerJPMapOfNodes();
+
 		for(Tuple<Integer, Integer> key : map.MapNodes.keySet()){
 			SOMMapNodeExample tmp = map.MapNodes.get(key);
 			tmp.buildStdFtrsMapFromFtrData_MapNode(map.map_ftrsMin, map.map_ftrsDiffs);
@@ -198,6 +201,7 @@ public class SOMDataLoader implements Runnable {
 //				System.out.println(tmp.toString());
 //			}			
 			//dbgDispFtrAra(tmp.getStdFtrs(), "Std ftrs");
+			map.setMapNodeFtrStr(tmp);
 		}
 		for(int d = 0; d<map.numFtrs; ++d){map.map_ftrsVar[d] /= 1.0f*numEx;}
 		map.dispMessage("DataLoader : Finished Loading SOM weight data from file : " + getFName(wtsFileName) );

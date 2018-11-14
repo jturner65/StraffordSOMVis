@@ -66,15 +66,18 @@ public class mySOMMapUIWin extends myDispWindow {
 		uiMapRadEndIDX		= 14,			//end radius
 		uiJPToDispIDX		= 15,			//which JP to display on map
 		uiJPGToDispIDX		= 16,			//which group of jp's (a single jpg) to display on map
-		uiMseRegionSensIDX	= 17;			//senstivity threshold for mouse-over, to determine membership to a particular jp (amount a query on the map per feature needs to be to be considered part of the JP that feature represents)
+		uiMapNodeWtDispThreshIDX = 17,		//threshold for 
+		uiMseRegionSensIDX	= 18;			//senstivity threshold for mouse-over, to determine membership to a particular jp (amount a query on the map per feature needs to be to be considered part of the JP that feature represents)
 		
-	public final int numGUIObjs = 18;	
+	public final int numGUIObjs = 19;	
 	
 	private double[] uiVals;				//raw values from ui components
 	//source datapoints to be used to build files to send to SOM_MAP
 	//public dataPoint[] straffTrainData, straffTestData, straffSmplData;
 	//data format is from uiTrainDataFrmtIDX
 	private int dataFrmtToUseToTrain;
+	//threshold of wt value to display map node
+	private float mapNodeWtDispThresh;
 	//
 	
 	//////////////////////////////
@@ -88,9 +91,7 @@ public class mySOMMapUIWin extends myDispWindow {
 	//which map is currently being shown
 	private int curMapImgIDX;
 	//scaling value - use this to decrease the image size and increase the scaling so it is rendered the same size
-	private float mapScaleVal = 5.0f;
-	//current index of map to display
-	private int curMapIDX;
+	public static final float mapScaleVal = 5.0f;
 
 	
 	public DispSOMMapExample mseOvrData;//label of mouse-over location in map
@@ -114,21 +115,18 @@ public class mySOMMapUIWin extends myDispWindow {
 	public void initAllPrivBtns(){
 		truePrivFlagNames = new String[]{								//needs to be in order of flags
 				"Merge w/Cur Preproc Dataset","Train W/Recs W/Event Data", "Building SOM", "Resetting Def Vals", "Loading Feature BMUs",
-				"Using Scaled Ftrs For Dist Calc","Using ChiSq for Ftr Distance",
-				"Unshared Ftrs are 0",	"Hide Train Data",
-				"Hide Train Lbls",	"Hide Pop Map Nodes",	
-				"Hide Map Nodes"//, "Showing Ftr Clr"
+				"Using Scaled Ftrs For Dist Calc","Using ChiSq for Ftr Distance", "Unshared Ftrs are 0",	"Hide Train Data",
+				"Hide Train Lbls",	"Hide Pop Map Nodes","Hide Map Nodes"//, "Showing Ftr Clr"
 		};
 		falsePrivFlagNames = new String[]{			//needs to be in order of flags
 				"Build New Dataset From DB","Train W/All Recs","Build New Map ","Reset Def Vals","Not Loading Feature BMUs",
-				"Using Unscaled Ftrs For Dist Calc","Not Using ChiSq Distance",
-				"Ignoring Unshared Ftrs","Show Train Data",
-				"Show Train Lbls",	"Show Pop Map Nodes",
-				"Show Map Nodes"//, "Not Showing Ftr Clr"
+				"Using Unscaled Ftrs For Dist Calc","Not Using ChiSq Distance", "Ignoring Unshared Ftrs",	"Show Train Data",
+				"Show Train Lbls",	"Show Pop Map Nodes","Show Map Nodes"//, "Not Showing Ftr Clr"
 		};
 		privModFlgIdxs = new int[]{
-				appendTrainDataIDX,useOnlyEvntsToTrainIDX, buildSOMExe, resetMapDefsIDX, mapLoadFtrBMUsIDX,mapUseSclFtrDistIDX,
-				mapUseChiSqDistIDX,mapSetSmFtrZeroIDX,mapDrawTrainDatIDX,mapDrawTrDatLblIDX,mapDrawMapNodesIDX,mapDrawAllMapNodesIDX};//,mapShowLocClrIDX};
+				appendTrainDataIDX,useOnlyEvntsToTrainIDX, buildSOMExe, resetMapDefsIDX, mapLoadFtrBMUsIDX,
+				mapUseSclFtrDistIDX,mapUseChiSqDistIDX,mapSetSmFtrZeroIDX,mapDrawTrainDatIDX,
+				mapDrawTrDatLblIDX,mapDrawMapNodesIDX,mapDrawAllMapNodesIDX};//,mapShowLocClrIDX};
 		numClickBools = privModFlgIdxs.length;	
 		//maybe have call for 		initPrivBtnRects(0);	
 		initPrivBtnRects(0,numClickBools);
@@ -153,6 +151,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		setPrivFlags(mapUseChiSqDistIDX,true);
 		setPrivFlags(useOnlyEvntsToTrainIDX, true);
 		dataFrmtToUseToTrain = (int)(this.guiObjs[uiTrainDataFrmtIDX].getVal());
+		mapNodeWtDispThresh = (float)(this.guiObjs[uiMapNodeWtDispThreshIDX].getVal());
 
 		//moved from SOM_Data ctor, to remove dependence on papplet in that object
 		dpFillClr = pa.getClr(SOM_StraffordMain.gui_White);
@@ -164,7 +163,7 @@ public class mySOMMapUIWin extends myDispWindow {
 	}//initMe
 	
 	protected void initMapAras(int numVals) {
-		curMapIDX = 0;
+		curMapImgIDX = 0;
 		int w = (int) (SOM_mapDims[2]/mapScaleVal), h = (int) (SOM_mapDims[3]/mapScaleVal);
 		mapLocClrImg = new PImage[numVals];
 		for(int i=0;i<numVals;++i) {
@@ -299,6 +298,7 @@ public class mySOMMapUIWin extends myDispWindow {
 			{1.0, 10.0, 1.0},			//uiMapRadEndIDX		# nodes	
 			{0.0, 260, 1.0},			//uiJPToDispIDX//which JP to display on map - idx into list of jps
 			{0.0, 100, 1.0},				//uiJPGToDispIDX//which group of jp's (a single jpg) to display on map - idx into list of jps
+			{0.0, 1.0, .01},			//uiMapNodeWtDispThreshIDX
 			{0.0, 1.0, .1}				//uiMapRegionSensIDX
 
 	
@@ -321,6 +321,7 @@ public class mySOMMapUIWin extends myDispWindow {
 			1.0,	//uiMapRadEndIDX
 			0,     //uiJPToDispIDX/
 			0,      //uiJPGToDispIDX
+			.04f,	//uiMapNodeWtDispThreshIDX
 			0//uiMapRegionSensIDX
 		};								//starting value
 		uiVals = new double[numGUIObjs];//raw values
@@ -343,6 +344,7 @@ public class mySOMMapUIWin extends myDispWindow {
 				"End Cool Radius", 		//uiMapRadEndIDX	
 				"Job Practice To Show", //uiJPToDispIDX/
 				"JP Group To Show",     //uiJPGToDispIDX
+				"Map Node Disp Wt Thresh",//uiMapNodeWtDispThreshIDX
 				"Mouse Over JP Sensitivity"	//uiMapRegionSensIDX
 				
 		};			//name/label of component	
@@ -366,6 +368,7 @@ public class mySOMMapUIWin extends myDispWindow {
 			{true, false, true},      						//uiMapRadEndIDX
 			{true, true, true},								//uiJPToDispIDX/
 			{true, true, true},								//uiJPGToDispIDX	
+			{false, false, true}, 							//uiMapNodeWtDispThreshIDX
 			{false, false, true},							//uiMapRegionSensIDX
 		};						//per-object  list of boolean flags
 		
@@ -438,10 +441,13 @@ public class mySOMMapUIWin extends myDispWindow {
 				break;}
 			case uiJPToDispIDX : {//highlight display of different region of SOM map corresponding to selected JP
 				curMapImgIDX = (int)val;
-				pa.outStr2Scr("Setting UI JP Map to display to be idx :" + curMapImgIDX);				break;}
+				pa.outStr2Scr("Setting UI JP Map to display to be idx :" + curMapImgIDX + " Corresponding to JP : " + SOM_Data.jpByIdx[curMapImgIDX] );				break;}
 			case uiJPGToDispIDX : {//highlight display of different region of SOM map corresponding to group of JPs (jpg)
 				break;}
 			case uiMseRegionSensIDX : {
+				break;}
+			case uiMapNodeWtDispThreshIDX : {
+				mapNodeWtDispThresh = (float)(this.guiObjs[uiMapNodeWtDispThreshIDX].getVal());
 				break;}
 			case uiTrainDataFrmtIDX : {//format of training data
 				dataFrmtToUseToTrain = (int)(this.guiObjs[uiTrainDataFrmtIDX].getVal());
@@ -509,16 +515,17 @@ public class mySOMMapUIWin extends myDispWindow {
 	
 
 	//given pixel location relative to upper left corner of map, return map node
-	public float[] getMapNodeLocFromPxlLoc(float mapPxlX, float mapPxlY, float sclVal){	return new float[]{sclVal*SOM_Data.mapX * mapPxlX/SOM_mapDims[2], sclVal*SOM_Data.mapY * mapPxlY/SOM_mapDims[3]};}	
+	//public float[] getMapNodeLocFromPxlLoc(float mapPxlX, float mapPxlY, float sclVal){	return new float[]{sclVal*SOM_Data.mapX * mapPxlX/SOM_mapDims[2], sclVal*SOM_Data.mapY * mapPxlY/SOM_mapDims[3]};}	
+	public float[] getMapNodeLocFromPxlLoc(float mapPxlX, float mapPxlY, float sclVal){	return new float[]{sclVal* mapPxlX * SOM_Data.nodeXPerPxl, sclVal* mapPxlY * SOM_Data.nodeYPerPxl};}	
 	//check whether the mouse is over a legitimate map location
 	public boolean chkMouseOvr(int mouseX, int mouseY){		
 		float mapMseX = getSOMRelX(mouseX), mapMseY = getSOMRelY(mouseY);//, mapLocX = mapX * mapMseX/mapDims[2],mapLocY = mapY * mapMseY/mapDims[3] ;
 		if((mapMseX >= 0) && (mapMseY >= 0) && (mapMseX < SOM_mapDims[2]) && (mapMseY < SOM_mapDims[3])){
 			float[] mapNLoc=getMapNodeLocFromPxlLoc(mapMseX,mapMseY, 1.0f);
-			//SOM_Data.dispMessage("In Map : Mouse loc : " + mouseX + ","+mouseY+ "\tRel to upper corner ("+  mapMseX + ","+mapMseY +")" );
+			//SOM_Data.dispMessage("In Map : Mouse loc : " + mouseX + ","+mouseY+ "\tRel to upper corner ("+  mapMseX + ","+mapMseY +") | mapNLoc : ("+mapNLoc[0]+","+ mapNLoc[1]+")" );
 			mseOvrData = getDataPointAtLoc(mapNLoc[0], mapNLoc[1], new myPointf(mapMseX, mapMseY,0));
 //			int[] tmp = getDataClrAtLoc(mapNLoc[0], mapNLoc[1]);
-//			dispMessage("Color at mouse map loc :("+mapNLoc[0] + "," +mapNLoc[1]+") : " + tmp[0]+"|"+ tmp[1]+"|"+ tmp[2]);
+//			SOM_Data.dispMessage("Color at mouse map loc :("+mapNLoc[0] + "," +mapNLoc[1]+") : " + tmp[0]+"|"+ tmp[1]+"|"+ tmp[2]);
 			return true;
 		} else {
 			mseOvrData = null;
@@ -552,22 +559,6 @@ public class mySOMMapUIWin extends myDispWindow {
 		}
 	}//getDataPointAtLoc	
 	
-//	//return a color for a location, where a color is an int scaled by the value of the weight at that location
-//	public float[] getDataClrAtLoc(float x, float y){
-//		int xInt = (int) Math.floor(x), yInt = (int) Math.floor(y), xIntp1 = (xInt+1)%SOM_Data.mapX, yIntp1 = (yInt+1)%SOM_Data.mapY;		//assume torroidal map		
-//		//dispMessage("In getDataClrAtLoc :  loc in Nodes : " + x + ","+y+ "\txInt : "+ xInt + " yInt : " + yInt );
-//		float xInterp = x - xInt, yInterp = y - yInt;		
-//		float[] LowXLowYFtrs = SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt)).getFtrs(), LowXHiYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xInt,yIntp1)).getFtrs(),
-//				 HiXLowYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yInt)).getFtrs(),  HiXHiYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yIntp1)).getFtrs();
-//		try{
-//			float[] ftrs = interpFirstXFloatAraMult(interpFirstXFloatAraMult (LowXLowYFtrs, LowXHiYFtrs, yInterp,SOM_Data.numFtrs, 1) , interpFirstXFloatAraMult (HiXLowYFtrs, HiXHiYFtrs,yInterp,SOM_Data.numFtrs,1), xInterp,SOM_Data.numFtrs,255);
-//			return ftrs;//(((int)ftrs[0] & 0xff) << 16) + (((int)ftrs[1] & 0xff) << 8) + ((int)ftrs[2] & 0xff);			
-//		} catch (Exception e){
-//			pa.outStr2Scr("Error in getDataClrAtLoc at location : (" + x + ", " + y + ") :\n " + e.toString() + "\t\n Message : "+ e.getMessage());
-//			return new float[SOM_Data.numFtrs];// 0xFFFFFFFF;
-//		}
-//	}//getDataClrAtLoc
-	
 	//return a ftrMap at a location
 	public TreeMap<Integer, Float> getDataMapAtLoc(float x, float y){
 		int xInt = (int) Math.floor(x), yInt = (int) Math.floor(y), xIntp1 = (xInt+1)%SOM_Data.mapX, yIntp1 = (yInt+1)%SOM_Data.mapY;		//assume torroidal map		
@@ -600,22 +591,6 @@ public class mySOMMapUIWin extends myDispWindow {
 		return clrVal;
 	}//getDataClrFromFtrVec
 	
-//	private float[] minFtrValSeen, maxFtrValSeen;
-//	public void initDBG_MapImgFtrVals(int numftrs) {
-//		minFtrValSeen=new float[numftrs];
-//		maxFtrValSeen = new float[numftrs];
-//		for(int i=0;i<numftrs;++i) {
-//			minFtrValSeen[i]=10000000;
-//			maxFtrValSeen[i]=-10000000;
-//		}
-//	}
-//	
-//	public void dispMinMaxFtrValsSeen() {
-//		for(int i=0;i<minFtrValSeen.length;++i) {
-//			this.SOM_Data.dispMessage(" ftr IDX : " + i + " jp : " + SOM_Data.jpByIdx[i]+" | Vals Seen building map :  Min : " + String.format("%.6f", minFtrValSeen[i]) + " | Max : " + String.format("%.6f", maxFtrValSeen[i]));
-//		}
-//	}
-	
 	//make color based on ftr value at particular index
 	//jpIDX is index in feature vector we are querying
 	//call this if map is trained on scaled or normed ftr data
@@ -629,35 +604,6 @@ public class mySOMMapUIWin extends myDispWindow {
 		int clrVal = ((ftr & 0xff) << 16) + ((ftr & 0xff) << 8) + (ftr & 0xff);
 		return clrVal;
 	}//getDataClrFromFtrVec
-	
-	//return a color for a location, where a color here is the color assigned to the training example closest to the location
-//	public int getNodeLblClrAtLoc(float xIn, float yIn){
-//		float x = (xIn - .5f), y = (yIn - .5f);
-//		int xInt = (int) Math.floor(x)%SOM_Data.mapX, yInt = (int) Math.floor(y)%SOM_Data.mapY, xIntp1 = (xInt+1)%SOM_Data.mapX, yIntp1 = (yInt+1)%SOM_Data.mapY;		//assume torroidal map
-//		//dispMessage("In getNodeLblClrAtLoc : Mouse loc in Nodes : " + x + ","+y+ "\txInt : "+ xInt + " yInt : " + yInt );
-//		float xInterp = x - xInt, yInterp = y - yInt;//
-//		dataClass res = ((xInterp < .5 ) ? (
-//				(yInterp < .5) ? SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt)).getLabel() : SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xInt,yIntp1)).getLabel()) : 
-//				((yInterp < .5) ? SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yInt)).getLabel() : SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yIntp1)).getLabel()));
-//		Tuple<Integer, Integer> keyTpl = ((xInterp < .5 ) ? (
-//				(yInterp < .5) ? new Tuple<Integer, Integer>(xInt,yInt): new Tuple<Integer, Integer>(xInt,yIntp1)) : 
-//				((yInterp < .5) ? new Tuple<Integer, Integer>(xIntp1,yInt) : new Tuple<Integer, Integer>(xIntp1,yIntp1)));
-//		SOMMapNodeExample resNode = SOM_Data.MapNodes.get(keyTpl);
-//		//dataClass res = null;
-//		if(resNode == null){
-//			pa.outStr2Scr("Null resnode in map at key : "+ keyTpl);}
-//		else {
-//			if(resNode.getExmplBMUSize() == 0){
-//				pa.outStr2Scr("No best examples mapped to resnode in map at key : "+ keyTpl);						
-//			} else {
-//				res = resNode.getLabel();
-//				if(res == null){	pa.outStr2Scr("Null label for resnode in map at key : "+ keyTpl);}
-//			}
-//		}
-//		//int[] clrVal = p.getClr(res.clrVal);
-//		if(res.clrVal == null){return (0xaa << 16) + (0xaa << 8) + 0xaa;}
-//		else {return ((res.clrVal[0] & 0xff) << 16) + ((res.clrVal[1] & 0xff) << 8) + (res.clrVal[2] & 0xff);}
-//	}//getNodeLblClrAtLoc
 	
 	@Override
 	public void initDrwnTrajIndiv(){}
@@ -696,11 +642,11 @@ public class mySOMMapUIWin extends myDispWindow {
 		pa.pushMatrix();pa.pushStyle();
 		pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
 		if(mseOvrData != null){mseOvrData.drawMeLblMap(pa,mseOvrData.label,true);}
-		if(getPrivFlags(mapDrawTrainDatIDX)){		SOM_Data.drawTrainData(pa, getPrivFlags(mapDrawTrDatLblIDX));}			
+		if(getPrivFlags(mapDrawTrainDatIDX)){		SOM_Data.drawTrainData(pa, curMapImgIDX, getPrivFlags(mapDrawTrDatLblIDX));}			
 		pa.popStyle();pa.popMatrix();
 		//draw map nodes, either with or without empty nodes
 		if(getPrivFlags(mapDrawAllMapNodesIDX)){	SOM_Data.drawAllNodes( pa,  mapNodeClr, mapNodeClr);		} 
-		if(getPrivFlags(mapDrawMapNodesIDX)){		SOM_Data.drawExMapNodes( pa,  mapNodeClr, mapNodeClr);		} 
+		if(getPrivFlags(mapDrawMapNodesIDX)){		SOM_Data.drawNodesWithWt(pa, mapNodeWtDispThresh, curMapImgIDX, mapNodeClr, mapNodeClr);}//SOM_Data.drawExMapNodes( pa, curMapImgIDX, mapNodeClr, mapNodeClr);		} 
 		pa.popStyle();pa.popMatrix();
 	}//drawMap()		
 	
@@ -708,37 +654,17 @@ public class mySOMMapUIWin extends myDispWindow {
 	//sets colors of background image of map
 	public void setMapImgClrs(){ //mapRndClrImg
 		float[] c;		
-		//initDBG_MapImgFtrVals(mapLocClrImg.length);
-		for (int i=0;i<mapLocClrImg.length;++i) {
-			mapLocClrImg[i].loadPixels();
-		}
-		//TODO this must be set by loading the data from the trained map - data configuration information needs to be saved when the map is made
-//		if(dataFrmtToUseToTrain == 0) {//0 == unmodded data
-//			for(int y = 0; y<mapLocClrImg[0].height; ++y){
-//				int yCol = y * mapLocClrImg[0].width;
-//				for(int x = 0; x < mapLocClrImg[0].width; ++x){
-//					//this returns a full vector of values, this is why we build per pix per image, instead of per image per pix.
-//					c = getMapNodeLocFromPxlLoc(x, y,mapScaleVal);
-//					TreeMap<Integer, Float> ftrs = getDataMapAtLoc(c[0],c[1]);
-//					for (int i=0;i<mapLocClrImg.length;++i) {				
-//						mapLocClrImg[i].pixels[x+yCol] = getDataClrFromFtrVecUnModded(ftrs, i);
-//					}
-//				}
-//			}
-//		} else {	
-			for(int y = 0; y<mapLocClrImg[0].height; ++y){
-				int yCol = y * mapLocClrImg[0].width;
-				for(int x = 0; x < mapLocClrImg[0].width; ++x){
-					c = getMapNodeLocFromPxlLoc(x, y,mapScaleVal);
-					TreeMap<Integer, Float> ftrs = getDataMapAtLoc(c[0],c[1]);
-					for (int i=0;i<mapLocClrImg.length;++i) {	mapLocClrImg[i].pixels[x+yCol] = getDataClrFromFtrVec(ftrs, i);}
-				}
+		for (int i=0;i<mapLocClrImg.length;++i) {	mapLocClrImg[i].loadPixels();}
+		for(int y = 0; y<mapLocClrImg[0].height; ++y){
+			int yCol = y * mapLocClrImg[0].width;
+			for(int x = 0; x < mapLocClrImg[0].width; ++x){
+				c = getMapNodeLocFromPxlLoc(x, y,mapScaleVal);
+				TreeMap<Integer, Float> ftrs = getDataMapAtLoc(c[0],c[1]);
+				//for (int i=0;i<mapLocClrImg.length;++i) {	mapLocClrImg[i].pixels[x+yCol] = getDataClrFromFtrVec(ftrs, i);}
+				for (Integer jp : ftrs.keySet()) {mapLocClrImg[jp].pixels[x+yCol] = getDataClrFromFtrVec(ftrs, jp);}
 			}
-		//dispMinMaxFtrValsSeen();
-		//}
-		for (int i=0;i<mapLocClrImg.length;++i) {
-			mapLocClrImg[i].updatePixels();		
 		}
+		for (int i=0;i<mapLocClrImg.length;++i) {	mapLocClrImg[i].updatePixels();		}
 	}//setMapImgClrs
 		
 	//return strings for directory names and for individual file names that describe the data being saved.  used for screenshots, and potentially other file saving

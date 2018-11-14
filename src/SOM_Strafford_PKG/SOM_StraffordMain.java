@@ -1304,6 +1304,7 @@ public class SOM_StraffordMain extends PApplet {
 		translate(P.x,P.y,P.z); 
 		sphere(rad); 
 		popStyle(); popMatrix();} // render sphere of radius r and center P)
+	
 	public void show(myPointf P, float rad, int det, int fclr, int sclr) {//only call with set fclr and sclr
 		pushMatrix(); pushStyle(); 
 		setColorValFill(fclr,255); 
@@ -1311,6 +1312,16 @@ public class SOM_StraffordMain extends PApplet {
 		sphereDetail(det);
 		translate(P.x,P.y,P.z); 
 		sphere(rad); 
+		popStyle(); popMatrix();} // render sphere of radius r and center P)
+	
+	public void show(myPointf P, float rad, int det, int fclr, int sclr, int tclr, String txt) {//only call with set fclr and sclr
+		pushMatrix(); pushStyle(); 
+		setColorValFill(fclr,255); 
+		setColorValStroke(sclr,255);
+		sphereDetail(det);
+		translate(P.x,P.y,P.z); 
+		sphere(rad); 
+		showOffsetText(1.2f * rad,tclr, txt);
 		popStyle(); popMatrix();} // render sphere of radius r and center P)
 	
 	public void show(myPointf P, float rad, int det){			
