@@ -516,7 +516,7 @@ public class mySOMMapUIWin extends myDispWindow {
 
 	//given pixel location relative to upper left corner of map, return map node
 	//public float[] getMapNodeLocFromPxlLoc(float mapPxlX, float mapPxlY, float sclVal){	return new float[]{sclVal*SOM_Data.mapX * mapPxlX/SOM_mapDims[2], sclVal*SOM_Data.mapY * mapPxlY/SOM_mapDims[3]};}	
-	public float[] getMapNodeLocFromPxlLoc(float mapPxlX, float mapPxlY, float sclVal){	return new float[]{sclVal* mapPxlX * SOM_Data.nodeXPerPxl, sclVal* mapPxlY * SOM_Data.nodeYPerPxl};}	
+	public float[] getMapNodeLocFromPxlLoc(float mapPxlX, float mapPxlY, float sclVal){	return new float[]{(sclVal* mapPxlX * SOM_Data.nodeXPerPxl) - .5f, (sclVal* mapPxlY * SOM_Data.nodeYPerPxl) - .5f};}	
 	//check whether the mouse is over a legitimate map location
 	public boolean chkMouseOvr(int mouseX, int mouseY){		
 		float mapMseX = getSOMRelX(mouseX), mapMseY = getSOMRelY(mouseY);//, mapLocX = mapX * mapMseX/mapDims[2],mapLocY = mapY * mapMseY/mapDims[3] ;
@@ -533,13 +533,13 @@ public class mySOMMapUIWin extends myDispWindow {
 		}
 	}//chkMouseOvr
 	
-	//get datapoint at passed location in map coordinates (so should be in frame of map's upper right corner) - assume map is square and not hex
-	public DispSOMMapExample getDataPointAtLoc(float x, float y, myPointf locPt){//, boolean useScFtrs){
-		float sensitivity = (float) guiObjs[uiMseRegionSensIDX].getVal();
-		int xInt = (int) Math.floor(x), yInt = (int) Math.floor(y), xIntp1 = (xInt+1)%SOM_Data.mapX, yIntp1 = (yInt+1)%SOM_Data.mapY;		//assume torroidal map		
+	//return interpolated feature vector on map at location given by x,y, where x,y is float location of map using mapnodes as integral locations
+	private TreeMap<Integer, Float> getInterpFtrs(float x, float y){
+		int xInt = (int) Math.floor(x+SOM_Data.mapX)%SOM_Data.mapX, yInt = (int) Math.floor(y+SOM_Data.mapY)%SOM_Data.mapY, xIntp1 = (xInt+1)%SOM_Data.mapX, yIntp1 = (yInt+1)%SOM_Data.mapY;		//assume torroidal map		
+		//int xInt = (int) Math.floor(x), yInt = (int) Math.floor(y), xIntp1 = (xInt+1)%SOM_Data.mapX, yIntp1 = (yInt+1)%SOM_Data.mapY;		//assume torroidal map		
 		//need to divide by width/height of map * # cols/rows to get mapped to actual map nodes
 		//dispMessage("In getDataPointAtLoc : Mouse loc in Nodes : " + x + ","+y+ "\txInt : "+ xInt + " yInt : " + yInt );
-		float xInterp = x - xInt, yInterp = y - yInt;//, xIsq = xInterp*xInterp, yIsq = yInterp*yInterp,oneMxIsq = (1-xInterp)*(1-xInterp),oneMyIsq = (1-yInterp)*(1-yInterp);
+		float xInterp = (x+1) %1, yInterp = (y+1) %1;
 		//always compare standardized feature data in test/train data to standardized feature data in map
 		TreeMap<Integer, Float> LowXLowYFtrs = SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt)).getCurrentFtrMap(SOMMapData.useScaledDat), LowXHiYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xInt,yIntp1)).getCurrentFtrMap(SOMMapData.useScaledDat),
 				 HiXLowYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yInt)).getCurrentFtrMap(SOMMapData.useScaledDat),  HiXHiYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yIntp1)).getCurrentFtrMap(SOMMapData.useScaledDat);
@@ -548,34 +548,28 @@ public class mySOMMapUIWin extends myDispWindow {
 //				 HiXLowYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yInt)).getCurrentFtrMap(dataFrmtToUseToTrain),  HiXHiYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yIntp1)).getCurrentFtrMap(dataFrmtToUseToTrain);
 		try{
 			TreeMap<Integer, Float> ftrs = interpTreeMap(interpTreeMap(LowXLowYFtrs, LowXHiYFtrs,yInterp,1.0f),interpTreeMap(HiXLowYFtrs, HiXHiYFtrs,yInterp,1.0f),xInterp,255.0f);	
-			DispSOMMapExample dp = SOM_Data.buildTmpDataExample(locPt, ftrs, sensitivity);
-			//dp.setCorrectScaling();
-			//dp.setLabel(res);
-			dp.setMapLoc(locPt);		
-			return dp;
+			return ftrs;
 		} catch (Exception e){
-			pa.outStr2Scr("Exception triggered in mySOMMapUIWin::getDataPointAtLoc : \n"+e.toString() + "\n\tMessage : "+e.getMessage() );
+			pa.outStr2Scr("Exception triggered in mySOMMapUIWin::getInterpFtrs : \n"+e.toString() + "\n\tMessage : "+e.getMessage() );
 			return null;
 		}
+		
+	}
+	
+	//get datapoint at passed location in map coordinates (so should be in frame of map's upper right corner) - assume map is square and not hex
+	public DispSOMMapExample getDataPointAtLoc(float x, float y, myPointf locPt){//, boolean useScFtrs){
+		float sensitivity = (float) guiObjs[uiMseRegionSensIDX].getVal();
+		TreeMap<Integer, Float> ftrs = getInterpFtrs(x,y);
+		if(ftrs == null) {return null;} 
+		DispSOMMapExample dp = SOM_Data.buildTmpDataExample(locPt, ftrs, sensitivity);
+		dp.setMapLoc(locPt);			
+		return dp;
 	}//getDataPointAtLoc	
 	
 	//return a ftrMap at a location
 	public TreeMap<Integer, Float> getDataMapAtLoc(float x, float y){
-		int xInt = (int) Math.floor(x), yInt = (int) Math.floor(y), xIntp1 = (xInt+1)%SOM_Data.mapX, yIntp1 = (yInt+1)%SOM_Data.mapY;		//assume torroidal map		
-		//dispMessage("In getDataClrAtLoc :  loc in Nodes : " + x + ","+y+ "\txInt : "+ xInt + " yInt : " + yInt );
-		float xInterp = x - xInt, yInterp = y - yInt;		
-		//always compare standardized feature data in test/train data to standardized feature data in map
-		TreeMap<Integer, Float> LowXLowYFtrs = SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt)).getCurrentFtrMap(SOMMapData.useScaledDat), LowXHiYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xInt,yIntp1)).getCurrentFtrMap(SOMMapData.useScaledDat),
-				 HiXLowYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yInt)).getCurrentFtrMap(SOMMapData.useScaledDat),  HiXHiYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yIntp1)).getCurrentFtrMap(SOMMapData.useScaledDat);
-//		TreeMap<Integer, Float> LowXLowYFtrs = SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt)).getCurrentFtrMap(dataFrmtToUseToTrain), LowXHiYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xInt,yIntp1)).getCurrentFtrMap(dataFrmtToUseToTrain),
-//				 HiXLowYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yInt)).getCurrentFtrMap(dataFrmtToUseToTrain),  HiXHiYFtrs= SOM_Data.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yIntp1)).getCurrentFtrMap(dataFrmtToUseToTrain);
-		try{
-			TreeMap<Integer, Float> ftrs = interpTreeMap(interpTreeMap(LowXLowYFtrs, LowXHiYFtrs,yInterp,1.0f),interpTreeMap(HiXLowYFtrs, HiXHiYFtrs,yInterp,1.0f),xInterp,255.0f);	
-			return ftrs;//(((int)ftrs[0] & 0xff) << 16) + (((int)ftrs[1] & 0xff) << 8) + ((int)ftrs[2] & 0xff);			
-		} catch (Exception e){
-			pa.outStr2Scr("Error in getDataClrAtLoc at location : (" + x + ", " + y + ") :\n " + e.toString() + "\t\n Message : "+ e.getMessage());
-			return new TreeMap<Integer, Float>();// 0xFFFFFFFF;
-		}
+		TreeMap<Integer, Float> ftrs = getInterpFtrs(x,y);
+		return ftrs;
 	}//getDataClrAtLoc
 		
 	//make color based on ftr value at particular index
@@ -645,7 +639,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		if(getPrivFlags(mapDrawTrainDatIDX)){		SOM_Data.drawTrainData(pa, curMapImgIDX, getPrivFlags(mapDrawTrDatLblIDX));}			
 		pa.popStyle();pa.popMatrix();
 		//draw map nodes, either with or without empty nodes
-		if(getPrivFlags(mapDrawAllMapNodesIDX)){	SOM_Data.drawAllNodes( pa,  mapNodeClr, mapNodeClr);		} 
+		if(getPrivFlags(mapDrawAllMapNodesIDX)){	SOM_Data.drawAllNodes( pa, curMapImgIDX, mapNodeClr, mapNodeClr);		} 
 		if(getPrivFlags(mapDrawMapNodesIDX)){		SOM_Data.drawNodesWithWt(pa, mapNodeWtDispThresh, curMapImgIDX, mapNodeClr, mapNodeClr);}//SOM_Data.drawExMapNodes( pa, curMapImgIDX, mapNodeClr, mapNodeClr);		} 
 		pa.popStyle();pa.popMatrix();
 	}//drawMap()		

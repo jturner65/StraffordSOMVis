@@ -950,10 +950,12 @@ class SOMMapNodeExample extends StraffSOMExample{
 		return examplesBMU.firstEntry().getValue().getLabel();}
 	public int getExmplBMUSize() {return  examplesBMU.size();}
 	
-	public void drawMeSmall(SOM_StraffordMain p){
+	public void drawMeSmall(SOM_StraffordMain p, int jpIDX){
 		p.pushMatrix();p.pushStyle();
+		Float wt = this.stdFtrMap.get(jpIDX);
+		if (wt==null) {wt=0.0f;}
 		//show(myPointf P, float rad, int det, int[] fclr, int[] sclr, int tclr, String txt, boolean useBKGBox) 
-		p.show(mapLoc, 2, 2, p.gui_Cyan, p.gui_Cyan, p.gui_White, this.OID); 		
+		p.show(mapLoc, 2, 2, p.gui_Cyan, p.gui_Cyan, p.gui_White, this.OID+":"+String.format("%.4f", wt)); 
 		p.popStyle();p.popMatrix();		
 	}
 	//only draw bmu if lower than rankThresh

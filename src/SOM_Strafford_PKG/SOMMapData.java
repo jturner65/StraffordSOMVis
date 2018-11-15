@@ -1143,10 +1143,10 @@ public class SOMMapData {
 		else {for(int i=0;i<trainData.length;++i){trainData[i].drawMeMap(pa, 2,trainData[i].label);}}	
 	}//drawTrainData
 	
-	public void drawAllNodes(SOM_StraffordMain pa, int[] dpFillClr, int[] dpStkClr) {
+	public void drawAllNodes(SOM_StraffordMain pa, int curJPIdx, int[] dpFillClr, int[] dpStkClr) {
 		pa.pushMatrix();pa.pushStyle();
 		pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
-		for(SOMMapNodeExample node : MapNodes.values()){	node.drawMeSmall(pa);	}
+		for(SOMMapNodeExample node : MapNodes.values()){	node.drawMeSmall(pa,curJPIdx);	}
 		pa.popStyle();pa.popMatrix();
 	} 
 		
