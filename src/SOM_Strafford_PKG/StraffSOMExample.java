@@ -980,7 +980,7 @@ class SOMMapNodeExample extends StraffSOMExample{
 		Float wt = this.stdFtrMap.get(jpIDX);
 		if (wt==null) {wt=0.0f;}
 		//show(myPointf P, float rad, int det, int[] fclr, int[] sclr, int tclr, String txt, boolean useBKGBox) 
-		p.show(mapLoc, 2, 2, p.gui_Cyan, p.gui_Cyan, p.gui_White, new String[] {this.OID+":",String.format("%.4f", wt)}); 
+		p.show(mapLoc, 2, 2, p.gui_Cyan, p.gui_Cyan, p.gui_Green, new String[] {this.OID+":",String.format("%.4f", wt)}); 
 		p.popStyle();p.popMatrix();		
 	}
 	//only draw bmu if lower than rankThresh
@@ -1000,7 +1000,7 @@ class SOMMapNodeExample extends StraffSOMExample{
 		p.pushMatrix();p.pushStyle();
 		//p.show(mapLoc, getRad(), drawDet, label.clrVal,label.clrVal);		
 		//p.show(mapLoc, 10.0f*wt, drawDet, clr+1, clr+1);		
-		p.show(mapLoc, 10.0f*wt, 2,  clr+1, clr+1, p.gui_White,  new String[] {this.OID+":",String.format("%.4f", wt)}); 
+		p.show(mapLoc, 10.0f*wt, 2,  clr+1, clr+1, p.gui_Green,  new String[] {this.OID+":",String.format("%.4f", wt)}); 
 		p.popStyle();p.popMatrix();		
 	}
 	@Override

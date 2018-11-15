@@ -91,7 +91,7 @@ public class mySOMMapUIWin extends myDispWindow {
 	//which map is currently being shown
 	private int curMapImgIDX;
 	//scaling value - use this to decrease the image size and increase the scaling so it is rendered the same size
-	public static final float mapScaleVal = 5.0f;
+	public static final float mapScaleVal = 10.0f;
 
 	
 	public DispSOMMapExample mseOvrData;//label of mouse-over location in map

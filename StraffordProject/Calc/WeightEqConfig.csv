@@ -15,7 +15,7 @@
 # the expected, format of this ,file is : , (add more sources such as link at the end)
 #<jp id>, M_p, O_p, D_p, M_ord, O_ord, D_ord, M_opt, O_opt, D_opt, M_lnk, O_lnk, D_lnk
 #
-default, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.5, 0.0, 0.0
+default, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.1, 0.0, 0.0
 #
 #--,add additional, jp-specific ,weightings, below ,following, the format, given above, for default, using jp, instead, of default,tag
 #

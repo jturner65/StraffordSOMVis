@@ -186,6 +186,7 @@ public class SOMMapData {
 		//set invoking string for map executable - is platform dependent
 		String execStr = "straff_SOM";
 		if (osName.toLowerCase().contains("windows")) {execStr += ".exe";	}
+
 		SOM_Map_EXECSTR = execStr;
 		//want # of usable background threads.  Leave 2 for primary process (and potential draw loop)
 		numUsableThreads = Runtime.getRuntime().availableProcessors() - 2;
@@ -435,17 +436,20 @@ public class SOMMapData {
 		
 		File wkDir = new File(wkDirStr); 
 		pb.directory(wkDir);
-		Process process=pb.start();
-		if(showDebug){for(String s : pb.command()){dispMessage("cmd : " + s);}dispMessage(pb.directory().toString());}		
+		final Process process=pb.start();
+		if(showDebug){for(String s : pb.command()){dispMessage("cmd : " + s);}dispMessage(pb.directory().toString());}	
+		
 		BufferedReader rdr = new BufferedReader(new InputStreamReader(process.getInputStream())); 
 		//put output into a string
-		dispMessage("begin getting output");
 		StringBuilder strbld = new StringBuilder();
-		String s = null;
-		while ((s = rdr.readLine()) != null){
+		String s = rdr.readLine();
+		dispMessage("begin getting output : rdr is null? : " + (s==null));
+
+		while (s != null){
 			dispMessage(s);
 			strbld.append(s);			
 			strbld.append(System.getProperty("line.separator"));
+			s = rdr.readLine();
 		}
 		String result = strbld.toString();//result of running map TODO save to log?
 		dispMessage("runMap Finished");
