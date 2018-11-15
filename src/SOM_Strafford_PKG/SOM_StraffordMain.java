@@ -1247,7 +1247,15 @@ public class SOM_StraffordMain extends PApplet {
 		setColorValFill(tclr);setColorValStroke(tclr);
 		text(txt, d, d,d); 
 	}
-	
+	public void showOffsetTextAra(float d, int tclr, String[] txtAra){
+		setColorValFill(tclr);setColorValStroke(tclr);
+		float y = d;
+		for (String txt : txtAra) {
+			text(txt, d, y, d);
+			y+=10;
+		}
+	}
+		
 	public void show(myPointf P, float r,int fclr, int sclr, boolean flat) {//TODO make flat circles for points if flat
 		pushMatrix(); pushStyle(); 
 		if((fclr!= -1) && (sclr!= -1)){setColorValFill(fclr); setColorValStroke(sclr);}
@@ -1314,14 +1322,14 @@ public class SOM_StraffordMain extends PApplet {
 		sphere(rad); 
 		popStyle(); popMatrix();} // render sphere of radius r and center P)
 	
-	public void show(myPointf P, float rad, int det, int fclr, int sclr, int tclr, String txt) {//only call with set fclr and sclr
+	public void show(myPointf P, float rad, int det, int fclr, int sclr, int tclr, String[] txtAra) {//only call with set fclr and sclr
 		pushMatrix(); pushStyle(); 
 		setColorValFill(fclr,255); 
 		setColorValStroke(sclr,255);
 		sphereDetail(det);
 		translate(P.x,P.y,P.z); 
 		sphere(rad); 
-		showOffsetText(1.2f * rad,tclr, txt);
+		showOffsetTextAra(1.2f * rad,tclr, txtAra);
 		popStyle(); popMatrix();} // render sphere of radius r and center P)
 	
 	public void show(myPointf P, float rad, int det){			
