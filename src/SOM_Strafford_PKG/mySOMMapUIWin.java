@@ -298,9 +298,8 @@ public class mySOMMapUIWin extends myDispWindow {
 			{1.0, 10.0, 1.0},			//uiMapRadEndIDX		# nodes	
 			{0.0, 260, 1.0},			//uiJPToDispIDX//which JP to display on map - idx into list of jps
 			{0.0, 100, 1.0},				//uiJPGToDispIDX//which group of jp's (a single jpg) to display on map - idx into list of jps
-			{0.0, 1.0, .001},			//uiMapNodeWtDispThreshIDX
-			{0.0, 1.0, .1}				//uiMapRegionSensIDX
-
+			{0.0, 1.0, .01},			//uiMapNodeWtDispThreshIDX
+			{0.0, 1.0, .1}				//uiMseRegionSensIDX
 	
 		};					
 		guiStVals = new double[]{	
@@ -322,7 +321,7 @@ public class mySOMMapUIWin extends myDispWindow {
 			0,     //uiJPToDispIDX/
 			0,      //uiJPGToDispIDX
 			.04f,	//uiMapNodeWtDispThreshIDX
-			0//uiMapRegionSensIDX
+			0//uiMseRegionSensIDX
 		};								//starting value
 		uiVals = new double[numGUIObjs];//raw values
 		System.arraycopy(guiStVals, 0, uiVals, 0, numGUIObjs);
@@ -345,7 +344,7 @@ public class mySOMMapUIWin extends myDispWindow {
 				"Job Practice To Show", //uiJPToDispIDX/
 				"JP Group To Show",     //uiJPGToDispIDX
 				"Map Node Disp Wt Thresh",//uiMapNodeWtDispThreshIDX
-				"Mouse Over JP Sensitivity"	//uiMapRegionSensIDX
+				"Mouse Over JP Sensitivity"	//uiMseRegionSensIDX
 				
 		};			//name/label of component	
 					
@@ -687,7 +686,7 @@ public class mySOMMapUIWin extends myDispWindow {
 	
 	private void custFunc2(){	
 		//load data from preprocessed local csv files
-		SOM_Data.loadAllPropsectMapData(getPrivFlags(useOnlyEvntsToTrainIDX));
+		SOM_Data.loadAllPreProccedData(getPrivFlags(useOnlyEvntsToTrainIDX));
 		clearFuncBtnState(2,false);
 	}			
 	private void custFunc3(){	

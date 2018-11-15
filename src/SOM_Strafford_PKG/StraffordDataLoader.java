@@ -31,27 +31,24 @@ public abstract class StraffordDataLoader implements Callable<Boolean> {
 	protected boolean isFileLoader;
 	//flag index in owning map denoting the processing is finished
 	protected int isDoneMapDataIDX;
+	//# of columns used by the particular table being read - used to verify if all fields are present in table.  if not known, set to 2
+	protected boolean hasJson;
 	
-//	public StraffordDataLoader(SOMMapData _mapData, String _destKey,  boolean _isFileLoader, String _dataLocInfoStr) {
-//		jsonMapper = new ObjectMapper();
-//		mapData = _mapData;
-//		destAraDataKey = _destKey;
-//		fileNameAndPath = _dataLocInfoStr;
-//		isFileLoader = _isFileLoader;
-//	}//ctor
 	public StraffordDataLoader(boolean _isFileLoader, String _dataLocInfoStr) {
 		jsonMapper = new ObjectMapper();
 		fileNameAndPath = _dataLocInfoStr;
 		isFileLoader = _isFileLoader;
 	}//ctor
 	
-	public void setLoadData(SOMMapData _mapData, String _destKey, boolean _isFileLoader, String _dataLocInfoStr, int _isDoneIDX) {
+	//use this to set values for each individual load.
+	public void setLoadData(SOMMapData _mapData, String _destKey, boolean _isFileLoader, String _dataLocInfoStr, boolean _hasJson, int _isDoneIDX) {
 		mapData = _mapData;
 		destAraDataKey = _destKey;
 		fileNameAndPath = _dataLocInfoStr;
 		isFileLoader = _isFileLoader;
+		hasJson = _hasJson;
 		isDoneMapDataIDX = _isDoneIDX;
-	}
+	}//setLoadData
 	
 	protected ArrayList<BaseRawData> execLoad(){	
 		ArrayList<BaseRawData> dataObjs = new ArrayList<BaseRawData>();
@@ -69,7 +66,7 @@ public abstract class StraffordDataLoader implements Callable<Boolean> {
 	protected abstract BaseRawData parseStringToObj(String[] strAra, String jsonStr);	
 	public void streamCSVDataAndBuildStructs(ArrayList<BaseRawData> dAra) {try {_strmCSVFileBuildObjs(dAra);} catch (Exception e) {e.printStackTrace();}}
 	//stream read the csv file and build the data objects
-	public void _strmCSVFileBuildObjs(ArrayList<BaseRawData> dAra) throws IOException {		
+	private void _strmCSVFileBuildObjs(ArrayList<BaseRawData> dAra) throws IOException {		
 		FileInputStream inputStream = null;
 		Scanner sc = null;
 	    int line = 1, badEntries = 0;
@@ -83,22 +80,39 @@ public abstract class StraffordDataLoader implements Callable<Boolean> {
 		    while ((sc.hasNextLine()) && !(done)) {
 		    	String datStr = sc.nextLine();
 		    	//System.out.println("line : " +line + " | datStr : "+datStr);
-		    	String [] strAras1 = datStr.split("\"\\{");		//split into string holding columns and string holding json 
-		    	if (strAras1.length < 2) {
-		    		System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! bad entry at "+line+" lacking description/payload json : " + datStr);
-		    		++badEntries;
-		    	} else {
-		    		String str = strAras1[1];
-		    	    if (str.charAt(str.length() - 1) == '"') {str = str.substring(0, str.length() - 1);}
-			        String jsonStr = "{"+str.replace("\t", "");
-			        String[] vals = strAras1[0].replace("\"","").split(",");
-			        //convert string to object to be used to train map		        
-			    	//System.out.println("col string : "+strAras1[0]+"\njson string : ---"+jsonStr+"---");
-			        BaseRawData obj = parseStringToObj(vals, jsonStr);
-			        if (obj.isBadRec) {
-			        	System.out.println("Object : " + obj.toString() + " is a bad record due to having no jp/jpg data.  Entry is Ignored.");
+		    	if (hasJson) {//jp and other relevant data is stored in payload/descirptor field holding json			    	
+			    	String [] strAras1 = datStr.split("\"\\{");		//split into string holding columns and string holding json 
+			    	if (strAras1.length < 2) {		    		
+				    		System.out.println("StraffordDataLoader::streamCSVDataAndBuildStructs : !!!!!!!!!" +destAraDataKey+ " has bad entry at "+line+" lacking required description/payload json : " + datStr);
+				    		++badEntries;			    	
+			    	} else {
+			    		String str = strAras1[1];
+			    	    if (str.charAt(str.length() - 1) == '"') {str = str.substring(0, str.length() - 1);}
+				        String jsonStr = "{"+str.replace("\t", "");
+				        String[] vals = strAras1[0].replace("\"","").split(",");
+				        //convert string to object to be used to train map		        
+				    	//System.out.println("col string : "+strAras1[0]+"\njson string : ---"+jsonStr+"---");
+				        BaseRawData obj = parseStringToObj(vals, jsonStr);
+				        if (obj.isBadRec) {
+				        	System.out.println("StraffordDataLoader::streamCSVDataAndBuildStructs : " +destAraDataKey+ " Object : " + obj.toString() + " is a bad record due to having no jp/jpg data.  Entry is Ignored.");
+				        } else {
+				        	dAra.add(obj);
+				        }
+			    	}		    				    		
+		    	} else {//currently only TC_Taggings, 2 columns, 
+		    		//doesn't use json, so jsonStr can be empty
+		    		//parse 2 entries and remove extraneous quotes
+			        String[] vals = datStr.replace("\",\"","','").replace("\"","").split("','");
+			        if(vals.length < 2) {
+			    		System.out.println("StraffordDataLoader::streamCSVDataAndBuildStructs : !!!!!!!!!" +destAraDataKey+ " has bad entry at "+line+" lacking required jp list : " + datStr);
+			    		++badEntries;			    				        	
 			        } else {
-			        	dAra.add(obj);
+				        BaseRawData obj = parseStringToObj(vals, "");
+				        if (obj.isBadRec) {
+				        	System.out.println("Object : " + obj.toString() + " is a bad record due to having no jp/jpg data.  Entry is Ignored.");
+				        } else {
+				        	dAra.add(obj);
+				        }
 			        }
 		    	}
 		        ++line;		        
@@ -175,21 +189,30 @@ class OptEventDataLoader extends StraffordDataLoader{
 	}
 }//
 
+class TcTagDataLoader extends StraffordDataLoader{
+	public TcTagDataLoader(boolean _isFileLoader, String _dataLocInfoStr) {super(_isFileLoader,_dataLocInfoStr);}
+	@Override
+	protected BaseRawData parseStringToObj(String[] strAra, String jsonStr) {
+		TcTagData obj = new TcTagData(strAra[0].trim(), jsonStr.trim(),jsonMapper);
+		obj.procInitData(strAra);
+		return obj;
+	}
+}//
 
-
-
-
+//////////////////////
+// classes to hold raw data from source
+/////////////////////
 
 //base data object from strafford db - describes a prospect or event, keyed by OID
 abstract class BaseRawData {
 	//format of dates in db records
 	public static final String dateFormatString = "yyyy-MM-dd HH:mm:ss";
-	//construction to keep track of count of seen jp ids : key is jp, val is count
-	public static TreeMap<Integer, Integer> jpSeen = new TreeMap<Integer, Integer>();
-	//construction to keep track of count of jp ids seen in events : key is jp, val is count
-	public static TreeMap<Integer, Integer> jpEvSeen = new TreeMap<Integer, Integer>();
+	//construction to keep track of count of seen jp ids : key is jp, val is count, for debugging
+	private static TreeMap<Integer, Integer> jpSeen = new TreeMap<Integer, Integer>();
+	//construction to keep track of count of jp ids seen in events : key is jp, val is count for debugging
+	private static TreeMap<Integer, Integer> jpEvSeen = new TreeMap<Integer, Integer>();
 	//construction to keep track of the jps associated with particular jpg
-	public static TreeMap<Integer, TreeSet <Integer>> jpgroupsAndJps = new TreeMap<Integer, TreeSet <Integer>>();	
+	private static TreeMap<Integer, TreeSet <Integer>> jpgroupsAndJps = new TreeMap<Integer, TreeSet <Integer>>();	
 	//type of data object this is
 	public final String TypeOfData;
 	
@@ -204,14 +227,16 @@ abstract class BaseRawData {
 	//index -1 holds array of jpgs in specified order of (assumed) decreasing significance
 	public TreeMap<Integer, ArrayList<Integer>> rawJpMapOfArrays;
 	
-	public BaseRawData(String _id, String _json, ObjectMapper _mapper, String _typ) {
+	public BaseRawData(String _id, String _json, ObjectMapper _mapper, String _typ, boolean hasJson) {
 		OID=_id.trim().toLowerCase(); TypeOfData = _typ;
 		isBadRec = false;
 		Map<String, Object> jsonMap = null;
-		try {jsonMap = _mapper.readValue(_json,new TypeReference<Map<String,Object>>(){});}
-		catch (Exception e) {e.printStackTrace(); 		}
-		if (jsonMap != null) {
-			dscrObject = buildDescrObjectFromJsonMap(jsonMap);
+		if (hasJson) {
+			try {jsonMap = _mapper.readValue(_json,new TypeReference<Map<String,Object>>(){});}
+			catch (Exception e) {e.printStackTrace(); 		}
+			if (jsonMap != null) {
+				dscrObject = buildDescrObjectFromJsonMap(jsonMap);
+			}
 		}
 	}//ctor		
 	
@@ -276,6 +301,23 @@ abstract class BaseRawData {
 	}
 	//get string representation of this BaseRawData's specific date
 	public String getDateString() {return BaseRawData.buildStringFromDate(getDate());}
+	
+	//return csv-compatible string of all datapoints relevant to building a training example from this raw data
+	protected String getJpsToCSVStr() {
+		if (rawJpMapOfArrays.size() == 0) {return "None,";}
+		String res = "";	
+		//get keys in order
+		ArrayList<Integer> jpgsInOrder = getJPGroupsInOrder();		
+		for (Integer key : jpgsInOrder) {
+			if (key == -1) {continue;}
+			res += "JPG," +key+",JPst,";
+			ArrayList<Integer> vals = rawJpMapOfArrays.get(key);
+			int szm1 = vals.size()-1;
+			for (int i=0; i<szm1;++i) {res += vals.get(i)+",";}
+			res += vals.get(szm1)+",JPEnd,";
+		}		
+		return res;
+	}//getJpsToString	
 	
 	//return a list of jpgroups in preferential order as recorded in database - this will be used as a key list to access individual jp arrays in appropriate order
 	protected ArrayList<Integer> getJPGroupsInOrder(){
@@ -345,7 +387,7 @@ class prospectData extends BaseRawData {
 	public boolean isEmptyPrspctRec = false;
 
 	public prospectData(String _id, String _json, ObjectMapper _mapper) {
-		super(_id, _json, _mapper, "prospect");
+		super(_id, _json, _mapper, "prospect", true);
 		String jpsList = dscrObject.mapOfRelevantJson.get("jp").toString();
 		String luDateStr = dscrObject.mapOfRelevantJson.get("lu").toString();
 		if(luDateStr.length() > 0) {luDate = BaseRawData.buildDateFromString(luDateStr);}
@@ -382,6 +424,55 @@ class prospectData extends BaseRawData {
 	}
 }//prospectData
 
+// class to describe tc_taggings data - this just consists of two columns of data per record, an id and a jp list
+//note this data is not stored as json in the db
+class TcTagData extends BaseRawData{
+	//doesn't use json so no list of keys, just following format used for events since jp lists follow same format in db
+	private static final String[] relevantExactKeys = {};
+	//change to true if tc-taggings ever follows event format of having json to describe the jpg/jp lists
+	private static boolean usesJSON = false;
+	public TcTagData(String _id, String _json, ObjectMapper _mapper) {	
+		//change to true if tc-taggings ever follows event format of having json to describe the jpg/jp lists
+		super(_id, _json, _mapper, "TC_Tags", usesJSON);		
+		//descr object not made in super if doesn't use json
+		if (!usesJSON) {//if doesn't use, wont' have json map - use dscrObject to convert string from string array in procInitData
+			Map<String, Object> jsonMap = null;
+			dscrObject = buildDescrObjectFromJsonMap(jsonMap);
+		}
+		
+	}//ctor
+
+	@Override
+	public Date getDate() {//currently no date in tc record
+		return null;
+	}
+	//initialize actual list of jps here
+	@Override
+	public void procInitData(String[] _strAra) {//idx 1 is jpg/jp listing of same format as json
+		if (_strAra.length != 2) {
+			System.out.print("TcTagData::procInitData : len of Str ara in tc taggings class : " +_strAra.length + " Entries : [");
+			for (int i=0;i<_strAra.length-1;++i) {System.out.print(""+i+": -"+_strAra[i]+"- , ");}
+			System.out.println(""+(_strAra.length-1)+": -"+_strAra[_strAra.length-1]+"-]");
+		}
+		rawJpMapOfArrays = dscrObject.convert(_strAra[1]);		
+	}
+	@Override
+	public String[] getRelevantExactKeys() {	return relevantExactKeys;	}
+
+	@Override
+	protected jsonDescr buildDescrObjectFromJsonMap(Map<String, Object> jsonMap) {return new TCTagDescr(jsonMap,getRelevantExactKeys());}
+
+	@Override
+	protected String dbgGetCustInfoStr() {	return "";	}
+	
+	@Override
+	public String toString() {
+		String res = super.toString() + " : TC Tag\n";
+		res +=getJpsToString();
+		return res;
+	}
+}//class TcTagData
+
 //class to provide a description of an event read in from db-derived csv
 abstract class EventRawData extends BaseRawData {	
 	//date this event occurred
@@ -392,28 +483,10 @@ abstract class EventRawData extends BaseRawData {
 	private String eventType;
 	
 	public EventRawData(String _id, String _json, ObjectMapper _mapper, String _typ) {
-		super(_id, _json, _mapper,_typ);
+		super(_id, _json, _mapper,_typ, true);
 		String jpsList = dscrObject.mapOfRelevantJson.get("jps").toString();
 		rawJpMapOfArrays = dscrObject.convert(jpsList);
-		//if(jpMapOfArrays.size() > 0) {dbgDispJpData(jpsList);}
 	}
-	
-	//return csv-compatible string of all datapoints relevant to building a training example from this raw data
-	protected String getJpsToCSVStr() {
-		if (rawJpMapOfArrays.size() == 0) {return "None,";}
-		String res = "";	
-		//get keys in order
-		ArrayList<Integer> jpgsInOrder = getJPGroupsInOrder();		
-		for (Integer key : jpgsInOrder) {
-			if (key == -1) {continue;}
-			res += "JPG," +key+",JPst,";
-			ArrayList<Integer> vals = rawJpMapOfArrays.get(key);
-			int szm1 = vals.size()-1;
-			for (int i=0; i<szm1;++i) {res += vals.get(i)+",";}
-			res += vals.get(szm1)+",JPEnd,";
-		}		
-		return res;
-	}//getJpsToString	
 		
 	//return CSV data relevant for building training/testing example for this event data point
 	public String getAllTrainDataForCSV(boolean inclDate) {
@@ -616,6 +689,18 @@ class prospectDescr extends jsonDescr{
 	}
 	
 }//class prospectDescr
+
+//doesn't use json in db currently to describe data, just has string values in columns, but they follow the same format as event data
+class TCTagDescr extends jsonDescr{
+
+	public TCTagDescr(Map<String, Object> _mapOfJson, String[] _keysToMatchExact) {
+		super(_mapOfJson, _keysToMatchExact);
+	}
+
+	@Override
+	protected TreeMap<Integer, ArrayList<Integer>> convert(String jpAras){return decodeJPData(jpAras);}
+	
+}
 
 class EventDescr extends jsonDescr{
 	public HashMap<Integer, ArrayList<Integer>> jpMap;
