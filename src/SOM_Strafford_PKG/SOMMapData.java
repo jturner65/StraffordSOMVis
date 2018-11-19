@@ -439,19 +439,27 @@ public class SOMMapData {
 		final Process process=pb.start();
 		if(showDebug){for(String s : pb.command()){dispMessage("cmd : " + s);}dispMessage(pb.directory().toString());}	
 		
-		BufferedReader rdr = new BufferedReader(new InputStreamReader(process.getInputStream())); 
+		BufferedReader rdrIn = new BufferedReader(new InputStreamReader(process.getInputStream())); 
+		BufferedReader rdrErr = new BufferedReader(new InputStreamReader(process.getErrorStream())); 
 		//put output into a string
-		StringBuilder strbld = new StringBuilder();
-		String s = rdr.readLine();
-		dispMessage("begin getting output : rdr is null? : " + (s==null));
+		StringBuilder strbldIn = new StringBuilder(),strbldErr = new StringBuilder();
+		String sIn = rdrIn.readLine(), sErr = rdrErr.readLine();
+		dispMessage("begin getting output : in-stream rdr is null? : " + (sIn==null));
+		dispMessage("begin getting output : error-stream rdr is null? : " + (sErr==null));
 
-		while (s != null){
-			dispMessage(s);
-			strbld.append(s);			
-			strbld.append(System.getProperty("line.separator"));
-			s = rdr.readLine();
+		while ((sIn != null) || (sErr != null)){
+			dispMessage("Input Stream Msg : " + sIn);
+			strbldIn.append(sIn);			
+			strbldIn.append(System.getProperty("line.separator"));
+			sIn = rdrIn.readLine();
+			if (sErr != null) { 
+				dispMessage("Error Stream Msg : " + sErr);
+				strbldErr.append(sErr);			
+				strbldErr.append(System.getProperty("line.separator"));
+				sErr = rdrErr.readLine();
+			}
 		}
-		String result = strbld.toString();//result of running map TODO save to log?
+		String resultIn = strbldIn.toString(), resultErr = strbldErr.toString() ;//result of running map TODO save to log?
 		dispMessage("runMap Finished");
 	}
 	//Build map from data by aggregating all training data, building SOM exec string from UI input, and calling OS cmd to run SOM_MAP
@@ -465,6 +473,7 @@ public class SOMMapData {
 	//when this method is done, trainData, testData and numTrainData and numTestData must be populated correctly
 	public void assignTrainTestData() {
 		//TODO need to build trainData and testData from data aggregation/loading structure - this method needs to be rewritten
+		//this is only important if map is built without using built in structure to convert saved preprocced data to svn/lrn data
 		dispMessage("SOMMapData::assignTrainTestData :TODO :Need to set train and test data from saved file if not saved already");
 		
 		
