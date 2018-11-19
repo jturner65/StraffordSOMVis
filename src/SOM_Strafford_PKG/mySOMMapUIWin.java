@@ -397,15 +397,13 @@ public class mySOMMapUIWin extends myDispWindow {
 			case uiMapLrnCoolIDX	: {return uiMapLrnClList[validx % uiMapLrnClList.length]; }	
 			case uiJPToDispIDX		: {
 				//refresh max size of guiobj
-				guiObjs[uiJPToDispIDX].setNewMax(SOM_Data.jpByIdx.length-1);
-				int idx = validx % SOM_Data.jpByIdx.length;
-				return "" + SOM_Data.jpByIdx[idx] + " :(idx=" +idx+ ")"; 
+				guiObjs[uiJPToDispIDX].setNewMax(SOM_Data.getLenJpByIdxStr()-1);
+				return SOM_Data.getJpByIdxStr(validx); 
 			}	
 			case uiJPGToDispIDX		: {
 				//refresh max size of guiobj
-				guiObjs[uiJPGToDispIDX].setNewMax(SOM_Data.jpgrpsByIdx.length-1);	
-				int idx = validx % SOM_Data.jpgrpsByIdx.length;
-				return "" + SOM_Data.jpgrpsByIdx[idx]; 
+				guiObjs[uiJPGToDispIDX].setNewMax(SOM_Data.getLenJpGrpByIdxStr()-1);	
+				return SOM_Data.getJpGrpByIdxStr(validx); 
 			}	
 		}
 		return "";
@@ -440,7 +438,7 @@ public class mySOMMapUIWin extends myDispWindow {
 				break;}
 			case uiJPToDispIDX : {//highlight display of different region of SOM map corresponding to selected JP
 				curMapImgIDX = (int)val;
-				pa.outStr2Scr("Setting UI JP Map to display to be idx :" + curMapImgIDX + " Corresponding to JP : " + SOM_Data.jpByIdx[curMapImgIDX] );				break;}
+				pa.outStr2Scr("Setting UI JP Map to display to be idx :" + curMapImgIDX + " Corresponding to JP : " + SOM_Data.getJpByIdxStr(curMapImgIDX) );				break;}
 			case uiJPGToDispIDX : {//highlight display of different region of SOM map corresponding to group of JPs (jpg)
 				break;}
 			case uiMseRegionSensIDX : {

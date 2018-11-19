@@ -341,7 +341,7 @@ class straffCSVDataLoader implements Callable<Boolean>{
 //save all Strafford training/testing data to appropriate format for SOM
 class straffDataWriter implements Runnable{
 	//public SOM_StraffordMain pa;
-	private SOMMapData map;	
+	private SOMMapData mapData;	
 	private int dataFrmt;
 	private int dataSavedIDX;			//idx in flags array of SOMMapData object to denote what data was saved
 	private StraffSOMExample[] exAra;
@@ -349,11 +349,11 @@ class straffDataWriter implements Runnable{
 	private String savFileFrmt;
 	private String fileName;
 	
-	public straffDataWriter(SOMMapData _map, int _dataFrmt, int _dataSavedIDX, String _fileName, String _savFileFrmt, StraffSOMExample[] _exAra) {
-		map = _map;
+	public straffDataWriter(SOMMapData _mapData, int _dataFrmt, int _dataSavedIDX, String _fileName, String _savFileFrmt, StraffSOMExample[] _exAra) {
+		mapData = _mapData;
 		dataFrmt = _dataFrmt;		//either unmodified, standardized or normalized -> 0,1,2
 		exAra = _exAra;
-		numFtrs = map.numFtrs;
+		numFtrs = mapData.numFtrs;
 		numSmpls = exAra.length;
 		savFileFrmt = _savFileFrmt;
 		fileName = _fileName;
@@ -384,8 +384,8 @@ class straffDataWriter implements Runnable{
 		String[] outStrings = buildInitLRN();
 		int strIDX = 4;
 		for (int i=0;i<exAra.length; ++i) {outStrings[i+strIDX]=exAra[i].toLRNString(dataFrmt, " ");	}
-		map.saveStrings(fileName,outStrings);		
-		map.dispMessage("Finished saving .lrn file with " + exAra.length+ " elements to file : "+ fileName);			
+		mapData.saveStrings(fileName,outStrings);		
+		mapData.dispMessage("Finished saving .lrn file with " + exAra.length+ " elements to file : "+ fileName);			
 	}//save lrn train data
 	
 	//save data in csv format
@@ -394,16 +394,21 @@ class straffDataWriter implements Runnable{
 		String[] outStrings = buildInitLRN();
 		int strIDX = 4;
 		for (int i=0;i<exAra.length; ++i) {outStrings[i+strIDX]=exAra[i].toCSVString(dataFrmt);	}
-		map.saveStrings(fileName,outStrings);		
-		map.dispMessage("Finished saving .csv file with " + exAra.length+ " elements to file : "+ fileName);			
+		mapData.saveStrings(fileName,outStrings);		
+		mapData.dispMessage("Finished saving .csv file with " + exAra.length+ " elements to file : "+ fileName);			
 	}//save csv test data
 	
 	//save data in SVM record form - each record is like a map/dict -> idx: val pair.  designed for sparse data
 	private void saveSVMData() {
-		String[] outStrings = new String[numSmpls];
+		//need to save a vector to determine the 
+		String[] outStrings = new String[numSmpls+1];
 		for (int i=0;i<exAra.length; ++i) {outStrings[i]=exAra[i].toSVMString(dataFrmt);	}
-		map.saveStrings(fileName,outStrings);		
-		map.dispMessage("Finished saving .svm (sparse) file with " + exAra.length+ " elements to file : "+ fileName);			
+		//need dummy record to manage all features, incase some are 0 in all training examples
+		String res="";
+		for(int i=0;i<numFtrs;++i) {res += "" + i  + ":" + String.format("%1.7g", 0.0f) + " ";}
+		outStrings[exAra.length] = res;
+		mapData.saveStrings(fileName,outStrings);		
+		mapData.dispMessage("Finished saving .svm (sparse) file with " + exAra.length+ " elements to file : "+ fileName);			
 	}
 
 	//write all sphere data to appropriate files
@@ -419,22 +424,22 @@ class straffDataWriter implements Runnable{
 		switch (savFileFrmt) {
 			case "denseLRNData" : {
 				saveLRNData();
-				map.setFlag(dataSavedIDX, true);	
+				mapData.setFlag(dataSavedIDX, true);	
 				break;
 			}
 			case "sparseSVMData" : {
 				saveSVMData();
-				map.setFlag(dataSavedIDX, true);		
+				mapData.setFlag(dataSavedIDX, true);		
 				break;
 			}
 			case "denseCSVData" : {				
 				saveCSVData();
-				map.setFlag(dataSavedIDX, true);
+				mapData.setFlag(dataSavedIDX, true);
 				break;
 			}
 			default :{//default to save data in lrn format
 				saveLRNData();
-				map.setFlag(dataSavedIDX, true);				
+				mapData.setFlag(dataSavedIDX, true);				
 			}
 		}
 	}//run

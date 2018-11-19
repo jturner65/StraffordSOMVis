@@ -35,11 +35,14 @@ public class StraffWeightCalc {
 			countBndIDX = 2,				//count of entries for each feature
 			diffBndIDX = 3; 				//max-min for each feature
 	private static int numBnds = 4;	
+	
+	public MonitorJpJpgrp jpJpgMon;
 
 	
-	public StraffWeightCalc(SOMMapData _map, String _fileName) {
+	public StraffWeightCalc(SOMMapData _map, String _fileName, MonitorJpJpgrp _jpJpgMon) {
 		map = _map;
 		now = map.instancedNow.getTime();
+		jpJpgMon = _jpJpgMon;
 		loadConfigAndSetVars( _fileName);
 	}//ctor
 	
@@ -65,8 +68,9 @@ public class StraffWeightCalc {
 		//string record has jp in col 0, 3 mult values 1-3, 3 offset values 4-6 and 3 decay values 7-9.
 		Float[] dfltM = getFAraFromStrAra(strVals,mIdx), dfltO = getFAraFromStrAra(strVals,oIdx), dfltD = getFAraFromStrAra(strVals,dIdx);
 		//strVals holds default map configuration - config all weight calcs to match this
-		for (int i=0;i<map.jpByIdx.length;++i) {
-			Integer jp = map.jpByIdx[i];
+		int numFtrs = jpJpgMon.getNumFtrs();
+		for (int i=0;i<numFtrs;++i) {
+			Integer jp = jpJpgMon.getJpByIdx(i);
 			JPWeightEquation eq = new JPWeightEquation(this,jp, i, dfltM, dfltO, dfltD, true);
 			eqs.put(jp, eq);
 		}//
@@ -89,9 +93,10 @@ public class StraffWeightCalc {
 	  
 	//
 	private void initBnds() {//reinit bounds map, key of map is jp, array holds min (idx 0) and max (idx 1) of values seen in calculations		
-		bndsAra = new Float[numBnds][];
+		bndsAra = new Float[numBnds][];		
+		int numFtrs = jpJpgMon.getNumFtrs();
 		for (int i=0;i<bndsAra.length;++i) {
-			bndsAra[i]=fastCopyAra(map.jpByIdx.length, initBnd[i]);
+			bndsAra[i]=fastCopyAra(numFtrs, initBnd[i]);
 		}		
 	}//initBnds() 
 	
@@ -111,7 +116,7 @@ public class StraffWeightCalc {
 	private void addIndivJpEq(String[] strVals) {		
 		Integer jp = Integer.parseInt(strVals[0]);
 		Float[] jpM = getFAraFromStrAra(strVals,mIdx), jpO = getFAraFromStrAra(strVals,oIdx), jpD = getFAraFromStrAra(strVals,dIdx);
-		Integer idx = map.jpToFtrIDX.get(jp);
+		Integer idx = jpJpgMon.getJpToFtrIDX(jp);
 		JPWeightEquation eq = new JPWeightEquation(this,jp, idx, jpM, jpO, jpD, false);
 		eqs.put(jp, eq);
 	}//addIndivJpEq
@@ -132,7 +137,7 @@ public class StraffWeightCalc {
 		boolean isZeroMagExample = true;		//if all values are 0 then this is a bad training example, we want to ignore it
 		for (Integer jp : jps) {
 			//find destIDX
-			destIDX = map.jpToFtrIDX.get(jp);
+			destIDX = jpJpgMon.getJpToFtrIDX(jp);
 			if (destIDX==null) {continue;}//ignore unknown/unmapped jps
 			optOcc =  optOccs.get(jp);
 			if ((optOcc != null )&& (ex.getOptAllOccObj() != null)) {	map.dispMessage("multiple opt refs for prospect : " + ex.OID + " | This should not happend - opt events will be overly-weighted.");	}
@@ -156,7 +161,7 @@ public class StraffWeightCalc {
 	public String toString() {
 		String res  = "";
 		for (JPWeightEquation eq : eqs.values()) {
-			Integer numSeen = map.getCountJPSeen(eq.jp);
+			Integer numSeen = jpJpgMon.getCountJPSeen(eq.jp);
 			res+= eq.toString()+"  |# Calcs done : " + String.format("%6d", (Math.round(bndsAra[2][eq.jpIdx]))) + " ==  # of Occs : " +String.format("%6d", numSeen) + "\t| Min val : " +String.format("%6.4f", bndsAra[0][eq.jpIdx]) + "\t| Max val : " +String.format("%6.4f", bndsAra[1][eq.jpIdx]) + "\n";
 		}
 		res += "# eqs : " + eqs.size() + "\t|Build from file : " + fileName+ "\t| Equation Configuration : \n";

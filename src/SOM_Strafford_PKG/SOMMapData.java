@@ -129,25 +129,8 @@ public class SOMMapData {
 	//map of products build from TC_Taggings entries, keyed by tag ID (synthesized upon creation)
 	public ConcurrentSkipListMap<String, ProductExample> productMap;
 	
-	////////////////////////////////////////
-	//TODO save these to file, to faciliate reloading without re-reading db
-	//this information comes from BaseRawData
-	//reference to ids and counts of all jps seen in all data 
-	private TreeMap<Integer, Integer> jpSeenCount;// = new TreeMap<Integer, Integer>();
-	//reference to ids and counts of all jps seen in -event- data
-	private TreeMap<Integer, Integer> jpEvSeenCount;// = new TreeMap<Integer, Integer>();//jpEvSeen
-	//reference to ids and counts of all jps seen only in prospect record data
-	private TreeMap<Integer, Integer> jpPrspctSeenCount;// = new TreeMap<Integer, Integer>();//jpEvSeen
-	//map from jp to idx in resultant feature vector
-	public TreeMap<Integer, Integer> jpToFtrIDX;// = new TreeMap<Integer, Integer>();
-	//map from jpgroup to integer
-	public TreeMap<Integer, Integer> jpgToIDX;// = new TreeMap<Integer, Integer>();
-	//map from jpgroup to jps corresponding to this group.
-	private TreeMap<Integer, TreeSet <Integer>> jpgsToJps;// = new TreeMap<Integer, TreeSet <Integer>>();
-	//map from jps to owning jpgs
-	private TreeMap<Integer, Integer> jpsToJpgs;// = new TreeMap<Integer, Integer>();
-	//used by UI and also to map specific indexes to actual jps/jpgs
-	public Integer[] jpByIdx = new Integer[] {1}, jpgrpsByIdx = new Integer[] {1};
+	//manage all jps and jpgs seen in project
+	public MonitorJpJpgrp jpJpgrpMon;
 	
 	//file names
 	//public static final String jpseenFName = "jpSeen.txt", jpgroupsAndJpsFName = "jpgroupsAndJps.txt";
@@ -197,7 +180,8 @@ public class SOMMapData {
 		//instantiate map of ProspectExamples
 		prospectMap = new ConcurrentSkipListMap<String, ProspectExample>();		
 		productMap = new ConcurrentSkipListMap<String, ProductExample>();
-		
+		//object to manage all jps and jpgroups seen in project
+		jpJpgrpMon = new MonitorJpJpgrp(this);
 		
 		instancedNow = Calendar.getInstance();
 		try {
@@ -266,7 +250,7 @@ public class SOMMapData {
 	private String getSOMMapMinsFileName(){	return SOMFileNamesAra[4];	}
 	private String getSOMMapDiffsFileName(){	return SOMFileNamesAra[5];	}	
 	//private String getSOMLocClrImgFName(){	return SOMFileNamesAra[6];}		
-	public String getSOMLocClrImgForJPFName(int jpIDX) {return "jp_"+jpByIdx[jpIDX]+"_"+SOMFileNamesAra[6];}	
+	public String getSOMLocClrImgForJPFName(int jpIDX) {return "jp_"+jpJpgrpMon.getJpByIdx(jpIDX)+"_"+SOMFileNamesAra[6];}	
 	//ref to file name for experimental setup
 	private String getSOMMapExpFileName() {return SOMFileNamesAra[7];	}	
 
@@ -390,7 +374,11 @@ public class SOMMapData {
 	//only appropriate if using UI
 	public void setMapImgClrs(){if (win != null) {win.setMapImgClrs();} else {dispMessage("Display window doesn't exist, can't build images; ignoring.");}}
 	//only appropriate if using UI
-	public void initMapAras(int numFtrs) {if (win != null) {win.initMapAras(numFtrs);} else {dispMessage("Display window doesn't exist, can't build map visualization image arrays; ignoring.");}}
+	public void initMapAras(int numFtrs) {
+		if (win != null) {
+			dispMessage("Initializing per-feature map display to hold : "+ numFtrs+" map images.");
+			win.initMapAras(numFtrs);} 
+		else {dispMessage("Display window doesn't exist, can't build map visualization image arrays; ignoring.");}}
 	
 	//only appropriate if using UI
 	public void setSaveLocClrImg(boolean val) {if (win != null) { win.setPrivFlags(win.saveLocClrImgIDX,val);}}
@@ -414,7 +402,7 @@ public class SOMMapData {
 		} catch (Exception e) {	
 			e.printStackTrace();
 			System.out.println("!!"+dispNoStr);
-			res= null;
+			res= new String[0];
 		} 
 		finally {
 		    if (inputStream != null) {inputStream.close();		    }
@@ -443,20 +431,20 @@ public class SOMMapData {
 		BufferedReader rdrErr = new BufferedReader(new InputStreamReader(process.getErrorStream())); 
 		//put output into a string
 		StringBuilder strbldIn = new StringBuilder(),strbldErr = new StringBuilder();
-		String sIn = rdrIn.readLine(), sErr = rdrErr.readLine();
+		String sIn = null, sErr = null;
 		dispMessage("begin getting output : in-stream rdr is null? : " + (sIn==null));
 		dispMessage("begin getting output : error-stream rdr is null? : " + (sErr==null));
 
-		while ((sIn != null) || (sErr != null)){
+		while (((sIn = rdrIn.readLine()) != null) | ((sErr = rdrErr.readLine())!= null)){
 			dispMessage("Input Stream Msg : " + sIn);
 			strbldIn.append(sIn);			
 			strbldIn.append(System.getProperty("line.separator"));
-			sIn = rdrIn.readLine();
+			//sIn = rdrIn.readLine();
 			if (sErr != null) { 
 				dispMessage("Error Stream Msg : " + sErr);
 				strbldErr.append(sErr);			
 				strbldErr.append(System.getProperty("line.separator"));
-				sErr = rdrErr.readLine();
+				//sErr = rdrErr.readLine();
 			}
 		}
 		String resultIn = strbldIn.toString(), resultErr = strbldErr.toString() ;//result of running map TODO save to log?
@@ -566,12 +554,7 @@ public class SOMMapData {
 		if(null==SOMExeDat){return false;}
 		return SOMExeDat.isToroidal();
 	}
-	//return how many times this JP has been seen
-	public int getCountJPSeen(Integer jp) {
-		Integer res = jpSeenCount.get(jp);
-		if (res == null) {res = 0;	}
-		return res;
-	}
+
 
 	//set all training/testing data save flags to val
 	private void setAllTrainDatSaveFlags(boolean val) {
@@ -689,8 +672,8 @@ public class SOMMapData {
 	}
 	public void loadAllPreProccedData(boolean eventsOnly) {
 		loadAllPropsectMapData(eventsOnly);
-		//loadAllProductMapData();
-		finishProspectBuild(prospectMap);		
+		loadAllProductMapData();
+		finishSOMExampleBuild(prospectMap);		
 	}
 	
 	//load prospect mapped training data into StraffSOMExamples from disk
@@ -738,7 +721,7 @@ public class SOMMapData {
 			ProductExample ex = new ProductExample(this, oid, str);
 			productMap.put(oid, ex);			
 		}		
-		dispMessage("SOMMapData::loadAllProductMapData : Finished loading and preprocessing all local prospect map data and calculating features.  Number of entries in prospectMap : " + prospectMap.size());
+		dispMessage("SOMMapData::loadAllProductMapData : Finished loading and preprocessing all local prospect map data and calculating features.  Number of entries in productMap : " + productMap.size());
 	}//loadAllProductMapData
 	
 	//write all prospect map data to a csv to be able to be reloaded to build training data from, so we don't have to re-read database every time
@@ -790,49 +773,35 @@ public class SOMMapData {
 		saveStrings(saveDestFNamePrefixAra[0]+".csv", csvResTmp);		
 		dispMessage("SOMMapData::saveAllProductMapData : Finished saving all product map data");
 	}//saveAllProductMapData
-	
-	private void incrJPCounts(Integer jp, TreeMap<Integer, Integer> map) {
-		Integer count = map.get(jp);
-		if(count==null) {count=0;}
-		map.put(jp, count+1);
-	}//incrJPCounts
 
 	//finish building the prospect map - finalize each prospect example and then perform calculation to derive weight vector
-	private void finishProspectBuild(ConcurrentSkipListMap<String, ProspectExample> map) {
+	private void finishSOMExampleBuild(ConcurrentSkipListMap<String, ProspectExample> map) {
 		//finalize builds each example's occurence structures, which describe the jp-jpg relationships found in the example
-		for (ProspectExample ex : map.values()) {
-			//if (ex.OID.toUpperCase().equals("PR_000000019")) {dispMessage("Prospect Example finalizeBuild for prospect with key pr_000000019");}//pr_000000019 is a record that only has an opt out all event
-			ex.finalizeBuild();
-		}
+		for (ProspectExample ex : map.values()) {			ex.finalizeBuild();		}		
+		//finalize build for all products - aggregates all jps seen in product
+		for (ProductExample ex : productMap.values()){		ex.finalizeBuild();		}		
 		
-		//dispMessage("Total # of rebuilds : " + ProspectExample.countofRebuild);
-		dispMessage("Begin setJPDateFromProspectData");
+		dispMessage("Begin setJPDataFromExampleData");
 		//we need the jp-jpg counts and relationships dictated by the data by here.
-		setJPDataFromProspectData(map);
-		dispMessage("End setJPDateFromProspectData");// | Start processHoldOutOptRecs");		
+		setJPDataFromExampleData(map);
+		dispMessage("End setJPDataFromExampleData");// | Start processHoldOutOptRecs");		
 
 		dispMessage("Begin buildFeatureVector prospects");
-		for (ProspectExample ex : map.values()) {
-			//if (ex.OID.toUpperCase().equals("PR_000000019")) {dispMessage("Prospect Example buildFeatureVector for prospect with key pr_000000019");}//pr_000000019 is a record that only has an opt out all event
-			ex.buildFeatureVector();
-		}
+		for (ProspectExample ex : map.values()) {			ex.buildFeatureVector();	}
 		dispMessage("End buildFeatureVector prospects");
 		
-		//finalize build for all products
-		for (ProductExample ex : this.productMap.values()){
-			ex.finalizeBuild();
-		}		
+		dispMessage("Begin buildFeatureVector products");
+		for (ProductExample ex : productMap.values()) {		ex.buildFeatureVector();	}
+		dispMessage("End buildFeatureVector products");
+		
 		
 		//now get mins and diffs from calc object
 		diffsVals = ftrCalcObj.getDiffsBndsAra();
 		minsVals = ftrCalcObj.getMinBndsAra();
-		for (ProspectExample ex : map.values()) {//this builds std ftr vector
-			ex.buildPostFeatureVectorStructs();
-		}
+		for (ProspectExample ex : map.values()) {			ex.buildPostFeatureVectorStructs();		}//this builds std ftr vector for prospects, once diffs and mins are set - not necessary for products, buildFeatureVector for products builds std ftr vec
 		setFlag(rawPrspctEvDataProcedIDX, true);
-		//dispMessage("SOMMapData::finishProspectBuild : Calc Object : "+ftrCalcObj.toString());
-		dispMessage("SOMMapData::finishProspectBuild : Finished calculating prospect feature vectors");
-	}//finishProspectBuild
+		dispMessage("SOMMapData::finishSOMExampleBuild : Finished calculating prospect feature vectors");
+	}//finishSOMExampleBuild
 	
 	
 	//useUnmoddedDat = 0, useScaledDat = 1, useNormedDat
@@ -987,63 +956,89 @@ public class SOMMapData {
 //		}
 //	}//buildAllJpgJpOccMap
 	
+	public int getLenJpByIdxStr() {		return jpJpgrpMon.getLenJpByIdxStr();	}	
+	public int getLenJpGrpByIdxStr(){	return jpJpgrpMon.getLenJpGrpByIdxStr(); }
+	
+	public String getJpByIdxStr(int idx) {return jpJpgrpMon.getJpByIdxStr(idx);}	
+	public String getJpGrpByIdxStr(int idx) {return jpJpgrpMon.getJpGrpByIdxStr(idx);}
+	
+	
 	//this will set the current jp->jpg data maps based on passed prospect data map
 	//When acquiring new data, this must be performed after all data is loaded, but before
 	//the prospect data is finalized and actual map is built due to the data finalization 
 	//requiring a knowledge of the entire dataset to build weights appropriately
-	public void setJPDataFromProspectData(ConcurrentSkipListMap<String, ProspectExample> map) {
-		jpSeenCount = new TreeMap<Integer, Integer>(); 	//count of prospect training data records having jp
-		jpEvSeenCount = new TreeMap<Integer, Integer>(); //count of prospect train records having jp only counting events
-		jpPrspctSeenCount = new TreeMap<Integer, Integer>(); //count of prospect train records having jp only in base prospect record
-		jpsToJpgs = new TreeMap<Integer, Integer>();	//map from jpgs to jps
-		jpgsToJps = new TreeMap<Integer, TreeSet <Integer>>();
+	private void setJPDataFromExampleData(ConcurrentSkipListMap<String, ProspectExample> map) {
+		//object to manage all jps and jpgroups seen in project
+		jpJpgrpMon.setJPDataFromExampleData(map, productMap);
 		
-		jpToFtrIDX = new TreeMap<Integer, Integer>();	
-		jpgToIDX = new TreeMap<Integer, Integer>();	
-		//rebuild all jp->jpg mappings based on prospect data
-		HashSet<Tuple<Integer,Integer>> tmpSetAllJpsJpgs = new HashSet<Tuple<Integer,Integer>>();
-		for (ProspectExample ex : map.values()) {//for every prospect, look at every jp
-			HashSet<Tuple<Integer,Integer>> tmpExSet = ex.getSetOfAllJpgJpData(); //tmpExSet is set of all jps/jpgs in ex
-			for (Tuple<Integer,Integer> jpgJp : tmpExSet) {
-				Integer jpg = jpgJp.x, jp=jpgJp.y;
-				//if ((jp==-1) && (jpg==-2)){continue;}//don't add sentinel value//need to verify that sentinel values are not being made!
-				boolean[] recMmbrship = ex.hasJP(jp);
-				incrJPCounts(jp, jpSeenCount);
-				if (recMmbrship[1]){incrJPCounts(jp,jpPrspctSeenCount);}
-				if (recMmbrship[2]){incrJPCounts(jp,jpEvSeenCount);}
-				tmpSetAllJpsJpgs.add(jpgJp);
-			}											//add all tuples to set already seen
-		}//for each prospect
-		//get rid of sentinel value for opt out
-		
-		//build jpsToJpgs and JpgsToJps structs
-		for (Tuple<Integer,Integer> jpgJp : tmpSetAllJpsJpgs) {
-			Integer jpg = jpgJp.x, jp=jpgJp.y;
-			jpsToJpgs.put(jp, jpg);
-			TreeSet <Integer> jpList = jpgsToJps.get(jpg);
-			if (jpList==null) {jpList = new TreeSet <Integer>();}
-			jpList.add(jp);
-			jpgsToJps.put(jpg, jpList);			
-		}
-
-		jpByIdx = jpSeenCount.keySet().toArray(new Integer[0]);
-		jpgrpsByIdx = jpgsToJps.keySet().toArray(new Integer[0]);
-		for(int i=0;i<jpByIdx.length;++i) {jpToFtrIDX.put(jpByIdx[i], i);}
-		for(int i=0;i<jpgrpsByIdx.length;++i) {jpgToIDX.put(jpgrpsByIdx[i], i);}
-		
-		numFtrs = jpSeenCount.size();
+		numFtrs = jpJpgrpMon.getNumFtrs();
 		//rebuild calc object since feature terrain might have changed
 		String calcDirName = this.getDirNameAndBuild(straffCalcInfoSubDir);
 		
-		ftrCalcObj = new StraffWeightCalc(this, calcDirName + calcWtFileName);
-	}//setJPDataFromProspectData
+		ftrCalcObj = new StraffWeightCalc(this, calcDirName + calcWtFileName, jpJpgrpMon);
+	}//setJPDataFromProspectData	
+
+	//public int get
+	
+//	
+//	//THIS IS DEPRECATED - needs to be built from -product- info, since this is a superset of what may be seen by prospects
+//	//this will set the current jp->jpg data maps based on passed prospect data map
+//	//When acquiring new data, this must be performed after all data is loaded, but before
+//	//the prospect data is finalized and actual map is built due to the data finalization 
+//	//requiring a knowledge of the entire dataset to build weights appropriately
+//	public void setJPDataFromProspectData(ConcurrentSkipListMap<String, ProspectExample> map) {
+//		jpSeenCount = new TreeMap<Integer, Integer>(); 	//count of prospect training data records having jp
+//		jpEvSeenCount = new TreeMap<Integer, Integer>(); //count of prospect train records having jp only counting events
+//		jpPrspctSeenCount = new TreeMap<Integer, Integer>(); //count of prospect train records having jp only in base prospect record
+//		jpsToJpgs = new TreeMap<Integer, Integer>();	//map from jpgs to jps
+//		jpgsToJps = new TreeMap<Integer, TreeSet <Integer>>();
+//		
+//		jpToFtrIDX = new TreeMap<Integer, Integer>();	
+//		jpgToIDX = new TreeMap<Integer, Integer>();	
+//		//rebuild all jp->jpg mappings based on prospect data
+//		HashSet<Tuple<Integer,Integer>> tmpSetAllJpsJpgs = new HashSet<Tuple<Integer,Integer>>();
+//		for (ProspectExample ex : map.values()) {//for every prospect, look at every jp
+//			HashSet<Tuple<Integer,Integer>> tmpExSet = ex.getSetOfAllJpgJpData(); //tmpExSet is set of all jps/jpgs in ex
+//			for (Tuple<Integer,Integer> jpgJp : tmpExSet) {
+//				Integer jpg = jpgJp.x, jp=jpgJp.y;
+//				//if ((jp==-1) && (jpg==-2)){continue;}//don't add sentinel value//need to verify that sentinel values are not being made!
+//				boolean[] recMmbrship = ex.hasJP(jp);
+//				incrJPCounts(jp, jpSeenCount);
+//				if (recMmbrship[1]){incrJPCounts(jp,jpPrspctSeenCount);}
+//				if (recMmbrship[2]){incrJPCounts(jp,jpEvSeenCount);}
+//				tmpSetAllJpsJpgs.add(jpgJp);
+//			}											//add all tuples to set already seen
+//		}//for each prospect
+//		//get rid of sentinel value for opt out
+//		
+//		//build jpsToJpgs and JpgsToJps structs
+//		for (Tuple<Integer,Integer> jpgJp : tmpSetAllJpsJpgs) {
+//			Integer jpg = jpgJp.x, jp=jpgJp.y;
+//			jpsToJpgs.put(jp, jpg);
+//			TreeSet <Integer> jpList = jpgsToJps.get(jpg);
+//			if (jpList==null) {jpList = new TreeSet <Integer>();}
+//			jpList.add(jp);
+//			jpgsToJps.put(jpg, jpList);			
+//		}
+//
+//		jpByIdx = jpSeenCount.keySet().toArray(new Integer[0]);
+//		jpgrpsByIdx = jpgsToJps.keySet().toArray(new Integer[0]);
+//		for(int i=0;i<jpByIdx.length;++i) {jpToFtrIDX.put(jpByIdx[i], i);}
+//		for(int i=0;i<jpgrpsByIdx.length;++i) {jpgToIDX.put(jpgrpsByIdx[i], i);}
+//		
+//		numFtrs = jpSeenCount.size();
+//		//rebuild calc object since feature terrain might have changed
+//		String calcDirName = this.getDirNameAndBuild(straffCalcInfoSubDir);
+//		
+//		ftrCalcObj = new StraffWeightCalc(this, calcDirName + calcWtFileName);
+//	}//setJPDataFromProspectData
 	
 	//process all events into training examples
-	private void procRawEventData(ConcurrentSkipListMap<String, ProspectExample> tmpProspectMap, boolean saveBadRecs) {			
+	private void procRawEventData(ConcurrentSkipListMap<String, ProspectExample> tmpProspectMap,ConcurrentSkipListMap<String, ArrayList<BaseRawData>> dataArrays, boolean saveBadRecs) {			
 		dispMessage("SOMMapData::procRawEventData : Starting.");
 		for (int idx = 1; idx <straffDataFileNames.length;++idx) {
 			if (idx == tcTagsIDX) {continue;}//dont' handle tcTags here
-			ArrayList<BaseRawData> events = rawDataArrays.get(straffDataFileNames[idx]);
+			ArrayList<BaseRawData> events = dataArrays.get(straffDataFileNames[idx]);
 			String eventType = straffDataFileNames[idx].split("_")[0];		
 			String eventBadFName = straffBasefDir + straffDataFileNames[idx] +"_bad_OIDs.csv";		
 			ArrayList<String> badEventOIDs = new ArrayList<String>();
@@ -1083,11 +1078,11 @@ public class SOMMapData {
 		}
 		dispMessage("SOMMapData::procRawEventData : Finished.");
 	}//procRawEventData
+	
 	//convert raw tc taggings table data to product examples
-	private void procRawProductData() {
+	private void procRawProductData(ArrayList<BaseRawData> tcTagRawData) {
 		dispMessage("SOMMapData::procRawProductData : Starting.");
 		productMap = new ConcurrentSkipListMap<String, ProductExample>();
-		ArrayList<BaseRawData> tcTagRawData = rawDataArrays.get(straffDataFileNames[tcTagsIDX]);
 		for (BaseRawData tcDat : tcTagRawData) {
 			ProductExample ex = new ProductExample(this, (TcTagData)tcDat);
 			productMap.put(ex.OID, ex);
@@ -1128,11 +1123,13 @@ public class SOMMapData {
 			 tmpProspectMap.put(ex.OID, ex);
 		}
 		//add all events to prospects
-		procRawEventData(tmpProspectMap, true);
+		procRawEventData(tmpProspectMap, rawDataArrays, true);
 		//now handle products
-		procRawProductData();
+		procRawProductData(rawDataArrays.get(straffDataFileNames[tcTagsIDX]));
+		//to clear up memory
+		rawDataArrays = new ConcurrentSkipListMap<String, ArrayList<BaseRawData>>();
 		//finalize each prospect record, aggregate data-driven static vals, rebuild ftr vectors
-		finishProspectBuild(tmpProspectMap);
+		finishSOMExampleBuild(tmpProspectMap);
 	
 		//save all data here,clear rawDataArrays, reset raw data array flags
 		//build actual prospect map only from prospectExamples that hold trainable information
@@ -1149,13 +1146,11 @@ public class SOMMapData {
 			}			
 		}
 		System.out.println("Raw Records Unique OIDs presented : " + tmpProspectMap.size()+" | Records found with trainable " + (eventsOnly ? " events " : "") + " info : " + prospectMap.size());
-		//to clear up memory
-		//rawDataArrays = new ConcurrentSkipListMap<String, ArrayList<BaseRawData>>();
 		//setAllFlags(new int[] {prospectDataLoadedIDX, optDataLoadedIDX, orderDataLoadedIDX}, false);
 		setFlag(rawPrspctEvDataProcedIDX, true);
 		setFlag(rawProducDataProcedIDX, true);
 		saveAllProspectMapData(eventsOnly);
-		//saveAllProductMapData();
+		saveAllProductMapData();
 	}//procRawLoadedData
 	
 	//show first numToShow elemens of array of BaseRawData, either just to console or to applet window
@@ -1173,20 +1168,11 @@ public class SOMMapData {
 	}//showAllRawData
 	//debugging function to display all unique jps seen in data
 	public void dbgShowUniqueJPsSeen() {
-		dispMessage("All Jp's seen : ");
-		for (Integer key : jpSeenCount.keySet()) {dispMessage("JP : "+ String.format("%3d",key) + "   |Count : " + String.format("%6d",jpSeenCount.get(key)) + "\t|Ftr IDX : " + String.format("%3d",jpToFtrIDX.get(key)) + "\t|Owning JPG : " + String.format("%2d",jpsToJpgs.get(key)));}
-		dispMessage("Number of unique JP's seen : " + jpSeenCount.size());
-		dbgDispKnownJPsJPGs();
+		jpJpgrpMon.dbgShowUniqueJPsSeen();
 	}//dbgShowUniqueJPsSeen
 	
 	public void dbgDispKnownJPsJPGs() {
-		dispMessage("\nJPGs seen : (jp : count : ftridx) :");
-		for (Integer jpgrp : jpgsToJps.keySet()) {
-			String res = "JPG : " + String.format("%3d", jpgrp);
-			TreeSet <Integer> jps = jpgsToJps.get(jpgrp);			
-			for (Integer jp : jps) {res += " ("+String.format("%3d", jp)+" :"+String.format("%6d", jpSeenCount.get(jp))+" : "+ String.format("%3d", jpToFtrIDX.get(jp))+"),";}
-			dispMessage(res);		
-		}
+		jpJpgrpMon.dbgDispKnownJPsJPGs();
 	}//dbgDispKnownJPsJPGs
 	
 	//display current calc function's equation coefficients for each JP

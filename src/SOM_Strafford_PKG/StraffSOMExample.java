@@ -16,6 +16,7 @@ import java.util.regex.Pattern;
  */
 public abstract class StraffSOMExample extends baseDataPtVis{	
 	protected static SOMMapData mapData;
+	protected static MonitorJpJpgrp jpJpgMon;
 	//corresponds to OID in prospect database - primary key of all this data is OID in prospects
 	public final String OID;	
 	
@@ -57,6 +58,7 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	public StraffSOMExample(SOMMapData _map, String _id) {
 		super();
 		mapData=_map;
+		jpJpgMon = mapData.jpJpgrpMon;
 		OID = _id;
 		ftrsBuilt = false;
 		stdFtrsBuilt = false;
@@ -89,6 +91,9 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	public abstract String getRawDescColNamesForCSV();
 	//finalization after being loaded from baseRawData or from csv record
 	public abstract void finalizeBuild();
+	//return all jpg/jps in this example record
+	public abstract HashSet<Tuple<Integer,Integer>> getSetOfAllJpgJpData();
+
 	
 	public boolean isBadExample() {return isBadTrainExample;}
 	public void setIsBadExample(boolean val) { isBadTrainExample=val;}
@@ -162,7 +167,7 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		String mapToGet = jpMapTypeKeys[mapToGetIDX];
 		TreeMap<Integer,Integer> mapOfRanks = mapOfJpsVsRank.get(mapToGet);
 		Integer rank = mapOfRanks.get(jp);
-		if (rank==null) {rank = mapData.jpByIdx.length;}
+		if (rank==null) {rank = mapData.numFtrs;}
 		return rank;
 	}	
 	
@@ -205,7 +210,11 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	
 	protected void buildAllJPFtrIDXsJPs() {
 		allJPFtrIDXs = new ArrayList<Integer>();
-		for(Integer jp : allJPs) {allJPFtrIDXs.add(mapData.jpToFtrIDX.get(jp));}
+		for(Integer jp : allJPs) {
+			Integer jpIDX = jpJpgMon.getJpToFtrIDX(jp);
+			if(jpIDX==null) {mapData.dispMessage("ERROR!  null value in  jpJpgMon.getJpToFtrIDX("+jp+")" );}
+			allJPFtrIDXs.add(jpJpgMon.getJpToFtrIDX(jp));
+		}
 	}
 	
 	//build structures that require that the feature vector be built before hand
@@ -221,7 +230,7 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		HashSet<Integer> jps = new HashSet<Integer>();
 		for (int i=0;i<_ftrAra.length;++i) {
 			Float ftr = ftrMap.get(i);
-			if ((ftr!= null) && (ftr > thresh)) {jps.add(mapData.jpByIdx[i]);			}
+			if ((ftr!= null) && (ftr > thresh)) {jps.add(jpJpgMon.getJpByIdx(i));			}
 		}
 		return jps;	
 	}//buildJPsFromFtrVec
@@ -231,7 +240,7 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		normFtrMap=new TreeMap<Integer, Float>();
 		if(this.ftrVecMag == 0) {return;}
 		for (Integer IDX : allJPFtrIDXs) {
-			int jp = mapData.jpByIdx[IDX];
+			int jp = jpJpgMon.getJpByIdx(IDX);
 			Float val  = ftrMap.get(IDX)/this.ftrVecMag;
 			normFtrMap.put(IDX,val);
 			setMapOfJpWts(jp, val, normFtrMapTypeKey);			
@@ -250,7 +259,7 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	private TreeMap<Integer, Float> calcStdFtrVector(TreeMap<Integer, Float> ftrs, ArrayList<Integer> jpIdxs, Float[] mins, Float[] diffs) {
 		TreeMap<Integer, Float> sclFtrs = new TreeMap<Integer, Float>();
 		for (Integer destIDX : jpIdxs) {
-			int jp = mapData.jpByIdx[destIDX];
+			int jp = jpJpgMon.getJpByIdx(destIDX);
 			Float lb = mins[destIDX], 	diff = diffs[destIDX];
 			Float val = 0.0f;
 			if (diff==0) {//same min and max
@@ -541,9 +550,9 @@ class ProspectExample extends StraffSOMExample{
 				hasJP_ordr =  (JpOccurrences.get("orders").get(_jp) != null) ,
 				hasJP_opt = (JpOccurrences.get("opts").get(_jp) != null),
 				hasJP_link = (JpOccurrences.get("links").get(_jp) != null),				
-				hasJP_ev = hasJP_ordr || hasJP_opt | hasJP_link,
+				hasJP_ev = hasJP_ordr || hasJP_opt || hasJP_link,
 				hasJP = hasJP_prspct || hasJP_ev;
-		boolean[] res = new boolean[] {hasJP, hasJP_prspct, hasJP_ev, hasJP_ordr,hasJP_opt};
+		boolean[] res = new boolean[] {hasJP, hasJP_prspct, hasJP_ev, hasJP_ordr,hasJP_opt, hasJP_link};
 		return res;		
 	}//check if JP exists, and where
 	
@@ -705,53 +714,47 @@ class ProductExample extends StraffSOMExample{
 //	//column names for csv of this SOM example
 	private static final String csvColDescrPrfx = "ID,NumJPs";
 	private static int IDcount = 0;	//incrementer so that all examples have unique ID	
-	protected TcTagTrainData trainData;
+	protected TcTagTrainData trainPrdctData;
 	
 	public ProductExample(SOMMapData _map, TcTagData data) {
 		super(_map,IDprfx + "_" +  String.format("%09d", IDcount++));
-		trainData = new TcTagTrainData(data);	
+		trainPrdctData = new TcTagTrainData(data);	
 	}//ctor
 	
 	public ProductExample(SOMMapData _map,String _OID, String _csvDataStr) {
 		super(_map,_OID);		
 		//String[] dataAra = _csvDataStr.split(",");
-		trainData = new TcTagTrainData(_csvDataStr);
+		trainPrdctData = new TcTagTrainData(_csvDataStr);
 	}//ctor
-	
-	//add object keyed by addDate, either adding to existing list or building a new list if none exists
-	protected void addDataToTrainMap(EventRawData _optObj, TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>> map, int type){		
-		Date addDate = _optObj.getDate();
-		Integer eid = _optObj.getEventID();	//identical events may occur - multiple same event ids on same date, even with same jpg/jp data.  should all be recorded
-		//get date's specific submap
-		TreeMap<Integer, StraffEvntTrainData> objMap = map.get(addDate);
-		if (null == objMap) {objMap = new TreeMap<Integer, StraffEvntTrainData>();}
-		//get list of events from specific event id
-		StraffEvntTrainData evtTrainData = objMap.get(eid);
-		if (null == evtTrainData) {		evtTrainData = buildNewTrainDataFromEv(_optObj,type);	}//build new event train data component
-		else { 							evtTrainData.addEventDataFromEventObj(_optObj);}		//augment existing event training data component
-		//add list to obj map
-		objMap.put(eid, evtTrainData);
-		//add eventID object to 
-		map.put(addDate, objMap);
-	}//addDataToMap
 	
 	@Override
 	public void finalizeBuild() {
-		allJPs =  trainData.getAllJpsInData();
-		System.out.println("Size of allJPS in product example : " + allJPs.size());
-		buildFeatureVector();
-		//buildPostFeatureVectorStructs();
+		allJPs =  trainPrdctData.getAllJpsInData();
+	}//
+
+	@Override
+	public HashSet<Tuple<Integer, Integer>> getSetOfAllJpgJpData() {
+		HashSet<Tuple<Integer,Integer>> res = trainPrdctData.getAllJpgJpsInData();
+		return res;
+	}//getSetOfAllJpgJpData
+
+	@Override
+	public void buildFeatureVector() {
+		buildAllJPFtrIDXsJPs();
+		buildFeaturesMap();
+		ftrsBuilt = true;		
+		buildNormFtrData();
 		//features and std ftrs should be the same, since we only assign a 1 to values that are present
 		buildStdFtrsMap();
 		//by here all maps of per-type, per-feature val arrays of jps should be built
 		buildMapOfJPsToRank();
-	}//
+	}//buildFeatureVector
 	
 	//required info for this example to build feature data  - this is ignored. these objects can be rebuilt on demand.
 	@Override
 	public String getRawDescrForCSV() {
 		String res = ""+OID+","+allJPs.size()+",";
-		res += trainData.buildCSVString();
+		res += trainPrdctData.buildCSVString();
 		return res;	
 	};
 	//column names for raw descriptorCSV output
@@ -766,7 +769,11 @@ class ProductExample extends StraffSOMExample{
 	protected void buildFeaturesMap() {
 		ftrMap = new TreeMap<Integer, Float>();	
 		int count = 0;
-		for (Integer IDX : allJPFtrIDXs) {ftrMap.put(IDX,1.0f);count++;}	
+		for (Integer IDX : allJPFtrIDXs) {
+			
+			ftrMap.put(IDX,1.0f);
+			count++;
+		}	
 		this.ftrVecMag = (float) Math.sqrt(count);
 	}
 	
@@ -797,7 +804,7 @@ class DispSOMMapExample extends StraffSOMExample{
 		for(Integer ftrIDX : _ftrs.keySet()) {
 			Float ftr = _ftrs.get(ftrIDX);
 			if(ftr >= ftrThresh) {	
-				Integer jp = mapData.jpByIdx[ftrIDX];
+				Integer jp = jpJpgMon.getJpByIdx(ftrIDX);
 				allJPs.add(jp);
 				allJPFtrIDXs.add(ftrIDX);	
 				ftrMap.put(ftrIDX, ftr);
@@ -813,6 +820,13 @@ class DispSOMMapExample extends StraffSOMExample{
 				labelDat +=""+jpName+":" + String.format("%03f", ftr)+ " | ";
 			}
 		}
+	}
+	
+
+	@Override
+	public HashSet<Tuple<Integer, Integer>> getSetOfAllJpgJpData() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	@Override
@@ -838,6 +852,7 @@ class DispSOMMapExample extends StraffSOMExample{
 		if (allJPFtrIDXs.size() > 0) {stdFtrMap = calcStdFtrVector(ftrMap, allJPFtrIDXs);}
 		stdFtrsBuilt = true;
 	}
+
 }//DispSOMMapExample
 
 
@@ -876,7 +891,7 @@ class SOMMapNodeExample extends StraffSOMExample{
 			if (val > ftrThresh) {
 				ftrVecSqMag+=val*val;
 				ftrMap.put(i, val);
-				int jp = mapData.jpByIdx[i];
+				int jp = jpJpgMon.getJpByIdx(i);
 				allJPs.add(jp);
 				setMapOfJpWts(jp, val, ftrMapTypeKey);				
 			}
@@ -886,7 +901,12 @@ class SOMMapNodeExample extends StraffSOMExample{
 		ftrsBuilt = true;		
 		buildNormFtrData();		
 	}//setFtrsFromFloatAra	
-	
+
+	@Override
+	public HashSet<Tuple<Integer, Integer>> getSetOfAllJpgJpData() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 	private void setFtrsFromStrAra(String [] tkns){
 		ftrMap = new TreeMap<Integer, Float>();
 		float ftrVecSqMag = 0.0f;
@@ -895,7 +915,7 @@ class SOMMapNodeExample extends StraffSOMExample{
 			if (val > ftrThresh) {
 				ftrVecSqMag+=val*val;
 				ftrMap.put(i, val);
-				int jp = mapData.jpByIdx[i];
+				int jp = jpJpgMon.getJpByIdx(i);
 				allJPs.add(jp);
 				setMapOfJpWts(jp, val, ftrMapTypeKey);
 			}
@@ -939,7 +959,7 @@ class SOMMapNodeExample extends StraffSOMExample{
 		if (allJPs.size() > 0) {
 			Integer destIDX;
 			for (Integer jp : allJPs) {
-				destIDX = mapData.jpToFtrIDX.get(jp);
+				destIDX = jpJpgMon.getJpToFtrIDX(jp);
 				Float lb = minsAra[destIDX], 
 						diff = diffsAra[destIDX];
 				float val = 0.0f;
@@ -1186,6 +1206,17 @@ abstract class StraffTrainData{
 		}
 		return res;		
 	}//getAllJpsInData
+	
+	//return a hash set of all tuples of jpg,jp relations in data
+	public HashSet<Tuple<Integer,Integer>> getAllJpgJpsInData(){
+		HashSet<Tuple<Integer,Integer>> res = new HashSet<Tuple<Integer,Integer>>();
+		for (JpgJpDataRecord jpgRec : listOfJpgsJps) {
+			Integer jpg = jpgRec.getJPG();
+			ArrayList<Integer> jps = jpgRec.getJPlist();
+			for(Integer jp : jps) {res.add(new Tuple<Integer,Integer>(jpg, jp));}
+		}
+		return res;		
+	}//getAllJpgJpsInData
 		
 	public abstract void addEventDataFromEventObj(BaseRawData ev);	
 	protected void addEventDataRecsFromRaw(Integer optVal, BaseRawData ev) {
@@ -1257,7 +1288,7 @@ class TcTagTrainData extends StraffTrainData{
 
 	@Override
 	public String buildCSVString() {
-		String res = "TCTagSt";	
+		String res = "TCTagSt,numJPGs,1,";	//needs numJPGs tag for parsing - expected to always only have a single jp group
 		res += buildJPGJP_CSVString();
 		res += "TCTagEnd,";			
 		return res;		
