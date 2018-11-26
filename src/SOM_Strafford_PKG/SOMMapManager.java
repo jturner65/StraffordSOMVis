@@ -1580,6 +1580,7 @@ class SOM_MAPDat{
 	private String[] buildExecStrAra(){
 		String[] res;
 		if (curOS.toLowerCase().contains("mac os x")) {
+			System.out.println("\n\nMac OS\n\n");
 			res = new String[]{execDir +File.separator + execStr,
 			"-k",""+mapInts.get("mapKType"),"-x",""+mapInts.get("mapCols"),"-y",""+mapInts.get("mapRows"), "-e",""+mapInts.get("mapEpochs"),"-r",""+mapInts.get("mapStRad"),"-R",""+mapInts.get("mapEndRad"),
 			"-l",""+String.format("%.4f",mapFloats.get("mapStLrnRate")),"-L",""+String.format("%.4f",mapFloats.get("mapEndLrnRate")), 
