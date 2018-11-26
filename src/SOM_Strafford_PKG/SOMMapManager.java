@@ -1578,12 +1578,23 @@ class SOM_MAPDat{
 	
 	//build execution string for SOM_MAP
 	private String[] buildExecStrAra(){
-		String[] res = new String[]{execDir, execStr,
-				"-k",""+mapInts.get("mapKType"),"-x",""+mapInts.get("mapCols"),"-y",""+mapInts.get("mapRows"), "-e",""+mapInts.get("mapEpochs"),"-r",""+mapInts.get("mapStRad"),"-R",""+mapInts.get("mapEndRad"),
-				"-l",""+String.format("%.4f",mapFloats.get("mapStLrnRate")),"-L",""+String.format("%.4f",mapFloats.get("mapEndLrnRate")), 
-				"-m",""+mapStrings.get("mapBounds"),"-g",""+mapStrings.get("mapGridShape"),"-n",""+mapStrings.get("mapNHood"), "-T",""+mapStrings.get("mapLearnCool"), 
-				"-v", "2",
-				"-t",""+mapStrings.get("mapRadCool"), "\"" +(isSparse ? trainDataSparseFN : trainDataDenseFN) + "\"" , "\"" + outFilesPrefix +  "\""};
+		String[] res;
+		if (curOS.toLowerCase().contains("mac os x")) {
+			res = new String[]{execDir +File.separator + execStr,
+			"-k",""+mapInts.get("mapKType"),"-x",""+mapInts.get("mapCols"),"-y",""+mapInts.get("mapRows"), "-e",""+mapInts.get("mapEpochs"),"-r",""+mapInts.get("mapStRad"),"-R",""+mapInts.get("mapEndRad"),
+			"-l",""+String.format("%.4f",mapFloats.get("mapStLrnRate")),"-L",""+String.format("%.4f",mapFloats.get("mapEndLrnRate")), 
+			"-m",""+mapStrings.get("mapBounds"),"-g",""+mapStrings.get("mapGridShape"),"-n",""+mapStrings.get("mapNHood"), "-T",""+mapStrings.get("mapLearnCool"), 
+			"-v", "2",
+			"-t",""+mapStrings.get("mapRadCool"), "\"" +(isSparse ? trainDataSparseFN : trainDataDenseFN) + "\"" , "\"" + outFilesPrefix +  "\""};
+			
+		} else {
+			res = new String[]{execDir, execStr,
+			"-k",""+mapInts.get("mapKType"),"-x",""+mapInts.get("mapCols"),"-y",""+mapInts.get("mapRows"), "-e",""+mapInts.get("mapEpochs"),"-r",""+mapInts.get("mapStRad"),"-R",""+mapInts.get("mapEndRad"),
+			"-l",""+String.format("%.4f",mapFloats.get("mapStLrnRate")),"-L",""+String.format("%.4f",mapFloats.get("mapEndLrnRate")), 
+			"-m",""+mapStrings.get("mapBounds"),"-g",""+mapStrings.get("mapGridShape"),"-n",""+mapStrings.get("mapNHood"), "-T",""+mapStrings.get("mapLearnCool"), 
+			"-v", "2",
+			"-t",""+mapStrings.get("mapRadCool"), "\"" +(isSparse ? trainDataSparseFN : trainDataDenseFN) + "\"" , "\"" + outFilesPrefix +  "\""};
+		}
 		return res;		
 	}//execString
 	
