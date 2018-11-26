@@ -908,7 +908,8 @@ public class SOMMapManager {
 		//numTrainData and numTestData 
 		for (int i=0;i<trainData.length;++i) {trainData[i]=inputData[i];}
 		testData = new StraffSOMExample[numTestData];
-		for (int i=0;i<testData.length;++i) {testData[i]=inputData[i+numTrainData];}				
+		for (int i=0;i<testData.length;++i) {testData[i]=inputData[i+numTrainData];}	
+		dispMessage("SOMMapData","buildTestTrainFromInput","Finished Building Training and Testing Partitions.  Train size : " + numTrainData+ " Testing size : " + numTestData + ".");
 	}//buildTestTrainFromInput
 	
 	//build training data from current global prospect data map
@@ -927,19 +928,21 @@ public class SOMMapManager {
 		//build file names, including info for data type used to train map
 		setSOM_ExpFileNames(inputData.length, numTrainData, numTestData, dataFrmt);
 		dispMessage("SOMMapData","buildAndSaveTrainingData","Saving data to training file : Starting to save training/testing data partitions ");
-		String saveFileName = "";
+		launchTestTrainSaveThrds(dataFrmt);
+
+//		String saveFileName = "";
 		//call threads to instance and save different file formats
-		if (numTrainData > 0) {
-			//saveFileName = this.getSOMMapLRNFileName();
-			//th_exec.execute(new straffDataWriter(this, dataFrmt,denseTrainDataSavedIDX, saveFileName,"denseLRNData",trainData));	//lrn dense format - strafford project doesn't use dense format
-			saveFileName = this.getSOMMapSVMFileName();
-			th_exec.execute(new straffDataWriter(this, dataFrmt,sparseTrainDataSavedIDX, saveFileName, "sparseSVMData",trainData));	
-		}
-		if (numTestData > 0) {
-			//th_exec.execute(new straffDataWriter(this, dataFrmt, "denseTest" ,testData));	
-			saveFileName = this.getSOMMapTestFileName();
-			th_exec.execute(new straffDataWriter(this, dataFrmt, testDataSavedIDX, saveFileName, "denseCSVData" ,testData));				
-		}
+//		if (numTrainData > 0) {
+//			//saveFileName = this.getSOMMapLRNFileName();
+//			//th_exec.execute(new straffDataWriter(this, dataFrmt,denseTrainDataSavedIDX, saveFileName,"denseLRNData",trainData));	//lrn dense format - strafford project doesn't use dense format
+//			saveFileName = this.getSOMMapSVMFileName();
+//			th_exec.execute(new straffDataWriter(this, dataFrmt,sparseTrainDataSavedIDX, saveFileName, "sparseSVMData",trainData));	
+//		}
+//		if (numTestData > 0) {
+//			//th_exec.execute(new straffDataWriter(this, dataFrmt, "denseTest" ,testData));	
+//			saveFileName = this.getSOMMapTestFileName();
+//			th_exec.execute(new straffDataWriter(this, dataFrmt, testDataSavedIDX, saveFileName, "denseCSVData" ,testData));				
+//		}
 		//save mins/maxes so this file data be reconstructed
 		//save diffs and mins - csv files with each field value sep'ed by a comma
 		//boundary region for training data
@@ -956,23 +959,25 @@ public class SOMMapManager {
 	}//buildAndSaveTrainingData	
 		
 	//set names to be pre-calced results to test map
-	private void setStraffNamesDBG(){ //StraffSOM_2018_11_09_14_45_DebugRun
-		int _numSmpls = 459126, _numTrain = 413213, _numTest = 45913;
-		String projName = "Straff_Smp";
-		//Calendar now = Calendar.getInstance();//F:\Strafford Project\SOM\StraffSOM_2018_10_24_12_37
+	private void setStraffNamesDBG(int _numSmpls, int _numTrain, int _numTest, int _dataFrmt){ //StraffSOM_2018_11_09_14_45_DebugRun
+		//int _numSmpls = 458654, _numTrain = 412788, _numTest = 45866; 		//Calendar now = Calendar.getInstance();//F:\Strafford Project\SOM\StraffSOM_2018_10_24_12_37
 		//String nowDirTmp = straffSOMProcSubDir+ "StraffSOM_"+getDateTimeString(true,false,"_", now)+File.separator;
 		//String fileNow = "10_24_12_37";
-		String fileNow = "11_09_14_45";
+		//Train_straff_Smp_412788_of_458654_typ_stdFtrs_Dt_11_26_09_50
+		//Test_straff_Smp_45866_of_458654_typ_stdFtrs_Dt_11_26_09_50
+		String fileNow = "11_26_09_50";
 		String nowDir = getDirNameAndBuild(straffSOMProcSubDir+"StraffSOM_2018_"+fileNow+"_DebugRun"+File.separator);
-		String[] tmp = {"Out_Straff_Smp_"+_numSmpls,
-						"Train_"+projName+"_"+_numTrain+"_of_"+_numSmpls+"_Dt_"+fileNow+".lrn",
-						"Train_"+projName+"_"+_numTrain+"_of_"+_numSmpls+"_Dt_"+fileNow+".svm",				
-						"Test_"+projName+"_"+_numTest+"_of_"+_numSmpls+"_Dt_"+fileNow+".csv",
-						"Mins_"+projName+"_"+_numSmpls+"_Dt_"+fileNow+".csv",
-						"Diffs_"+projName+"_"+_numSmpls+"_Dt_"+fileNow+".csv",
-						"SOMImg_"+projName+"_"+_numSmpls+"_Dt_"+fileNow+".png",
-						"SOM_EXP_Format_"+projName+"_"+_numSmpls+"_Dt_"+fileNow+".csv",
-						};
+		String dType = getDataTypeNameFromInt(_dataFrmt);
+		String[] tmp = {"Out_"+SOMProjName+"_Smp_"+_numSmpls,
+				"Train_"+SOMProjName+"_Smp_"+_numTrain+"_of_"+_numSmpls+"_typ_" +dType + "_Dt_"+fileNow+".lrn",
+				"Train_"+SOMProjName+"_Smp_"+_numTrain+"_of_"+_numSmpls+"_typ_" + dType+"_Dt_"+fileNow+".svm",				
+				"Test_"+SOMProjName+"_Smp_"+_numTest+"_of_"+_numSmpls+"_typ_" +dType +"_Dt_"+fileNow+".csv",
+				"Mins_"+SOMProjName+"_Smp_"+_numSmpls+"_Dt_"+fileNow+"_typ_" +dType +".csv",
+				"Diffs_"+SOMProjName+"_Smp_"+_numSmpls+"_Dt_"+fileNow+"_typ_" +dType +".csv",
+				"SOMImg_"+SOMProjName+"_Smp_"+_numSmpls+"_Dt_"+fileNow+"_typ_" +dType +".png",
+				"SOM_EXP_Format_"+SOMProjName+"_Smp_"+_numSmpls+"_Dt_"+fileNow+".txt"
+				};
+
 		SOMFileNamesAra = new String[tmp.length];
 		for(int i =0; i<SOMFileNamesAra.length;++i){	
 			//build dir as well
@@ -980,22 +985,71 @@ public class SOMMapManager {
 		}				
 	}//setSOM_ExpFileNames
 	
-	//this will load an existing map - needs to have been built with the current data - data must be loaded!
-	public void dbgBuildExistingMap() {
-		//call this with preprocced values
-		//setSOM_ExpFileNames(String projName, int _numSmpls, int _numTrain, int _numTest, String dType, String fileNow, String nowDirTmp)
-		//TODO this hard codes the source of the map data
-		setStraffNamesDBG();		
-		String lrnFileName = getSOMMapLRNFileName(), 		//dense training data .lrn file
-				svmFileName = getSOMMapSVMFileName(),		//sparse training data svm file name
-				testFileName = getSOMMapTestFileName(),		//testing data .csv file
-				minsFileName = getSOMMapMinsFileName(),		//mins data percol .csv file
-				diffsFileName = getSOMMapDiffsFileName(),	//diffs data percol .csv file
-				
-				outFilePrfx = getSOMMapOutFileBase() + "_x10_y10_k2";
+	private void launchTestTrainSaveThrds(int dataFrmt) {
+		String saveFileName = "";
+		List<Future<Boolean>> straffSOMDataWriteFutures = new ArrayList<Future<Boolean>>();
+		List<straffDataWriter> straffSOMDataWrite = new ArrayList<straffDataWriter>();
+		//call threads to instance and save different file formats
+		if (numTrainData > 0) {
+			//saveFileName = this.getSOMMapLRNFileName();
+			//th_exec.execute(new straffDataWriter(this, dataFrmt,denseTrainDataSavedIDX, saveFileName,"denseLRNData",trainData));	//lrn dense format - strafford project doesn't use dense format
+			saveFileName = this.getSOMMapSVMFileName();
+			straffSOMDataWrite.add(new straffDataWriter(this, dataFrmt,sparseTrainDataSavedIDX, saveFileName, "sparseSVMData",trainData));	
+		}
+		if (numTestData > 0) {
+			//th_exec.execute(new straffDataWriter(this, dataFrmt, "denseTest" ,testData));	
+			saveFileName = this.getSOMMapTestFileName();
+			straffSOMDataWrite.add(new straffDataWriter(this, dataFrmt, testDataSavedIDX, saveFileName, "denseCSVData" ,testData));				
+		}
+		try {straffSOMDataWriteFutures = th_exec.invokeAll(straffSOMDataWrite);for(Future<Boolean> f: straffSOMDataWriteFutures) { f.get(); }} catch (Exception e) { e.printStackTrace(); }		
+
 		
+	}
+	
+	//load preproc csv and build training and testing partitions
+	public void dbgLoadCSVBuildDataTrainMap(boolean useOnlyEvents, int dataFrmt, float testTrainPartition) {
+		loadAllPreProccedData(useOnlyEvents);
+		//build SOM data
+		buildTestTrainFromInput(prospectMap, testTrainPartition);	
+		//build file names, including info for data type used to train map
+		setSOM_ExpFileNames(inputData.length, numTrainData, numTestData, dataFrmt);
+		dispMessage("SOMMapData","dbgLoadCSVBuildDataTrainMap","Saving data to training file : Starting to save training/testing data partitions ");
+		launchTestTrainSaveThrds(dataFrmt);
+		//save mins/maxes so this file data be reconstructed
+		//save diffs and mins - csv files with each field value sep'ed by a comma
+		//boundary region for training data
+		String diffStr = "", minStr = "";
+		for(int i =0; i<minsVals.length; ++i){
+			minStr += String.format("%1.7g", minsVals[i]) + ",";
+			diffStr += String.format("%1.7g", diffsVals[i]) + ",";
+		}
+		String minsFileName = getSOMMapMinsFileName();
+		String diffsFileName = getSOMMapDiffsFileName();				
+		saveStrings(minsFileName,new String[]{minStr});		
+		saveStrings(diffsFileName,new String[]{diffStr});		
+		dispMessage("SOMMapData","buildAndSaveTrainingData","Strafford Prospects Mins and Diffs Files Saved");	
+	}//
+	
+	//load the data used to build a map - NOTE this may break if different data is used to build the map than the current data
+	public void dbgBuildExistingMap() {
+		//load data into preproc
+		loadAllPreProccedData(true);
+		int _numSmpls = 458654, _numTrain = 412788, _numTest = 45866; 
 		//TOOD replace this when saved file with appropriate format
-		int dataFrmt = 1;//1 means trained with std'ized data
+		int _dataFrmt = 1;//1 means trained with std'ized data
+		//build SOM data partitions from loaded data used to train map
+		float testTrainPartition = _numTrain/(1.0f*_numSmpls);
+		buildTestTrainFromInput(prospectMap, testTrainPartition);	
+		
+		//now load map values from pre-trained map using this data - IGNORES VALUES SET IN UI		
+		setStraffNamesDBG(_numSmpls, _numTrain, _numTest, _dataFrmt);
+		String lrnFileName = getSOMMapLRNFileName(), 		//dense training data .lrn file
+		svmFileName = getSOMMapSVMFileName(),		//sparse training data svm file name
+		testFileName = getSOMMapTestFileName(),		//testing data .csv file
+		minsFileName = getSOMMapMinsFileName(),		//mins data percol .csv file
+		diffsFileName = getSOMMapDiffsFileName(),	//diffs data percol .csv file
+		
+		outFilePrfx = getSOMMapOutFileBase() + "_x10_y10_k2";
 		//build new map descriptor and execute
 		//structure holding SOM_MAP specific cmd line args and file names and such
 		//now load new map data and configure SOMMapData obj to hold all appropriate data
@@ -1014,10 +1068,10 @@ public class SOMMapManager {
 		projConfigData = new SOMProjConfigData(this);
 		projConfigData.setAllFileNames(diffsFileName,minsFileName, lrnFileName, outFilePrfx, csvOutBaseFName);
 		dispMessage("SOMMapData","dbgBuildExistingMap","Current projConfigData before dataLoader Call : " + projConfigData.toString());
-		th_exec.execute(new SOMDataLoader(this,true,projConfigData,dataFrmt));//fire and forget load task to load	
+		th_exec.execute(new SOMDataLoader(this,true,projConfigData,_dataFrmt));//fire and forget load task to load		
 		
 	}//dbgBuildExistingMap
-	
+		
 //	//called from StraffSOMExample after all occurences are built
 //	//this will add entries into an occ map with the passed date and opt value - opts are possible with no jps specified, if so this means all
 //	//not making occurences for negative opts, but for non-negative opts we can build the occurence information for all jps/jpgs.  This will be used for training data

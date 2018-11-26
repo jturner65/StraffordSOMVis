@@ -491,7 +491,7 @@ class straffCSVDataLoader implements Callable<Boolean>{
 	
 }
 //save all Strafford training/testing data to appropriate format for SOM
-class straffDataWriter implements Runnable{
+class straffDataWriter implements Callable<Boolean>{
 	//public SOM_StraffordMain pa;
 	private SOMMapManager mapData;	
 	private int dataFrmt;
@@ -565,7 +565,7 @@ class straffDataWriter implements Runnable{
 
 	//write all sphere data to appropriate files
 	@Override
-	public void run() {		
+	public Boolean call() {		
 		//save to lrnFileName - build lrn file
 		//4 extra lines that describe dense .lrn file - started with '%'
 		//0 : # of examples
@@ -594,7 +594,8 @@ class straffDataWriter implements Runnable{
 				mapData.setFlag(dataSavedIDX, true);				
 			}
 		}
-	}//run
+		return true;
+	}//call
 }//straffDataWriter
 
 

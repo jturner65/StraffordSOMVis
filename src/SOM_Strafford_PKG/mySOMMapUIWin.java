@@ -103,7 +103,7 @@ public class mySOMMapUIWin extends myDispWindow {
 	/////////
 	//custom debug/function ui button names -empty will do nothing
 	public String[] menuDbgBtnNames = new String[] {"Disp JPs","Disp Calc","Disp Ftrs","Disp Raw Data","Dbg 5"};//must have literals for every button or this is ignored by UI - buttons correspond to guiBtnNames list in mySideBarMenu 
-	public String[] menuFuncBtnNames = new String[] {"Ld/proc ---", "Ld Train CSV", "Bld SOMDat", "PreBuilt Map", "Cust Func 4"};//must have literals for every button or ignored
+	public String[] menuFuncBtnNames = new String[] {"Ld/proc ---", "Ld Train CSV", "Bld SOMDat", "Ld & Mk Map", "PreBuilt Map"};//must have literals for every button or ignored
 	private String[] menuLdRawFuncBtnNames = new String[] {"Ld/proc CSV", "Ld/proc SQL"};
 	private int loadRawBtnIDX = 0;
 	
@@ -150,8 +150,8 @@ public class mySOMMapUIWin extends myDispWindow {
 		//init specific sim flags
 		initPrivFlags(numPrivFlags);			
 		setPrivFlags(mapLoadFtrBMUsIDX,true);
-		setPrivFlags(mapDrawTrainDatIDX,true);
-		setPrivFlags(mapDrawMapNodesIDX,true);
+		setPrivFlags(mapDrawTrainDatIDX,false);
+		setPrivFlags(mapDrawMapNodesIDX,false);
 		setPrivFlags(mapUseChiSqDistIDX,true);
 		setPrivFlags(useOnlyEvntsToTrainIDX, true);
 		dataFrmtToUseToTrain = (int)(this.guiObjs[uiTrainDataFrmtIDX].getVal());
@@ -665,9 +665,10 @@ public class mySOMMapUIWin extends myDispWindow {
 	//perhaps partition pxls for each thread
 	public void setMapImgClrs(){ //mapRndClrImg
 		float[] c;		
+		int stTime = pa.millis();
 		for (int i=0;i<mapLocClrImg.length;++i) {	mapLocClrImg[i].loadPixels();}
 		//if single threaded
-		boolean singleThread=true;//mapMgr.numUsableThreads<=1;//this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
+		boolean singleThread=mapMgr.numUsableThreads<=1;//this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
 		if(singleThread) {				
 			for(int y = 0; y<mapLocClrImg[0].height; ++y){
 				int yCol = y * mapLocClrImg[0].width;
@@ -701,6 +702,8 @@ public class mySOMMapUIWin extends myDispWindow {
 	
 		}
 		for (int i=0;i<mapLocClrImg.length;++i) {	mapLocClrImg[i].updatePixels();		}
+		int endTime = pa.millis();
+		mapMgr.dispMessage("mySOMMapUIWin", "setMapImgClrs", "Time to build all vis imgs : "  + ((endTime-stTime)/1000.0f) + "s | Threading : " + (singleThread ? "Single" : "Multi ("+mapMgr.numUsableThreads+")"));
 	}//setMapImgClrs
 		
 	//return strings for directory names and for individual file names that describe the data being saved.  used for screenshots, and potentially other file saving
@@ -729,13 +732,15 @@ public class mySOMMapUIWin extends myDispWindow {
 		mapMgr.buildAndSaveTrainingData(dataFrmtToUseToTrain, (float)(.01*this.guiObjs[uiTrainDatPartIDX].getVal()));
 		clearFuncBtnState(2,false);
 	}			
-	private void custFunc3(){	
-		//load a pre-built map and render it - map needs to coincide with the data currently in memory
-		mapMgr.dbgBuildExistingMap();
+	private void custFunc3(){			
+		//combine func1 and func2 with launching map
+		mapMgr.dbgLoadCSVBuildDataTrainMap(getPrivFlags(useOnlyEvntsToTrainIDX),dataFrmtToUseToTrain, (float)(.01*this.guiObjs[uiTrainDatPartIDX].getVal()));
+		this.setPrivFlags(buildSOMExe, true);
 		clearFuncBtnState(3,false);
 	}			
 	private void custFunc4(){	
-		//custom function code here
+		//load a pre-built map and render it - map needs to coincide with the data currently in memory
+		mapMgr.dbgBuildExistingMap();
 		clearFuncBtnState(4,false);
 	}		
 	@Override
