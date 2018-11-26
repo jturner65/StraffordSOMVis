@@ -5,6 +5,8 @@ import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
 
+import processing.core.PImage;
+
 //class that describes the hierarchy of files required for running and analysing a SOM
 public class SOMDataLoader implements Runnable {
 	public SOMMapManager map;				//the map these files will use
@@ -324,8 +326,119 @@ public class SOMDataLoader implements Runnable {
 	public boolean getFlag(int idx){int bitLoc = 1<<(idx%32);return (stFlags[idx/32] & bitLoc) == bitLoc;}		
 }//dataLoader
 
+//this will build a single image of the map based on ftr data
+class straffMapVisImgBuilder implements Callable<Boolean>{
+	SOMMapManager mapMgr;
+	int mapX, mapY;
+	int xSt, xEnd, ySt, yEnd;
+	int imgW;
+	float mapScaleVal, sclMultXPerPxl, sclMultYPerPxl;
+	TreeMap<Tuple<Integer,Integer>, SOMMapNodeExample> MapNodes;
+	private PImage[] mapLocClrImg;
+	public straffMapVisImgBuilder(SOMMapManager _mapMgr, PImage[] _mapLocClrImg, int[] _xVals, int[] _yVals,  float _mapScaleVal) {
+		mapMgr = _mapMgr;
+		MapNodes = mapMgr.MapNodes;
+		mapLocClrImg = _mapLocClrImg;
+		mapX = mapMgr.mapX;
+		xSt = _xVals[0];
+		xEnd = _xVals[1];
+		if(mapLocClrImg.length == 0) {		imgW = 0;} 
+		else {								imgW = mapLocClrImg[0].width;}
+		mapY = mapMgr.mapY;
+		ySt = _yVals[0];
+		yEnd = _yVals[1];
+
+		mapScaleVal = _mapScaleVal;
+		sclMultXPerPxl = mapScaleVal * mapMgr.nodeXPerPxl;
+		sclMultYPerPxl = mapScaleVal * mapMgr.nodeYPerPxl;
+	}//ctor
+	
+	public float[] getMapNodeLocFromPxlLoc(float mapPxlX, float mapPxlY){	return new float[]{(mapPxlX * sclMultXPerPxl) - .5f, (mapPxlY * sclMultYPerPxl) - .5f};}	
+		
+	//get treemap of features that interpolates between two maps of features
+	private TreeMap<Integer, Float> interpTreeMap(TreeMap<Integer, Float> a, TreeMap<Integer, Float> b, float t, float mult){
+		TreeMap<Integer, Float> res = new TreeMap<Integer, Float>();
+		float Onemt = 1.0f-t;
+		if(mult==1.0) {
+			//first go through all a values
+			for(Integer key : a.keySet()) {
+				Float aVal = a.get(key), bVal = b.get(key);
+				if(bVal == null) {bVal = 0.0f;}
+				res.put(key, (aVal*Onemt) + (bVal*t));			
+			}
+			//next all b values
+			for(Integer key : b.keySet()) {
+				Float aVal = a.get(key);
+				if(aVal == null) {aVal = 0.0f;} else {continue;}		//if aVal is not null then calced already
+				Float bVal = b.get(key);
+				res.put(key, (aVal*Onemt) + (bVal*t));			
+			}
+		} else {//scale by mult - precomputes color values
+			float m1t = mult*Onemt, mt = mult*t;
+			//first go through all a values
+			for(Integer key : a.keySet()) {
+				Float aVal = a.get(key), bVal = b.get(key);
+				if(bVal == null) {bVal = 0.0f;}
+				res.put(key, (aVal*m1t) + (bVal*mt));			
+			}
+			//next all b values
+			for(Integer key : b.keySet()) {
+				Float aVal = a.get(key);
+				if(aVal == null) {aVal = 0.0f;} else {continue;}		//if aVal is not null then calced already
+				Float bVal = b.get(key);
+				res.put(key, (aVal*m1t) + (bVal*mt));			
+			}			
+		}		
+		return res;
+	}//interpolate between 2 tree maps
+	
+	//return interpolated feature vector on map at location given by x,y, where x,y is float location of map using mapnodes as integral locations
+	private TreeMap<Integer, Float> getInterpFtrs(float x, float y){
+		int xInt = (int) Math.floor(x+mapX)%mapX, yInt = (int) Math.floor(y+mapY)%mapY, xIntp1 = (xInt+1)%mapX, yIntp1 = (yInt+1)%mapY;		//assume torroidal map		
+		//int xInt = (int) Math.floor(x), yInt = (int) Math.floor(y), xIntp1 = (xInt+1)%SOM_Data.mapX, yIntp1 = (yInt+1)%SOM_Data.mapY;		//assume torroidal map		
+		//need to divide by width/height of map * # cols/rows to get mapped to actual map nodes
+		//dispMessage("In getDataPointAtLoc : Mouse loc in Nodes : " + x + ","+y+ "\txInt : "+ xInt + " yInt : " + yInt );
+		float xInterp = (x+1) %1, yInterp = (y+1) %1;
+		//always compare standardized feature data in test/train data to standardized feature data in map
+		TreeMap<Integer, Float> LowXLowYFtrs = MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt)).getCurrentFtrMap(SOMMapManager.useScaledDat), LowXHiYFtrs= MapNodes.get(new Tuple<Integer, Integer>(xInt,yIntp1)).getCurrentFtrMap(SOMMapManager.useScaledDat),
+				 HiXLowYFtrs= MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yInt)).getCurrentFtrMap(SOMMapManager.useScaledDat),  HiXHiYFtrs= MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yIntp1)).getCurrentFtrMap(SOMMapManager.useScaledDat);
+		try{
+			TreeMap<Integer, Float> ftrs = interpTreeMap(interpTreeMap(LowXLowYFtrs, LowXHiYFtrs,yInterp,1.0f),interpTreeMap(HiXLowYFtrs, HiXHiYFtrs,yInterp,1.0f),xInterp,255.0f);	
+			return ftrs;
+		} catch (Exception e){
+			mapMgr.dispMessage("mySOMMapUIWin","getInterpFtrs","Exception triggered in mySOMMapUIWin::getInterpFtrs : \n"+e.toString() + "\n\tMessage : "+e.getMessage() );
+			return null;
+		}		
+	}//getInterpFtrs	
+	
+	private int getDataClrFromFtrVec(TreeMap<Integer, Float> ftrMap, Integer jpIDX) {
+		Float ftrVal = ftrMap.get(jpIDX);
+		if(ftrVal == null) {return 0;}
+		int ftr = Math.round(ftrVal);
+		int clrVal = ((ftr & 0xff) << 16) + ((ftr & 0xff) << 8) + (ftr & 0xff);
+		return clrVal;
+	}//getDataClrFromFtrVec	
+	
+	@Override
+	public Boolean call() throws Exception {
+		float[] c;
+		for(int y = ySt; y<yEnd; ++y){
+			int yCol = y * imgW;
+			for(int x = xSt; x < xEnd; ++x){
+				c = getMapNodeLocFromPxlLoc(x, y);
+				TreeMap<Integer, Float> ftrs = getInterpFtrs(c[0],c[1]);
+				//for (int i=0;i<mapLocClrImg.length;++i) {	mapLocClrImg[i].pixels[x+yCol] = getDataClrFromFtrVec(ftrs, i);}
+				for (Integer jp : ftrs.keySet()) {mapLocClrImg[jp].pixels[x+yCol] = getDataClrFromFtrVec(ftrs, jp);}
+			}
+		}
+		
+		
+		return true;
+	}
+	
+}//straffMapVisImgBuilder
+
 //this class will load the pre-procced csv data into the prospect data structure owned by the SOMMapData object
-//TODO this will speed up initial load of preprocced csv data.  Not a current priority
 class straffCSVDataLoader implements Callable<Boolean>{
 	public SOMMapManager map;
 	private String fileName, dispYesStr, dispNoStr;

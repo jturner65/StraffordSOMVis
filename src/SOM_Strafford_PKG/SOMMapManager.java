@@ -154,7 +154,7 @@ public class SOMMapManager {
 	public mySOMMapUIWin win;				//owning window
 	
 	private ExecutorService th_exec;	//to access multithreading - instance from calling program
-	private final int numUsableThreads;		//# of threads usable by the application
+	public final int numUsableThreads;		//# of threads usable by the application
 	
 	public SOMMapManager(SOM_StraffordMain _pa, mySOMMapUIWin _win, ExecutorService _th_exec, float[] _dims) {
 		p=_pa; win=_win;th_exec=_th_exec;
@@ -642,7 +642,7 @@ public class SOMMapManager {
 			dispMessage("SOMMapData","loadAllRawData","WARNING : SQL-based raw data queries not yet implemented.  Use CSV-based raw data to build training data set instead");
 			return;
 		}
-		boolean singleThread=numUsableThreads<1;//this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
+		boolean singleThread=numUsableThreads<=1;//this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
 		if(singleThread) {
 			for (int idx=0;idx<numStraffDataTypes;++idx) {
 				String[] loadRawDatStrs = getLoadRawDataStrs(fromCSVFiles,idx);
@@ -733,7 +733,7 @@ public class SOMMapManager {
 		return "default" + File.separator;
 	}
 	public void loadAllPreProccedData(boolean eventsOnly) {
-		//		boolean singleThread=numUsableThreads<1;//this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
+		//		boolean singleThread=numUsableThreads<=1;//this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
 		dispMessage("SOMMapData","loadAllPreProccedData","Begin loading preprocced data");
 		//perform the f
 		loadAllPropsectMapData(eventsOnly);
@@ -758,7 +758,7 @@ public class SOMMapManager {
 			numPartitions = Integer.parseInt(loadRes[0].split(" : ")[1].trim());
 		} catch (Exception e) {e.printStackTrace(); dispMessage("SOMMapData","loadAllPropsectMapData","Due to error with not finding format file : " + fmtFile+ " no data will be loaded."); return;} 
 		
-		boolean singleThread=numUsableThreads<1;//this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
+		boolean singleThread=numUsableThreads<=1;//this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
 		if(singleThread) {
 			for (int i=0; i<numPartitions;++i) {
 				String dataFile = loadSrcFNamePrefixAra[0]+"_"+i+".csv";
