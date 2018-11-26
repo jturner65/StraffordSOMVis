@@ -13,7 +13,7 @@ import java.util.Map.Entry;
 public class StraffWeightCalc {
 	public static final String fileComment = "#";
 	public String fileName;
-	public SOMMapData map;
+	public SOMMapManager map;
 	public final Date now;
 	//arrays are for idxs of various eq components (mult, offset, decay) in the format file for 
 	//each component contributor (prospect, order, opt, link), in order.  0-idx is jp name or "default"
@@ -39,7 +39,7 @@ public class StraffWeightCalc {
 	public MonitorJpJpgrp jpJpgMon;
 
 	
-	public StraffWeightCalc(SOMMapData _map, String _fileName, MonitorJpJpgrp _jpJpgMon) {
+	public StraffWeightCalc(SOMMapManager _map, String _fileName, MonitorJpJpgrp _jpJpgMon) {
 		map = _map;
 		now = map.instancedNow.getTime();
 		jpJpgMon = _jpJpgMon;
@@ -140,7 +140,7 @@ public class StraffWeightCalc {
 			destIDX = jpJpgMon.getJpToFtrIDX(jp);
 			if (destIDX==null) {continue;}//ignore unknown/unmapped jps
 			optOcc =  optOccs.get(jp);
-			if ((optOcc != null )&& (ex.getOptAllOccObj() != null)) {	map.dispMessage("multiple opt refs for prospect : " + ex.OID + " | This should not happend - opt events will be overly-weighted.");	}
+			if ((optOcc != null )&& (ex.getOptAllOccObj() != null)) {	map.dispMessage("StraffWeightCalc","calcFeatureVector","Multiple opt refs for prospect : " + ex.OID + " | This should not happen - opt events will be overly-weighted.");	}
 			float val = eqs.get(jp).calcVal(ex,orderOccs.get(jp),linkOccs.get(jp),optOcc);
 			if ((isZeroMagExample) && (val != 0)) {isZeroMagExample = false;}
 			res.put(destIDX,val);

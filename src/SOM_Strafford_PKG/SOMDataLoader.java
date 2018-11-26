@@ -7,7 +7,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 //class that describes the hierarchy of files required for running and analysing a SOM
 public class SOMDataLoader implements Runnable {
-	public SOMMapData map;				//the map these files will use
+	public SOMMapManager map;				//the map these files will use
 	public SOMProjConfigData projConfigData;			//struct maintaining configuration information for entire project
 	
 	public final static float nodeDistThresh = 100000.0f;
@@ -22,7 +22,7 @@ public class SOMDataLoader implements Runnable {
 	//type of data used to train - 0 : unmodded, 1:std'ized, 2:normalized
 	private int dataFormat;
 	
-	public SOMDataLoader(SOMMapData _map, boolean _lBMUs, SOMProjConfigData _configData, int _dFmt) {
+	public SOMDataLoader(SOMMapManager _map, boolean _lBMUs, SOMProjConfigData _configData, int _dFmt) {
 		map = _map;
 		projConfigData = _configData;
 		dataFormat = _dFmt;
@@ -34,14 +34,14 @@ public class SOMDataLoader implements Runnable {
 	public void run(){
 		if(projConfigData.allReqFilesLoaded()){
 			boolean success =  execDataLoad() ;
-			map.setFlag(SOMMapData.dataLoadedIDX,success);
-			map.setFlag(SOMMapData.loaderRtnIDX,true);
+			map.setFlag(SOMMapManager.dataLoadedIDX,success);
+			map.setFlag(SOMMapManager.loaderRtnIDX,true);
 			map.setMapImgClrs();
-			map.dispMessage("DataLoader : Finished data loader : SOM Data Loaded : " + map.getFlag(SOMMapData.dataLoadedIDX) + " | loader ret code : " +map.getFlag(SOMMapData.loaderRtnIDX) );			
+			map.dispMessage("DataLoader","run","Finished data loader : SOM Data Loaded : " + map.getFlag(SOMMapManager.dataLoadedIDX) + " | loader ret code : " +map.getFlag(SOMMapManager.loaderRtnIDX) );			
 		}
 		else {
-			map.setFlag(SOMMapData.loaderRtnIDX,false);
-			map.dispMessage("DataLoader : Data loader Failed : fnames structure out of sync or file IO error ");
+			map.setFlag(SOMMapManager.loaderRtnIDX,false);
+			map.dispMessage("DataLoader","run","Data loader Failed : fnames structure out of sync or file IO error ");
 		}
 	}
 	//load results from map processing - fnames needs to be modified to handle this
@@ -76,9 +76,9 @@ public class SOMDataLoader implements Runnable {
 		String diffsFileName = projConfigData.getDiffsFName(), minsFileName = projConfigData.getMinsFName();
 		//load normalizing values for datapoints in weights - differences and mins, used to scale/descale training and map data
 		map.diffsVals = loadCSVSrcDataPoint(diffsFileName);
-		if((null==map.diffsVals) || (map.diffsVals.length < 1)){map.dispMessage("DataLoader : !!error reading diffsFile : " + diffsFileName); return false;}
+		if((null==map.diffsVals) || (map.diffsVals.length < 1)){map.dispMessage("DataLoader","condAllData","!!error reading diffsFile : " + diffsFileName); return false;}
 		map.minsVals = loadCSVSrcDataPoint(minsFileName);
-		if((null==map.minsVals)|| (map.minsVals.length < 1)){map.dispMessage("DataLoader : !!error reading minsFile : " + minsFileName); return false;}	
+		if((null==map.minsVals)|| (map.minsVals.length < 1)){map.dispMessage("DataLoader","condAllData","!!error reading minsFile : " + minsFileName); return false;}	
 
 		//TODO set standardized node values here?
 		
@@ -96,7 +96,7 @@ public class SOMDataLoader implements Runnable {
 		String [] strs= map.loadFileIntoStringAra(fileName, "Loaded data file : "+fileName, "Error reading file : "+fileName);
 		if(strs==null){return null;}
 		//strs should only be length 1
-		if(strs.length > 1){map.dispMessage("DataLoader : error reading file : " + fileName + " String array has more than 1 row.");return null;}		
+		if(strs.length > 1){map.dispMessage("DataLoader","loadCSVSrcDataPoint","error reading file : " + fileName + " String array has more than 1 row.");return null;}		
 		String[] tkns = strs[0].split(map.csvFileToken);
 		ArrayList<Float> tmpData = new ArrayList<Float>();
 		for(int i =0; i<tkns.length;++i){
@@ -110,7 +110,7 @@ public class SOMDataLoader implements Runnable {
 	private boolean checkMapDim(String[] tkns, String errorMSG){
 		int tmapY = Integer.parseInt(tkns[0]), tmapX = Integer.parseInt(tkns[1]);
 		if((tmapY != map.getMapY()) || (tmapX != map.getMapX())) { 
-			map.dispMessage("DataLoader : !!"+ errorMSG + " dimensions : " + tmapX +","+tmapY+" do not match dimensions of learned weights " + map.getMapX() +","+map.getMapY()+". Loading aborted."); 
+			map.dispMessage("DataLoader","checkMapDim","!!"+ errorMSG + " dimensions : " + tmapX +","+tmapY+" do not match dimensions of learned weights " + map.getMapX() +","+map.getMapY()+". Loading aborted."); 
 			return false;} 
 		return true;		
 	}
@@ -204,15 +204,17 @@ public class SOMDataLoader implements Runnable {
 			map.setMapNodeFtrStr(tmp);
 		}
 		for(int d = 0; d<map.numFtrs; ++d){map.map_ftrsVar[d] /= 1.0f*numEx;}
-		map.dispMessage("DataLoader : Finished Loading SOM weight data from file : " + getFName(wtsFileName) );
+		map.dispMessage("DataLoader","loadSOMWts","Finished Loading SOM weight data from file : " + getFName(wtsFileName) );
 		
 		return true;
 	}//loadSOMWts	
+	
 	private void dbgDispFtrAra(float[] ftrData, String exStr) {
-		System.out.println(ftrData.length + " " +exStr + " vals : ");		
-		System.out.print(""+String.format("%.4f",ftrData[0]));
-		for(int d=1;d<ftrData.length;++d) {System.out.print(", " + String.format("%.4f", ftrData[d]));		}
-		System.out.println("");
+		map.dispMessage("DataLoader","dbgDispFtrAra",ftrData.length + " " +exStr + " vals : ");	
+		String res = ""+String.format("%.4f",ftrData[0]);
+		for(int d=1;d<ftrData.length;++d) {res += ", " + String.format("%.4f", ftrData[d]);		}
+		res +="\n";
+		map.dispMessage("DataLoader","dbgDispFtrAra",res);
 	}//dbgDispFtrAra
 	
 	//load best matching units for each training example - has values : idx, mapy, mapx
@@ -231,7 +233,7 @@ public class SOMDataLoader implements Runnable {
 				} else {	
 					int tNumTDat = Integer.parseInt(tkns[0]);
 					if(tNumTDat != map.numTrainData) { 
-						map.dispMessage("DataLoader : !!Best Matching Units file " + getFName(bmFileName) + " # of training examples : " + tNumTDat +" does not match # of training examples in training data " + map.numTrainData+". Loading aborted." ); 
+						map.dispMessage("DataLoader","loadSOM_BMUs","!!Best Matching Units file " + getFName(bmFileName) + " # of training examples : " + tNumTDat +" does not match # of training examples in training data " + map.numTrainData+". Loading aborted." ); 
 						return false;}
 				}
 				continue;
@@ -240,10 +242,10 @@ public class SOMDataLoader implements Runnable {
 			if(tkns.length < 2){continue;}
 			Tuple<Integer,Integer> mapLoc = new Tuple<Integer, Integer>(Integer.parseInt(tkns[2]),Integer.parseInt(tkns[1]));//map locations in bmu data are in (y,x) order (row major)
 			SOMMapNodeExample tmpMapNode = map.MapNodes.get(mapLoc);
-			if(null==tmpMapNode){ map.dispMessage("DataLoader : !!Map node stated as best matching unit for training example " + tkns[0] + " not found in map ... somehow. "); return false;}//catastrophic error shouldn't happen
+			if(null==tmpMapNode){ map.dispMessage("DataLoader","loadSOM_BMUs","!!Map node stated as best matching unit for training example " + tkns[0] + " not found in map ... somehow. "); return false;}//catastrophic error shouldn't happen
 			Integer dpIdx = Integer.parseInt(tkns[0]);
 			//dataPoint tmpDP = map.trainData[dpIdx];
-			if(null==map.trainData[dpIdx]){ map.dispMessage("DataLoader : !!Training Datapoint given by idx in BMU file str tok : " + tkns[0] + " of string : --" + strs[i] + "-- not found in training data. "); return false;}//catastrophic error shouldn't happen
+			if(null==map.trainData[dpIdx]){ map.dispMessage("DataLoader","loadSOM_BMUs","!!Training Datapoint given by idx in BMU file str tok : " + tkns[0] + " of string : --" + strs[i] + "-- not found in training data. "); return false;}//catastrophic error shouldn't happen
 			//passing per-ftr variance for chi sq distan
 			
 			//using variance for chi dq dist calculation
@@ -264,7 +266,7 @@ public class SOMDataLoader implements Runnable {
 			}			
 		}
 		
-		map.dispMessage("DataLoader : Finished Loading SOM BMUs from file : " + getFName(bmFileName) + "| Found "+map.nodesWithEx.size()+" nodes with example mappings.");
+		map.dispMessage("DataLoader","loadSOM_BMUs","Finished Loading SOM BMUs from file : " + getFName(bmFileName) + "| Found "+map.nodesWithEx.size()+" nodes with example mappings.");
 		return true;
 	}//loadSOM_BMs
 	//returns sq distance between two map locations - needs to handle wrapping if map built torroidally
@@ -296,7 +298,7 @@ public class SOMDataLoader implements Runnable {
 				} else {	
 					int tNumTFtr = Integer.parseInt(tkns[0]);
 					if(tNumTFtr != map.numFtrs) { 
-						map.dispMessage("DataLoader : !!Best Matching Units file " + getFName(ftrBMUFname) + " # of training examples : " + tNumTFtr +" does not match # of training examples in training data " + map.numFtrs+". Loading aborted." ); 
+						map.dispMessage("DataLoader","loadSOM_ftrBMUs","!!Best Matching Units file " + getFName(ftrBMUFname) + " # of training examples : " + tNumTFtr +" does not match # of training examples in training data " + map.numFtrs+". Loading aborted." ); 
 						return false;}
 				}
 				continue;
@@ -306,7 +308,7 @@ public class SOMDataLoader implements Runnable {
 			tmpAra.add(tmp);
 		}
 		map.featuresBMUs = tmpAra.toArray(new SOMFeature[0]);		
-		map.dispMessage("DataLoader : Finished Loading SOM per-feature BMU list from file : " + getFName(ftrBMUFname));
+		map.dispMessage("DataLoader","loadSOM_ftrBMUs","Finished Loading SOM per-feature BMU list from file : " + getFName(ftrBMUFname));
 		return true;
 	}//loadSOM_ftrBMUs	
 	
@@ -325,9 +327,9 @@ public class SOMDataLoader implements Runnable {
 //this class will load the pre-procced csv data into the prospect data structure owned by the SOMMapData object
 //TODO this will speed up initial load of preprocced csv data.  Not a current priority
 class straffCSVDataLoader implements Callable<Boolean>{
-	public SOMMapData map;
+	public SOMMapManager map;
 	
-	public straffCSVDataLoader(SOMMapData _map) {map=_map;}
+	public straffCSVDataLoader(SOMMapManager _map) {map=_map;}
 	//load the partitioned file into the prospect data map
 	private void loadData() {}
 
@@ -341,7 +343,7 @@ class straffCSVDataLoader implements Callable<Boolean>{
 //save all Strafford training/testing data to appropriate format for SOM
 class straffDataWriter implements Runnable{
 	//public SOM_StraffordMain pa;
-	private SOMMapData mapData;	
+	private SOMMapManager mapData;	
 	private int dataFrmt;
 	private int dataSavedIDX;			//idx in flags array of SOMMapData object to denote what data was saved
 	private StraffSOMExample[] exAra;
@@ -349,7 +351,7 @@ class straffDataWriter implements Runnable{
 	private String savFileFrmt;
 	private String fileName;
 	
-	public straffDataWriter(SOMMapData _mapData, int _dataFrmt, int _dataSavedIDX, String _fileName, String _savFileFrmt, StraffSOMExample[] _exAra) {
+	public straffDataWriter(SOMMapManager _mapData, int _dataFrmt, int _dataSavedIDX, String _fileName, String _savFileFrmt, StraffSOMExample[] _exAra) {
 		mapData = _mapData;
 		dataFrmt = _dataFrmt;		//either unmodified, standardized or normalized -> 0,1,2
 		exAra = _exAra;
@@ -385,7 +387,7 @@ class straffDataWriter implements Runnable{
 		int strIDX = 4;
 		for (int i=0;i<exAra.length; ++i) {outStrings[i+strIDX]=exAra[i].toLRNString(dataFrmt, " ");	}
 		mapData.saveStrings(fileName,outStrings);		
-		mapData.dispMessage("Finished saving .lrn file with " + exAra.length+ " elements to file : "+ fileName);			
+		mapData.dispMessage("straffDataWriter","saveLRNData","Finished saving .lrn file with " + exAra.length+ " elements to file : "+ fileName);			
 	}//save lrn train data
 	
 	//save data in csv format
@@ -395,7 +397,7 @@ class straffDataWriter implements Runnable{
 		int strIDX = 4;
 		for (int i=0;i<exAra.length; ++i) {outStrings[i+strIDX]=exAra[i].toCSVString(dataFrmt);	}
 		mapData.saveStrings(fileName,outStrings);		
-		mapData.dispMessage("Finished saving .csv file with " + exAra.length+ " elements to file : "+ fileName);			
+		mapData.dispMessage("straffDataWriter","saveCSVData","Finished saving .csv file with " + exAra.length+ " elements to file : "+ fileName);			
 	}//save csv test data
 	
 	//save data in SVM record form - each record is like a map/dict -> idx: val pair.  designed for sparse data
@@ -408,7 +410,7 @@ class straffDataWriter implements Runnable{
 		for(int i=0;i<numFtrs;++i) {res += "" + i  + ":" + String.format("%1.7g", 0.0f) + " ";}
 		outStrings[exAra.length] = res;
 		mapData.saveStrings(fileName,outStrings);		
-		mapData.dispMessage("Finished saving .svm (sparse) file with " + exAra.length+ " elements to file : "+ fileName);			
+		mapData.dispMessage("straffDataWriter","saveSVMData","Finished saving .svm (sparse) file with " + exAra.length+ " elements to file : "+ fileName);			
 	}
 
 	//write all sphere data to appropriate files

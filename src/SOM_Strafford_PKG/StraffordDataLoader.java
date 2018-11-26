@@ -18,7 +18,7 @@ import com.fasterxml.jackson.databind.*;
  */
 public abstract class StraffordDataLoader implements Callable<Boolean> {
 	//ref to owning object
-	protected SOMMapData mapData;
+	protected SOMMapManager mapData;
 	//key in destination map of data arrays where data should be loaded
 	protected String destAraDataKey;
 	//used to decipher json - need one per instance
@@ -41,7 +41,7 @@ public abstract class StraffordDataLoader implements Callable<Boolean> {
 	}//ctor
 	
 	//use this to set values for each individual load.
-	public void setLoadData(SOMMapData _mapData, String _destKey, boolean _isFileLoader, String _dataLocInfoStr, boolean _hasJson, int _isDoneIDX) {
+	public void setLoadData(SOMMapManager _mapData, String _destKey, boolean _isFileLoader, String _dataLocInfoStr, boolean _hasJson, int _isDoneIDX) {
 		mapData = _mapData;
 		destAraDataKey = _destKey;
 		fileNameAndPath = _dataLocInfoStr;

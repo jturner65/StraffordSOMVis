@@ -3,7 +3,7 @@ package SOM_Strafford_PKG;
 //structure to hold all the file names, file configurations and general program configurations required to run the SOM project
 //will manage that all file names need to be reset when any are changed
 public class SOMProjConfigData {
-	public SOMMapData map;
+	public SOMMapManager map;
 	private String[] fnames; 
 	private static final int numFiles = 5;		
 	//TODO
@@ -41,7 +41,7 @@ public class SOMProjConfigData {
 	private int[] reqFileNameFlags = new int[]{trainDatFNameIDX, somResFPrfxIDX, diffsFNameIDX, minsFNameIDX, csvSavFNameIDX};
 	private String[] reqFileNames = new String[]{"trainDatFNameIDX", "somResFPrfxIDX", "diffsFNameIDX", "minsFNameIDX", "csvSavFNameIDX"};
 
-	public SOMProjConfigData(SOMMapData _map) {
+	public SOMProjConfigData(SOMMapManager _map) {
 		map=_map;
 		fnames = new String[numFiles];
 		for(int i=0;i<numFiles;++i){fnames[i]="";}

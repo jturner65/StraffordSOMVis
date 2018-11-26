@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
  *
  */
 public abstract class StraffSOMExample extends baseDataPtVis{	
-	protected static SOMMapData mapData;
+	protected static SOMMapManager mapData;
 	protected static MonitorJpJpgrp jpJpgMon;
 	//corresponds to OID in prospect database - primary key of all this data is OID in prospects
 	public final String OID;	
@@ -55,7 +55,7 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	protected SOMMapNodeExample bmu;			
 	protected dataClass label;
 	
-	public StraffSOMExample(SOMMapData _map, String _id) {
+	public StraffSOMExample(SOMMapManager _map, String _id) {
 		super();
 		mapData=_map;
 		jpJpgMon = mapData.jpJpgrpMon;
@@ -140,10 +140,10 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	//debugging tool to find issues behind occasional BMU seg faults
 	protected boolean checkForErrors(SOMMapNodeExample _n, float[] dataVar){
 		boolean inError = false;
-		if(mapData == null){						System.out.println("SOMMapNodeExample::checkForErrors : FATAL ERROR : SOMMapData object is null!");		return true;}//if mapdata is null then stop - should have come up before here anyway
-		if(_n==null){							mapData.dispMessage("SOMMapNodeExample::checkForErrors : _n is null!");		inError=true;} 
-		else if(_n.mapLoc == null){				mapData.dispMessage("SOMMapNodeExample::checkForErrors : _n has no maploc!");	inError=true;}
-		if(dataVar == null){					mapData.dispMessage("SOMMapNodeExample::checkForErrors : map variance not calculated : datavar is null!");	inError=true;	}
+		if(mapData == null){						mapData.dispMessage("SOMMapNodeExample","checkForErrors","FATAL ERROR : SOMMapData object is null!");		return true;}//if mapdata is null then stop - should have come up before here anyway
+		if(_n==null){							mapData.dispMessage("SOMMapNodeExample","checkForErrors","_n is null!");		inError=true;} 
+		else if(_n.mapLoc == null){				mapData.dispMessage("SOMMapNodeExample","checkForErrors","_n has no maploc!");	inError=true;}
+		if(dataVar == null){					mapData.dispMessage("SOMMapNodeExample","checkForErrors","map variance not calculated : datavar is null!");	inError=true;	}
 		return inError;
 	}//checkForErrors
 	
@@ -193,7 +193,7 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		String mapToGet = jpMapTypeKeys[mapToGetIDX];
 		TreeMap<Float, ArrayList<Integer>> map = mapOfTopJps.get(mapToGet);
 		//shouldn't be null - means using inappropriate key
-		if(map == null) {this.mapData.dispMessage("setMapOfJpWts : Using inappropriate key to access mapOfTopJps : " + mapToGet + " No submap exists with this key."); return;}		 
+		if(map == null) {this.mapData.dispMessage("StraffSOMExample","setMapOfJpWts","Using inappropriate key to access mapOfTopJps : " + mapToGet + " No submap exists with this key."); return;}		 
 		ArrayList<Integer> jpIdxsAtWt = map.get(wt);
 		if (jpIdxsAtWt == null) {jpIdxsAtWt = new ArrayList<Integer>(); }
 		jpIdxsAtWt.add(jp);
@@ -212,7 +212,7 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		allJPFtrIDXs = new ArrayList<Integer>();
 		for(Integer jp : allJPs) {
 			Integer jpIDX = jpJpgMon.getJpToFtrIDX(jp);
-			if(jpIDX==null) {mapData.dispMessage("ERROR!  null value in  jpJpgMon.getJpToFtrIDX("+jp+")" );}
+			if(jpIDX==null) {mapData.dispMessage("StraffSOMExample","buildAllJPFtrIDXsJPs","ERROR!  null value in  jpJpgMon.getJpToFtrIDX("+jp+")" );}
 			allJPFtrIDXs.add(jpJpgMon.getJpToFtrIDX(jp));
 		}
 	}
@@ -236,7 +236,7 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	}//buildJPsFromFtrVec
 	//build normalized vector of data - only after features have been set
 	protected void buildNormFtrData() {
-		if(!ftrsBuilt) {mapData.dispMessage("OID : " + OID + " : Features not built, cannot normalize feature data");return;}
+		if(!ftrsBuilt) {mapData.dispMessage("StraffSOMExample","buildNormFtrData","OID : " + OID + " : Features not built, cannot normalize feature data");return;}
 		normFtrMap=new TreeMap<Integer, Float>();
 		if(this.ftrVecMag == 0) {return;}
 		for (Integer IDX : allJPFtrIDXs) {
@@ -289,9 +289,9 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	////useUnmoddedDat = 0, useScaledDat = 1, useNormedDat
 	public String toCSVString(int _type) {
 		switch(_type){
-			case SOMMapData.useUnmoddedDat : {return _toCSVString(ftrMap); }
-			case SOMMapData.useNormedDat  : {return _toCSVString(normFtrsBuilt ? normFtrMap : ftrMap);}
-			case SOMMapData.useScaledDat  : {return _toCSVString(stdFtrsBuilt ? stdFtrMap : ftrMap); }
+			case SOMMapManager.useUnmoddedDat : {return _toCSVString(ftrMap); }
+			case SOMMapManager.useNormedDat  : {return _toCSVString(normFtrsBuilt ? normFtrMap : ftrMap);}
+			case SOMMapManager.useScaledDat  : {return _toCSVString(stdFtrsBuilt ? stdFtrMap : ftrMap); }
 			default : {return _toCSVString(ftrMap); }
 		}
 	}//toCSVString
@@ -306,9 +306,9 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	//return LRN-format (dense) string of this object's features, depending on which type is selected - check to make sure 2ndary features exist before attempting to build data strings
 	public String toLRNString(int _type, String sep) {
 		switch(_type){
-			case SOMMapData.useUnmoddedDat : {return _toLRNString(ftrMap, sep); }
-			case SOMMapData.useNormedDat   : {return _toLRNString(normFtrsBuilt ? normFtrMap : ftrMap, sep);}
-			case SOMMapData.useScaledDat   : {return _toLRNString(stdFtrsBuilt ? stdFtrMap : ftrMap, sep); }
+			case SOMMapManager.useUnmoddedDat : {return _toLRNString(ftrMap, sep); }
+			case SOMMapManager.useNormedDat   : {return _toLRNString(normFtrsBuilt ? normFtrMap : ftrMap, sep);}
+			case SOMMapManager.useScaledDat   : {return _toLRNString(stdFtrsBuilt ? stdFtrMap : ftrMap, sep); }
 			default : {return _toLRNString(ftrMap, sep); }
 		}		
 	}//toLRNString
@@ -322,9 +322,9 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	//return LRN-format (dense) string of this object's features, depending on which type is selected - check to make sure 2ndary features exist before attempting to build data strings
 	public String toSVMString(int _type) {
 		switch(_type){
-			case SOMMapData.useUnmoddedDat : {return _toSVMString(ftrMap); }
-			case SOMMapData.useNormedDat   : {return _toSVMString(normFtrsBuilt ? normFtrMap : ftrMap);}
-			case SOMMapData.useScaledDat   : {return _toSVMString(stdFtrsBuilt ? stdFtrMap : ftrMap); }
+			case SOMMapManager.useUnmoddedDat : {return _toSVMString(ftrMap); }
+			case SOMMapManager.useNormedDat   : {return _toSVMString(normFtrsBuilt ? normFtrMap : ftrMap);}
+			case SOMMapManager.useScaledDat   : {return _toSVMString(stdFtrsBuilt ? stdFtrMap : ftrMap); }
 			default : {return _toSVMString(ftrMap); }
 		}		
 	}//toLRNString
@@ -344,9 +344,9 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	
 	public TreeMap<Integer, Float> getCurrentFtrMap(int _type){
 		switch(_type){
-			case SOMMapData.useUnmoddedDat : {return ftrMap; }
-			case SOMMapData.useNormedDat   : {return (normFtrsBuilt ? normFtrMap : ftrMap);}
-			case SOMMapData.useScaledDat   : {return (stdFtrsBuilt ? stdFtrMap : ftrMap); }
+			case SOMMapManager.useUnmoddedDat : {return ftrMap; }
+			case SOMMapManager.useNormedDat   : {return (normFtrsBuilt ? normFtrMap : ftrMap);}
+			case SOMMapManager.useScaledDat   : {return (stdFtrsBuilt ? stdFtrMap : ftrMap); }
 			default : {return ftrMap; }
 		}		
 	}
@@ -414,7 +414,7 @@ class ProspectExample extends StraffSOMExample{
 	private jpOccurrenceData posOptAllEventObj = null;
 	
 	//build this object based on prospect object
-	public ProspectExample(SOMMapData _map,prospectData _prspctData) {
+	public ProspectExample(SOMMapManager _map,prospectData _prspctData) {
 		super(_map,_prspctData.OID);	
 		if( _prspctData.rawJpMapOfArrays.size() > 0) {
 			prs_JPGrp = _prspctData.rawJpMapOfArrays.firstKey();
@@ -425,7 +425,7 @@ class ProspectExample extends StraffSOMExample{
 	}//prospectData ctor
 	
 	//build this object based on csv string - rebuild data from csv string columns 4+
-	public ProspectExample(SOMMapData _map,String _OID, String _csvDataStr) {
+	public ProspectExample(SOMMapManager _map,String _OID, String _csvDataStr) {
 		super(_map,_OID);		
 		String[] dataAra = _csvDataStr.split(",");
 		//idx 0 : OID; idx 1,2, 3 are date, prspct_JPG, prsPct_JP
@@ -483,7 +483,7 @@ class ProspectExample extends StraffSOMExample{
 		
 	public  TreeMap<Integer, jpOccurrenceData> getOcccurenceMap(String key) {
 		TreeMap<Integer, jpOccurrenceData> res = JpOccurrences.get(key);
-		if (res==null) {mapData.dispMessage("ProspectExample::getOcccurenceMap : JpOccurrences map does not have key : " + key); return null;}
+		if (res==null) {mapData.dispMessage("ProspectExample","getOcccurenceMap","JpOccurrences map does not have key : " + key); return null;}
 		return res;
 	}
 	
@@ -569,17 +569,17 @@ class ProspectExample extends StraffSOMExample{
 	
 	public void addObj(BaseRawData obj, int type) {
 		switch(type) {
-		case SOMMapData.prspctIDX : 	{mapData.dispMessage("ProspectExample::addObj : ERROR attempting to add prospect raw data as event data. Ignored");return;}
-		case SOMMapData.orderEvntIDX : 	{
+		case SOMMapManager.prspctIDX : 	{mapData.dispMessage("ProspectExample","addObj","ERROR attempting to add prospect raw data as event data. Ignored");return;}
+		case SOMMapManager.orderEvntIDX : 	{
 			addDataToTrainMap((OrderEvent)obj,eventsByDateMap.get(mapKeys[0]), 0); 
 			return;}
-		case SOMMapData.optEvntIDX : 	{
+		case SOMMapManager.optEvntIDX : 	{
 			addDataToTrainMap((OptEvent)obj,eventsByDateMap.get(mapKeys[1]), 1); 
 			return;}
-		case SOMMapData.linkEvntIDX : 	{
+		case SOMMapManager.linkEvntIDX : 	{
 			addDataToTrainMap((LinkEvent)obj,eventsByDateMap.get(mapKeys[2]), 2); 
 			return;}
-		default :{mapData.dispMessage("ProspectExample::addObj : ERROR attempting to add unknown raw data type : " + type + " as event data. Ignored");return;}
+		default :{mapData.dispMessage("ProspectExample","addObj","ERROR attempting to add unknown raw data type : " + type + " as event data. Ignored");return;}
 		}		
 	}
 	
@@ -716,12 +716,12 @@ class ProductExample extends StraffSOMExample{
 	private static int IDcount = 0;	//incrementer so that all examples have unique ID	
 	protected TcTagTrainData trainPrdctData;
 	
-	public ProductExample(SOMMapData _map, TcTagData data) {
+	public ProductExample(SOMMapManager _map, TcTagData data) {
 		super(_map,IDprfx + "_" +  String.format("%09d", IDcount++));
 		trainPrdctData = new TcTagTrainData(data);	
 	}//ctor
 	
-	public ProductExample(SOMMapData _map,String _OID, String _csvDataStr) {
+	public ProductExample(SOMMapManager _map,String _OID, String _csvDataStr) {
 		super(_map,_OID);		
 		//String[] dataAra = _csvDataStr.split(",");
 		trainPrdctData = new TcTagTrainData(_csvDataStr);
@@ -793,7 +793,7 @@ class DispSOMMapExample extends StraffSOMExample{
 	private String labelDat;
 	private TreeMap<Float, String> strongestFtrs;
 
-	public DispSOMMapExample(SOMMapData _map, myPointf ptrLoc, TreeMap<Integer, Float> _ftrs, float _thresh) {
+	public DispSOMMapExample(SOMMapManager _map, myPointf ptrLoc, TreeMap<Integer, Float> _ftrs, float _thresh) {
 		super(_map, "TempEx_"+ptrLoc.toStrBrf());
 		ftrMap = new TreeMap<Integer, Float>();	
 		ftrThresh = _thresh;
@@ -867,7 +867,7 @@ class SOMMapNodeExample extends StraffSOMExample{
 // ftrMap, stdFtrMap, normFtrMap;
 	//feature type denotes what kind of features the tkns being sent represent - 0 is unmodded, 1 is standardized across all data for each feature, 2 is normalized across all features for single data point
 	//TODO need to support normalized data by setting original magnitude of data
-	public SOMMapNodeExample(SOMMapData _map, Tuple<Integer,Integer> _mapNode, float[] _ftrs) {
+	public SOMMapNodeExample(SOMMapManager _map, Tuple<Integer,Integer> _mapNode, float[] _ftrs) {
 		super(_map, "MapNode_"+_mapNode.x+"_"+_mapNode.y);
 		//ftrTypeMapBuilt = _ftrType;
 		if(_ftrs.length != 0){	setFtrsFromFloatAra(_ftrs);	}
@@ -876,7 +876,7 @@ class SOMMapNodeExample extends StraffSOMExample{
 	}
 	
 	//feature type denotes what kind of features the tkns being sent represent
-	public SOMMapNodeExample(SOMMapData _map,Tuple<Integer,Integer> _mapNode, String[] _strftrs) {
+	public SOMMapNodeExample(SOMMapManager _map,Tuple<Integer,Integer> _mapNode, String[] _strftrs) {
 		super(_map, "MapNode_"+_mapNode.x+"_"+_mapNode.y);
 		//ftrTypeMapBuilt = _ftrType;
 		if(_strftrs.length != 0){	setFtrsFromStrAra(_strftrs);	}
@@ -989,7 +989,7 @@ class SOMMapNodeExample extends StraffSOMExample{
 	@Override
 	public dataClass getLabel(){
 		if(numMappedTEx == 0){
-			mapData.dispMessage("Mapnode :"+mapNodeLoc.toString()+" has no mapped BMU examples.");
+			mapData.dispMessage("SOMMapNodeExample","getLabel","Mapnode :"+mapNodeLoc.toString()+" has no mapped BMU examples.");
 			return null;
 		}
 		return examplesBMU.firstEntry().getValue().getLabel();}

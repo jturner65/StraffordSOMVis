@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 //this class will monitor presence and counts of jpgroups and jps
 //in training data for map
 public class MonitorJpJpgrp {
-	public static SOMMapData mapData;
+	public static SOMMapManager mapData;
 	////////////////////////////////////////
 	//this information comes from the prospect and product map data
 	//reference to jp ids and jpgrps and counts of all jps and jpgrps seen in all data 
@@ -29,7 +29,7 @@ public class MonitorJpJpgrp {
 	private int numFtrs;
 	
 	
-	public MonitorJpJpgrp(SOMMapData _mapData) {
+	public MonitorJpJpgrp(SOMMapManager _mapData) {
 		mapData=_mapData;		
 	}//ctor
 	
@@ -78,7 +78,7 @@ public class MonitorJpJpgrp {
 				tmpSetProspectEventJpsJpgs.add(new Tuple<Integer,Integer>(jpgJp));			//only seen in prospect records
 			}											//add all tuples to set already seen
 		}//for each prospect
-		mapData.dispMessage("MonitorJpJpgrp : setJPDataFromExampleData : num jps seen in prospects  : " + tmpSetAllJpsJpgs.size());
+		mapData.dispMessage("MonitorJpJpgrp","setJPDataFromExampleData","num jps seen in prospects  : " + tmpSetAllJpsJpgs.size());
 		
 		//add all jps-jpgs from product data - will have data not seen in prospects		
 		for(ProductExample ex : prdctMap.values()) {
@@ -91,7 +91,7 @@ public class MonitorJpJpgrp {
 				tmpSetProductJpsJpgs.add(new Tuple<Integer,Integer>(jpgJp));
 			}											//add all tuples to set already seen
 		}//for each product		
-		mapData.dispMessage("MonitorJpJpgrp : setJPDataFromExampleData : num jps seen in products  : " + tmpSetProductJpsJpgs.size()  + " | # seen now in tmpSetAllJpsJpgs :  " +tmpSetAllJpsJpgs.size()+ " | # seen only in products : " + (tmpSetAllJpsJpgs.size() - tmpSetProspectEventJpsJpgs.size()) + " | # of product examples : " + prdctMap.size());
+		mapData.dispMessage("MonitorJpJpgrp","setJPDataFromExampleData","num jps seen in products  : " + tmpSetProductJpsJpgs.size()  + " | # seen now in tmpSetAllJpsJpgs :  " +tmpSetAllJpsJpgs.size()+ " | # seen only in products : " + (tmpSetAllJpsJpgs.size() - tmpSetProspectEventJpsJpgs.size()) + " | # of product examples : " + prdctMap.size());
 				
 		//build jpsToJpgs and JpgsToJps structs
 		for (Tuple<Integer,Integer> jpgJp : tmpSetAllJpsJpgs) {
@@ -109,7 +109,7 @@ public class MonitorJpJpgrp {
 		
 		numFtrs = jpSeenCount.size();
 		
-		mapData.dispMessage("MonitorJpJpgrp : setJPDataFromExampleData : numFtrs : " + numFtrs);
+		mapData.dispMessage("MonitorJpJpgrp","setJPDataFromExampleData","numFtrs : " + numFtrs);
 	}//setJPDataFromProspectData	
 	
 		
@@ -128,19 +128,19 @@ public class MonitorJpJpgrp {
 	
 	//debugging function to display all unique jps seen in data
 	public void dbgShowUniqueJPsSeen() {
-		mapData.dispMessage("All Jp's seen : ");
-		for (Integer key : jpSeenCount.keySet()) {mapData.dispMessage("JP : "+ String.format("%3d",key) + "   |Count : " + String.format("%6d",jpSeenCount.get(key)) + "\t|Ftr IDX : " + String.format("%3d",jpToFtrIDX.get(key)) + "\t|Owning JPG : " + String.format("%2d",jpsToJpgs.get(key)));}
-		mapData.dispMessage("Number of unique JP's seen : " + jpSeenCount.size());
+		mapData.dispMessage("MonitorJpJpgrp","dbgShowUniqueJPsSeen","All Jp's seen : ");
+		for (Integer key : jpSeenCount.keySet()) {mapData.dispMessage("MonitorJpJpgrp","dbgShowUniqueJPsSeen","JP : "+ String.format("%3d",key) + "   |Count : " + String.format("%6d",jpSeenCount.get(key)) + "\t|Ftr IDX : " + String.format("%3d",jpToFtrIDX.get(key)) + "\t|Owning JPG : " + String.format("%2d",jpsToJpgs.get(key)));}
+		mapData.dispMessage("MonitorJpJpgrp","dbgShowUniqueJPsSeen","Number of unique JP's seen : " + jpSeenCount.size());
 		dbgDispKnownJPsJPGs();
 	}//dbgShowUniqueJPsSeen
 	
 	public void dbgDispKnownJPsJPGs() {
-		mapData.dispMessage("\nJPGs seen : (jp : count : ftridx) :");
+		mapData.dispMessage("MonitorJpJpgrp","dbgDispKnownJPsJPGs","JPGs seen : (jp : count : ftridx) :");
 		for (Integer jpgrp : jpgsToJps.keySet()) {
 			String res = "JPG : " + String.format("%3d", jpgrp);
 			TreeSet <Integer> jps = jpgsToJps.get(jpgrp);			
 			for (Integer jp : jps) {res += " ("+String.format("%3d", jp)+" :"+String.format("%6d", jpSeenCount.get(jp))+" : "+ String.format("%3d", jpToFtrIDX.get(jp))+"),";}
-			mapData.dispMessage(res);		
+			mapData.dispMessage("MonitorJpJpgrp","dbgDispKnownJPsJPGs",res);		
 		}
 	}//dbgDispKnownJPsJPGs
 	
