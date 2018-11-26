@@ -459,52 +459,12 @@ public class SOMMapManager {
 			
 			
 		} catch (IOException e) {
-	        // this code will be executed if a IOException happens "e.getMessage()" will have an error
-			//e.printStackTrace();
 			dispMessage("SOMMapManager","runMap","Process failed with IOException : " + e.toString() + "\n\t"+ e.getMessage());
 	    } catch (InterruptedException e) {
-			//e.printStackTrace();
 	    	dispMessage("SOMMapManager","runMap","Process failed with InterruptedException : " + e.toString() + "\n\t"+ e.getMessage());	    	
 	    } catch (ExecutionException e) {
-			// TODO Auto-generated catch block
-			//e.printStackTrace();
 	    	dispMessage("SOMMapManager","runMap","Process failed with ExecutionException : " + e.toString() + "\n\t"+ e.getMessage());
 		}		
-		
-		
-		
-//		try {
-//			final Process process=pb.start();
-//			if(showDebug){for(String s : pb.command()){dispMessage("SOMMapData","runMap","cmd : " + s);}dispMessage("SOMMapData","runMap",pb.directory().toString());}	
-//			
-//			BufferedReader rdrIn = new BufferedReader(new InputStreamReader(process.getInputStream())); 
-//			BufferedReader rdrErr = new BufferedReader(new InputStreamReader(process.getErrorStream())); 
-//			//put output into a string
-//			StringBuilder strbldIn = new StringBuilder(),strbldErr = new StringBuilder();
-//			String sIn = null, sErr = null;
-//			dispMessage("SOMMapData","runMap","begin getting output : in-stream rdr is null? : " + (sIn==null));
-//			dispMessage("SOMMapData","runMap","begin getting output : error-stream rdr is null? : " + (sErr==null));
-//	
-//			while (((sIn = rdrIn.readLine()) != null) | ((sErr = rdrErr.readLine())!= null)){
-//				dispMessage("SOMMapData","runMap","Input Stream Msg : " + sIn);
-//				strbldIn.append(sIn);			
-//				strbldIn.append(System.getProperty("line.separator"));
-//				//sIn = rdrIn.readLine();
-//				if (sErr != null) { 
-//					dispMessage("SOMMapData","runMap","Error Stream Msg : " + sErr);
-//					strbldErr.append(sErr);			
-//					strbldErr.append(System.getProperty("line.separator"));
-//					//sErr = rdrErr.readLine();
-//				}
-//			}
-//			String resultIn = strbldIn.toString(), resultErr = strbldErr.toString() ;//result of running map TODO save to log?
-//		} catch (IOException e) {
-//	        // this code will be executed if a IOException happens "e.getMessage()" will have an error
-//			e.printStackTrace();
-//			dispMessage("SOMMapData","runMap","runMap failed with exception : " + e.toString() + "\n\t"+ e.getMessage());
-//	    } 
-		
-		
 		
 		dispMessage("SOMMapData","runMap","runMap Finished");
 	}
@@ -1500,6 +1460,7 @@ class SOM_MAPDat{
 		execStr = _execStr;
 		mapInts = _mapInts;
 		curOS = _curOS;
+		System.out.println("Cur os is : " + curOS);
 		isSparse = (mapInts.get("mapKType") > 1);//0 and 1 are dense cpu/gpu, 2 is sparse cpu
 		mapFloats = _mapFloats;
 		mapStrings = _mapStrings;
@@ -1580,6 +1541,7 @@ class SOM_MAPDat{
 	private String[] buildExecStrAra(){
 		String[] res;
 		if (curOS.toLowerCase().contains("mac os x")) {
+			System.out.println("\n\nMac OS\n\n");
 			res = new String[]{execDir +File.separator + execStr,
 			"-k",""+mapInts.get("mapKType"),"-x",""+mapInts.get("mapCols"),"-y",""+mapInts.get("mapRows"), "-e",""+mapInts.get("mapEpochs"),"-r",""+mapInts.get("mapStRad"),"-R",""+mapInts.get("mapEndRad"),
 			"-l",""+String.format("%.4f",mapFloats.get("mapStLrnRate")),"-L",""+String.format("%.4f",mapFloats.get("mapEndLrnRate")), 
@@ -1599,8 +1561,6 @@ class SOM_MAPDat{
 	}//execString
 	
 	public boolean isToroidal(){return (mapStrings.get("mapBounds").equals("toroid"));}
-	
-	
 	
 	//return string array describing this SOM map execution in csv format so can be saved to a file - group each construct by string title
 	public ArrayList<String> buildStringDescAra() {
