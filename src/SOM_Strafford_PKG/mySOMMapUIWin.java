@@ -105,7 +105,7 @@ public class mySOMMapUIWin extends myDispWindow {
 	/////////
 	//custom debug/function ui button names -empty will do nothing
 	public String[] menuDbgBtnNames = new String[] {"Disp JPs","Disp Calc","Disp Ftrs","Disp Raw Data","Dbg 5"};//must have literals for every button or this is ignored by UI - buttons correspond to guiBtnNames list in mySideBarMenu 
-	public String[] menuFuncBtnNames = new String[] {"Ld/proc ---", "Ld Train CSV", "Bld SOMDat", "Bld Ex Map", "Cust Func 4"};//must have literals for every button or ignored
+	public String[] menuFuncBtnNames = new String[] {"Ld/proc ---", "Ld Train CSV", "Bld SOMDat", "PreBuilt Map", "Cust Func 4"};//must have literals for every button or ignored
 	private String[] menuLdRawFuncBtnNames = new String[] {"Ld/proc CSV", "Ld/proc SQL"};
 	private int loadRawBtnIDX = 0;
 	

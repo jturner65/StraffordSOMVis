@@ -436,40 +436,76 @@ public class SOMMapManager {
 		execStr[0] = wkDirStr + cmdStr;
 		for(int i =2; i<cmdExecStr.length;++i){execStr[i-1] = cmdExecStr[i]; argsStr +=cmdExecStr[i]+" | ";}
 		if(showDebug){dispMessage("SOMMapData","runMap","wkDir : "+ wkDirStr + "\ncmdStr : " + cmdStr + "\nargs : "+argsStr);}
-		ProcessBuilder pb = new ProcessBuilder(execStr);//.inheritIO();
 		
+		//monitor in multiple threads, either msgs or errors
+		List<Future<Boolean>> procMsgMgrsFtrs = new ArrayList<Future<Boolean>>();
+		List<messageMgr> procMsgMgrs = new ArrayList<messageMgr>(); 
+		
+		ProcessBuilder pb = new ProcessBuilder(execStr);		
 		File wkDir = new File(wkDirStr); 
 		pb.directory(wkDir);
 		try {
 			final Process process=pb.start();
-			if(showDebug){for(String s : pb.command()){dispMessage("SOMMapData","runMap","cmd : " + s);}dispMessage("SOMMapData","runMap",pb.directory().toString());}	
 			
-			BufferedReader rdrIn = new BufferedReader(new InputStreamReader(process.getInputStream())); 
-			BufferedReader rdrErr = new BufferedReader(new InputStreamReader(process.getErrorStream())); 
-			//put output into a string
-			StringBuilder strbldIn = new StringBuilder(),strbldErr = new StringBuilder();
-			String sIn = null, sErr = null;
-			dispMessage("SOMMapData","runMap","begin getting output : in-stream rdr is null? : " + (sIn==null));
-			dispMessage("SOMMapData","runMap","begin getting output : error-stream rdr is null? : " + (sErr==null));
-	
-			while (((sIn = rdrIn.readLine()) != null) | ((sErr = rdrErr.readLine())!= null)){
-				dispMessage("SOMMapData","runMap","Input Stream Msg : " + sIn);
-				strbldIn.append(sIn);			
-				strbldIn.append(System.getProperty("line.separator"));
-				//sIn = rdrIn.readLine();
-				if (sErr != null) { 
-					dispMessage("SOMMapData","runMap","Error Stream Msg : " + sErr);
-					strbldErr.append(sErr);			
-					strbldErr.append(System.getProperty("line.separator"));
-					//sErr = rdrErr.readLine();
-				}
-			}
-			String resultIn = strbldIn.toString(), resultErr = strbldErr.toString() ;//result of running map TODO save to log?
+			messageMgr inMsgs = new messageMgr(this,process,new InputStreamReader(process.getInputStream()), "Input" );
+			messageMgr errMsgs = new messageMgr(this,process,new InputStreamReader(process.getErrorStream()), "Error" );
+			procMsgMgrs.add(inMsgs);
+			procMsgMgrs.add(errMsgs);
+			
+			procMsgMgrsFtrs = th_exec.invokeAll(procMsgMgrs);for(Future<Boolean> f: procMsgMgrsFtrs) { f.get(); }
+
+			String resultIn = inMsgs.getResults(), resultErr = errMsgs.getResults() ;//result of running map TODO save to log?
+			
+			
+			
 		} catch (IOException e) {
 	        // this code will be executed if a IOException happens "e.getMessage()" will have an error
-			e.printStackTrace();
-			dispMessage("SOMMapData","runMap","runMap failed with exception : " + e.toString() + "\n\t"+ e.getMessage());
-	    } 
+			//e.printStackTrace();
+			System.out.println("Process failed with IOException : " + e.toString() + "\n\t"+ e.getMessage());
+	    } catch (InterruptedException e) {
+			//e.printStackTrace();
+			System.out.println("Process failed with InterruptedException : " + e.toString() + "\n\t"+ e.getMessage());	    	
+	    } catch (ExecutionException e) {
+			// TODO Auto-generated catch block
+			//e.printStackTrace();
+			System.out.println("Process failed with ExecutionException : " + e.toString() + "\n\t"+ e.getMessage());
+		}		
+		
+		
+		
+//		try {
+//			final Process process=pb.start();
+//			if(showDebug){for(String s : pb.command()){dispMessage("SOMMapData","runMap","cmd : " + s);}dispMessage("SOMMapData","runMap",pb.directory().toString());}	
+//			
+//			BufferedReader rdrIn = new BufferedReader(new InputStreamReader(process.getInputStream())); 
+//			BufferedReader rdrErr = new BufferedReader(new InputStreamReader(process.getErrorStream())); 
+//			//put output into a string
+//			StringBuilder strbldIn = new StringBuilder(),strbldErr = new StringBuilder();
+//			String sIn = null, sErr = null;
+//			dispMessage("SOMMapData","runMap","begin getting output : in-stream rdr is null? : " + (sIn==null));
+//			dispMessage("SOMMapData","runMap","begin getting output : error-stream rdr is null? : " + (sErr==null));
+//	
+//			while (((sIn = rdrIn.readLine()) != null) | ((sErr = rdrErr.readLine())!= null)){
+//				dispMessage("SOMMapData","runMap","Input Stream Msg : " + sIn);
+//				strbldIn.append(sIn);			
+//				strbldIn.append(System.getProperty("line.separator"));
+//				//sIn = rdrIn.readLine();
+//				if (sErr != null) { 
+//					dispMessage("SOMMapData","runMap","Error Stream Msg : " + sErr);
+//					strbldErr.append(sErr);			
+//					strbldErr.append(System.getProperty("line.separator"));
+//					//sErr = rdrErr.readLine();
+//				}
+//			}
+//			String resultIn = strbldIn.toString(), resultErr = strbldErr.toString() ;//result of running map TODO save to log?
+//		} catch (IOException e) {
+//	        // this code will be executed if a IOException happens "e.getMessage()" will have an error
+//			e.printStackTrace();
+//			dispMessage("SOMMapData","runMap","runMap failed with exception : " + e.toString() + "\n\t"+ e.getMessage());
+//	    } 
+		
+		
+		
 		dispMessage("SOMMapData","runMap","runMap Finished");
 	}
 	//Build map from data by aggregating all training data, building SOM exec string from UI input, and calling OS cmd to run SOM_MAP
@@ -613,6 +649,7 @@ public class SOMMapManager {
 				loadRawDataVals(loadRawDatStrs, fromCSVFiles,idx);
 			}
 		} else {
+			straffDataLoaders = new ArrayList<StraffordDataLoader>();
 			for (int idx=0;idx<numStraffDataTypes;++idx) {//build a thread per data type
 				String[] loadRawDatStrs = getLoadRawDataStrs(fromCSVFiles,idx);
 				straffDataLoaders.get(idx).setLoadData(this, loadRawDatStrs[0], fromCSVFiles, loadRawDatStrs[1], straffRawDatUsesJSON[idx], straffObjFlagIDXs[idx]);
@@ -1611,3 +1648,46 @@ class dataDesc{
 	
 }//class dataDesc
 
+
+//manage a message stream from a process
+class messageMgr implements Callable<Boolean> {
+	SOMMapManager mapMgr;
+	final Process process;
+	BufferedReader rdr;
+	StringBuilder strbld;
+	String type;
+	int iter = 0;
+	public messageMgr(SOMMapManager _mapMgr, final Process _process, Reader _in, String _type) {
+		mapMgr = _mapMgr;
+		process=_process;
+		rdr = new BufferedReader(_in); 
+		strbld = new StringBuilder();
+		type=_type;
+	}
+	
+	private void dispMessage(String str) {
+		if(mapMgr != null) {mapMgr.dispMessage("messageMgr","call ("+type+")", str);}
+		else {				System.out.println(str);	}
+	}
+	
+	
+	public String getResults() {	return strbld.toString();	}
+	@Override
+	public Boolean call() throws Exception {
+		String sIn = null;
+		try {
+			while ((sIn = rdr.readLine()) != null) {
+				dispMessage("Stream " + type+" Line : " + (iter++) + " | Msg : " + sIn);
+				strbld.append(sIn);			
+				strbld.append(System.getProperty("line.separator"));				
+			}
+		} catch (IOException e) {
+	        // this code will be executed if a IOException happens "e.getMessage()" will have an error
+			e.printStackTrace();
+			dispMessage("Process IO failed with exception : " + e.toString() + "\n\t"+ e.getMessage());
+		}
+		return true;
+	}
+	
+	
+}//messageMgr
