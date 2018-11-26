@@ -411,11 +411,11 @@ public class SOMMapManager {
 		    while (sc.hasNextLine()) {lines.add(sc.nextLine()); }
 		    //Scanner suppresses exceptions
 		    if (sc.ioException() != null) { throw sc.ioException(); }
-		    System.out.println(dispYesStr+"\tLength : " +  lines.size());
+		    dispMessage("SOMMapManager", "loadFileIntoStringAra",dispYesStr+"\tLength : " +  lines.size());
 		    res = lines.toArray(new String[0]);		    
 		} catch (Exception e) {	
 			e.printStackTrace();
-			System.out.println("!!"+dispNoStr);
+			 dispMessage("SOMMapManager", "loadFileIntoStringAra","!!"+dispNoStr);
 			res= new String[0];
 		} 
 		finally {
@@ -454,21 +454,21 @@ public class SOMMapManager {
 			
 			procMsgMgrsFtrs = th_exec.invokeAll(procMsgMgrs);for(Future<Boolean> f: procMsgMgrsFtrs) { f.get(); }
 
-			String resultIn = inMsgs.getResults(), resultErr = errMsgs.getResults() ;//result of running map TODO save to log?
-			
+			String resultIn = inMsgs.getResults(), 
+					resultErr = errMsgs.getResults() ;//result of running map TODO save to log?			
 			
 			
 		} catch (IOException e) {
 	        // this code will be executed if a IOException happens "e.getMessage()" will have an error
 			//e.printStackTrace();
-			System.out.println("Process failed with IOException : " + e.toString() + "\n\t"+ e.getMessage());
+			dispMessage("SOMMapManager","runMap","Process failed with IOException : " + e.toString() + "\n\t"+ e.getMessage());
 	    } catch (InterruptedException e) {
 			//e.printStackTrace();
-			System.out.println("Process failed with InterruptedException : " + e.toString() + "\n\t"+ e.getMessage());	    	
+	    	dispMessage("SOMMapManager","runMap","Process failed with InterruptedException : " + e.toString() + "\n\t"+ e.getMessage());	    	
 	    } catch (ExecutionException e) {
 			// TODO Auto-generated catch block
 			//e.printStackTrace();
-			System.out.println("Process failed with ExecutionException : " + e.toString() + "\n\t"+ e.getMessage());
+	    	dispMessage("SOMMapManager","runMap","Process failed with ExecutionException : " + e.toString() + "\n\t"+ e.getMessage());
 		}		
 		
 		
@@ -735,6 +735,7 @@ public class SOMMapManager {
 	public void loadAllPreProccedData(boolean eventsOnly) {
 		//		boolean singleThread=numUsableThreads<1;//this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
 		dispMessage("SOMMapData","loadAllPreProccedData","Begin loading preprocced data");
+		//perform the f
 		loadAllPropsectMapData(eventsOnly);
 		loadAllProductMapData();
 		finishSOMExampleBuild(prospectMap);		
@@ -743,6 +744,7 @@ public class SOMMapManager {
 	
 	//load prospect mapped training data into StraffSOMExamples from disk
 	private void loadAllPropsectMapData(boolean eventsOnly) {
+		//perform in multiple threads if possible
 		dispMessage("SOMMapData","loadAllPropsectMapData","Loading all prospect map data " + (eventsOnly ? "that only have event-based training info" : "that have any training info (including only prospect jpg/jp specification)"));
 		//clear out current prospect data
 		resetProspectMap();
@@ -755,21 +757,34 @@ public class SOMMapManager {
 		try {
 			numPartitions = Integer.parseInt(loadRes[0].split(" : ")[1].trim());
 		} catch (Exception e) {e.printStackTrace(); dispMessage("SOMMapData","loadAllPropsectMapData","Due to error with not finding format file : " + fmtFile+ " no data will be loaded."); return;} 
-		for (int i=0; i<numPartitions;++i) {
-			String dataFile =  loadSrcFNamePrefixAra[0]+"_"+i+".csv";
-			String[] csvLoadRes = loadFileIntoStringAra(dataFile, "Data file " + i +" loaded", "Data File " + i +" Failed to load");
-			//ignore first entry - header
-			for (int j=1;j<csvLoadRes.length; ++j) {
-				String str = csvLoadRes[j];
-				int pos = str.indexOf(',');
-				String oid = str.substring(0, pos);
-				ProspectExample ex = new ProspectExample(this, oid, str);
-				prospectMap.put(oid, ex);			
+		
+		boolean singleThread=numUsableThreads<1;//this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
+		if(singleThread) {
+			for (int i=0; i<numPartitions;++i) {
+				String dataFile = loadSrcFNamePrefixAra[0]+"_"+i+".csv";
+				String[] csvLoadRes = loadFileIntoStringAra(dataFile, "Data file " + i +" loaded", "Data File " + i +" Failed to load");
+				//ignore first entry - header
+				for (int j=1;j<csvLoadRes.length; ++j) {
+					String str = csvLoadRes[j];
+					int pos = str.indexOf(',');
+					String oid = str.substring(0, pos);
+					ProspectExample ex = new ProspectExample(this, oid, str);
+					prospectMap.put(oid, ex);			
+				}
+			}			
+		} else {//load each file in its own csv
+			List<Future<Boolean>> preProcLoadFtrs = new ArrayList<Future<Boolean>>();
+			List<straffCSVDataLoader> preProcLoaders = new ArrayList<straffCSVDataLoader>();
+			for (int i=0; i<numPartitions;++i) {				
+				preProcLoaders.add(new straffCSVDataLoader(this, i, loadSrcFNamePrefixAra[0]+"_"+i+".csv", "Data file " + i +" loaded", "Data File " + i +" Failed to load"));
 			}
-		}		
+			try {preProcLoadFtrs = th_exec.invokeAll(preProcLoaders);for(Future<Boolean> f: preProcLoadFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }					
+		}
+	
 		dispMessage("SOMMapData","loadAllPropsectMapData","Finished loading and preprocessing all local prospect map data and calculating features.  Number of entries in prospectMap : " + prospectMap.size());
 	}//loadAllPropsectMapData
-
+	
+	//load product pre-procced data from tc_taggings source
 	private void loadAllProductMapData() {
 		dispMessage("SOMMapData","loadAllProductMapData","Loading all product map data");
 		//clear out current product data

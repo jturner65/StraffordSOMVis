@@ -82,7 +82,6 @@ public class mySOMMapUIWin extends myDispWindow {
 	private float mapNodeWtDispThresh;
 	//raw data source : 0 == csv, 1 == sql
 	private int rawDataSource;
-	//
 	
 	//////////////////////////////
 	//map drawing 	draw/interaction variables
@@ -96,7 +95,6 @@ public class mySOMMapUIWin extends myDispWindow {
 	private int curMapImgIDX;
 	//scaling value - use this to decrease the image size and increase the scaling so it is rendered the same size
 	public static final float mapScaleVal = 10.0f;
-
 	
 	public DispSOMMapExample mseOvrData;//label of mouse-over location in map
 	
@@ -289,7 +287,7 @@ public class mySOMMapUIWin extends myDispWindow {
 	//initialize structure to hold modifiable menu regions
 	@Override
 	protected void setupGUIObjsAras(){	
-		//SOM_Data.dispMessage("mySOMMapUIWin","XXX","setupGUIObjsAras in :"+ name);
+		//SOM_Data.dispMessage("mySOMMapUIWin","setupGUIObjsAras","setupGUIObjsAras in :"+ name);
 //		if(numInstrs < 0){numInstrs = 0;}
 		guiMinMaxModVals = new double [][]{  
 			{0.0, 1.0, 1},				//uiRawDataSourceIDX
@@ -488,7 +486,7 @@ public class mySOMMapUIWin extends myDispWindow {
 	}
 	
 	private float[] interpFirstXFloatAraMult(float[] a, float[] b, float t, int x, float mult){
-		if((a.length < x) || ( b.length < x)){SOM_Data.dispMessage("mySOMMapUIWin","XXX","Error in interpFirstXFloatAra calc - arrays not big enough to return " + x + " values."); return null;}
+		if((a.length < x) || ( b.length < x)){SOM_Data.dispMessage("mySOMMapUIWin","interpFirstXFloatAraMult","Error in interpFirstXFloatAra calc - arrays not big enough to return " + x + " values."); return null;}
 		float[] res = new float[x];
 		if (mult == 1.0){for(int i=0;i<res.length;++i){res[i] = (a[i]*(1-t)) + (b[i]*t);}} 
 		else {			
@@ -571,7 +569,7 @@ public class mySOMMapUIWin extends myDispWindow {
 			TreeMap<Integer, Float> ftrs = interpTreeMap(interpTreeMap(LowXLowYFtrs, LowXHiYFtrs,yInterp,1.0f),interpTreeMap(HiXLowYFtrs, HiXHiYFtrs,yInterp,1.0f),xInterp,255.0f);	
 			return ftrs;
 		} catch (Exception e){
-			SOM_Data.dispMessage("mySOMMapUIWin","XXX","Exception triggered in mySOMMapUIWin::getInterpFtrs : \n"+e.toString() + "\n\tMessage : "+e.getMessage() );
+			SOM_Data.dispMessage("mySOMMapUIWin","getInterpFtrs","Exception triggered in mySOMMapUIWin::getInterpFtrs : \n"+e.toString() + "\n\tMessage : "+e.getMessage() );
 			return null;
 		}
 		
@@ -719,7 +717,7 @@ public class mySOMMapUIWin extends myDispWindow {
 	}		
 	@Override
 	public void clickFunction(int btnNum) {
-		SOM_Data.dispMessage("mySOMMapUIWin","XXX","click cust function in "+name+" : btn : " + btnNum);
+		SOM_Data.dispMessage("mySOMMapUIWin","clickFunction","click cust function in "+name+" : btn : " + btnNum);
 		switch(btnNum){
 			case 0 : {	custFunc0();	break;}
 			case 1 : {	custFunc1();	break;}

@@ -12,7 +12,7 @@ public class Straff_TestProcessBuild {
 		System.out.println("# threads : "+ numThreadsAvail);
 		ExecutorService th_exec = Executors.newFixedThreadPool(numThreadsAvail);
 
-		//array of execution parameters for executable process call
+		//array of execution parameters for executable process call - needs to be populated.
 		String[] execString = new String[] {""};
 		//absolute path to directory execution occurs in
 		String wkDirStr = ""; 

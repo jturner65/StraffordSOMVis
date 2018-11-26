@@ -328,13 +328,50 @@ public class SOMDataLoader implements Runnable {
 //TODO this will speed up initial load of preprocced csv data.  Not a current priority
 class straffCSVDataLoader implements Callable<Boolean>{
 	public SOMMapManager map;
+	private String fileName, dispYesStr, dispNoStr;
+	private int thdIDX;
 	
-	public straffCSVDataLoader(SOMMapManager _map) {map=_map;}
-	//load the partitioned file into the prospect data map
-	private void loadData() {}
+	public straffCSVDataLoader(SOMMapManager _map, int _thdIDX, String _fileName, String _yStr, String _nStr) {	map=_map;thdIDX=_thdIDX;fileName=_fileName;dispYesStr=_yStr;dispNoStr=_nStr;}	
+	private String[] loadFileIntoStringAra() {try {return _loadFileIntoStringAra();} catch (Exception e) {e.printStackTrace(); } return new String[0];}
+	//stream read the csv file and build the data objects
+	private String[] _loadFileIntoStringAra() throws IOException {		
+		FileInputStream inputStream = null;
+		Scanner sc = null;
+		List<String> lines = new ArrayList<String>();
+		String[] res = null;
+	    //int line = 1, badEntries = 0;
+		try {
+		    inputStream = new FileInputStream(fileName);
+		    sc = new Scanner(inputStream);
+		    while (sc.hasNextLine()) {lines.add(sc.nextLine()); }
+		    //Scanner suppresses exceptions
+		    if (sc.ioException() != null) { throw sc.ioException(); }
+		    map.dispMessage("straffCSVDataLoader", "loadFileIntoStringAra",dispYesStr+"\tLength : " +  lines.size());
+		    res = lines.toArray(new String[0]);		    
+		} catch (Exception e) {	
+			e.printStackTrace();
+			map.dispMessage("straffCSVDataLoader", "loadFileIntoStringAra","!!"+dispNoStr);
+			res= new String[0];
+		} 
+		finally {
+		    if (inputStream != null) {inputStream.close();		    }
+		    if (sc != null) { sc.close();		    }
+		}
+		return res;
+	}//loadFileContents
 
 	@Override
 	public Boolean call() throws Exception {	
+		String[] csvLoadRes = loadFileIntoStringAra();
+		//ignore first entry - header
+		for (int j=1;j<csvLoadRes.length; ++j) {
+			String str = csvLoadRes[j];
+			int pos = str.indexOf(',');
+			String oid = str.substring(0, pos);
+			ProspectExample ex = new ProspectExample(map, oid, str);
+			ProspectExample oldEx = map.prospectMap.put(ex.OID, ex);	
+			if(oldEx != null) {map.dispMessage("straffCSVDataLoader", "call thd : " + thdIDX, "ERROR : "+thdIDX+" : Attempt to add duplicate record to prospectMap w/OID : " + oid);	}
+		}
 		
 		return true;
 	}
