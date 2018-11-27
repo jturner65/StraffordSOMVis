@@ -69,22 +69,27 @@ public class SOMMapManager {
 	private int[] stFlags;						//state flags - bits in array holding relevant process info
 	public static final int
 			debugIDX 					= 0,
-			dataLoadedIDX				= 1,			//data is cleanly loaded
+			mapDataLoadedIDX			= 1,			//som map data is cleanly loaded
 			loaderRtnIDX				= 2,			//dataloader has finished - wait on this to draw map
 			mapSetSmFtrZeroIDX  		= 3,			//map small vector's features to 0, otherwise only compare non-zero features
-			//relating to raw data
+			
+			//raw data loading/processing state : 
 			prospectDataLoadedIDX		= 4,			//raw prospect data has been loaded but not yet processed
 			optDataLoadedIDX			= 5,			//raw opt data has been loaded but not processed
 			orderDataLoadedIDX			= 6,			//raw order data loaded not proced
 			linkDataLoadedIDX			= 7,			//raw link data loaded not proced
 			tcTagsDataLoadedIDX			= 8,			//raw tc taggings data loaded not proced
-			rawPrspctEvDataProcedIDX	= 9,			//all raw prospect/event data has been loaded and processed into StraffSOMExamples (prospect)
-			rawProducDataProcedIDX		= 10,			//all raw product data (from tc_taggings) has been loaded and processed into StraffSOMExamples (product)
-			denseTrainDataSavedIDX 		= 11,			//all current prospect data has been saved as a training data file for SOM (.lrn format)
-			sparseTrainDataSavedIDX		= 12,			//sparse data format using .svm file descriptions (basically a map with a key:value pair of ftr index : ftr value
-			testDataSavedIDX			= 13;			//save test data in sparse format csv
+			jpDataLoadedIDX				= 9,			//raw jp data loaded not proced
+			jpgDataLoadedIDX			= 10,			//raw jpg data loaded not proced
+			
+			rawPrspctEvDataProcedIDX	= 11,			//all raw prospect/event data has been loaded and processed into StraffSOMExamples (prospect)
+			rawProducDataProcedIDX		= 12,			//all raw product data (from tc_taggings) has been loaded and processed into StraffSOMExamples (product)
+			//training data saved state : 
+			denseTrainDataSavedIDX 		= 13,			//all current prospect data has been saved as a training data file for SOM (.lrn format) - strafford doesn't use dense training data
+			sparseTrainDataSavedIDX		= 14,			//sparse data format using .svm file descriptions (basically a map with a key:value pair of ftr index : ftr value
+			testDataSavedIDX			= 15;			//save test data in sparse format csv
 
-	public static final int numFlags = 14;	
+	public static final int numFlags = 16;	
 	
 	//size of intermediate per-OID record csv files : 
 	public static final int preProcDatPartSz = 50000;
@@ -108,16 +113,20 @@ public class SOMMapManager {
 	//source data constructs
 	//all of these constructs must follow the same order - 1st value must be prospect, 2nd must be order events, etc.
 	//idxs for each type of data in arrays holding relevant data info
-	public static final int prspctIDX = 0, orderEvntIDX = 1, optEvntIDX = 2, linkEvntIDX = 3, tcTagsIDX = 4;
+	public static final int prspctIDX = 0, orderEvntIDX = 1, optEvntIDX = 2, linkEvntIDX = 3, tcTagsIDX = 4, jpDataIDX = 5, jpgDataIDX = 6;
 	//file names of each type of file
-	private static final String[] straffDataFileNames = new String[] {"prospect_objects", "order_event_objects", "opt_event_objects", "link_event_objects", "tc_taggings"};
+	private static final String[] straffDataFileNames = new String[] {"prospect_objects", "order_event_objects", "opt_event_objects", "link_event_objects", "tc_taggings", "jp_data", "jpg_data"};
 	//whether each table uses json as final field to hold important info or not
-	private static final boolean[] straffRawDatUsesJSON = new boolean[] {true, true, true, true, false};
+	private static final boolean[] straffRawDatUsesJSON = new boolean[] {true, true, true, true, false, true, true};
+	//whether we want to debug the loading of a particular type of raw data
+	private static final boolean[] straffRawDatDebugLoad = new boolean[] {false, false, false, false, true, true, true};
 	//list of idxs related to each table for data
-	private static final int[] straffObjFlagIDXs = new int[] {prospectDataLoadedIDX, orderDataLoadedIDX, optDataLoadedIDX, linkDataLoadedIDX, tcTagsDataLoadedIDX};
+	private static final int[] straffObjFlagIDXs = new int[] {prospectDataLoadedIDX, orderDataLoadedIDX, optDataLoadedIDX, linkDataLoadedIDX, tcTagsDataLoadedIDX, jpDataLoadedIDX, jpgDataLoadedIDX};
 	//list of class names used to build array of object loaders
-	private static final String[] straffClassLdrNames = 
-			new String[] {"SOM_Strafford_PKG.ProspectDataLoader","SOM_Strafford_PKG.OrderEventDataLoader","SOM_Strafford_PKG.OptEventDataLoader","SOM_Strafford_PKG.LinkEventDataLoader","SOM_Strafford_PKG.TcTagDataLoader"};	
+	private static final String[] straffClassLdrNames = new String[] {
+			"SOM_Strafford_PKG.ProspectDataLoader","SOM_Strafford_PKG.OrderEventDataLoader","SOM_Strafford_PKG.OptEventDataLoader",
+			"SOM_Strafford_PKG.LinkEventDataLoader","SOM_Strafford_PKG.TcTagDataLoader", "SOM_Strafford_PKG.JpDataLoader", "SOM_Strafford_PKG.JpgrpDataLoader"
+		};	
 	//total # of source data types
 	public static final int numStraffDataTypes = straffObjFlagIDXs.length;	
 	//classes of data loader objects
@@ -206,6 +215,14 @@ public class SOMMapManager {
 	//ctor from non-UI stub
 	public SOMMapManager(ExecutorService _th_exec,float[] _dims) {this(null, null, _th_exec, _dims);}
 
+	//load the data from csv files for jpg and jp data - names
+	public void loadCSVJpgJpData() {
+		
+	}//loadCSVJpgJpData
+	
+	public void loadSQLJpgJpData() {
+		
+	}//loadSQLJpgJpData
 	
 	//build a date with each component separated by token
 	public String[] getDateTimeString(Calendar now){return getDateTimeString(false,".", now);}
@@ -510,7 +527,7 @@ public class SOMMapManager {
 		dispMessage("SOMMapData","initData","Init Finished");
 	}//initdata
 	//return true if loader is done and if data is successfully loaded
-	public boolean isMapDrawable(){return getFlag(loaderRtnIDX) && getFlag(dataLoadedIDX);}
+	public boolean isMapDrawable(){return getFlag(loaderRtnIDX) && getFlag(mapDataLoadedIDX);}
 
 
 	/**
@@ -597,6 +614,7 @@ public class SOMMapManager {
 	//eventsOnly : only use examples with event data to train
 	//append : whether to append to existing data values or to load new data
 	public void loadAllRawData(boolean fromCSVFiles, boolean eventsOnly, boolean appendToExisting) {
+		dispMessage("SOMMapData","loadAllRawData","Start loading and processing raw data");
 		//TODO remove this when SQL support is implemented
 		if(!fromCSVFiles) {
 			dispMessage("SOMMapData","loadAllRawData","WARNING : SQL-based raw data queries not yet implemented.  Use CSV-based raw data to build training data set instead");
@@ -606,25 +624,32 @@ public class SOMMapManager {
 		if(singleThread) {
 			for (int idx=0;idx<numStraffDataTypes;++idx) {
 				String[] loadRawDatStrs = getLoadRawDataStrs(fromCSVFiles,idx);
-				loadRawDataVals(loadRawDatStrs, fromCSVFiles,idx);
+				boolean[] flags = new boolean[] {fromCSVFiles,straffRawDatUsesJSON[idx], straffRawDatDebugLoad[idx]};
+				loadRawDataVals(loadRawDatStrs, flags,idx);
 			}
 		} else {
-			straffDataLoaders = new ArrayList<StraffordDataLoader>();
-			for (int idx=0;idx<numStraffDataTypes;++idx) {//build a thread per data type
+			buildStraffDataLoaders();
+			for (int idx=0;idx<numStraffDataTypes;++idx) {//build a thread per data type //straffRawDatDebugLoad
 				String[] loadRawDatStrs = getLoadRawDataStrs(fromCSVFiles,idx);
-				straffDataLoaders.get(idx).setLoadData(this, loadRawDatStrs[0], fromCSVFiles, loadRawDatStrs[1], straffRawDatUsesJSON[idx], straffObjFlagIDXs[idx]);
+				boolean[] flags = new boolean[] {fromCSVFiles,straffRawDatUsesJSON[idx], straffRawDatDebugLoad[idx]};
+				straffDataLoaders.get(idx).setLoadData(this, loadRawDatStrs,  flags, straffObjFlagIDXs[idx]);
 			}
 			//blocking on callables for multithreaded
 			try {straffDataLdrFtrs = th_exec.invokeAll(straffDataLoaders);for(Future<Boolean> f: straffDataLdrFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }		
 		}
-		dispMessage("SOMMapData","loadAllRawData","# of features seen : " + numFtrs);
 		//process loaded data
+		//dbgLoadedData(tcTagsIDX);
 		procRawLoadedData(eventsOnly, appendToExisting);		
-		//for debugging purposes 
-		//dbgDispKnownJPsJPGs();
+		dispMessage("SOMMapData","loadAllRawData","Finished loading and processing raw data");
 	}//loadAllRawData
 	
+	private void dbgLoadedData(int idx) {
+		ArrayList<BaseRawData> recs = rawDataArrays.get(straffDataFileNames[idx]);
+		for  (BaseRawData rec : recs) {if(rec.rawJpMapOfArrays.size() > 1) {dispMessage("SOMMapData","dbgLoadedData",straffDataFileNames[idx] + " : " + rec.toString());}}			
+	}
+	
 	//any subdirectories need to already exist for this to not cause an error
+	//this returns the file type in location 0 and the fully qualified file path to the csv data/sql confirguration csv in idx1
 	private String[] getLoadRawDataStrs(boolean fromFiles, int idx) {
 		String baseFName = straffDataFileNames[idx];
 		dispLoadMessage(baseFName, fromFiles);
@@ -640,18 +665,18 @@ public class SOMMapManager {
 
 	private void dispLoadMessage(String orig, boolean fromFiles) {dispMessage("SOMMapData","dispLoadMessage","Load Raw " +orig + " data " + (fromFiles ? "from CSV files" : "from SQL Calls"));}
 	//will instantiate specific loader class object and load the data specified by idx, either from csv file or from an sql call described by csvFile
-	private void loadRawDataVals(String[] loadRawDatStrs, boolean fromFiles, int idx){//boolean _isFileLoader, String _fileNameAndPath
+	private void loadRawDataVals(String[] loadRawDatStrs, boolean[] flags, int idx){//boolean _isFileLoader, String _fileNameAndPath
 		//single threaded implementation
 		@SuppressWarnings("rawtypes")
 		Class[] args = new Class[] {boolean.class, String.class};//classes of arguments for loader ctor		
 		try {
 			@SuppressWarnings("unchecked")
-			StraffordDataLoader loaderObj = (StraffordDataLoader) straffObjLoaders[idx].getDeclaredConstructor(args).newInstance(fromFiles, loadRawDatStrs[1]);
+			StraffordDataLoader loaderObj = (StraffordDataLoader) straffObjLoaders[idx].getDeclaredConstructor(args).newInstance(flags[0], loadRawDatStrs[1]);
+			loaderObj.setLoadData(this, loadRawDatStrs,  flags, straffObjFlagIDXs[idx]);
 			ArrayList<BaseRawData> datAra = loaderObj.execLoad();
 			rawDataArrays.put(loadRawDatStrs[0], datAra);
 			setFlag(straffObjFlagIDXs[idx], true);			//set flag corresponding to this type of data to be loaded
-		} catch (Exception e) {			e.printStackTrace();}
-		
+		} catch (Exception e) {			e.printStackTrace();}		
 		
 		setFlag(straffObjFlagIDXs[idx], true);			//set flag corresponding to this type of data to be loaded
 	}//loadRawDataVals	
@@ -925,7 +950,7 @@ public class SOMMapManager {
 		//String fileNow = "10_24_12_37";
 		//Train_straff_Smp_412788_of_458654_typ_stdFtrs_Dt_11_26_09_50
 		//Test_straff_Smp_45866_of_458654_typ_stdFtrs_Dt_11_26_09_50
-		String fileNow = "11_26_09_50";
+		String fileNow = "11_27_11_42";
 		String nowDir = getDirNameAndBuild(straffSOMProcSubDir+"StraffSOM_2018_"+fileNow+"_DebugRun"+File.separator);
 		String dType = getDataTypeNameFromInt(_dataFrmt);
 		String[] tmp = {"Out_"+SOMProjName+"_Smp_"+_numSmpls,
@@ -1072,61 +1097,6 @@ public class SOMMapManager {
 		ftrCalcObj = new StraffWeightCalc(this, calcDirName + calcWtFileName, jpJpgrpMon);
 	}//setJPDataFromProspectData	
 
-	//public int get
-	
-//	
-//	//THIS IS DEPRECATED - needs to be built from -product- info, since this is a superset of what may be seen by prospects
-//	//this will set the current jp->jpg data maps based on passed prospect data map
-//	//When acquiring new data, this must be performed after all data is loaded, but before
-//	//the prospect data is finalized and actual map is built due to the data finalization 
-//	//requiring a knowledge of the entire dataset to build weights appropriately
-//	public void setJPDataFromProspectData(ConcurrentSkipListMap<String, ProspectExample> map) {
-//		jpSeenCount = new TreeMap<Integer, Integer>(); 	//count of prospect training data records having jp
-//		jpEvSeenCount = new TreeMap<Integer, Integer>(); //count of prospect train records having jp only counting events
-//		jpPrspctSeenCount = new TreeMap<Integer, Integer>(); //count of prospect train records having jp only in base prospect record
-//		jpsToJpgs = new TreeMap<Integer, Integer>();	//map from jpgs to jps
-//		jpgsToJps = new TreeMap<Integer, TreeSet <Integer>>();
-//		
-//		jpToFtrIDX = new TreeMap<Integer, Integer>();	
-//		jpgToIDX = new TreeMap<Integer, Integer>();	
-//		//rebuild all jp->jpg mappings based on prospect data
-//		HashSet<Tuple<Integer,Integer>> tmpSetAllJpsJpgs = new HashSet<Tuple<Integer,Integer>>();
-//		for (ProspectExample ex : map.values()) {//for every prospect, look at every jp
-//			HashSet<Tuple<Integer,Integer>> tmpExSet = ex.getSetOfAllJpgJpData(); //tmpExSet is set of all jps/jpgs in ex
-//			for (Tuple<Integer,Integer> jpgJp : tmpExSet) {
-//				Integer jpg = jpgJp.x, jp=jpgJp.y;
-//				//if ((jp==-1) && (jpg==-2)){continue;}//don't add sentinel value//need to verify that sentinel values are not being made!
-//				boolean[] recMmbrship = ex.hasJP(jp);
-//				incrJPCounts(jp, jpSeenCount);
-//				if (recMmbrship[1]){incrJPCounts(jp,jpPrspctSeenCount);}
-//				if (recMmbrship[2]){incrJPCounts(jp,jpEvSeenCount);}
-//				tmpSetAllJpsJpgs.add(jpgJp);
-//			}											//add all tuples to set already seen
-//		}//for each prospect
-//		//get rid of sentinel value for opt out
-//		
-//		//build jpsToJpgs and JpgsToJps structs
-//		for (Tuple<Integer,Integer> jpgJp : tmpSetAllJpsJpgs) {
-//			Integer jpg = jpgJp.x, jp=jpgJp.y;
-//			jpsToJpgs.put(jp, jpg);
-//			TreeSet <Integer> jpList = jpgsToJps.get(jpg);
-//			if (jpList==null) {jpList = new TreeSet <Integer>();}
-//			jpList.add(jp);
-//			jpgsToJps.put(jpg, jpList);			
-//		}
-//
-//		jpByIdx = jpSeenCount.keySet().toArray(new Integer[0]);
-//		jpgrpsByIdx = jpgsToJps.keySet().toArray(new Integer[0]);
-//		for(int i=0;i<jpByIdx.length;++i) {jpToFtrIDX.put(jpByIdx[i], i);}
-//		for(int i=0;i<jpgrpsByIdx.length;++i) {jpgToIDX.put(jpgrpsByIdx[i], i);}
-//		
-//		numFtrs = jpSeenCount.size();
-//		//rebuild calc object since feature terrain might have changed
-//		String calcDirName = this.getDirNameAndBuild(straffCalcInfoSubDir);
-//		
-//		ftrCalcObj = new StraffWeightCalc(this, calcDirName + calcWtFileName);
-//	}//setJPDataFromProspectData
-	
 	//process all events into training examples
 	private void procRawEventData(ConcurrentSkipListMap<String, ProspectExample> tmpProspectMap,ConcurrentSkipListMap<String, ArrayList<BaseRawData>> dataArrays, boolean saveBadRecs) {			
 		dispMessage("SOMMapData","procRawEventData","Starting.");
@@ -1202,7 +1172,7 @@ public class SOMMapManager {
 			resetProspectMap();
 			resetProductMap();
 		}
-		dispMessage("SOMMapData","procRawLoadedData","Process all loaded data");
+		dispMessage("SOMMapData","procRawLoadedData","Start Processing all loaded data");
 		if (!(getFlag(prospectDataLoadedIDX) && getFlag(optDataLoadedIDX) && getFlag(orderDataLoadedIDX))){//not all data loaded, don't process 
 			System.out.println("Can't build data examples until prospect, opt event and order event data is all loaded");
 			return;
@@ -1239,12 +1209,13 @@ public class SOMMapManager {
 				if (ex.isTrainableRecord()) {				prospectMap.put(OID, ex);			}
 			}			
 		}
-		System.out.println("Raw Records Unique OIDs presented : " + tmpProspectMap.size()+" | Records found with trainable " + (eventsOnly ? " events " : "") + " info : " + prospectMap.size());
+		dispMessage("SOMMapData","procRawLoadedData","Raw Records Unique OIDs presented : " + tmpProspectMap.size()+" | Records found with trainable " + (eventsOnly ? " events " : "") + " info : " + prospectMap.size());
 		//setAllFlags(new int[] {prospectDataLoadedIDX, optDataLoadedIDX, orderDataLoadedIDX}, false);
 		setFlag(rawPrspctEvDataProcedIDX, true);
 		setFlag(rawProducDataProcedIDX, true);
 		saveAllProspectMapData(eventsOnly);
 		saveAllProductMapData();
+		dispMessage("SOMMapData","procRawLoadedData","Finished processing all loaded data");
 	}//procRawLoadedData
 	
 	//show first numToShow elemens of array of BaseRawData, either just to console or to applet window
@@ -1408,7 +1379,7 @@ public class SOMMapManager {
 		stFlags[flIDX] = (val ?  stFlags[flIDX] | mask : stFlags[flIDX] & ~mask);
 		switch (idx) {//special actions for each flag
 			case debugIDX : {break;}			
-			case dataLoadedIDX	: {break;}		
+			case mapDataLoadedIDX	: {break;}		
 			case loaderRtnIDX : {break;}
 			case mapSetSmFtrZeroIDX : {break;}
 			case prospectDataLoadedIDX: {break;}		//raw prospect data has been loaded but not yet processed

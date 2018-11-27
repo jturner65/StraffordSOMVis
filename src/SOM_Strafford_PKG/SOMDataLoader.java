@@ -35,11 +35,11 @@ public class SOMDataLoader implements Runnable {
 	@Override
 	public void run(){
 		if(projConfigData.allReqFilesLoaded()){
-			boolean success =  execDataLoad() ;
-			map.setFlag(SOMMapManager.dataLoadedIDX,success);
+			boolean success = execDataLoad() ;
+			map.setFlag(SOMMapManager.mapDataLoadedIDX,success);
 			map.setFlag(SOMMapManager.loaderRtnIDX,true);
 			map.setMapImgClrs();
-			map.dispMessage("DataLoader","run","Finished data loader : SOM Data Loaded : " + map.getFlag(SOMMapManager.dataLoadedIDX) + " | loader ret code : " +map.getFlag(SOMMapManager.loaderRtnIDX) );			
+			map.dispMessage("DataLoader","run","Finished data loader : SOM Data Loaded : " + map.getFlag(SOMMapManager.mapDataLoadedIDX) + " | loader ret code : " +map.getFlag(SOMMapManager.loaderRtnIDX) );			
 		}
 		else {
 			map.setFlag(SOMMapManager.loaderRtnIDX,false);
