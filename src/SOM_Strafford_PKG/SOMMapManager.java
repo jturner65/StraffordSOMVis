@@ -107,8 +107,7 @@ public class SOMMapManager {
 	public static final String straffCalcInfoSubDir = "Calc"+ File.separator;
 	
 	//actual directory where SOM data is located
-	public String SOMDataDir;
-	
+	public String SOMDataDir;	
 	//////////////////
 	//source data constructs
 	//all of these constructs must follow the same order - 1st value must be prospect, 2nd must be order events, etc.
@@ -693,7 +692,7 @@ public class SOMMapManager {
 	}//getDirNameAndBuild
 	
 	//build prospect data directory structures based on current date
-	private String[] buildPrspctDataCSVFNames(boolean eventsOnly, String _desSuffix) {
+	private String[] buildProccedDataCSVFNames(boolean eventsOnly, String _desSuffix) {
 		String[] dateTimeStrAra = getDateTimeString(false, "_", instancedNow);
 		String subDir = "preprocData_" + dateTimeStrAra[0] + File.separator;
 		return buildProccedDataCSVFNames(subDir, eventsOnly,_desSuffix);
@@ -720,7 +719,8 @@ public class SOMMapManager {
 	public void loadAllPreProccedData(boolean eventsOnly) {
 		//		boolean singleThread=numUsableThreads<=1;//this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
 		dispMessage("SOMMapData","loadAllPreProccedData","Begin loading preprocced data");
-		//perform the f
+		//load monitor first
+		loadMonitorJpJpgrp();
 		loadAllPropsectMapData(eventsOnly);
 		loadAllProductMapData();
 		finishSOMExampleBuild(prospectMap);		
@@ -745,7 +745,7 @@ public class SOMMapManager {
 		
 		boolean singleThread=numUsableThreads<=1;//this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
 		if(singleThread) {
-			for (int i=0; i<numPartitions;++i) {
+			for (int i=numPartitions-1; i>=0;--i) {
 				String dataFile = loadSrcFNamePrefixAra[0]+"_"+i+".csv";
 				String[] csvLoadRes = loadFileIntoStringAra(dataFile, "Data file " + i +" loaded", "Data File " + i +" Failed to load");
 				//ignore first entry - header
@@ -789,10 +789,18 @@ public class SOMMapManager {
 		dispMessage("SOMMapData","loadAllProductMapData","Finished loading and preprocessing all local prospect map data and calculating features.  Number of entries in productMap : " + productMap.size());
 	}//loadAllProductMapData
 	
+	//load MonitorJpJpgrp
+	private void loadMonitorJpJpgrp() {
+		dispMessage("SOMMapData","loadMonitorJpJpgrp","Loading MonitorJpJpgrp data");
+		String[] saveDestFNamePrefixAra = buildProccedDataCSVFNames(false, "MonitorJpJpgrpData");
+		jpJpgrpMon.loadAllData(saveDestFNamePrefixAra[0]+".csv");
+		dispMessage("SOMMapData","loadMonitorJpJpgrp","Finished loading MonitorJpJpgrp data");
+	}//saveAllProductMapData
+	
 	//write all prospect map data to a csv to be able to be reloaded to build training data from, so we don't have to re-read database every time
-	public void saveAllProspectMapData(boolean eventsOnly) {
+	private void saveAllProspectMapData(boolean eventsOnly) {
 		dispMessage("SOMMapData","saveAllProspectMapData","Saving all prospect map data : " + prospectMap.size() + " examples to save.");
-		String[] saveDestFNamePrefixAra = buildPrspctDataCSVFNames(eventsOnly, "prospectMapSrcData");
+		String[] saveDestFNamePrefixAra = buildProccedDataCSVFNames(eventsOnly, "prospectMapSrcData");
 		ArrayList<ArrayList<String>> csvRes = new ArrayList<ArrayList<String>>();
 		ArrayList<String> csvResTmp = new ArrayList<String>();		
 		int counter = 0;
@@ -825,9 +833,9 @@ public class SOMMapManager {
 		dispMessage("SOMMapData","saveAllProspectMapData","Finished saving all prospect map data");
 	}//saveAllProspectMapData	
 	
-	public void saveAllProductMapData() {
+	private void saveAllProductMapData() {
 		dispMessage("SOMMapData","saveAllProductMapData","Saving all product map data : " + productMap.size() + " examples to save.");
-		String[] saveDestFNamePrefixAra = buildPrspctDataCSVFNames(false, "productMapSrcData");
+		String[] saveDestFNamePrefixAra = buildProccedDataCSVFNames(false, "productMapSrcData");
 		ArrayList<String> csvResTmp = new ArrayList<String>();		
 		ProductExample ex1 = productMap.get(productMap.firstKey());
 		String hdrStr = ex1.getRawDescColNamesForCSV();
@@ -838,7 +846,16 @@ public class SOMMapManager {
 		saveStrings(saveDestFNamePrefixAra[0]+".csv", csvResTmp);		
 		dispMessage("SOMMapData","saveAllProductMapData","Finished saving all product map data");
 	}//saveAllProductMapData
+	
+	//save MonitorJpJpgrp
+	private void saveMonitorJpJpgrp() {
+		dispMessage("SOMMapData","saveMonitorJpJpgrp","Saving MonitorJpJpgrp data");
+		String[] saveDestFNamePrefixAra = buildProccedDataCSVFNames(false, "MonitorJpJpgrpData");
 
+		jpJpgrpMon.saveAllData(saveDestFNamePrefixAra[0]+".csv");
+		dispMessage("SOMMapData","saveMonitorJpJpgrp","Finished saving MonitorJpJpgrp data");
+	}//saveAllProductMapData
+	
 	//finish building the prospect map - finalize each prospect example and then perform calculation to derive weight vector
 	private void finishSOMExampleBuild(ConcurrentSkipListMap<String, ProspectExample> map) {
 		//finalize builds each example's occurence structures, which describe the jp-jpg relationships found in the example
@@ -1190,14 +1207,17 @@ public class SOMMapManager {
 		procRawEventData(tmpProspectMap, rawDataArrays, true);
 		//now handle products
 		procRawProductData(rawDataArrays.get(straffDataFileNames[tcTagsIDX]));
-		//to clear up memory
+		//now handle loaded jp and jpgroup data
+		jpJpgrpMon.setJpJpgrpNames(rawDataArrays.get(straffDataFileNames[jpDataIDX]),rawDataArrays.get(straffDataFileNames[jpgDataIDX]));
+		//dispMessage("SOMMapData","procRawLoadedData","jpJpgrpMon : \n"+jpJpgrpMon.toString());
+		//to free up memory before we build feature weight vectors
 		rawDataArrays = new ConcurrentSkipListMap<String, ArrayList<BaseRawData>>();
 		//finalize each prospect record, aggregate data-driven static vals, rebuild ftr vectors
 		finishSOMExampleBuild(tmpProspectMap);
 	
 		//save all data here,clear rawDataArrays, reset raw data array flags
 		//build actual prospect map only from prospectExamples that hold trainable information
-		//need to have every entered prospect example finalized before this - the finalization process is necessary to determine if a good example or not
+		//need to have every entered prospect example finalized before this - the finalization process is necessary to determine if an example is good or not
 		if(eventsOnly) {//only records with events will be used to train
 			for (String OID : tmpProspectMap.keySet()) {
 				ProspectExample ex = tmpProspectMap.get(OID);
@@ -1213,10 +1233,15 @@ public class SOMMapManager {
 		//setAllFlags(new int[] {prospectDataLoadedIDX, optDataLoadedIDX, orderDataLoadedIDX}, false);
 		setFlag(rawPrspctEvDataProcedIDX, true);
 		setFlag(rawProducDataProcedIDX, true);
-		saveAllProspectMapData(eventsOnly);
-		saveAllProductMapData();
+		saveAllData(eventsOnly);
 		dispMessage("SOMMapData","procRawLoadedData","Finished processing all loaded data");
 	}//procRawLoadedData
+	
+	private void saveAllData(boolean eventsOnly) {
+		saveAllProspectMapData(eventsOnly);
+		saveAllProductMapData();		
+		saveMonitorJpJpgrp();		
+	}
 	
 	//show first numToShow elemens of array of BaseRawData, either just to console or to applet window
 	private void dispRawDataAra(ArrayList<BaseRawData> sAra, int numToShow) {

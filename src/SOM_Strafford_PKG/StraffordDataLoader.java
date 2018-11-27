@@ -519,6 +519,8 @@ abstract class jobPracticeData extends BaseRawData{
 	//return string describing why badRec has been set to true.  usually is because no JP/JPG data
 	@Override
 	public String getWhyBadRed() {return "having no specified name in record";}
+	//return jp/jpg
+	public Integer getJPID() {return ID;}
 	//return jp/jpg name
 	public String getName() {return name;}
 	
@@ -555,7 +557,6 @@ class JpDescData extends jobPracticeData{
 		//System.out.println("\tFor JP Id : " + ID + " | Name : " + name + " | jpgrp ID : " + jpgrp + " | jpgrp Name : " + jpgrpName);
 	}//ctor
 	
-	public Integer getJP() {return ID;}
 	public Integer getParentJPGrp() {return jpgrp;}
 	public String getParentJPGrpName() {return jpgrpName;}	
 	@Override
@@ -575,7 +576,6 @@ class JpgrpDescData extends jobPracticeData{
 	private static final String[] relevantExactKeys = {"name"};
 	
 	public JpgrpDescData(String _id, String _json, ObjectMapper _mapper, boolean hasJson) { super(_id, _json, _mapper,"jpgrpDesc",hasJson);}
-	public Integer getJPGrp() {return ID;}
 	@Override
 	public String[] getRelevantExactKeys() {		return relevantExactKeys;}
 	@Override
