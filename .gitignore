@@ -6,4 +6,4 @@ opt_event_objects.csv
 order_event_objects.csv
 prospect_objects.csv
 /StraffordProject/source_csvs/prospect_objects/This is old propsect objects until sql is fixed.txt
-/data/somoclu.exe
+/data/*.exe
