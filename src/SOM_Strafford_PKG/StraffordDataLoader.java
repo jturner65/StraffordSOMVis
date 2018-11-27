@@ -143,10 +143,11 @@ public abstract class StraffordDataLoader implements Callable<Boolean> {
 		//run(); 
 		return true;
 	}//call launches this loader - when finished will return true
-	
-	
+		
 }//StraffordDataLoader base class
 
+/////////////////////
+// 	Instancing classes
 //stream prospects and build the objects that will then decipher their json content and build the training/testing data based on them
 class ProspectDataLoader extends StraffordDataLoader{
 	public ProspectDataLoader(boolean _isFileLoader, String _dataLocInfoStr) {super(_isFileLoader,_dataLocInfoStr);}
@@ -168,7 +169,7 @@ class OrderEventDataLoader extends StraffordDataLoader{
 		return obj;
 	}
 }//
-//stream Order Events and build the objects that will then decipher their json content and build the training/testing data based on them
+//stream link Events and build the objects that will then decipher their json content and build the training/testing data based on them
 class LinkEventDataLoader extends StraffordDataLoader{
 	public LinkEventDataLoader(boolean _isFileLoader, String _dataLocInfoStr) {super(_isFileLoader,_dataLocInfoStr);}
 	@Override
@@ -178,7 +179,7 @@ class LinkEventDataLoader extends StraffordDataLoader{
 		return obj;
 	}
 }//
-//stream Order Events and build the objects that will then decipher their json content and build the training/testing data based on them
+//stream opt Events and build the objects that will then decipher their json content and build the training/testing data based on them
 class OptEventDataLoader extends StraffordDataLoader{
 	public OptEventDataLoader(boolean _isFileLoader, String _dataLocInfoStr) {super(_isFileLoader,_dataLocInfoStr);}
 	@Override
@@ -188,7 +189,7 @@ class OptEventDataLoader extends StraffordDataLoader{
 		return obj;
 	}
 }//
-
+//stream tcTagdata to build product examples
 class TcTagDataLoader extends StraffordDataLoader{
 	public TcTagDataLoader(boolean _isFileLoader, String _dataLocInfoStr) {super(_isFileLoader,_dataLocInfoStr);}
 	@Override
@@ -200,7 +201,7 @@ class TcTagDataLoader extends StraffordDataLoader{
 }//
 
 //////////////////////
-// classes to hold raw data from source
+// classes to hold raw data from source - dataLoaders build these
 /////////////////////
 
 //base data object from strafford db - describes a prospect or event, keyed by OID

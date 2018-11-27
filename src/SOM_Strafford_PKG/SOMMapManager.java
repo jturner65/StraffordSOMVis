@@ -352,7 +352,7 @@ public class SOMMapManager {
 		straffDataLoaders = new ArrayList<StraffordDataLoader>();
 		//build constructors
 		@SuppressWarnings("rawtypes")
-		Class[] args = new Class[] {boolean.class, String.class};//classes of arguments for loader ctor		
+		Class[] args = new Class[] {boolean.class, String.class};//classes of arguments for loader ctor	
 		//numStraffDataTypes
 		try {
 			for (int idx=0;idx<numStraffDataTypes;++idx) {straffDataLoaders.add((StraffordDataLoader) straffObjLoaders[idx].getDeclaredConstructor(args).newInstance(true, "to be set"));}
@@ -1460,7 +1460,6 @@ class SOM_MAPDat{
 		execStr = _execStr;
 		mapInts = _mapInts;
 		curOS = _curOS;
-		System.out.println("Cur os is : " + curOS);
 		isSparse = (mapInts.get("mapKType") > 1);//0 and 1 are dense cpu/gpu, 2 is sparse cpu
 		mapFloats = _mapFloats;
 		mapStrings = _mapStrings;
@@ -1541,8 +1540,7 @@ class SOM_MAPDat{
 	private String[] buildExecStrAra(){
 		String[] res;
 		if (curOS.toLowerCase().contains("mac os x")) {
-			System.out.println("\n\nMac OS\n\n");
-			res = new String[]{execDir +File.separator + execStr,
+			res = new String[]{execDir + execStr,
 			"-k",""+mapInts.get("mapKType"),"-x",""+mapInts.get("mapCols"),"-y",""+mapInts.get("mapRows"), "-e",""+mapInts.get("mapEpochs"),"-r",""+mapInts.get("mapStRad"),"-R",""+mapInts.get("mapEndRad"),
 			"-l",""+String.format("%.4f",mapFloats.get("mapStLrnRate")),"-L",""+String.format("%.4f",mapFloats.get("mapEndLrnRate")), 
 			"-m",""+mapStrings.get("mapBounds"),"-g",""+mapStrings.get("mapGridShape"),"-n",""+mapStrings.get("mapNHood"), "-T",""+mapStrings.get("mapLearnCool"), 
