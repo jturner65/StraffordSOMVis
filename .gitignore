@@ -16,3 +16,8 @@ bin
 /src backup/src/SOM_Strafford_PKG/myPoint.java
 /src backup/src/SOM_Strafford_PKG/mySOMMapUIWin.java
 data
+link_event_objects.csv
+opt_event_objects.csv
+order_event_objects.csv
+prospect_objects.csv
+/StraffordProject/source_csvs/prospect_objects/This is old propsect objects until sql is fixed.txt
