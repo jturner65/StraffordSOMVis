@@ -30,7 +30,7 @@ public class SOMMapManager {
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	//map descriptions
 	//date/time of debug pre-made map
-	private String _DBG_Map_fileNow = "11_29_12_54";
+	private String _DBG_Map_fileNow = "11_29_13_14";
 	//prebuilt map values
 	private int _DBG_Map_numSmpls = 459110, _DBG_Map_numTrain = 413199, _DBG_Map_numTest = 45911;
 	
@@ -261,7 +261,7 @@ public class SOMMapManager {
 		String[] tmp = {"Out_"+SOMProjName+"_Smp_"+_numSmpls,
 						"Train_"+SOMProjName+"_Smp_"+_numTrain+"_of_"+_numSmpls+"_typ_" +dType + "_Dt_"+fileNow+".lrn",
 						"Train_"+SOMProjName+"_Smp_"+_numTrain+"_of_"+_numSmpls+"_typ_" + dType+"_Dt_"+fileNow+".svm",				
-						"Test_"+SOMProjName+"_Smp_"+_numTest+"_of_"+_numSmpls+"_typ_" +dType +"_Dt_"+fileNow+".csv",
+						"Test_"+SOMProjName+"_Smp_"+_numTest+"_of_"+_numSmpls+"_typ_" +dType +"_Dt_"+fileNow+".svm",
 						"Mins_"+SOMProjName+"_Smp_"+_numSmpls+"_Dt_"+fileNow+"_typ_" +dType +".csv",
 						"Diffs_"+SOMProjName+"_Smp_"+_numSmpls+"_Dt_"+fileNow+"_typ_" +dType +".csv",
 						"SOMImg_"+SOMProjName+"_Smp_"+_numSmpls+"_Dt_"+fileNow+"_typ_" +dType +".png",
@@ -908,7 +908,6 @@ public class SOMMapManager {
 		inputData = dataMap.values().toArray(new StraffSOMExample[0]);
 		
 		numTrainData = (int) (inputData.length * testTrainPartition);	
-	
 		
 		numTestData = inputData.length - numTrainData;
 		//trainData, inputData, testData;
@@ -960,7 +959,7 @@ public class SOMMapManager {
 		String[] tmp = {"Out_"+SOMProjName+"_Smp_"+_numSmpls,
 				"Train_"+SOMProjName+"_Smp_"+_numTrain+"_of_"+_numSmpls+"_typ_" +dType + "_Dt_"+fileNow+".lrn",
 				"Train_"+SOMProjName+"_Smp_"+_numTrain+"_of_"+_numSmpls+"_typ_" + dType+"_Dt_"+fileNow+".svm",				
-				"Test_"+SOMProjName+"_Smp_"+_numTest+"_of_"+_numSmpls+"_typ_" +dType +"_Dt_"+fileNow+".csv",
+				"Test_"+SOMProjName+"_Smp_"+_numTest+"_of_"+_numSmpls+"_typ_" +dType +"_Dt_"+fileNow+".svm",
 				"Mins_"+SOMProjName+"_Smp_"+_numSmpls+"_Dt_"+fileNow+"_typ_" +dType +".csv",
 				"Diffs_"+SOMProjName+"_Smp_"+_numSmpls+"_Dt_"+fileNow+"_typ_" +dType +".csv",
 				"SOMImg_"+SOMProjName+"_Smp_"+_numSmpls+"_Dt_"+fileNow+"_typ_" +dType +".png",
@@ -988,7 +987,8 @@ public class SOMMapManager {
 		if (numTestData > 0) {
 			//th_exec.execute(new straffDataWriter(this, dataFrmt, "denseTest" ,testData));	
 			saveFileName = this.getSOMMapTestFileName();
-			straffSOMDataWrite.add(new straffDataWriter(this, dataFrmt, testDataSavedIDX, saveFileName, "denseCSVData" ,testData));				
+			//straffSOMDataWrite.add(new straffDataWriter(this, dataFrmt, testDataSavedIDX, saveFileName, "denseCSVData" ,testData));				
+			straffSOMDataWrite.add(new straffDataWriter(this, dataFrmt, testDataSavedIDX, saveFileName, "sparseSVMData" ,testData));				
 		}
 		try {straffSOMDataWriteFutures = th_exec.invokeAll(straffSOMDataWrite);for(Future<Boolean> f: straffSOMDataWriteFutures) { f.get(); }} catch (Exception e) { e.printStackTrace(); }		
 
@@ -1415,7 +1415,7 @@ public class SOMMapManager {
 				if (val) {dispMessage("SOMMapData","setFlag","All "+ this.numTrainData +" Sparse Training data saved to .svm file");}
 				break;}				//all prospect examples saved as training data
 			case testDataSavedIDX : {
-				if (val) {dispMessage("SOMMapData","setFlag","All "+ this.numTestData + " saved to .csv file");}
+				if (val) {dispMessage("SOMMapData","setFlag","All "+ this.numTestData + " saved to " + getSOMMapTestFileName());}
 				break;		}
 		}
 	}//setFlag		
