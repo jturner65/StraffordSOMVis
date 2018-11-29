@@ -234,7 +234,7 @@ public class SOMDataLoader implements Runnable {
 					if(!checkMapDim(tkns,"Best Matching Units file " + getFName(bmFileName))){return false;}
 				} else {	
 					int tNumTDat = Integer.parseInt(tkns[0]);
-					if(tNumTDat != map.numTrainData) { 
+					if(tNumTDat != map.numTrainData) { //don't forget added emtpy vector
 						map.dispMessage("DataLoader","loadSOM_BMUs","!!Best Matching Units file " + getFName(bmFileName) + " # of training examples : " + tNumTDat +" does not match # of training examples in training data " + map.numTrainData+". Loading aborted." ); 
 						return false;}
 				}
@@ -537,7 +537,7 @@ class straffDataWriter implements Callable<Boolean>{
 		int strIDX = 4;
 		for (int i=0;i<exAra.length; ++i) {outStrings[i+strIDX]=exAra[i].toLRNString(dataFrmt, " ");	}
 		mapData.saveStrings(fileName,outStrings);		
-		mapData.dispMessage("straffDataWriter","saveLRNData","Finished saving .lrn file with " + exAra.length+ " elements to file : "+ fileName);			
+		mapData.dispMessage("straffDataWriter","saveLRNData","Finished saving .lrn file with " + outStrings.length+ " elements to file : "+ fileName);			
 	}//save lrn train data
 	
 	//save data in csv format
@@ -547,20 +547,22 @@ class straffDataWriter implements Callable<Boolean>{
 		int strIDX = 4;
 		for (int i=0;i<exAra.length; ++i) {outStrings[i+strIDX]=exAra[i].toCSVString(dataFrmt);	}
 		mapData.saveStrings(fileName,outStrings);		
-		mapData.dispMessage("straffDataWriter","saveCSVData","Finished saving .csv file with " + exAra.length+ " elements to file : "+ fileName);			
+		mapData.dispMessage("straffDataWriter","saveCSVData","Finished saving .csv file with " + outStrings.length+ " elements to file : "+ fileName);			
 	}//save csv test data
 	
 	//save data in SVM record form - each record is like a map/dict -> idx: val pair.  designed for sparse data
 	private void saveSVMData() {
 		//need to save a vector to determine the 
-		String[] outStrings = new String[numSmpls+1];
+		String[] outStrings = new String[numSmpls];
 		for (int i=0;i<exAra.length; ++i) {outStrings[i]=exAra[i].toSVMString(dataFrmt);	}
-		//need dummy record to manage all features, incase some are 0 in all training examples
-		String res="";
-		for(int i=0;i<numFtrs;++i) {res += "" + i  + ":" + String.format("%1.7g", 0.0f) + " ";}
-		outStrings[exAra.length] = res;
+//		String[] outStrings = new String[numSmpls+1];
+//		for (int i=0;i<exAra.length; ++i) {outStrings[i]=exAra[i].toSVMString(dataFrmt);	}
+//		//need dummy training record to manage all features, incase some are 0 in all training examples - they won't be present in svm sparse format
+//		String res="";
+//		for(int i=0;i<numFtrs;++i) {res += "" + i  + ":" + String.format("%1.7g", 0.0f) + " ";}
+//		outStrings[exAra.length] = res;
 		mapData.saveStrings(fileName,outStrings);		
-		mapData.dispMessage("straffDataWriter","saveSVMData","Finished saving .svm (sparse) file with " + exAra.length+ " elements to file : "+ fileName);			
+		mapData.dispMessage("straffDataWriter","saveSVMData","Finished saving .svm (sparse) file with " + outStrings.length+ " elements to file : "+ fileName);			
 	}
 
 	//write all sphere data to appropriate files

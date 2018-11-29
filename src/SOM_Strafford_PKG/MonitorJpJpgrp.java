@@ -29,6 +29,7 @@ public class MonitorJpJpgrp {
 	private int numFtrs;
 	
 	//list of job practice names keyed by jpID and jpgroup names keyed by jpgroupID	
+	private TreeMap<Integer, String> jpNamesRaw, jpGrpNamesRaw;	//these are all the names known from reading all the data in - not all may be represented in actual data
 	private TreeMap<Integer, String> jpNames, jpGrpNames;	
 	
 	public MonitorJpJpgrp(SOMMapManager _mapData) {
@@ -61,11 +62,10 @@ public class MonitorJpJpgrp {
 	
 	//get names from raw data and set them
 	public void setJpJpgrpNames(ArrayList<BaseRawData> _rawJpData, ArrayList<BaseRawData> _rawJpgData) {
-		jpNames = buildJPNames(_rawJpData);		
-		jpGrpNames = buildJPNames(_rawJpgData);	
-		dbgShowNames(jpNames,"JP Names");
-		dbgShowNames(jpGrpNames,"JPGrp Names");
-		
+		mapData.dispMessage("MonitorJpJpgrp","setJpJpgrpNames","Start setting names");
+		jpNamesRaw = buildJPNames(_rawJpData);		
+		jpGrpNamesRaw = buildJPNames(_rawJpgData);
+		mapData.dispMessage("MonitorJpJpgrp","setJpJpgrpNames","Done setting names");
 	}
 	private TreeMap<Integer, String> buildJPNames(ArrayList<BaseRawData> _raw) {
 		TreeMap<Integer, String> _nameList= new TreeMap<Integer, String>();
@@ -76,9 +76,7 @@ public class MonitorJpJpgrp {
 		return _nameList;
 	}
 	private void dbgShowNames(TreeMap<Integer, String> jpdat, String _name) {
-		for(Integer jp : jpdat.keySet()) {
-			mapData.dispMessage("MonitorJpJpgrp", "dbgShowNames : " + _name, ""+jp+" : "+ jpdat.get(jp));
-		}
+		for(Integer jp : jpdat.keySet()) {mapData.dispMessage("MonitorJpJpgrp", "dbgShowNames : " + _name, ""+jp+" : "+ jpdat.get(jp));	}
 	}
 	
 	//this will set the current jp->jpg data maps based on passed prospect data map
@@ -130,8 +128,22 @@ public class MonitorJpJpgrp {
 
 		jpByIdx = jpSeenCount.keySet().toArray(new Integer[0]);
 		jpgrpsByIdx = jpgsToJps.keySet().toArray(new Integer[0]);
-		for(int i=0;i<jpByIdx.length;++i) {jpToFtrIDX.put(jpByIdx[i], i);}
-		for(int i=0;i<jpgrpsByIdx.length;++i) {jpgToIDX.put(jpgrpsByIdx[i], i);}
+		
+		jpGrpNames = new TreeMap<Integer, String>();
+		jpNames = new TreeMap<Integer, String>();	
+
+		for(int i=0;i<jpByIdx.length;++i) {
+			jpToFtrIDX.put(jpByIdx[i], i);
+			String name = jpNamesRaw.get(jpByIdx[i]);
+			if (name==null) {mapData.dispMessage("MonitorJpJpgrp","setJPDataFromExampleData","!!!!!!!!!!!!!!!! null name for jp : " + jpByIdx[i]);name="";}
+			jpNames.put(jpByIdx[i], name);
+		}
+		for(int i=0;i<jpgrpsByIdx.length;++i) {
+			jpgToIDX.put(jpgrpsByIdx[i], i);
+			String name = jpGrpNamesRaw.get(jpgrpsByIdx[i]);
+			if (name==null) {mapData.dispMessage("MonitorJpJpgrp","setJPDataFromExampleData","!!!!!!!!!!!!!!!! null name for jpgrp : " + jpgrpsByIdx[i]);name="";}
+			jpGrpNames.put(jpgrpsByIdx[i], name);
+		}
 		
 		numFtrs = jpSeenCount.size();
 		
@@ -155,6 +167,7 @@ public class MonitorJpJpgrp {
 	/////////////////////////////
 	//Save this object's data
 	public void saveAllData(String fileName) {
+		mapData.dispMessage("MonitorJpJpgrp","saveAllData","Start to save all " + jpByIdx.length + " jp's worth of data in :"+fileName);
 		ArrayList<String> csvResTmp = new ArrayList<String>();		
 		int numJps = jpByIdx.length;		
 		String tmp = "Num Jps=," + numJps+ ",Num  JpGrps=,"+jpgrpsByIdx.length;
@@ -170,6 +183,7 @@ public class MonitorJpJpgrp {
 			csvResTmp.add(tmp);
 		}		
 		mapData.saveStrings(fileName, csvResTmp);	
+		mapData.dispMessage("MonitorJpJpgrp","saveAllData","Finished saving all jp data in :"+fileName);
 	}//saveAllData
 	
 	private String getNameNullChk(Integer key, TreeMap<Integer, String> jpdat) {
@@ -182,14 +196,17 @@ public class MonitorJpJpgrp {
 		Integer res = counts.get(key);
 		return (res == null ? 0 : res);
 	}
-
+	
 	
 	/////////////////////////////
 	//Load this object's data
 	public void loadAllData(String fileName) {
+		mapData.dispMessage("MonitorJpJpgrp","loadAllData","Start to load all jp data in :"+fileName);
 		initAllStructs();//clear everything out
 		jpNames = new TreeMap<Integer, String>();	
 		jpGrpNames = new TreeMap<Integer, String>();
+		jpNamesRaw = new TreeMap<Integer, String>();	
+		jpGrpNamesRaw = new TreeMap<Integer, String>();
 		String[] csvLoadRes = mapData.loadFileIntoStringAra(fileName, "MonitorJpJpgrp file loaded", "MonitorJpJpgrp File Failed to load");
 		int numJps = 0, numJpgs = 0;
 		for(int i=0;i<csvLoadRes.length;++i) {
@@ -215,17 +232,18 @@ public class MonitorJpJpgrp {
 				jpEvSeenCount.put(jp, jpEvSeen);
 				jpPrspctSeenCount.put(jp, jpPrspctSeen);
 				jpsToJpgs.put(jp, jpgrp);
-				jpNames.put(jp, jpName);
+				jpNamesRaw.put(jp, jpName);
 				
 				TreeSet <Integer> jpsAtJpg = jpgsToJps.get(jpgrp);
 				if (jpsAtJpg == null) {jpsAtJpg = new TreeSet <Integer>(); }
 				jpsAtJpg.add(jp);
 				jpgsToJps.put(jpgrp,jpsAtJpg);
-				jpGrpNames.put(jpgrp, jpgrpName);
+				jpGrpNamesRaw.put(jpgrp, jpgrpName);
 				jpgToIDX.put(jpgrp,jpgrpIDX);
 				jpgrpsByIdx[jpgrpIDX]=jpgrp;
 			}
 		}			
+		mapData.dispMessage("MonitorJpJpgrp","loadAllData","Finished loading all jp data in :"+fileName + " Which has :"+ jpByIdx.length + " jps.");
 	}//loadAllData
 	
 	//debugging function to display all unique jps seen in data

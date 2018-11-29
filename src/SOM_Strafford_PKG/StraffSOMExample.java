@@ -515,11 +515,7 @@ class ProspectExample extends StraffSOMExample{
 		buildOccurrenceStructs();	
 		//all jps holds all jps in this example
 		allJPs = buildJPListFromOccs();
-		if(allJPs.size() == 0) {//means there's no valid jp's 
-			//if (OID.toUpperCase().equals("PR_000000019")) {
-				//System.out.println("No jps exist for OID : " + OID + " so setting to be bad example : \n" + this.toString());
-			//}
-			setIsBadExample(true);		}//no mapped jps
+		if(allJPs.size() == 0) {setIsBadExample(true);		}//means there's no valid jp's 
 	}//finalize
 	
 	//build occurence structure for type of events in this data, including aggregating build-later opt event data
