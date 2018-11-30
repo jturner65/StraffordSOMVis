@@ -288,7 +288,9 @@ public class SOMDataLoader implements Runnable {
 		String ftrBMUFname =  projConfigData.getSOMResFName(projConfigData.fwtsIDX);
 		if(ftrBMUFname.length() < 1){return false;}
 		String [] strs= map.loadFileIntoStringAra(ftrBMUFname, "Loaded features with bmu data file : "+ftrBMUFname, "Error reading feature bmu file : "+ftrBMUFname);
-		if(strs==null){return false;}
+		if((strs==null) || (strs.length == 0)){
+			map.dispMessage("DataLoader","loadSOM_ftrBMUs","Ftr-based BMU File not found.  This file is not built as a part of vanilla SOM, but rather was added by John. This error (and the missing data) can be safely ignored.");			
+			return false;}
 		String[] tkns;
 		SOMFeature tmp;
 		ArrayList<SOMFeature> tmpAra = new ArrayList<SOMFeature>();

@@ -33,7 +33,8 @@ public class MonitorJpJpgrp {
 	private TreeMap<Integer, String> jpNames, jpGrpNames;	
 	
 	public MonitorJpJpgrp(SOMMapManager _mapData) {
-		mapData=_mapData;		
+		mapData=_mapData;
+		initAllStructs();
 	}//ctor
 	
 	public Integer getJpByIdx(int idx) {return jpByIdx[idx];}
@@ -58,6 +59,8 @@ public class MonitorJpJpgrp {
 		jpgToIDX = new TreeMap<Integer, Integer>();	
 		jpByIdx = new Integer[] {1};
 		jpgrpsByIdx = new Integer[] {1};
+		jpGrpNames = new TreeMap<Integer, String>();
+		jpNames = new TreeMap<Integer, String>();	
 	}
 	
 	//get names from raw data and set them
@@ -129,8 +132,6 @@ public class MonitorJpJpgrp {
 		jpByIdx = jpSeenCount.keySet().toArray(new Integer[0]);
 		jpgrpsByIdx = jpgsToJps.keySet().toArray(new Integer[0]);
 		
-		jpGrpNames = new TreeMap<Integer, String>();
-		jpNames = new TreeMap<Integer, String>();	
 
 		for(int i=0;i<jpByIdx.length;++i) {
 			jpToFtrIDX.put(jpByIdx[i], i);
@@ -146,23 +147,46 @@ public class MonitorJpJpgrp {
 		}
 		
 		numFtrs = jpSeenCount.size();
-		
+		mapData.setUI_JPMaxVals(jpgrpsByIdx.length,jpByIdx.length); 
 		mapData.dispMessage("MonitorJpJpgrp","setJPDataFromExampleData","numFtrs : " + numFtrs);
 	}//setJPDataFromProspectData	
 	
-		
+	//name, jp and ftr idx of jp
 	public String getJpByIdxStr(int uiIDX) {
-		int idx = uiIDX % jpByIdx.length;
-		return "" + jpByIdx[idx] + " :(idx=" +idx+ ")";
+		int idx = uiIDX % jpByIdx.length, jp=jpByIdx[idx];
+		String name = jpNames.get(jp);
+		if(name==null) {name="UNK";}
+		return "" +name+ " (jp:"+ jp + ",idx:" +idx+ ")";
 	}
-	
+	//name, jp and ftr idx of jp
 	public String getJpGrpByIdxStr(int uiIDX) {
-		int idx = uiIDX % jpgrpsByIdx.length; 
-		return "" + jpgrpsByIdx[idx];
+		int idx = uiIDX % jpgrpsByIdx.length, jpg=jpgrpsByIdx[idx];
+		String name = jpGrpNames.get(jpg);
+		if(name==null) {name="UNK";}
+		return "" +name+ " (jpg:"+ jpg + ",idx:" +idx+ ")";
 	}
 	
 	public int getLenJpByIdxStr() {		return jpByIdx.length;	}	
 	public int getLenJpGrpByIdxStr(){	return jpgrpsByIdx.length; }
+	
+	//this will return the appropriate jpgrp for the given jpIDX (ftr idx)
+	public int getUI_JPGrpFromJP(int jpIdx, int curVal) {
+		if(jpsToJpgs.size() < jpIdx) {return curVal;}
+		int jpgrp = jpsToJpgs.get(jpByIdx[jpIdx]);
+		return jpgToIDX.get(jpgrp);		
+	}
+	//this will return the first(lowest) jp for a particular jpgrp
+	public int getUI_FirstJPFromJPG(int jpgIdx, Integer curVal) {
+		if(jpgsToJps.size() < jpgIdx) {return curVal;}
+		mapData.dispMessage("MonitorJpJpgrp","getUI_FirstJPFromJPG",  "jpgIDX : " + jpgIdx + " Curval : " + curVal);
+		TreeSet <Integer> jpList = jpgsToJps.get(jpgrpsByIdx[jpgIdx]);
+		if (jpList.contains(jpByIdx[curVal])) {			
+			mapData.dispMessage("MonitorJpJpgrp","getUI_FirstJPFromJPG",  "contains curVal : jpgIDX : " + jpgIdx + " Curval : " + curVal);			
+			return curVal;		}//if in current jpgrp already, then return current value
+		else {
+			mapData.dispMessage("MonitorJpJpgrp","getUI_FirstJPFromJPG",  "doesn't contain curVal : jpgIDX : " + jpgIdx + " Curval : " + curVal);			
+			return jpToFtrIDX.get(jpList.first());		}
+	}
 	
 	/////////////////////////////
 	//Save this object's data
@@ -203,8 +227,6 @@ public class MonitorJpJpgrp {
 	public void loadAllData(String fileName) {
 		mapData.dispMessage("MonitorJpJpgrp","loadAllData","Start to load all jp data in :"+fileName);
 		initAllStructs();//clear everything out
-		jpNames = new TreeMap<Integer, String>();	
-		jpGrpNames = new TreeMap<Integer, String>();
 		jpNamesRaw = new TreeMap<Integer, String>();	
 		jpGrpNamesRaw = new TreeMap<Integer, String>();
 		String[] csvLoadRes = mapData.loadFileIntoStringAra(fileName, "MonitorJpJpgrp file loaded", "MonitorJpJpgrp File Failed to load");
@@ -243,6 +265,7 @@ public class MonitorJpJpgrp {
 				jpgrpsByIdx[jpgrpIDX]=jpgrp;
 			}
 		}			
+		mapData.setUI_JPMaxVals(jpgrpsByIdx.length,jpByIdx.length); 
 		mapData.dispMessage("MonitorJpJpgrp","loadAllData","Finished loading all jp data in :"+fileName + " Which has :"+ jpByIdx.length + " jps.");
 	}//loadAllData
 	

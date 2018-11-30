@@ -51,8 +51,6 @@ public class SOMProjConfigData {
 	//sets all file names - assumes names to be valid
 	public void setAllFileNames(String _dFN, String _mnFN, String _trainDataFName, String _somResBaseFName, String _somCSVBaseFName){
 		setFileName(trainDatFNameIDX, _trainDataFName);
-
-
 		setFileName(somResFPrfxIDX, _somResBaseFName);
 		setFileName(diffsFNameIDX, _dFN);
 		setFileName(minsFNameIDX, _mnFN);
