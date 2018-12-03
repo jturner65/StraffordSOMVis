@@ -48,6 +48,10 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	//keys for above maps
 	public static final String[] jpMapTypeKeys = new String[] {"ftrMap", "stdFtrMap", "normFtrMap"};
 	public static final int ftrMapTypeKey = 0, stdFtrMapTypeKey = 1, normFtrMapTypeKey = 2;
+	
+	//this is the distance, using the chosen distance measure, to the best matching unit of the map for this example
+	protected double _distToBMU;
+
 	/////////////////////////////
 	// from old DataPoint data
 	
@@ -60,6 +64,7 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		mapData=_map;
 		jpJpgMon = mapData.jpJpgrpMon;
 		OID = _id;
+		_distToBMU = 0.0;
 		ftrsBuilt = false;
 		stdFtrsBuilt = false;
 		normFtrsBuilt = false;
@@ -93,7 +98,6 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	public abstract void finalizeBuild();
 	//return all jpg/jps in this example record
 	public abstract HashSet<Tuple<Integer,Integer>> getSetOfAllJpgJpData();
-
 	
 	public boolean isBadExample() {return isBadTrainExample;}
 	public void setIsBadExample(boolean val) { isBadTrainExample=val;}
@@ -120,7 +124,12 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		}//switch
 	}//buildNewTrainData	
 	
-	//add object keyed by addDate, either adding to existing list or building a new list if none exists
+	/**
+	 * add object keyed by addDate, either adding to existing list or building a new list if none exists
+	 * @param _optObj : object to add
+	 * @param map : date-keyed map to add object to
+	 * @param type : int type of object
+	 */
 	protected void addDataToTrainMap(EventRawData _optObj, TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>> map, int type){		
 		Date addDate = _optObj.getDate();
 		Integer eid = _optObj.getEventID();	//identical events may occur - multiple same event ids on same date, even with same jpg/jp data.  should all be recorded
@@ -171,13 +180,16 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		return rank;
 	}	
 	
+	//this adds the passed node as this example's best matching unit on the map
+	//this also adds this data point to the map's node with a key of the distance
+	//dataVar is variance
 	public void setBMU(SOMMapNodeExample _n, float[] dataVar){
 		if (checkForErrors(_n, dataVar)) {return;}
 		bmu = _n;	
 		mapLoc.set(_n.mapLoc);
-		double dist = mapData.dpDistFunc(_n, this,dataVar);
+		_distToBMU = mapData.dpDistFunc(_n, this,dataVar);
 		//dist here is distance of this training example to map node
-		_n.addBMUExample(dist, this);
+		_n.addBMUExample(_distToBMU, this);
 	}//setBMU
 	
 	//TODO : build the SOM datapoint values used to train the SOM - features should be set and scaled and/or normed by here if appropriate
@@ -413,6 +425,11 @@ class ProspectExample extends StraffSOMExample{
 	//this object denotes a positive opt-all event for a user (i.e. an opts occurrence with a jp of -9)
 	private jpOccurrenceData posOptAllEventObj = null;
 	
+	//is this datapoint used for training 
+	private boolean isTrainingData;
+	//this is index for this data point in training/testing data array; original index in preshuffled array (reflecting build order)
+	private int testTrainDataIDX;
+	
 	//build this object based on prospect object
 	public ProspectExample(SOMMapManager _map,prospectData _prspctData) {
 		super(_map,_prspctData.OID);	
@@ -422,6 +439,7 @@ class ProspectExample extends StraffSOMExample{
 		} else {prs_JPGrp=0;prs_JP=0;}
 		prs_LUDate = _prspctData.getDate();
 		initObjsData() ;
+	
 	}//prospectData ctor
 	
 	//build this object based on csv string - rebuild data from csv string columns 4+
@@ -507,7 +525,14 @@ class ProspectExample extends StraffSOMExample{
 		for (String key : mapKeys) {eventsByDateMap.put(key, new TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>> ());	}
 		//occurrence structures - keyed by type, then by JP
 		JpOccurrences = new TreeMap<String, TreeMap<Integer, jpOccurrenceData>> ();
+		//set these when this data is partitioned into testing and training data
+		isTrainingData = false;
+		testTrainDataIDX = -1;
 	}//initObjsData
+	
+	public void setIsTrainingDataIDX(boolean val, int idx) {isTrainingData=val; testTrainDataIDX=idx;}
+	public boolean getIsTrainingData() {return isTrainingData;}
+	public int getTestTrainIDX() {return testTrainDataIDX;}
 
 	//any processing that must occur once all constituent data records are added to this example - must be called externally, before ftr vec is built
 	@Override
@@ -974,6 +999,7 @@ class SOMMapNodeExample extends StraffSOMExample{
 		buildMapOfJPsToRank();		
 	}//buildStdFtrsMap_MapNode
 	
+	//this adds every training example to a particular map node based on distance
 	public void addBMUExample(double dist, StraffSOMExample straffSOMExample){
 		examplesBMU.put(dist, straffSOMExample);		
 		numMappedTEx = examplesBMU.size();
@@ -1164,7 +1190,7 @@ class jpOccurrenceData{
 }//class jpOccurenceData
 
 /**
- * this class holds important information for a single 
+ * this class holds information from a single record.  It manages functionality to convert from the raw data to the format used to construct training examples
  * @author john
  *
  */
@@ -1266,8 +1292,12 @@ abstract class StraffTrainData{
  	}
 }//class StraffTrainData
 
-//this will correspond to the data for a training record
-//treat like event, but doesn't have date, wont be added to occurence structure
+/**
+ * this class corresponds to the data for a training/testing data point for a product.  It is built from relevant data from TC_Taggings
+ * we can treat it like an event-based data point, but doesn't have any date so wont be added to any kind of jpoccurence structure
+ * @author john
+ *
+ */
 class TcTagTrainData extends StraffTrainData{
 	public TcTagTrainData(TcTagData ev) {
 		super();

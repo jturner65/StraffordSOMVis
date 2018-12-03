@@ -8,7 +8,6 @@ import java.util.concurrent.Callable;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.*;
 
-//TODO possibly make these all runnables so they instance a mapper for each thread they consume - mappers are threadsafe but could deadlock depending on consuming functionality
 /**
 * this class will load, and manage, the appropriate files containing the Strafford data used to build the SOM.  
 * ultimately this class will also execute the appropriate SQL commands to call db
@@ -21,7 +20,7 @@ public abstract class StraffordDataLoader implements Callable<Boolean> {
 	protected SOMMapManager mapData;
 	//key in destination map of data arrays where data should be loaded
 	protected String destAraDataKey;
-	//used to decipher json - need one per instance
+	//used to decipher json - need one per instance/thread
 	public ObjectMapper jsonMapper;
 	//source file name and path or sql-related connection info (file name of csv holding sql connection info?)
 	protected String fileNameAndPath;

@@ -29,10 +29,6 @@ public class SOMMapManager {
 		
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	//map descriptions
-	//date/time of debug pre-made map
-	private String _DBG_Map_fileNow = "11_29_13_14";
-	//prebuilt map values
-	private int _DBG_Map_numSmpls = 459110, _DBG_Map_numTrain = 413199, _DBG_Map_numTest = 45911;
 	
 	//description of SOM_MAP exe params
 	private SOM_MAPDat SOMExeDat;	
@@ -47,7 +43,7 @@ public class SOMMapManager {
 	//keyed by field used in lrn file (float rep of individual record, 
 	public TreeMap<String, dataClass> TrainDataLabels;	
 	//data set to be training data, etc
-	public StraffSOMExample[] trainData, inputData, testData;
+	public ProspectExample[] trainData, inputData, testData;
 	//array of per jp treemaps of nodes keyed by jp weight
 	public TreeMap<Float,ArrayList<SOMMapNodeExample>>[] PerJPHiWtMapNodes;
 	
@@ -72,7 +68,6 @@ public class SOMMapManager {
 	//# of nodes / map dim  in x/y
 	public float nodeXPerPxl, nodeYPerPxl;
 	
-	//public String somResBaseFName, trainDataName, diffsFileName, minsFileName;//files holding diffs and mins (.csv extension)
 	private int[] stFlags;						//state flags - bits in array holding relevant process info
 	public static final int
 			debugIDX 					= 0,
@@ -98,8 +93,8 @@ public class SOMMapManager {
 
 	public static final int numFlags = 16;	
 	
-	//size of intermediate per-OID record csv files : 
-	public static final int preProcDatPartSz = 50000;
+	//////////////////////////////
+	// file IO/location constructs
 	//data in files created by SOM_MAP separated by spaces
 	public static final String SOM_FileToken = " ", csvFileToken = "\\s*,\\s*";	
 	//subdir to put preproc data files
@@ -112,9 +107,17 @@ public class SOMMapManager {
 	public static final String straffSOMProcSubDir = "SOM"+ File.separator;
 	//subdir holding calc object information
 	public static final String straffCalcInfoSubDir = "Calc"+ File.separator;
-	
+	//size of intermediate per-OID record csv files : 
+	public static final int preProcDatPartSz = 50000;	
 	//actual directory where SOM data is located
-	public String SOMDataDir;	
+	public String SOMDataDir;
+	//debug info
+	//date/time of debug pre-made map
+	private String _DBG_Map_fileNow = "12_03_10_30";
+	//prebuilt map values
+	private int _DBG_Map_numSmpls = 459110, _DBG_Map_numTrain = 413199, _DBG_Map_numTest = 45911;
+
+	
 	//////////////////
 	//source data constructs
 	//all of these constructs must follow the same order - 1st value must be prospect, 2nd must be order events, etc.
@@ -142,20 +145,18 @@ public class SOMMapManager {
 	//for multi-threaded calls to base loader
 	public List<Future<Boolean>> straffDataLdrFtrs;
 	public List<StraffordDataLoader> straffDataLoaders;
+	////////////////////
 	
+	////////////////////
+	// training data constructions	
 	//map of prospectExamples built from database data, keyed by prospect OID
 	public ConcurrentSkipListMap<String, ProspectExample> prospectMap;	
 	//map of products build from TC_Taggings entries, keyed by tag ID (synthesized upon creation)
 	public ConcurrentSkipListMap<String, ProductExample> productMap;
-	
 	//manage all jps and jpgs seen in project
-	public MonitorJpJpgrp jpJpgrpMon;
-	
-	//file names
-	//public static final String jpseenFName = "jpSeen.txt", jpgroupsAndJpsFName = "jpgroupsAndJps.txt";
+	public MonitorJpJpgrp jpJpgrpMon;	
 	//calc object to be used to derive feature vector for each prospect
 	public StraffWeightCalc ftrCalcObj;
-
 	//data type to use to train map
 	public static final int useUnmoddedDat = 0, useScaledDat = 1, useNormedDat = 2;
 	public static final String[] uiMapTrainFtrTypeList = new String[] {"Unmodified","Standardized (0->1 per ftr)","Normalized (vector mag==1)"};
@@ -164,12 +165,16 @@ public class SOMMapManager {
 	//map dims is used to calculate distances for BMUs - based on screen dimensions - need to change this?
 	private float[] mapDims;
 	
-	//used by UI, ignored if NULL (passed by command line program)
+	//////////////////////
+	// misc.
+	//used by UI for visualization, ignored if NULL (passed by command line program)
 	public SOM_StraffordMain p;
 	public mySOMMapUIWin win;				//owning window
 	
+	//threading constructions
 	private ExecutorService th_exec;	//to access multithreading - instance from calling program
 	public final int numUsableThreads;		//# of threads usable by the application
+	///////////////////////////////////
 	
 	public SOMMapManager(SOM_StraffordMain _pa, mySOMMapUIWin _win, ExecutorService _th_exec, float[] _dims) {
 		p=_pa; win=_win;th_exec=_th_exec;
@@ -539,9 +544,9 @@ public class SOMMapManager {
 	//initialize the SOM-facing data structures - these are used to train/consume a map.
 	public void initData(){
 		dispMessage("SOMMapManager","initData","Init Called");
-		trainData = new StraffSOMExample[0];
-		testData = new StraffSOMExample[0];
-		inputData = new StraffSOMExample[0];
+		trainData = new ProspectExample[0];
+		testData = new ProspectExample[0];
+		inputData = new ProspectExample[0];
 		nodesWithEx = new HashSet<SOMMapNodeExample>();
 		nodesWithNoEx = new HashSet<SOMMapNodeExample>();
 		numTrainData = 0;
@@ -556,10 +561,8 @@ public class SOMMapManager {
 
 	/**
 	 * calc distance between two data points, using L2 calculation or standardized (divided by variance) euc
-	 * @param a,b datapoints
-	 * @param assumeZero if this is true then assume the smaller of two datapoints has a value of 0 for the missing features, otherwise only calculate distance between shared features
-	 * 		(which assumes features share positions in arrays, and extra features are at tail of arrays)
-	 * //passing variance (dataVar) for chi sq dist
+	 * @param a,b nodes to measure distance
+	 * @param dataVar variance in ftr data between nodes for chi sq dist
 	 * @return dist
 	 */
 	public double dpDistFunc(StraffSOMExample a, StraffSOMExample b, float[] dataVar){
@@ -794,6 +797,7 @@ public class SOMMapManager {
 		dispMessage("SOMMapManager","loadAllPropsectMapData","Finished loading and preprocessing all local prospect map data and calculating features.  Number of entries in prospectMap : " + prospectMap.size());
 	}//loadAllPropsectMapData
 	
+	
 	//load product pre-procced data from tc_taggings source
 	private void loadAllProductMapData() {
 		dispMessage("SOMMapManager","loadAllProductMapData","Loading all product map data");
@@ -858,7 +862,7 @@ public class SOMMapManager {
 		saveStrings(saveDestFNamePrefixAra[0]+"_format.csv", data);		
 		dispMessage("SOMMapManager","saveAllProspectMapData","Finished saving all prospect map data");
 	}//saveAllProspectMapData	
-	
+
 	private void saveAllProductMapData() {
 		dispMessage("SOMMapManager","saveAllProductMapData","Saving all product map data : " + productMap.size() + " examples to save.");
 		String[] saveDestFNamePrefixAra = buildProccedDataCSVFNames(false, "productMapSrcData");
@@ -880,7 +884,7 @@ public class SOMMapManager {
 
 		jpJpgrpMon.saveAllData(saveDestFNamePrefixAra[0]+".csv");
 		dispMessage("SOMMapManager","saveMonitorJpJpgrp","Finished saving MonitorJpJpgrp data");
-	}//saveAllProductMapData
+	}//saveMonitorJpJpgrp
 	
 	//finish building the prospect map - finalize each prospect example and then perform calculation to derive weight vector
 	private void finishSOMExampleBuild() {
@@ -906,7 +910,8 @@ public class SOMMapManager {
 		diffsVals = ftrCalcObj.getDiffsBndsAra();
 		minsVals = ftrCalcObj.getMinBndsAra();
 		for (ProspectExample ex : prospectMap.values()) {			ex.buildPostFeatureVectorStructs();		}//this builds std ftr vector for prospects, once diffs and mins are set - not necessary for products, buildFeatureVector for products builds std ftr vec
-		setFlag(rawPrspctEvDataProcedIDX, true);
+		setFlag(rawPrspctEvDataProcedIDX, true);	
+		
 		dispMessage("SOMMapManager","finishSOMExampleBuild","Finished calculating prospect feature vectors");
 	}//finishSOMExampleBuild
 	
@@ -925,18 +930,22 @@ public class SOMMapManager {
 	protected void buildTestTrainFromInput(ConcurrentSkipListMap<String, ProspectExample> dataMap, float testTrainPartition) {
 		dispMessage("SOMMapManager","buildTestTrainFromInput","Building Training and Testing Partitions.");
 		//set inputdata array to be all prospect map examples
-		inputData = dataMap.values().toArray(new StraffSOMExample[0]);
+		inputData = dataMap.values().toArray(new ProspectExample[0]);
 		
-		numTrainData = (int) (inputData.length * testTrainPartition);	
+		//shuffleProspects(ProspectExample[] _list, long seed) -- performed in place
+		inputData = shuffleProspects(inputData, 12345L);
 		
+		numTrainData = (int) (inputData.length * testTrainPartition);			
 		numTestData = inputData.length - numTrainData;
+		//TODO shuffle data order
+		
 		//trainData, inputData, testData;
-		trainData = new StraffSOMExample[numTrainData];	
+		trainData = new ProspectExample[numTrainData];	
 		dispMessage("SOMMapManager","buildTestTrainFromInput","# of training examples : " + numTrainData + " inputData size : " + inputData.length);
 		//numTrainData and numTestData 
-		for (int i=0;i<trainData.length;++i) {trainData[i]=inputData[i];}
-		testData = new StraffSOMExample[numTestData];
-		for (int i=0;i<testData.length;++i) {testData[i]=inputData[i+numTrainData];}	
+		for (int i=0;i<trainData.length;++i) {trainData[i]=inputData[i];trainData[i].setIsTrainingDataIDX(true, i);}
+		testData = new ProspectExample[numTestData];
+		for (int i=0;i<testData.length;++i) {testData[i]=inputData[i+numTrainData];trainData[i].setIsTrainingDataIDX(false, i);}
 		dispMessage("SOMMapManager","buildTestTrainFromInput","Finished Building Training and Testing Partitions.  Train size : " + numTrainData+ " Testing size : " + numTestData + ".");
 	}//buildTestTrainFromInput
 	
@@ -1200,11 +1209,15 @@ public class SOMMapManager {
 		jpJpgrpMon.setJpJpgrpNames(rawDataArrays.get(straffDataFileNames[jpDataIDX]),rawDataArrays.get(straffDataFileNames[jpgDataIDX]));
 		//to free up memory before we build feature weight vectors
 		rawDataArrays = new ConcurrentSkipListMap<String, ArrayList<BaseRawData>>();		//finalize builds each example's occurence structures, which describe the jp-jpg relationships found in the example
-
+		
+		dispMessage("SOMMapManager","procRawLoadedData","Begin initial finalize of tmp prospect map to aggregate all JPs and determine records that are valid training examples");		
 		//finalize each potential prospect and product - this will aggregate all the jp's that are seen, as well as finding all records that are bad due to having a 0 ftr vector
 		for (ProspectExample ex : tmpProspectMap.values()) {			ex.finalizeBuild();		}		
+		dispMessage("SOMMapManager","procRawLoadedData","End initial finalize of tmp prospect map");		
+		dispMessage("SOMMapManager","procRawLoadedData","Begin initial finalize of product map to aggregate all JPs");		
 		//finalize build for all products - aggregates all jps seen in product
 		for (ProductExample ex : productMap.values()){		ex.finalizeBuild();		}		
+		dispMessage("SOMMapManager","procRawLoadedData","End initial finalize of product map");		
 		//must rebuild this because we might not have same jp's
 		dispMessage("SOMMapManager","procRawLoadedData","Begin setJPDataFromExampleData from tmp prospect map");
 		//we need the jp-jpg counts and relationships dictated by the data by here.
@@ -1225,6 +1238,7 @@ public class SOMMapManager {
 				if (ex.isTrainableRecord()) {				prospectMap.put(OID, ex);			}
 			}			
 		}		
+	
 		//finalize each prospect record, aggregate data-driven static vals, rebuild ftr vectors - doing this over since we are only using non-bad record prospects
 		finishSOMExampleBuild();
 		
@@ -1293,6 +1307,36 @@ public class SOMMapManager {
 		return res;
 	}
 	
+	//provides a list of indexes 0->len-1 that are Durstenfeld shuffled
+	private int[] shuffleAraIDXs(int len) {
+		int[] res = new int[len];
+		for(int i=0;i<len;++i) {res[i]=i;}
+		ThreadLocalRandom tr = ThreadLocalRandom.current();
+		int swap = 0;
+		for(int i=(len-1);i>0;--i){
+			int j = tr.nextInt(i + 1);//find random lower idx somewhere below current position, and swap current with this idx
+			swap = res[i];
+			res[i]=res[j];			
+			res[j]=swap;			
+		}
+		return res;	
+	}//shuffleAraIDXs
+	
+	//shuffle all data passed
+	public ProspectExample[] shuffleProspects(ProspectExample[] _list, long seed) {
+		ProspectExample tmp;
+		Random tr = new Random(seed);
+		for(int i=(_list.length-1);i>0;--i){
+			int j = tr.nextInt(i + 1);//find random lower idx somewhere below current position but greater than stIdx, and swap current with this idx
+			tmp = _list[i];
+			_list[i] = _list[j];
+			_list[j] = tmp;
+		}
+		return _list;
+	}
+	
+	
+	
 	//performs Durstenfeld  shuffle, leaves 0->stIdx alone - for testing/training data
 	public String[] shuffleStrList(String[] _list, String type, int stIdx){
 		String tmp = "";
@@ -1306,12 +1350,20 @@ public class SOMMapManager {
 		return _list;
 	}//shuffleStrList
 	
+	
 	//if connected to UI, draw data - only called from window
 	public void drawTrainData(SOM_StraffordMain pa, int curMapImgIDX, boolean drawLbls) {
 		if(drawLbls){
 			for(int i=0;i<trainData.length;++i){trainData[i].drawMeLblMap(pa,trainData[i].label,false);}} 
 		else {for(int i=0;i<trainData.length;++i){trainData[i].drawMeMap(pa, 2,trainData[i].label);}}	
 	}//drawTrainData
+	
+	//draw all product nodes
+	public void drawProductNodes(SOM_StraffordMain pa, int curJPIdx) {
+		pa.pushMatrix();pa.pushStyle();
+		
+		pa.popStyle();pa.popMatrix();
+	}
 	
 	public void drawAllNodes(SOM_StraffordMain pa, int curJPIdx, int[] dpFillClr, int[] dpStkClr) {
 		pa.pushMatrix();pa.pushStyle();

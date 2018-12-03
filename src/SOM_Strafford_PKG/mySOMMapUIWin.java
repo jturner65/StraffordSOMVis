@@ -21,21 +21,22 @@ public class mySOMMapUIWin extends myDispWindow {
 		mapUseSclFtrDistIDX 	= 4,			//whether or not to use the scaled (0-1) ftrs or the unscaled features for distance measures
 		mapUseChiSqDistIDX		= 5,			//whether or not to use chi-squared (weighted) distance for features
 		mapSetSmFtrZeroIDX		= 6,			//whether or not distances between two datapoints assume that absent features in smaller-length datapoints are 0, or to ignore the values in the larger datapoints
+		mapDrawPrdctNodesIDX 	= 7,
 		//display/interaction
-		mapDrawTrainDatIDX		= 7,			//draw training examples
-		mapDrawTrDatLblIDX		= 8,			//draw labels for training samples
-		mapDrawMapNodesIDX		= 9,			//draw map nodes
-		mapDrawAllMapNodesIDX	= 10,			//draw all map nodes, even empty
-		//mapShowLocClrIDX 		= 11,			//show img built of map with each pxl clr built from the 1st 3 features of the interpolated point at that pxl between the map nodes
-		showSelRegionIDX		= 11,			//highlight a specific region of the map, either all nodes above a certain threshold for a chosen jp or jpgroup
-		showSelJPIDX			= 12, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
+		mapDrawTrainDatIDX		= 8,			//draw training examples
+		mapDrawTrDatLblIDX		= 9,			//draw labels for training samples
+		mapDrawMapNodesIDX		= 10,			//draw map nodes
+		mapDrawAllMapNodesIDX	= 11,			//draw all map nodes, even empty
+		//mapShowLocClrIDX 		= 12,			//show img built of map with each pxl clr built from the 1st 3 features of the interpolated point at that pxl between the map nodes
+		showSelRegionIDX		= 12,			//highlight a specific region of the map, either all nodes above a certain threshold for a chosen jp or jpgroup
+		showSelJPIDX			= 13, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
 		//train/test data management
-		somTrainDataLoadedIDX	= 13,			//whether data used to build map has been loaded yet
-		saveLocClrImgIDX		= 14,			//
-		appendTrainDataIDX		= 15,			//append to existing processed training data to retrain map with expanded data. NOTE : may have issues with duplication of records 
-		useOnlyEvntsToTrainIDX  = 16;			//only use records that have event jpgs/jps to train, otherwise use records that also have jpgs/jps only specified in prospect db
+		somTrainDataLoadedIDX	= 14,			//whether data used to build map has been loaded yet
+		saveLocClrImgIDX		= 15,			//
+		appendTrainDataIDX		= 16,			//append to existing processed training data to retrain map with expanded data. NOTE : may have issues with duplication of records, this might be a bad idea
+		useOnlyEvntsToTrainIDX  = 17;			//only use records that have event jpgs/jps to train, otherwise use records that also have jpgs/jps only specified in prospect db
 	
-	public static final int numPrivFlags = 17;
+	public static final int numPrivFlags = 18;
 	
 	//SOM map list options
 	public String[] 
@@ -120,17 +121,17 @@ public class mySOMMapUIWin extends myDispWindow {
 		truePrivFlagNames = new String[]{								//needs to be in order of flags
 				"Merge w/Cur Preproc Dataset","Train W/Recs W/Event Data", "Building SOM", "Resetting Def Vals", "Loading Feature BMUs",
 				"Using Scaled Ftrs For Dist Calc","Using ChiSq for Ftr Distance", "Unshared Ftrs are 0",	"Hide Train Data",
-				"Hide Train Lbls",	"Hide Pop Map Nodes","Hide Map Nodes"//, "Showing Ftr Clr"
+				"Hide Train Lbls",	"Hide Pop Map Nodes","Hide Map Nodes", "Hide Products"//, "Showing Ftr Clr"
 		};
 		falsePrivFlagNames = new String[]{			//needs to be in order of flags
 				"Build New Dataset From DB","Train W/All Recs","Build New Map ","Reset Def Vals","Not Loading Feature BMUs",
 				"Using Unscaled Ftrs For Dist Calc","Not Using ChiSq Distance", "Ignoring Unshared Ftrs",	"Show Train Data",
-				"Show Train Lbls",	"Show Pop Map Nodes","Show Map Nodes"//, "Not Showing Ftr Clr"
+				"Show Train Lbls",	"Show Pop Map Nodes","Show Map Nodes", "Show Products"//, "Not Showing Ftr Clr"
 		};
 		privModFlgIdxs = new int[]{
 				appendTrainDataIDX,useOnlyEvntsToTrainIDX, buildSOMExe, resetMapDefsIDX, mapLoadFtrBMUsIDX,
 				mapUseSclFtrDistIDX,mapUseChiSqDistIDX,mapSetSmFtrZeroIDX,mapDrawTrainDatIDX,
-				mapDrawTrDatLblIDX,mapDrawMapNodesIDX,mapDrawAllMapNodesIDX};//,mapShowLocClrIDX};
+				mapDrawTrDatLblIDX,mapDrawMapNodesIDX,mapDrawAllMapNodesIDX, mapDrawPrdctNodesIDX};//,mapShowLocClrIDX};
 		numClickBools = privModFlgIdxs.length;	
 		//maybe have call for 		initPrivBtnRects(0);	
 		initPrivBtnRects(0,numClickBools);
@@ -672,7 +673,8 @@ public class mySOMMapUIWin extends myDispWindow {
 		pa.pushMatrix();pa.pushStyle();
 		pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
 		if(mseOvrData != null){mseOvrData.drawMeLblMap(pa,mseOvrData.label,true);}
-		if(getPrivFlags(mapDrawTrainDatIDX)){		mapMgr.drawTrainData(pa, curMapImgIDX, getPrivFlags(mapDrawTrDatLblIDX));}			
+		if(getPrivFlags(mapDrawTrainDatIDX)){		mapMgr.drawTrainData(pa, curMapImgIDX, getPrivFlags(mapDrawTrDatLblIDX));}	
+		if(getPrivFlags(mapDrawPrdctNodesIDX)){		mapMgr.drawProductNodes(pa, curMapImgIDX);}
 		pa.popStyle();pa.popMatrix();
 		//draw map nodes, either with or without empty nodes
 		if(getPrivFlags(mapDrawAllMapNodesIDX)){	mapMgr.drawAllNodes( pa, curMapImgIDX, mapNodeClr, mapNodeClr);		} 
