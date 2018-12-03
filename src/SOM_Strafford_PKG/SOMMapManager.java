@@ -44,6 +44,8 @@ public class SOMMapManager {
 	public TreeMap<String, dataClass> TrainDataLabels;	
 	//data set to be training data, etc
 	public ProspectExample[] trainData, inputData, testData;
+	//data for products to be measured on map
+	public ProductExample[] productData;
 	//array of per jp treemaps of nodes keyed by jp weight
 	public TreeMap<Float,ArrayList<SOMMapNodeExample>>[] PerJPHiWtMapNodes;
 	
@@ -116,7 +118,6 @@ public class SOMMapManager {
 	private String _DBG_Map_fileNow = "12_03_10_30";
 	//prebuilt map values
 	private int _DBG_Map_numSmpls = 459110, _DBG_Map_numTrain = 413199, _DBG_Map_numTest = 45911;
-
 	
 	//////////////////
 	//source data constructs
@@ -946,8 +947,14 @@ public class SOMMapManager {
 		for (int i=0;i<trainData.length;++i) {trainData[i]=inputData[i];trainData[i].setIsTrainingDataIDX(true, i);}
 		testData = new ProspectExample[numTestData];
 		for (int i=0;i<testData.length;++i) {testData[i]=inputData[i+numTrainData];trainData[i].setIsTrainingDataIDX(false, i);}
-		dispMessage("SOMMapManager","buildTestTrainFromInput","Finished Building Training and Testing Partitions.  Train size : " + numTrainData+ " Testing size : " + numTestData + ".");
+		productData = productMap.values().toArray(new ProductExample[0]);
+		for(ProductExample prdEx : productData) {
+			dispMessage("SOMMapManager","buildTestTrainFromInput",prdEx.toString());
+		}
+		
+		dispMessage("SOMMapManager","buildTestTrainFromInput","Finished Building Training and Testing Partitions.  Train size : " + numTrainData+ " Testing size : " + numTestData + " Product data size : " +productData.length +".");
 	}//buildTestTrainFromInput
+
 	
 	//build training data from current global prospect data map
 	//and save them to .lrn format 

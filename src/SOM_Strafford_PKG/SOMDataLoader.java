@@ -232,37 +232,47 @@ public class SOMDataLoader implements Runnable {
 
 			StraffSOMExample tmpDataPt = map.trainData[dpIdx];
 			if(null==tmpDataPt){ map.dispMessage("DataLoader","loadSOM_BMUs","!!Training Datapoint given by idx in BMU file str tok : " + tkns[0] + " of string : --" + strs[i] + "-- not found in training data. "); return false;}//catastrophic error shouldn't happen
-			//passing per-ftr variance for chi sq distan
-			
-			//using variance for chi dq dist calculation
+			//passing per-ftr variance for chi sq distan			
+			//using variance for chi dq dist calculation - also sets distance of node from bmu using whatever the current distance calculation is set to be
 			tmpDataPt.setBMU(tmpMapNode,map.map_ftrsVar);
+			//debug to map node row/column order
+			//dbgVerifyBMUs(tmpMapNode, tmpDataPt,Integer.parseInt(tkns[1]) ,Integer.parseInt(tkns[2]));
 			map.nodesWithEx.add(tmpMapNode);
 			map.nodesWithNoEx.remove(tmpMapNode);
 			//map.dispMessage("DataLoader : Tuple "  + mapLoc + " from str @ i-2 = " + (i-2) + " node : " + tmpMapNode.toString());
 		}
-		//set all empty mapnodes to have a label based on the most common label of their 4 neighbors (up,down,left,right)
+		//set all empty mapnodes to have a label based on the closest mapped node's label
 		for(SOMMapNodeExample node : map.nodesWithNoEx){
 			//tmpMapNode has no mappings, so need to determine label
+			float minDist = 1000000;
+			SOMMapNodeExample closest  = node;					//will never be added
 			for(SOMMapNodeExample node2 : map.nodesWithEx){		//this is adding a -map- node
 				float dist = getSqMapDist(node2, node);			//actual map topology dist - need to handle wrapping!
-				//if(dist <= nodeDistThresh){					//pxl distance
-					node.addBMUExample(dist, node2);			//adds a -map- node we know has a label - ugh not best
-				//}
-			}			
+				if (dist < minDist) {
+					minDist = dist;
+					closest = node2;
+				}
+				//node.addBMUExample(dist, node2);			//adds a -map- node we know has a label - slow to add all of them
+			}	
+			node.addBMUExample(minDist, closest);			//adds single closest -map- node we know has a label
 		}
 		
 		map.dispMessage("DataLoader","loadSOM_BMUs","Finished Loading SOM BMUs from file : " + getFName(bmFileName) + "| Found "+map.nodesWithEx.size()+" nodes with example mappings.");
 		return true;
 	}//loadSOM_BMs
+	
+	//verify that map node coords are in proper order (row-col vs x-y)
 	private void dbgVerifyBMUs(SOMMapNodeExample tmpMapNode, StraffSOMExample tmpDataPt, Integer x, Integer y) {
 		//this is alternate node with column-major key
 		Tuple<Integer,Integer> mapAltLoc = new Tuple<Integer, Integer>(x,y);//verifying correct row/col order - tmpMapNode should be closer to map.trainData[dpIdx] than to tmpAltMapNode
 		SOMMapNodeExample tmpAltMapNode = map.MapNodes.get(mapAltLoc);
-		
-		
-		
-		
-	}
+		double tmpDist =  map.dpDistFunc(tmpMapNode, tmpDataPt,map.map_ftrsVar);
+		if(tmpDist < tmpDataPt._distToBMU ) {
+			map.dispMessage("DataLoader","loadSOM_BMUs:dbgVerifyBMUs","Somehow bmu calc is incorrect - x/y order of map node location perhaps is swapped? dataPt " + tmpDataPt.OID + " is closer to "+ tmpAltMapNode.OID + " than to predicted BMU : " + tmpMapNode.OID+" : dists : " +tmpDist + " vs. " +tmpDataPt._distToBMU);
+		}
+	}//dbgVerifyBMUs
+	
+	
 	
 	
 	//returns sq distance between two map locations - needs to handle wrapping if map built torroidally

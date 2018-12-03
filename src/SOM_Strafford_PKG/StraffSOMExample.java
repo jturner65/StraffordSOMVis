@@ -378,7 +378,17 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 			res += String.format("%1.4g",  (ftr==null ? 0 : ftr)) + " | "; if((mapData.numFtrs > 40) && ((i+1)%30 == 0)){res +="\n\t";}}}
 		return res;
 	}
-
+	protected String dispFtrMapVals(TreeMap<Integer, Float> ftrs) {
+		String res = "";
+		if((ftrs==null) || (ftrs.size() == 0)){res+=" None\n";} 
+		//else {res +="\n\t";for(int i=0;i<ftrs.length;++i){res += ""+String.format("%03d", i) +":"+ String.format("%1.4g", ftrs[i]) + " | "; if((numFtrs > 40) && ((i+1)%30 == 0)){res +="\n\t";}}}
+		else {
+			for(Integer i : ftrs.keySet()){
+				Float ftr = ftrs.get(i);
+				int jp = jpJpgMon.getJpByIdx(i);
+				res += "jp : " + jp + " | idx : " + i + " | val : " + String.format("%1.4g",  ftr) + " || ";}}
+		return res;
+	}
 	@Override
 	public String toString(){
 		String res = "Example OID# : "+OID+ (  "" != OID ? " Dense format lrnID : " + OID + "\t" : "" ) + (null == label ?  "Unknown DataClass\t" : "DataClass : " + label.toString() +"\t");
@@ -790,8 +800,7 @@ class ProductExample extends StraffSOMExample{
 	protected void buildFeaturesMap() {
 		ftrMap = new TreeMap<Integer, Float>();	
 		int count = 0;
-		for (Integer IDX : allJPFtrIDXs) {
-			
+		for (Integer IDX : allJPFtrIDXs) {			
 			ftrMap.put(IDX,1.0f);
 			count++;
 		}	
@@ -804,6 +813,19 @@ class ProductExample extends StraffSOMExample{
 		for (Integer IDX : ftrMap.keySet()) {stdFtrMap.put(IDX,ftrMap.get(IDX));}
 		stdFtrsBuilt = true;
 	}
+	
+	@Override
+	public String toString(){
+		String res = "Example OID# : "+OID + (null == label ?  " Unknown DataClass\t" : " DataClass : " + label.toString() +"\t");
+		if(null!=mapLoc){res+="Location on SOM map : " + mapLoc.toStrBrf();}
+		if (mapData.numFtrs > 0) {
+			res += "\n\tFeature Val(s) : " + dispFtrMapVals(ftrMap);
+		} else {
+			res += "No Features for this product example";
+		}
+		return res;
+	}
+
 
 }//class productExample
 
