@@ -153,7 +153,9 @@ public class SOMMapManager {
 	//map of prospectExamples built from database data, keyed by prospect OID
 	public ConcurrentSkipListMap<String, ProspectExample> prospectMap;	
 	//map of products build from TC_Taggings entries, keyed by tag ID (synthesized upon creation)
-	public ConcurrentSkipListMap<String, ProductExample> productMap;
+	private ConcurrentSkipListMap<String, ProductExample> productMap;
+	
+	
 	//manage all jps and jpgs seen in project
 	public MonitorJpJpgrp jpJpgrpMon;	
 	//calc object to be used to derive feature vector for each prospect
@@ -793,11 +795,9 @@ public class SOMMapManager {
 				preProcLoaders.add(new straffCSVDataLoader(this, i, loadSrcFNamePrefixAra[0]+"_"+i+".csv", "Data file " + i +" loaded", "Data File " + i +" Failed to load"));
 			}
 			try {preProcLoadFtrs = th_exec.invokeAll(preProcLoaders);for(Future<Boolean> f: preProcLoadFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }					
-		}
-	
+		}	
 		dispMessage("SOMMapManager","loadAllPropsectMapData","Finished loading and preprocessing all local prospect map data and calculating features.  Number of entries in prospectMap : " + prospectMap.size());
-	}//loadAllPropsectMapData
-	
+	}//loadAllPropsectMapData	
 	
 	//load product pre-procced data from tc_taggings source
 	private void loadAllProductMapData() {
@@ -948,9 +948,8 @@ public class SOMMapManager {
 		testData = new ProspectExample[numTestData];
 		for (int i=0;i<testData.length;++i) {testData[i]=inputData[i+numTrainData];trainData[i].setIsTrainingDataIDX(false, i);}
 		productData = productMap.values().toArray(new ProductExample[0]);
-		for(ProductExample prdEx : productData) {
-			dispMessage("SOMMapManager","buildTestTrainFromInput",prdEx.toString());
-		}
+		//dbg disp
+		//for(ProductExample prdEx : productData) {dispMessage("SOMMapManager","buildTestTrainFromInput",prdEx.toString());}
 		
 		dispMessage("SOMMapManager","buildTestTrainFromInput","Finished Building Training and Testing Partitions.  Train size : " + numTrainData+ " Testing size : " + numTestData + " Product data size : " +productData.length +".");
 	}//buildTestTrainFromInput

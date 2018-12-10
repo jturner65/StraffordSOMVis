@@ -27,7 +27,7 @@ public class MonitorJpJpgrp {
 	private Integer[] jpByIdx = new Integer[] {1}, jpgrpsByIdx = new Integer[] {1};
 	//# of jps seen = size of jpByIdx array == # of ftrs
 	private int numFtrs;
-	
+
 	//list of job practice names keyed by jpID and jpgroup names keyed by jpgroupID	
 	private TreeMap<Integer, String> jpNamesRaw, jpGrpNamesRaw;	//these are all the names known from reading all the data in - not all may be represented in actual data
 	private TreeMap<Integer, String> jpNames, jpGrpNames;	

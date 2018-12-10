@@ -22,9 +22,6 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	
 	//prefix to use for product example IDs
 	protected static final String IDprfx = "TC_Tag";	
-	//vector of features and standardized (0->1) features for this Example
-	//private float[] ftrData, stdFtrData, normFtrData;
-	
 	//use a map to hold only sparse data frmt
 	protected TreeMap<Integer, Float> ftrMap, stdFtrMap, normFtrMap;
 	
@@ -40,11 +37,11 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	public HashSet<Integer> allJPs;
 	//idx's in feature vector that have non-zero values
 	public ArrayList<Integer> allJPFtrIDXs;
-	//use a map per feature type : unmodified, normalized, standardized, of a map to hold the features sorted by weight as key, value is array of jps at that weight -submap needs to be instanced in descending key order
-	public TreeMap<String, TreeMap<Float, ArrayList<Integer>>> mapOfTopJps;
 	
-	//a map per feature type : unmodified, normalized, standardized, of a map of jps and their relative "rank" in this particular example
-	public TreeMap<String, TreeMap<Integer,Integer>> mapOfJpsVsRank;
+	//use a map per feature type : unmodified, normalized, standardized, of a map to hold the features sorted by weight as key, value is array of jps at that weight -submap needs to be instanced in descending key order
+	private TreeMap<String, TreeMap<Float, ArrayList<Integer>>> mapOfTopWtJps;	
+	//a map per feature type : unmodified, normalized, standardized, of a map of jps and their relative "rank" in this particular example, as determined by the weight calc
+	private TreeMap<String, TreeMap<Integer,Integer>> mapOfJpsVsWtRank;
 	//keys for above maps
 	public static final String[] jpMapTypeKeys = new String[] {"ftrMap", "stdFtrMap", "normFtrMap"};
 	public static final int ftrMapTypeKey = 0, stdFtrMapTypeKey = 1, normFtrMapTypeKey = 2;
@@ -75,14 +72,15 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		stdFtrMap = new TreeMap<Integer, Float>();	
 		normFtrMap=new TreeMap<Integer, Float>();	
 		allJPs = new HashSet<Integer> ();
+		
 		//this map is a map of maps in descending order - called by calc object as well as buildNormFtrData
-		mapOfTopJps = new TreeMap<String, TreeMap<Float, ArrayList<Integer>>>();//(new Comparator<Float>() { @Override public int compare(Float o1, Float o2) {   return o2.compareTo(o1);}}); 
-		mapOfJpsVsRank = new TreeMap<String, TreeMap<Integer,Integer>>();
-		for(String key : jpMapTypeKeys) {
-			TreeMap<Float, ArrayList<Integer>> tmpFltMap = new TreeMap<Float, ArrayList<Integer>>(new Comparator<Float>() { @Override public int compare(Float o1, Float o2) {   return o2.compareTo(o1);}});
+		mapOfTopWtJps = new TreeMap<String, TreeMap<Float, ArrayList<Integer>>>();//(new Comparator<Float>() { @Override public int compare(Float o1, Float o2) {   return o2.compareTo(o1);}}); 
+		mapOfJpsVsWtRank = new TreeMap<String, TreeMap<Integer,Integer>>();
+		for(String ftrType : jpMapTypeKeys) {//type of features
+			TreeMap<Float, ArrayList<Integer>> tmpFltMap = new TreeMap<Float, ArrayList<Integer>>(new Comparator<Float>() { @Override public int compare(Float o1, Float o2) {   return o2.compareTo(o1);}});//descending key order
 			TreeMap<Integer,Integer> tmpIntMap = new TreeMap<Integer,Integer>();
-			mapOfTopJps.put(key, tmpFltMap);
-			mapOfJpsVsRank.put(key, tmpIntMap);
+			mapOfTopWtJps.put(ftrType, tmpFltMap);
+			mapOfJpsVsWtRank.put(ftrType, tmpIntMap);
 		}
 	}//ctor
 
@@ -97,7 +95,7 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	//finalization after being loaded from baseRawData or from csv record
 	public abstract void finalizeBuild();
 	//return all jpg/jps in this example record
-	public abstract HashSet<Tuple<Integer,Integer>> getSetOfAllJpgJpData();
+	protected abstract HashSet<Tuple<Integer,Integer>> getSetOfAllJpgJpData();
 	
 	public boolean isBadExample() {return isBadTrainExample;}
 	public void setIsBadExample(boolean val) { isBadTrainExample=val;}
@@ -158,23 +156,27 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	
 	//take map of jpwts to arrays of jps and build maps of jps to rank
 	//This will give a map of all present JPs for this example and the rank of that jp.  null entries mean no rank
+	//mapOfTopWtJps must be built for all types of weights by here
 	public void buildMapOfJPsToRank() {
 		for (String mapToGet : jpMapTypeKeys) {//for each type
 			Integer rank = 0;
-			TreeMap<Float, ArrayList<Integer>> mapOfAras = mapOfTopJps.get(mapToGet);
-			TreeMap<Integer,Integer> mapOfRanks = mapOfJpsVsRank.get(mapToGet);
+			TreeMap<Float, ArrayList<Integer>> mapOfAras = mapOfTopWtJps.get(mapToGet);
+			if (mapOfAras == null) {mapData.dispMessage("StraffSOMExample", "buildMapOfJPsToRank", "For OID : "+ OID + " mapOfTopWtJps entry " +mapToGet + " does not exist yet.  Method called before all features are calculated.");return;}
+			TreeMap<Integer,Integer> mapOfRanks = mapOfJpsVsWtRank.get(mapToGet);
 			for (Float wtVal : mapOfAras.keySet()) {
 				ArrayList<Integer> jpsAtRank = mapOfAras.get(wtVal);
 				for (Integer jp : jpsAtRank) {	mapOfRanks.put(jp, rank);}
 				++rank;
 			}
-			mapOfJpsVsRank.put(mapToGet, mapOfRanks);//probably not necessary		
+			mapOfJpsVsWtRank.put(mapToGet, mapOfRanks);//probably not necessary		
 		}		
 	}//buildMapOfJPsToRank
+	
+	
 	//return the rank of the passed jp
 	protected Integer getJPRankForMap(int mapToGetIDX, int jp) {
 		String mapToGet = jpMapTypeKeys[mapToGetIDX];
-		TreeMap<Integer,Integer> mapOfRanks = mapOfJpsVsRank.get(mapToGet);
+		TreeMap<Integer,Integer> mapOfRanks = mapOfJpsVsWtRank.get(mapToGet);
 		Integer rank = mapOfRanks.get(jp);
 		if (rank==null) {rank = mapData.numFtrs;}
 		return rank;
@@ -196,16 +198,16 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	public void buildSOMDataPoint() {
 		if(label==null){label = new dataClass(OID,"unitialized label","unitialized Description", null);}
 		bmu = null;
-		//map.dispMessage("Building DATA POINT chugga : "+OID);
+		//map.dispMessage("Building DATA POINT  : "+OID);
 		
 	}//buildSOMDataPoint	
 	
 	//call from calc or from objects that manage norm/std ftrs - build structure registering weight of jps in ftr vector mapToGet in descending strength
 	protected void setMapOfJpWts(int jp, float wt, int mapToGetIDX) {
 		String mapToGet = jpMapTypeKeys[mapToGetIDX];
-		TreeMap<Float, ArrayList<Integer>> map = mapOfTopJps.get(mapToGet);
+		TreeMap<Float, ArrayList<Integer>> map = mapOfTopWtJps.get(mapToGet);
 		//shouldn't be null - means using inappropriate key
-		if(map == null) {this.mapData.dispMessage("StraffSOMExample","setMapOfJpWts","Using inappropriate key to access mapOfTopJps : " + mapToGet + " No submap exists with this key."); return;}		 
+		if(map == null) {mapData.dispMessage("StraffSOMExample","setMapOfJpWts","Using inappropriate key to access mapOfTopJps : " + mapToGet + " No submap exists with this key."); return;}		 
 		ArrayList<Integer> jpIdxsAtWt = map.get(wt);
 		if (jpIdxsAtWt == null) {jpIdxsAtWt = new ArrayList<Integer>(); }
 		jpIdxsAtWt.add(jp);
@@ -217,7 +219,7 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		buildAllJPFtrIDXsJPs();
 		buildFeaturesMap();
 		ftrsBuilt = true;		
-		buildNormFtrData();
+		buildNormFtrData();//once ftr map is built can normalize easily
 	}//buildFeatureVector
 	
 	protected void buildAllJPFtrIDXsJPs() {
@@ -285,8 +287,33 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 			
 		}//for each jp
 		return sclFtrs;
-	}//standardizeFeatureVector
+	}//standardizeFeatureVector		
 	
+	//return the distance between this map's ftrs and the passed ftrMap
+	public float getSqDistFromFtrType(TreeMap<Integer, Float> fromFtrMap, int _type) {
+		switch(_type){
+			case SOMMapManager.useUnmoddedDat : {return _getSqFtrDist(fromFtrMap, ftrMap); }
+			case SOMMapManager.useNormedDat  : {return _getSqFtrDist(fromFtrMap, normFtrsBuilt ? normFtrMap : ftrMap);}
+			case SOMMapManager.useScaledDat  : {return _getSqFtrDist(fromFtrMap, stdFtrsBuilt ? stdFtrMap : ftrMap); }
+			default : {return _getSqFtrDist(fromFtrMap, ftrMap); }
+		}
+	}//getDistFromFtrType
+	
+	//get square distance between two feature map values
+	private float _getSqFtrDist(TreeMap<Integer, Float> fromftrMap, TreeMap<Integer, Float> toftrMap) {
+		float res = 0.0f;
+		Set<Integer> allIdxs = fromftrMap.keySet();
+		allIdxs.addAll(toftrMap.keySet());
+		for (Integer key : allIdxs) {//either map will have this key
+			Float frmVal = fromftrMap.get(key);
+			if(frmVal == null) {frmVal = 0.0f;}
+			Float toVal = toftrMap.get(key);
+			if(toVal == null) {toVal = 0.0f;}
+			Float diff = frmVal - toVal;
+			res += (diff + diff);
+		}
+		return res;
+	}//_getSqFtrDist		
 	
 	public dataClass getLabel(){return label;}
 	
@@ -588,7 +615,7 @@ class ProspectExample extends StraffSOMExample{
 	}//check if JP exists, and where
 	
 	//return all jpg/jps in this prospect record
-	public HashSet<Tuple<Integer,Integer>> getSetOfAllJpgJpData(){
+	protected HashSet<Tuple<Integer,Integer>> getSetOfAllJpgJpData(){
 		HashSet<Tuple<Integer,Integer>> res = new HashSet<Tuple<Integer,Integer>>();
 		//for prospect rec
 		if ((prs_JPGrp != 0) && (prs_JP != 0)) {res.add(new Tuple<Integer,Integer>(prs_JPGrp, prs_JP));}
@@ -656,12 +683,7 @@ class ProspectExample extends StraffSOMExample{
 			res += CSVSentinelLbls[i];
 			TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>> eventsByDate = eventsByDateMap.get(key);
 			for (Date date : eventsByDate.keySet()) {			res += buildEventCSVString(date, eventsByDate.get(date));		}				
-		}
-//		res +=  orderCSVSentinelLbl;
-//		for (Date date : orderEventsByDateMap.keySet()) {			res += buildEventCSVString(date, orderEventsByDateMap.get(date));		}		
-//		res += optCSVSentinelLbl;
-//		for (Date date : optEventsByDateMap.keySet()) {		res += buildEventCSVString(date, optEventsByDateMap.get(date));		}
-//		res += linkCSVSentinelLbl;		
+		}		
 		return res;
 	}	
 
@@ -745,7 +767,9 @@ class ProductExample extends StraffSOMExample{
 //	//column names for csv of this SOM example
 	private static final String csvColDescrPrfx = "ID,NumJPs";
 	private static int IDcount = 0;	//incrementer so that all examples have unique ID	
-	protected TcTagTrainData trainPrdctData;
+	protected TcTagTrainData trainPrdctData;	
+	//should preserve map of closest BMU's
+	//protected 
 	
 	public ProductExample(SOMMapManager _map, TcTagData data) {
 		super(_map,IDprfx + "_" +  String.format("%09d", IDcount++));
@@ -753,18 +777,17 @@ class ProductExample extends StraffSOMExample{
 	}//ctor
 	
 	public ProductExample(SOMMapManager _map,String _OID, String _csvDataStr) {
-		super(_map,_OID);		
-		//String[] dataAra = _csvDataStr.split(",");
+		super(_map,_OID);
 		trainPrdctData = new TcTagTrainData(_csvDataStr);
 	}//ctor
 	
 	@Override
 	public void finalizeBuild() {
-		allJPs =  trainPrdctData.getAllJpsInData();
+		allJPs = trainPrdctData.getAllJpsInData();
 	}//
 
 	@Override
-	public HashSet<Tuple<Integer, Integer>> getSetOfAllJpgJpData() {
+	protected HashSet<Tuple<Integer, Integer>> getSetOfAllJpgJpData() {
 		HashSet<Tuple<Integer,Integer>> res = trainPrdctData.getAllJpgJpsInData();
 		return res;
 	}//getSetOfAllJpgJpData
@@ -863,14 +886,13 @@ class DispSOMMapExample extends StraffSOMExample{
 				labelDat +=""+jpName+":" + String.format("%03f", ftr)+ " | ";
 			}
 		}
-	}
+	}//ctor
 	
-
+	//not used by this object
 	@Override
-	public HashSet<Tuple<Integer, Integer>> getSetOfAllJpgJpData() {
-		// TODO Auto-generated method stub
+	protected HashSet<Tuple<Integer, Integer>> getSetOfAllJpgJpData() {
 		return null;
-	}
+	}//getSetOfAllJpgJpData
 
 	@Override
 	protected void buildFeaturesMap() { }	
@@ -905,11 +927,8 @@ class SOMMapNodeExample extends StraffSOMExample{
 	public Tuple<Integer,Integer> mapNodeLoc;	
 	private TreeMap<Double,StraffSOMExample> examplesBMU;	//best training examples in this unit, keyed by distance
 	private int numMappedTEx;						//# of mapped training examples to this node
-	//private int ftrTypeMapBuilt;					//the feature type the map was built with - 0 == unmodded, 1 == std'ized, 2 == normalized  (or no normalized ?? , no way of telling what appropriate magnitude should be)
-	
-// ftrMap, stdFtrMap, normFtrMap;
+
 	//feature type denotes what kind of features the tkns being sent represent - 0 is unmodded, 1 is standardized across all data for each feature, 2 is normalized across all features for single data point
-	//TODO need to support normalized data by setting original magnitude of data
 	public SOMMapNodeExample(SOMMapManager _map, Tuple<Integer,Integer> _mapNode, float[] _ftrs) {
 		super(_map, "MapNode_"+_mapNode.x+"_"+_mapNode.y);
 		//ftrTypeMapBuilt = _ftrType;
@@ -946,10 +965,10 @@ class SOMMapNodeExample extends StraffSOMExample{
 	}//setFtrsFromFloatAra	
 
 	@Override
-	public HashSet<Tuple<Integer, Integer>> getSetOfAllJpgJpData() {
+	protected HashSet<Tuple<Integer, Integer>> getSetOfAllJpgJpData() {
 		// TODO Auto-generated method stub
 		return null;
-	}
+	}//getSetOfAllJpgJpData
 	private void setFtrsFromStrAra(String [] tkns){
 		ftrMap = new TreeMap<Integer, Float>();
 		float ftrVecSqMag = 0.0f;
@@ -1241,6 +1260,8 @@ abstract class StraffTrainData{
 			listOfJpgsJps.add(rec);			
 		}
 	}//addEventDataFromCSVStrByKey	
+	
+	//TODO can the following 2 be aggregated/combined?  perhaps the set of int tuples is sufficient instead of set of ints
 	//return a hash set of all the jps in this raw training data example
 	public HashSet<Integer> getAllJpsInData(){
 		HashSet<Integer> res = new HashSet<Integer>();
@@ -1263,9 +1284,9 @@ abstract class StraffTrainData{
 	}//getAllJpgJpsInData
 		
 	public abstract void addEventDataFromEventObj(BaseRawData ev);	
-	protected void addEventDataRecsFromRaw(Integer optVal, BaseRawData ev) {
+	protected void addEventDataRecsFromRawData(Integer optVal, BaseRawData ev) {
 		boolean isOptEvent = ((-2 <= optVal) && (optVal <= 2));
-		TreeMap<Integer, ArrayList<Integer>> newEvMapOfJPAras = ev.rawJpMapOfArrays;
+		TreeMap<Integer, ArrayList<Integer>> newEvMapOfJPAras = ev.rawJpMapOfArrays;//keyed by jpg, or -1 for jpg order array, value is ordered list of jps/jpgs (again for -1 key)
 		if (newEvMapOfJPAras.size() == 0) {					//if returns an empty list from event raw data then either unspecified, which is bad record, or infers entire list of jp data
 			if (isOptEvent){							//for opt events, empty jpg-jp array means apply specified opt val to all jps						
 				//Adding an opt event with an empty JPgroup-keyed JP list - means apply opt value to all jps;
@@ -1281,16 +1302,14 @@ abstract class StraffTrainData{
 		ArrayList<Integer> newJPGOrderArray = newEvMapOfJPAras.get(-1);
 		if(newJPGOrderArray == null) {//adding only single jpg, without existing preference order
 			newJPGOrderArray = new ArrayList<Integer> ();
-			Integer jpgPresent = newEvMapOfJPAras.firstKey();
-			//if -2 then this means this is an empty list, means applies to all jps
-			newJPGOrderArray.add(newEvMapOfJPAras.firstKey());
+			newJPGOrderArray.add(newEvMapOfJPAras.firstKey());//this adds only jpg to array
 		} 	
 		JpgJpDataRecord rec;
-		for (int i = 0; i < newJPGOrderArray.size(); ++i) {
-			int jpg = newJPGOrderArray.get(i);				
-			ArrayList<Integer> jpgs = newEvMapOfJPAras.get(jpg);
-			rec = new JpgJpDataRecord(jpg,i,optVal);
-			for (Integer val : jpgs) {rec.addToJPList(val);}
+		for (int i = 0; i < newJPGOrderArray.size(); ++i) {					//for every jpg key in ordered array
+			int jpg = newJPGOrderArray.get(i);								//get list of jps for this jpg				
+			rec = new JpgJpDataRecord(jpg,i,optVal);						//build a jpg->jp record for this jpg, passing order of jps under this jpg
+			ArrayList<Integer> jpgs = newEvMapOfJPAras.get(jpg);			//get list of jps		
+			for (int j=0;i<jpgs.size();++j) {rec.addToJPList(jpgs.get(j));}	//add each in order
 			listOfJpgsJps.add(rec);				
 		}			
 	}//_buildListOfJpgJps
@@ -1330,7 +1349,7 @@ class TcTagTrainData extends StraffTrainData{
 		addJPG_JPDataFromCSVString(_taggingCSVStr);	}//put in child ctor in case child-event specific data needed for training		}//ctor from rawDataObj
 	
 	@Override
-	public void addEventDataFromEventObj(BaseRawData ev) {	super.addEventDataRecsFromRaw(FauxOptVal,ev);}//addEventDataFromEventObj
+	public void addEventDataFromEventObj(BaseRawData ev) {	super.addEventDataRecsFromRawData(FauxOptVal,ev);}//addEventDataFromEventObj
 	@Override
 	public void addJPG_JPDataFromCSVString(String _csvDataStr) {super.addJPG_JPDataRecsFromCSVStr(FauxOptVal,_csvDataStr);	}//addJPG_JPDataFromCSVString
 
@@ -1434,7 +1453,7 @@ class OrderEventTrainData extends StraffEvntTrainData{
 		addJPG_JPDataFromCSVString(_evntStr);	}//put in child ctor in case child-event specific data needed for training	
 	
 	@Override
-	public void addEventDataFromEventObj(BaseRawData ev) {	super.addEventDataRecsFromRaw(FauxOptVal,ev);}//addEventDataFromEventObj
+	public void addEventDataFromEventObj(BaseRawData ev) {	super.addEventDataRecsFromRawData(FauxOptVal,ev);}//addEventDataFromEventObj
 	@Override
 	public void addJPG_JPDataFromCSVString(String _csvDataStr) {super.addJPG_JPDataRecsFromCSVStr(FauxOptVal,_csvDataStr);	}//addJPG_JPDataFromCSVString
 }//class OrderEventTrainData
@@ -1450,7 +1469,7 @@ class LinkEventTrainData extends StraffEvntTrainData{
 		addJPG_JPDataFromCSVString(_evntStr);}	//put in child ctor in case child-event specific data needed for training		
 	
 	@Override
-	public void addEventDataFromEventObj(BaseRawData ev) {super.addEventDataRecsFromRaw(FauxOptVal,ev);}//addEventDataFromEventObj
+	public void addEventDataFromEventObj(BaseRawData ev) {super.addEventDataRecsFromRawData(FauxOptVal,ev);}//addEventDataFromEventObj
 	@Override
 	public void addJPG_JPDataFromCSVString(String _csvDataStr) {	super.addJPG_JPDataRecsFromCSVStr(FauxOptVal,_csvDataStr);}//addJPG_JPDataFromCSVString
 }//class LinkEventTrainData
@@ -1467,7 +1486,7 @@ class OptEventTrainData extends StraffEvntTrainData{
 	@Override
 	public void addEventDataFromEventObj(BaseRawData ev) {
 		Integer optValKey = ((OptEvent)ev).getOptType();
-		super.addEventDataRecsFromRaw(optValKey, ev);
+		super.addEventDataRecsFromRawData(optValKey, ev);
 	}
 	//opt value in csv record between tags optKeyTag and JPG tag
 	private Integer getOptValFromCSVStr(String _csvDataStr) {
@@ -1493,18 +1512,19 @@ class OptEventTrainData extends StraffEvntTrainData{
  * @author john
  *
  */
-class JpgJpDataRecord implements Comparable<JpgJpDataRecord>{
-	//lower priority is better - primarily relevant for OPT records, since they have 
-	private int optPriority;
-	//optVal if this is an opt record, otherwise some value outside the opt range
+class JpgJpDataRecord {
+	//priority here means order of jpg in list from source data
+	private int ordrPriority;
+	//optVal if this is an opt record, otherwise some value outside the opt range (-2->2 currently)
 	private int optVal;
-	
+	//for jpg, ordrPriority is the order of this JPG in source data
 	private int JPG;
-	private ArrayList<Integer> JPlist;
+	//preserves jp hierarchy for data record
+	private ArrayList<Integer> JPlist;	
 
 	public JpgJpDataRecord(int _jpg, int _priority, int _optVal) {
 		JPG = _jpg;
-		optPriority = _priority;
+		ordrPriority = _priority;
 		optVal = _optVal;
 		JPlist = new ArrayList<Integer>();
 	}//ctor w/actual data
@@ -1530,7 +1550,7 @@ class JpgJpDataRecord implements Comparable<JpgJpDataRecord>{
 	}//getCSVString
 
 	//for possible future json jackson serialization (?)
-	public int getPriority() {	return optPriority;}
+	public int getPriority() {	return ordrPriority;}
 	public int getJPG() {		return JPG;	}
 	public ArrayList<Integer> getJPlist() {return JPlist;}
 	public int getOptVal() {return optVal;	}
@@ -1538,17 +1558,11 @@ class JpgJpDataRecord implements Comparable<JpgJpDataRecord>{
 	public void setOptVal(int _o) {optVal = _o;}
 	public void setJPG(int jPG) {JPG = jPG;}
 	public void setJPlist(ArrayList<Integer> jPlist) {JPlist = jPlist;}
-	public void setPriority(int _p) {	optPriority = _p;}	
-	//should only be compared when dealing with multiple jpg records within the same event
-	@Override
-	public int compareTo(JpgJpDataRecord otr) {
-		if (this.optPriority == otr.optPriority) {return 0;}
-		return (this.optPriority < otr.optPriority) ? 1 : -1;
-	}//compareTo
+	public void setPriority(int _p) {	ordrPriority = _p;}	
 
 	@Override
 	public String toString() {
-		String res = "JPG:"+JPG+" |Priority:"+optPriority+" |opt:"+optVal+" |JPList: [";
+		String res = "JPG:"+JPG+" |Priority:"+ordrPriority+" |opt:"+optVal+" |JPList: [";
 		int szm1 = JPlist.size()-1;
 		for (int i=0; i<szm1;++i) {res += JPlist.get(i)+",";}
 		res += JPlist.get(szm1)+"]";

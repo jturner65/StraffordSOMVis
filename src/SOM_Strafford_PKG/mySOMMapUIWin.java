@@ -750,7 +750,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		clearFuncBtnState(1,false);
 	}		
 	private void custFunc2(){	
-		mapMgr.buildAndSaveTrainingData(dataFrmtToUseToTrain, (float)(.01*this.guiObjs[uiTrainDatPartIDX].getVal()));
+		mapMgr.buildAndSaveTrainingData(dataFrmtToUseToTrain, (float)(.01*this.guiObjs[uiTrainDatPartIDX].getVal()));//pass fraction of data to use for training
 		clearFuncBtnState(2,false);
 	}			
 	private void custFunc3(){			

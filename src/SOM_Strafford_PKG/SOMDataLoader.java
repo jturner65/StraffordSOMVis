@@ -209,7 +209,7 @@ public class SOMDataLoader implements Runnable {
 		String [] strs= map.loadFileIntoStringAra(bmFileName, "Loaded best matching unit data file : "+bmFileName, "Error reading best matching unit file : "+bmFileName);
 		if(strs==null){return false;}
 		String[] tkns;
-		for (int i=0;i<strs.length;++i){//load in data 
+		for (int i=0;i<strs.length;++i){//load in data on all bmu's
 			if(i < 2){
 				tkns = strs[i].replace('%', ' ').trim().split(map.SOM_FileToken);
 				if(i==0){
@@ -223,38 +223,49 @@ public class SOMDataLoader implements Runnable {
 				continue;
 			} 
 			tkns = strs[i].split(map.SOM_FileToken);
-			if(tkns.length < 2){continue;}
+			if(tkns.length < 2){continue;}//shouldn't happen
+			
 			Tuple<Integer,Integer> mapLoc = new Tuple<Integer, Integer>(Integer.parseInt(tkns[2]),Integer.parseInt(tkns[1]));//map locations in bmu data are in (y,x) order (row major)
 			SOMMapNodeExample tmpMapNode = map.MapNodes.get(mapLoc);
 			if(null==tmpMapNode){ map.dispMessage("DataLoader","loadSOM_BMUs","!!!!!!!!!Map node stated as best matching unit for training example " + tkns[0] + " not found in map ... somehow. "); return false;}//catastrophic error shouldn't be possible
-			Integer dpIdx = Integer.parseInt(tkns[0]);
-			
+			Integer dpIdx = Integer.parseInt(tkns[0]);	//datapoint index in training data		
 
 			StraffSOMExample tmpDataPt = map.trainData[dpIdx];
 			if(null==tmpDataPt){ map.dispMessage("DataLoader","loadSOM_BMUs","!!Training Datapoint given by idx in BMU file str tok : " + tkns[0] + " of string : --" + strs[i] + "-- not found in training data. "); return false;}//catastrophic error shouldn't happen
 			//passing per-ftr variance for chi sq distan			
 			//using variance for chi dq dist calculation - also sets distance of node from bmu using whatever the current distance calculation is set to be
 			tmpDataPt.setBMU(tmpMapNode,map.map_ftrsVar);
-			//debug to map node row/column order
+			//debug to verify node row/col order
 			//dbgVerifyBMUs(tmpMapNode, tmpDataPt,Integer.parseInt(tkns[1]) ,Integer.parseInt(tkns[2]));
 			map.nodesWithEx.add(tmpMapNode);
 			map.nodesWithNoEx.remove(tmpMapNode);
 			//map.dispMessage("DataLoader : Tuple "  + mapLoc + " from str @ i-2 = " + (i-2) + " node : " + tmpMapNode.toString());
 		}
+		boolean isTorroid = map.isToroidal();
+		float dist,minDist;
 		//set all empty mapnodes to have a label based on the closest mapped node's label
-		for(SOMMapNodeExample node : map.nodesWithNoEx){
-			//tmpMapNode has no mappings, so need to determine label
-			float minDist = 1000000;
-			SOMMapNodeExample closest  = node;					//will never be added
-			for(SOMMapNodeExample node2 : map.nodesWithEx){		//this is adding a -map- node
-				float dist = getSqMapDist(node2, node);			//actual map topology dist - need to handle wrapping!
-				if (dist < minDist) {
-					minDist = dist;
-					closest = node2;
-				}
-				//node.addBMUExample(dist, node2);			//adds a -map- node we know has a label - slow to add all of them
-			}	
-			node.addBMUExample(minDist, closest);			//adds single closest -map- node we know has a label
+		if (isTorroid) {//minimize in-loop if checks
+			for(SOMMapNodeExample node : map.nodesWithNoEx){//node has no label mappings, so need to determine label
+				minDist = 1000000;
+				SOMMapNodeExample closest  = node;					//will never be added
+				for(SOMMapNodeExample node2 : map.nodesWithEx){		//this is adding a -map- node
+					dist = getSqMapDist_torr(node2, node);			//actual map topology dist - need to handle wrapping!
+					if (dist < minDist) {minDist = dist;		closest = node2;}
+					//node.addBMUExample(dist, node2);			//adds a -map- node we know has a label - slow to add all of them, and unnecessary - only need top node
+				}	
+				node.addBMUExample(minDist, closest);			//adds single closest -map- node we know has a label, or itself if none found
+			}
+		} else {
+			for(SOMMapNodeExample node : map.nodesWithNoEx){//node has no label mappings, so need to determine label
+				minDist = 1000000;
+				SOMMapNodeExample closest  = node;					//will never be added
+				for(SOMMapNodeExample node2 : map.nodesWithEx){		//this is adding a -map- node
+					dist = getSqMapDist_flat(node2, node);			//actual map topology dist - need to handle wrapping!
+					if (dist < minDist) {minDist = dist;		closest = node2;}
+					//node.addBMUExample(dist, node2);			//adds a -map- node we know has a label - slow to add all of them, and unnecessary - only need top node
+				}	
+				node.addBMUExample(minDist, closest);			//adds single closest -map- node we know has a label, or itself if none found
+			}			
 		}
 		
 		map.dispMessage("DataLoader","loadSOM_BMUs","Finished Loading SOM BMUs from file : " + getFName(bmFileName) + "| Found "+map.nodesWithEx.size()+" nodes with example mappings.");
@@ -270,23 +281,28 @@ public class SOMDataLoader implements Runnable {
 		if(tmpDist < tmpDataPt._distToBMU ) {
 			map.dispMessage("DataLoader","loadSOM_BMUs:dbgVerifyBMUs","Somehow bmu calc is incorrect - x/y order of map node location perhaps is swapped? dataPt " + tmpDataPt.OID + " is closer to "+ tmpAltMapNode.OID + " than to predicted BMU : " + tmpMapNode.OID+" : dists : " +tmpDist + " vs. " +tmpDataPt._distToBMU);
 		}
-	}//dbgVerifyBMUs
+	}//dbgVerifyBMUs	
 	
-	
-	
+	//calculate the location of every product example on the map - products are already loaded into map.prod here
+	private boolean loadSOM_PrdctLocsOnMap() {
+		
+		
+		
+		
+		return true;
+	}//loadSOM_PrdctLocsOnMap
 	
 	//returns sq distance between two map locations - needs to handle wrapping if map built torroidally
-	public float getSqMapDist(SOMMapNodeExample a, SOMMapNodeExample b){
-		float aDist = (a.mapLoc._SqrDist(b.mapLoc));
-		if (map.isToroidal()){//need to check distances
-			float 
-				oldXa = a.mapLoc.x - b.mapLoc.x, oldXaSq = oldXa*oldXa,
-				newXa = oldXa + map.getMapWidth(), newXaSq = newXa*newXa,
-				oldYa = a.mapLoc.y - b.mapLoc.y, oldYaSq = oldYa*oldYa,
-				newYa = oldYa + map.getMapHeight(), newYaSq = newYa*newYa;
-			return (oldXaSq < newXaSq ? oldXaSq : newXaSq ) + (oldYaSq < newYaSq ? oldYaSq : newYaSq);
-		} else {return aDist;	}//not torroidal map, so direct distance is fine
-	}
+	public float getSqMapDist_flat(SOMMapNodeExample a, SOMMapNodeExample b){		return (a.mapLoc._SqrDist(b.mapLoc));	}//	
+	//returns sq distance between two map locations - needs to handle wrapping if map built torroidally
+	public float getSqMapDist_torr(SOMMapNodeExample a, SOMMapNodeExample b){
+		float 
+			oldXa = a.mapLoc.x - b.mapLoc.x, oldXaSq = oldXa*oldXa,
+			newXa = oldXa + map.getMapWidth(), newXaSq = newXa*newXa,
+			oldYa = a.mapLoc.y - b.mapLoc.y, oldYaSq = oldYa*oldYa,
+			newYa = oldYa + map.getMapHeight(), newYaSq = newYa*newYa;
+		return (oldXaSq < newXaSq ? oldXaSq : newXaSq ) + (oldYaSq < newYaSq ? oldYaSq : newYaSq);
+	}//
 	
 	//load the units that have the best performance per feature for each feature.  This can be safely ignored
 	//this is built off a file that is generated from SOM code (extension .fwts); the code to build this file is not part of vanilla som code, but was added
@@ -295,7 +311,7 @@ public class SOMDataLoader implements Runnable {
 		if(ftrBMUFname.length() < 1){return false;}
 		String [] strs= map.loadFileIntoStringAra(ftrBMUFname, "Loaded features with bmu data file : "+ftrBMUFname, "Error reading feature bmu file : "+ftrBMUFname);
 		if((strs==null) || (strs.length == 0)){
-			map.dispMessage("DataLoader","loadSOM_ftrBMUs","Ftr-based BMU File not found.  This code generating this file is not a part of vanilla SOM, but rather was added to the SOM code by John. This error (and the missing data) can be safely ignored.");			
+			map.dispMessage("DataLoader","loadSOM_ftrBMUs","Ftr-based BMU File not found.  The code generating this file is not a part of vanilla SOM, but rather was added to the SOM code by John. This error (and the missing data) can be safely ignored.");			
 			return false;}
 		String[] tkns;
 		SOMFeature tmp;
@@ -429,6 +445,7 @@ class straffMapVisImgBuilder implements Callable<Boolean>{
 	
 	@Override
 	public Boolean call() throws Exception {
+		//build portion of every map in each thread-  this speeds up time consuming interpolation between neighboring nodes for each location
 		float[] c;
 		for(int y = ySt; y<yEnd; ++y){
 			int yCol = y * imgW;
@@ -436,11 +453,10 @@ class straffMapVisImgBuilder implements Callable<Boolean>{
 				c = getMapNodeLocFromPxlLoc(x, y);
 				TreeMap<Integer, Float> ftrs = getInterpFtrs(c[0],c[1]);
 				//for (int i=0;i<mapLocClrImg.length;++i) {	mapLocClrImg[i].pixels[x+yCol] = getDataClrFromFtrVec(ftrs, i);}
+				//only access map that the interpolated vector has values for
 				for (Integer jp : ftrs.keySet()) {mapLocClrImg[jp].pixels[x+yCol] = getDataClrFromFtrVec(ftrs, jp);}
 			}
 		}
-		
-		
 		return true;
 	}
 	
@@ -492,12 +508,11 @@ class straffCSVDataLoader implements Callable<Boolean>{
 			ProspectExample ex = new ProspectExample(map, oid, str);
 			ProspectExample oldEx = map.prospectMap.put(ex.OID, ex);	
 			if(oldEx != null) {map.dispMessage("straffCSVDataLoader", "call thd : " + thdIDX, "ERROR : "+thdIDX+" : Attempt to add duplicate record to prospectMap w/OID : " + oid);	}
-		}
-		
+		}		
 		return true;
-	}
-	
-}
+	}	
+}//class straffCSVDataLoader
+
 //save all Strafford training/testing data to appropriate format for SOM
 class straffDataWriter implements Callable<Boolean>{
 	//public SOM_StraffordMain pa;
