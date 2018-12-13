@@ -47,6 +47,7 @@ public class SOMMapManager {
 	//data for products to be measured on map
 	public ProductExample[] productData;
 	//array of maps of products, with key for each map being
+	public TreeMap<Integer, ArrayList<ProductExample>> productsByJpg, productsByJp;
 	//array of per jp treemaps of nodes keyed by jp weight
 	public TreeMap<Float,ArrayList<SOMMapNodeExample>>[] PerJPHiWtMapNodes;
 	
@@ -223,6 +224,9 @@ public class SOMMapManager {
 		//instantiate map of ProspectExamples
 		prospectMap = new ConcurrentSkipListMap<String, ProspectExample>();		
 		productMap = new ConcurrentSkipListMap<String, ProductExample>();
+		
+		productsByJpg = new TreeMap<Integer, ArrayList<ProductExample>>();
+		productsByJp = new TreeMap<Integer, ArrayList<ProductExample>>();
 		//object to manage all jps and jpgroups seen in project
 		jpJpgrpMon = new MonitorJpJpgrp(this);
 		
@@ -648,11 +652,32 @@ public class SOMMapManager {
 	//clear out existing prospect map
 	public void resetProductMap() {
 		productMap = new ConcurrentSkipListMap<String, ProductExample>();
+		productsByJpg = new TreeMap<Integer, ArrayList<ProductExample>>();
+		productsByJp = new TreeMap<Integer, ArrayList<ProductExample>>();
+
 		//initialize product-wide aggregations
 		ProductExample.initAllProdData();
 		setFlag(rawProducDataProcedIDX, false);
 		setAllTrainDatSaveFlags(false);
 	}//resetProspectMap
+	
+	public void addProductToProductMaps(ProductExample ex) {
+		//add to jp and jpg trees
+		HashSet<Integer> jpgs = new HashSet<Integer>();
+		for (Integer jp : ex.allJPs) {
+			ArrayList<ProductExample> exList = productsByJp.get(jp);
+			if(exList==null) {exList = new ArrayList<ProductExample>();}
+			exList.add(ex);
+			productsByJp.put(jp, exList);	
+			jpgs.add( jpJpgrpMon.getJpgFromJp(jp));
+		}
+		for (Integer jpg : jpgs) {
+			ArrayList<ProductExample> exList = productsByJpg.get(jpg);
+			if(exList==null) {exList = new ArrayList<ProductExample>();}
+			exList.add(ex);
+			productsByJpg.put(jpg, exList);	
+		}		
+	}
 	
 	//fromCSVFiles : whether loading data from csv files or from SQL calls
 	//eventsOnly : only use examples with event data to train
@@ -918,7 +943,7 @@ public class SOMMapManager {
 		dispMessage("SOMMapManager","finishSOMExampleBuild","End buildFeatureVector prospects");
 		
 		dispMessage("SOMMapManager","finishSOMExampleBuild","Begin buildFeatureVector products");
-		for (ProductExample ex : productMap.values()) {		ex.buildFeatureVector();	}
+		for (ProductExample ex : productMap.values()) {		ex.buildFeatureVector();  addProductToProductMaps(ex);	}
 		dispMessage("SOMMapManager","finishSOMExampleBuild","End buildFeatureVector products");	
 		
 		//dbgDispProductWtSpans()
@@ -1485,9 +1510,12 @@ public class SOMMapManager {
 	}//drawTrainData
 	
 	//draw all product nodes with max vals corresponding to current JPIDX
-	public void drawProductNodes(SOM_StraffordMain pa, int curJPIdx) {
+	public void drawProductNodes(SOM_StraffordMain pa, int prodJpIDX, boolean showJPorJPG) {
 		pa.pushMatrix();pa.pushStyle();
-		
+		ArrayList<ProductExample> prodsToShow = (showJPorJPG ? productsByJp.get(jpJpgrpMon.getProdJpByIdx(prodJpIDX)) :  productsByJpg.get(jpJpgrpMon.getProdJpGrpByIdx(prodJpIDX)));
+		for(ProductExample ex : prodsToShow) {
+			ex.drawMeWithWt(pa, 1.0f, pa.gui_Magenta, ex.label);
+		}		
 		pa.popStyle();pa.popMatrix();
 	}
 	

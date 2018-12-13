@@ -608,7 +608,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
 		if(mseOvrData != null){mseOvrData.drawMeLblMap(pa,mseOvrData.label,true);}
 		if(getPrivFlags(mapDrawTrainDatIDX)){		mapMgr.drawTrainData(pa, curMapImgIDX, getPrivFlags(mapDrawTrDatLblIDX));}	
-		if(getPrivFlags(mapDrawPrdctNodesIDX)){		mapMgr.drawProductNodes(pa, curMapImgIDX);}
+		if(getPrivFlags(mapDrawPrdctNodesIDX)){		mapMgr.drawProductNodes(pa, curMapImgIDX, true);}
 		pa.popStyle();pa.popMatrix();
 		//draw map nodes, either with or without empty nodes
 		if(getPrivFlags(mapDrawAllMapNodesIDX)){	mapMgr.drawAllNodes( pa, curMapImgIDX, mapNodeClr, mapNodeClr);		} 

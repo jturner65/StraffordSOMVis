@@ -40,9 +40,15 @@ public class MonitorJpJpgrp {
 	}//ctor
 	
 	public Integer getJpByIdx(int idx) {return jpByIdx[idx];}
+	//get jp from index for product-specific jps - UI interaction for displaying products on map
+	public Integer getProdJpByIdx(int idx) {return prodJpByIdx[idx];}
+	//get jpg from index for product-specific jpgs - ui interaction for displaying products on map
+	public Integer getProdJpGrpByIdx(int idx) {return prodJpGrpsByIdx[idx];}
+	
 	public Integer getJpToFtrIDX(int jp) {return jpToFtrIDX.get(jp);}
 	public int getNumFtrs() {return numFtrs;}
 
+	public Integer getJpgFromJp(int jp) {return jpsToJpgs.get(jp);}
 	
 	private void incrJPCounts(Integer jp, TreeMap<Integer, Integer> map) {
 		Integer count = map.get(jp);
@@ -192,6 +198,7 @@ public class MonitorJpJpgrp {
 		if(name==null) {name="UNK";}
 		return "" +name+ " (jp:"+ jp + ",idx:" +idx+ ")";
 	}
+	
 	//name, jp and ftr idx of jp
 	public String getProdJpGrpByIdxStr(int uiIDX) {
 		int idx = uiIDX % prodJpGrpsByIdx.length, jpg=prodJpGrpsByIdx[idx];
@@ -246,7 +253,7 @@ public class MonitorJpJpgrp {
 			int prodJP = prodJpByIdx[idx];
 			int prodJpGrp = jpsToJpgs.get(prodJP);
 			int prodJpGrpIdx = jpgToIDX.get(prodJpGrp);
-			tmp=""+prodJP+","+idx+","+ getNameNullChk(prodJP,jpNames);
+			tmp=""+prodJP+","+idx+","+ getNameNullChk(prodJP,jpNames) + "," + prodJpGrpIdx;
 			csvResTmp.add(tmp);
 		}
 		mapData.saveStrings(fileName, csvResTmp);	
