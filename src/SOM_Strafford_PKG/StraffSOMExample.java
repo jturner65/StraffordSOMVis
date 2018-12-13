@@ -184,7 +184,7 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	
 	//this adds the passed node as this example's best matching unit on the map
 	//this also adds this data point to the map's node with a key of the distance
-	//dataVar is variance
+	//dataVar is variance of feature weights of map nodes.  this is for chi-squared distance measurements
 	public void setBMU(SOMMapNodeExample _n, float[] dataVar){
 		if (checkForErrors(_n, dataVar)) {return;}
 		bmu = _n;	
@@ -229,7 +229,7 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 			if(jpIDX==null) {mapData.dispMessage("StraffSOMExample","buildAllJPFtrIDXsJPs","ERROR!  null value in  jpJpgMon.getJpToFtrIDX("+jp+")" );}
 			allJPFtrIDXs.add(jpJpgMon.getJpToFtrIDX(jp));
 		}
-	}
+	}//buildAllJPFtrIDXsJPs
 	
 	//build structures that require that the feature vector be built before hand
 	public void buildPostFeatureVectorStructs() {
@@ -290,27 +290,27 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	}//standardizeFeatureVector		
 	
 	//return the distance between this map's ftrs and the passed ftrMap
-	public float getSqDistFromFtrType(TreeMap<Integer, Float> fromFtrMap, int _type) {
+	protected float getSqDistFromFtrType(StraffSOMExample fromNode, int _type) {
 		switch(_type){
-			case SOMMapManager.useUnmoddedDat : {return _getSqFtrDist(fromFtrMap, ftrMap); }
-			case SOMMapManager.useNormedDat  : {return _getSqFtrDist(fromFtrMap, normFtrsBuilt ? normFtrMap : ftrMap);}
-			case SOMMapManager.useScaledDat  : {return _getSqFtrDist(fromFtrMap, stdFtrsBuilt ? stdFtrMap : ftrMap); }
-			default : {return _getSqFtrDist(fromFtrMap, ftrMap); }
+			case SOMMapManager.useUnmoddedDat : {return _getSqFtrDist(fromNode.ftrMap, ftrMap); }
+			case SOMMapManager.useNormedDat  : {return _getSqFtrDist(fromNode.normFtrMap, normFtrMap);}
+			case SOMMapManager.useScaledDat  : {return _getSqFtrDist(fromNode.stdFtrMap, stdFtrMap); }
+			default : {return _getSqFtrDist(fromNode.ftrMap, ftrMap); }
 		}
 	}//getDistFromFtrType
 	
 	//get square distance between two feature map values
 	private float _getSqFtrDist(TreeMap<Integer, Float> fromftrMap, TreeMap<Integer, Float> toftrMap) {
 		float res = 0.0f;
-		Set<Integer> allIdxs = fromftrMap.keySet();
+		Set<Integer> allIdxs = new HashSet<Integer>(fromftrMap.keySet());
 		allIdxs.addAll(toftrMap.keySet());
 		for (Integer key : allIdxs) {//either map will have this key
 			Float frmVal = fromftrMap.get(key);
 			if(frmVal == null) {frmVal = 0.0f;}
 			Float toVal = toftrMap.get(key);
 			if(toVal == null) {toVal = 0.0f;}
-			Float diff = frmVal - toVal;
-			res += (diff + diff);
+			Float diff = toVal - frmVal;
+			res += (diff * diff);
 		}
 		return res;
 	}//_getSqFtrDist		
@@ -768,8 +768,19 @@ class ProductExample extends StraffSOMExample{
 	private static final String csvColDescrPrfx = "ID,NumJPs";
 	private static int IDcount = 0;	//incrementer so that all examples have unique ID	
 	protected TcTagTrainData trainPrdctData;	
-	//should preserve map of closest BMU's
-	//protected 
+	
+	//this array holds float reps of "sumtorial" of idx vals, used as denominators of ftr vectors so that 
+	//arrays of jps of size idx will use this value as denominator, and (idx - jp idx)/denominator as weight value for ftr vec 
+	private static float[] ordrWtAraPerSize;
+	//this is a vector of all seen mins and maxs for wts for every product. Only used to calculate 
+	private static TreeMap<Integer, Float> wtMins, wtMaxs, wtDists;	
+	
+	//keys of best matching units
+	protected ArrayList<Tuple<Integer,Integer>> bmuKeys;
+	//array of best matching units, if more than 1 has same distance from product
+	protected ArrayList<SOMMapNodeExample> bmuList;
+	//# of bmus this example has
+	protected int numBMUs;
 	
 	public ProductExample(SOMMapManager _map, TcTagData data) {
 		super(_map,IDprfx + "_" +  String.format("%09d", IDcount++));
@@ -781,6 +792,60 @@ class ProductExample extends StraffSOMExample{
 		trainPrdctData = new TcTagTrainData(_csvDataStr);
 	}//ctor
 	
+	//call this once, before any load of data that will over-write the product examples is performed
+	public static void initAllProdData() {
+		ordrWtAraPerSize = new float[100];	//100 is arbitrary but much more than expected # of jps per product. dont expect a product to have anywhere near this many jps
+		for (int i =1;i<ordrWtAraPerSize.length;++i) {ordrWtAraPerSize[i]=1.0f*(ordrWtAraPerSize[i-1]+i);}
+		//manage mins and maxes seen for ftrs, keyed by ftr idx
+		wtMins = new TreeMap<Integer, Float>();
+		wtMaxs = new TreeMap<Integer, Float>();		
+		wtDists = new TreeMap<Integer, Float>();		
+	}//initAllProdData()
+	
+	//references current map of nodes
+	public void addAllMapNodeNeighbors(TreeMap<Tuple<Integer,Integer>, SOMMapNodeExample> _MapNodes, int _type) {
+		TreeMap<Float, ArrayList<SOMMapNodeExample>> mapNodeNeighbors = new TreeMap<Float, ArrayList<SOMMapNodeExample>>();
+		for (SOMMapNodeExample node : _MapNodes.values()) {
+			float sqDistToNode = getSqDistFromFtrType(node, _type);
+			ArrayList<SOMMapNodeExample> tmpAra = mapNodeNeighbors.get(sqDistToNode);
+			if(tmpAra == null) {tmpAra = new ArrayList<SOMMapNodeExample>();}
+			tmpAra.add(node);
+			mapNodeNeighbors.put(sqDistToNode, tmpAra);			
+		}
+		bmuKeys = new ArrayList<Tuple<Integer,Integer>>();
+		bmuList = mapNodeNeighbors.firstEntry().getValue();
+		numBMUs = bmuList.size();
+		for (int i=0;i<numBMUs;++i) {
+			bmuKeys.add(i, bmuList.get(i).mapNodeLoc);
+		}
+		SOMMapNodeExample bestUnit = null;
+		if (numBMUs > 1) {
+			//mapData.dispMessage("ProductExample", "addAllMapNodeNeighbors", "Product : " + this.OID +" has more than 1 bmu (unit with identical distance) : "+numBMUs);
+			int maxNumExamples = 0;
+			for (int i=0;i<numBMUs;++i) {
+				SOMMapNodeExample node = bmuList.get(i);
+				int numExamples = node.getNumExamples();
+				if (numExamples > maxNumExamples) {
+					maxNumExamples = numExamples;
+					bestUnit = node;
+				}
+				//mapData.dispMessage("ProductExample", "addAllMapNodeNeighbors", "\tMap Node " + node.OID + " has "+node.getNumExamples() + " training examples.");				
+			}
+		} else {//only 1
+			bestUnit = bmuList.get(0);
+		}
+		bmu = bestUnit;		//best unit to this product - if multiples then weighted by # of examples at this unit
+	}//addAllMapNodeNeighbors
+		
+	public static String[] getMinMaxDists() {
+		String[] res = new String[wtMins.size()+1];
+		int i=0;
+		res[i++] = "idx |\tMin|\tMax|\tDist";
+		for(Integer idx : wtMins.keySet()) {			
+			res[i++]=""+ idx + "\t" + String.format("%6.4f",wtMins.get(idx)) + "\t" + String.format("%6.4f",wtMaxs.get(idx)) + "\t" + String.format("%6.4f",wtDists.get(idx));}
+		return res;
+	}
+
 	@Override
 	public void finalizeBuild() {
 		allJPs = trainPrdctData.getAllJpsInData();
@@ -810,32 +875,60 @@ class ProductExample extends StraffSOMExample{
 		String res = ""+OID+","+allJPs.size()+",";
 		res += trainPrdctData.buildCSVString();
 		return res;	
-	};
+	}//getRawDescrForCSV
 	//column names for raw descriptorCSV output
 	@Override
 	public String getRawDescColNamesForCSV(){		
 		String csvColDescr = csvColDescrPrfx + ",";	
 		return csvColDescr;	
-	};
-
+	}//getRawDescColNamesForCSV	
+	
+	private void setFtrMinMax(int idx, float val) {
+		//min is always 0
+		wtMins.put(idx, 0.0f);
+//		Float getVal = wtMins.get(idx);
+//		if(getVal == null) {getVal = 0.0f;}
+//		wtMins.put(idx, (val<getVal) ? val : getVal);
+		
+		Float getVal = wtMaxs.get(idx);
+		if(getVal == null) {getVal = -100000000.0f;}
+		wtMaxs.put(idx,(val>getVal) ? val : getVal);	
+		wtDists.put(idx, wtMaxs.get(idx)- wtMins.get(idx));		
+	}//setFtrMinMax
+	
 	//take loaded data and convert to output data
 	@Override
 	protected void buildFeaturesMap() {
 		ftrMap = new TreeMap<Integer, Float>();	
-		int count = 0;
-		for (Integer IDX : allJPFtrIDXs) {			
-			ftrMap.put(IDX,1.0f);
-			count++;
-		}	
-		this.ftrVecMag = (float) Math.sqrt(count);
-	}
+		//order map gives order value of each jp - provide multiplier for higher vs lower priority jps
+		TreeMap<Integer, Integer> orderMap = trainPrdctData.getJPOrderMap();
+		int numJPs = orderMap.size();
+		//verify # of jps as expected
+		if (numJPs != allJPFtrIDXs.size()) {	mapData.dispMessage("ProductExample", "buildFeaturesMap", "Problem with size of expected jps from trainPrdctData vs. allJPFtrIDXs : trainPrdctData says # jps == " +numJPs + " | allJPFtrIDXs.size() == " +allJPFtrIDXs.size());}
+		if(numJPs == 1) {
+			Integer ftrIDX = allJPFtrIDXs.get(0);
+			ftrMap.put(ftrIDX, 1.0f);
+			setFtrMinMax(ftrIDX, 1.0f);
+			this.ftrVecMag = 1.0f;			
+		} else {//more than 1 jp for this product
+			float val, ttlVal = 0.0f, denom = ordrWtAraPerSize[numJPs];
+			for (Integer IDX : allJPFtrIDXs) {
+				Integer jp = jpJpgMon.getJpByIdx(IDX);
+				val = (numJPs - orderMap.get(jp))/denom;
+				ftrMap.put(IDX,val);
+				setFtrMinMax(IDX, val);
+				ttlVal += val;
+			}	
+			this.ftrVecMag = (float) Math.sqrt(ttlVal);
+		}
+	}//buildFeaturesMap
 	
 	@Override
 	protected void buildStdFtrsMap() {
 		stdFtrMap = new TreeMap<Integer, Float>();
-		for (Integer IDX : ftrMap.keySet()) {stdFtrMap.put(IDX,ftrMap.get(IDX));}
+		for (Integer IDX : ftrMap.keySet()) {stdFtrMap.put(IDX,ftrMap.get(IDX));}//since features are all weighted to sum to 1, can expect ftrmap == strdizedmap
 		stdFtrsBuilt = true;
-	}
+	}//buildStdFtrsMap
 	
 	@Override
 	public String toString(){
@@ -855,12 +948,16 @@ class ProductExample extends StraffSOMExample{
 //this class is for a simple object to just represent a mouse-over on the visualization of the map
 class DispSOMMapExample extends StraffSOMExample{
 	private float ftrThresh;
+	private int mapType;
 	private int[] clrVal = new int[] {255,255,0,255};
 	private String labelDat;
 	private TreeMap<Float, String> strongestFtrs;
-
+	//need to support all ftr types from map - what type of ftrs are these?
 	public DispSOMMapExample(SOMMapManager _map, myPointf ptrLoc, TreeMap<Integer, Float> _ftrs, float _thresh) {
-		super(_map, "TempEx_"+ptrLoc.toStrBrf());
+		super(_map, "TempEx_"+ptrLoc.toStrBrf());//(" + String.format("%.4f",this.x) + ", " + String.format("%.4f",this.y) + ", " + String.format("%.4f",this.z)+")
+		//type of features used for currently trained map
+		mapType = mapData.getCurrMapDataFrmt();
+		
 		ftrMap = new TreeMap<Integer, Float>();	
 		ftrThresh = _thresh;
 		allJPs = new HashSet<Integer>();
@@ -1047,6 +1144,8 @@ class SOMMapNodeExample extends StraffSOMExample{
 		setRad( 2*numMappedTEx);// PApplet.sqrt(numMappedTEx) + 1;
 		label = examplesBMU.firstEntry().getValue().getLabel();
 	}
+	//# of training examples that mapped to this node
+	public int getNumExamples() {return examplesBMU.size();}
 	
 	public boolean hasMappings(){return numMappedTEx != 0;}
 	@Override
@@ -1248,7 +1347,7 @@ abstract class StraffTrainData{
 	public abstract void addJPG_JPDataFromCSVString(String _csvDataStr);
 	protected void addJPG_JPDataRecsFromCSVStr(Integer optKey, String _csvDataStr) {
 		//boolean isOptEvent = ((-2 <= optKey) && (optKey <= 2));
-		listOfJpgsJps = new ArrayList<JpgJpDataRecord>(); 
+		listOfJpgsJps = new ArrayList<JpgJpDataRecord>(); 	//order of recs is priority of jpgs
 		String[] strAra1 = _csvDataStr.split("numJPGs,");//use idx 1
 		String[] strAraVals = strAra1[1].trim().split(",JPGJP_Start,");//1st element will be # of JPDataRecs, next elements will be Data rec vals
 		Integer numDataRecs = Integer.parseInt(strAraVals[0].trim());
@@ -1335,18 +1434,29 @@ abstract class StraffTrainData{
 
 /**
  * this class corresponds to the data for a training/testing data point for a product.  It is built from relevant data from TC_Taggings
- * we can treat it like an event-based data point, but doesn't have any date so wont be added to any kind of jpoccurence structure
+ * we can treat it like an event-based data point, but doesn't have any date so wont be added to any kind of jpoccurence structure.
+ * Also, this is designed expecting that TC data will ever only have 1 JPGroup, with 1 or more, priority-ordered jps from that group.
  * @author john
  *
  */
 class TcTagTrainData extends StraffTrainData{
 	public TcTagTrainData(TcTagData ev) {
 		super();
-		addEventDataFromEventObj(ev);}	//put in child ctor in case child-event specific data needed for training	
+		addEventDataFromEventObj(ev);
+	}	//put in child ctor in case child-event specific data needed for training	
 	
 	public TcTagTrainData(String _taggingCSVStr){
 		super();
-		addJPG_JPDataFromCSVString(_taggingCSVStr);	}//put in child ctor in case child-event specific data needed for training		}//ctor from rawDataObj
+		addJPG_JPDataFromCSVString(_taggingCSVStr);	
+	}//put in child ctor in case child-event specific data needed for training		}//ctor from rawDataObj
+	
+	//get map of jps and their order as specified in raw data.  NOTE : this is assuming there is only a single JPgroup represented by this TCTagData.  If there are >1 then this data will fail
+	public TreeMap<Integer, Integer> getJPOrderMap(){
+		if(listOfJpgsJps.size()>1) {  	return null;}
+		JpgJpDataRecord jpRec = listOfJpgsJps.get(0);
+		return jpRec.getJPOrderMap();//returns map of order or null if no jps for this record
+	}//getJPOrderMap()
+	
 	
 	@Override
 	public void addEventDataFromEventObj(BaseRawData ev) {	super.addEventDataRecsFromRawData(FauxOptVal,ev);}//addEventDataFromEventObj
@@ -1388,7 +1498,7 @@ abstract class StraffEvntTrainData extends StraffTrainData{
 		eventID = _evIDStr;//should be the same event type for event ID
 		eventType = _evTypeStr;
 		eventDate = BaseRawData.buildDateFromString(_evDateStr);		
-	}//ctor from indiv data	
+	}//ctor from indiv data	via csv string
 	
 	//process JP occurence data for this event
 	//passed is ref to map of all occurrences of jps in this kind of event's data for a specific prospect
@@ -1539,6 +1649,14 @@ class JpgJpDataRecord {
 	}//ctor from csv string
 	
 	public void addToJPList(int val) {JPlist.add(val);}//addToJPList
+	
+	//return a map of jp and order
+	public TreeMap<Integer, Integer> getJPOrderMap(){
+		if (JPlist.size()==0) {return null;}
+		TreeMap<Integer, Integer> res = new TreeMap<Integer, Integer>();
+		for(int i=0;i<JPlist.size();++i) {res.put(JPlist.get(i), i);}		
+		return res;
+	}
 	
 	public String getCSVString() {
 		if (JPlist.size() == 0){return "None,";}		

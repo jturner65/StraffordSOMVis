@@ -33,10 +33,9 @@ public class mySOMMapUIWin extends myDispWindow {
 		//train/test data management
 		somTrainDataLoadedIDX	= 14,			//whether data used to build map has been loaded yet
 		saveLocClrImgIDX		= 15,			//
-		appendTrainDataIDX		= 16,			//append to existing processed training data to retrain map with expanded data. NOTE : may have issues with duplication of records, this might be a bad idea
-		useOnlyEvntsToTrainIDX  = 17;			//only use records that have event jpgs/jps to train, otherwise use records that also have jpgs/jps only specified in prospect db
+		useOnlyEvntsToTrainIDX  = 16;			//only use records that have event jpgs/jps to train, otherwise use records that also have jpgs/jps only specified in prospect db
 	
-	public static final int numPrivFlags = 18;
+	public static final int numPrivFlags = 17;
 	
 	//SOM map list options
 	public String[] 
@@ -78,7 +77,7 @@ public class mySOMMapUIWin extends myDispWindow {
 	//source datapoints to be used to build files to send to SOM_MAP
 	//public dataPoint[] straffTrainData, straffTestData, straffSmplData;
 	//data format is from uiTrainDataFrmtIDX
-	private int dataFrmtToUseToTrain;
+	//private int dataFrmtToUseToTrain;
 	//threshold of wt value to display map node
 	private float mapNodeWtDispThresh;
 	//raw data source : 0 == csv, 1 == sql
@@ -119,17 +118,17 @@ public class mySOMMapUIWin extends myDispWindow {
 	//initialize all private-flag based UI buttons here - called by base class
 	public void initAllPrivBtns(){
 		truePrivFlagNames = new String[]{								//needs to be in order of flags
-				"Merge w/Cur Preproc Dataset","Train W/Recs W/Event Data", "Building SOM", "Resetting Def Vals", "Loading Feature BMUs",
+				"Train W/Recs W/Event Data", "Building SOM", "Resetting Def Vals", "Loading Feature BMUs",
 				"Using Scaled Ftrs For Dist Calc","Using ChiSq for Ftr Distance", "Unshared Ftrs are 0",	"Hide Train Data",
 				"Hide Train Lbls",	"Hide Pop Map Nodes","Hide Map Nodes", "Hide Products"//, "Showing Ftr Clr"
 		};
 		falsePrivFlagNames = new String[]{			//needs to be in order of flags
-				"Build New Dataset From DB","Train W/All Recs","Build New Map ","Reset Def Vals","Not Loading Feature BMUs",
+				"Train W/All Recs","Build New Map ","Reset Def Vals","Not Loading Feature BMUs",
 				"Using Unscaled Ftrs For Dist Calc","Not Using ChiSq Distance", "Ignoring Unshared Ftrs",	"Show Train Data",
 				"Show Train Lbls",	"Show Pop Map Nodes","Show Map Nodes", "Show Products"//, "Not Showing Ftr Clr"
 		};
 		privModFlgIdxs = new int[]{
-				appendTrainDataIDX,useOnlyEvntsToTrainIDX, buildSOMExe, resetMapDefsIDX, mapLoadFtrBMUsIDX,
+				useOnlyEvntsToTrainIDX, buildSOMExe, resetMapDefsIDX, mapLoadFtrBMUsIDX,
 				mapUseSclFtrDistIDX,mapUseChiSqDistIDX,mapSetSmFtrZeroIDX,mapDrawTrainDatIDX,
 				mapDrawTrDatLblIDX,mapDrawMapNodesIDX,mapDrawAllMapNodesIDX, mapDrawPrdctNodesIDX};//,mapShowLocClrIDX};
 		numClickBools = privModFlgIdxs.length;	
@@ -155,7 +154,8 @@ public class mySOMMapUIWin extends myDispWindow {
 		setPrivFlags(mapDrawMapNodesIDX,false);
 		setPrivFlags(mapUseChiSqDistIDX,true);
 		setPrivFlags(useOnlyEvntsToTrainIDX, true);
-		dataFrmtToUseToTrain = (int)(this.guiObjs[uiTrainDataFrmtIDX].getVal());
+		mapMgr.setCurrentDataFormat((int)(this.guiObjs[uiTrainDataFrmtIDX].getVal()));
+		//dataFrmtToUseToTrain = (int)(this.guiObjs[uiTrainDataFrmtIDX].getVal());
 		mapNodeWtDispThresh = (float)(this.guiObjs[uiNodeWtDispThreshIDX].getVal());
 		rawDataSource = (int)(this.guiObjs[uiRawDataSourceIDX].getVal());
 
@@ -176,8 +176,7 @@ public class mySOMMapUIWin extends myDispWindow {
 			mapLocClrImg[i] = pa.createImage(w, h, pa.RGB);
 		}
 		
-	}//initMapAras
-	
+	}//initMapAras	
 	
 	//set flag values when finished building map, to speed up initial display
 	public void setFlagsDoneMapBuild(){
@@ -233,7 +232,6 @@ public class mySOMMapUIWin extends myDispWindow {
 				break;}
 			case saveLocClrImgIDX : {break;}//save image
 			case useOnlyEvntsToTrainIDX : {break;}//whether or not to limit training data set to only records that have specified jpgroups/jps from events, or to also use recs that only have specifications in prospect records
-			case appendTrainDataIDX : {break;}//whether to merge new data pull with current existing preproced data(if any) or to build a new dataset from scratch. May have issues with duplicate records since events are not unique (multiple events on the same date have same event ID) VERIFY THIS ISNT" SQL BUG			
 		}
 	}//setFlag	
 	
@@ -273,12 +271,16 @@ public class mySOMMapUIWin extends myDispWindow {
 		for (String key : mapStrings.keySet()) {mapMgr.dispMessage("mySOMMapUIWin","buildNewSOMMap","mapStrings["+key+"] = "+mapStrings.get(key));}
 		
 		//call map data object to build and execute map call
-		boolean returnCode = mapMgr.buildNewSOMMap(getPrivFlags(mapLoadFtrBMUsIDX),dataFrmtToUseToTrain, mapInts, mapFloats, mapStrings);
+		boolean returnCode = mapMgr.buildNewSOMMap(getPrivFlags(mapLoadFtrBMUsIDX), mapInts, mapFloats, mapStrings);
 		//returnCode is whether map was built and trained successfully
 		setFlagsDoneMapBuild();
 		mapMgr.dispMessage("mySOMMapUIWin","buildNewSOMMap","Map Build " + (returnCode ? "Completed Successfully." : "Failed due to error."));
 		setPrivFlags(buildSOMExe, false);
 	}//buildNewSOMMap	
+	
+	//public void setUIValues()
+	
+	
 	
 	
 	//initialize structure to hold modifiable menu regions
@@ -481,7 +483,7 @@ public class mySOMMapUIWin extends myDispWindow {
 				mapNodeWtDispThresh = (float)(this.guiObjs[uiNodeWtDispThreshIDX].getVal());
 				break;}
 			case uiTrainDataFrmtIDX : {//format of training data
-				dataFrmtToUseToTrain = (int)(this.guiObjs[uiTrainDataFrmtIDX].getVal());
+				mapMgr.setCurrentDataFormat((int)(this.guiObjs[uiTrainDataFrmtIDX].getVal()));
 				break;}
 			case uiRawDataSourceIDX  : {//source of raw data
 				rawDataSource = (int)(this.guiObjs[uiRawDataSourceIDX].getVal());
@@ -497,60 +499,6 @@ public class mySOMMapUIWin extends myDispWindow {
 	//get x and y locations relative to upper corner of map
 	public float getSOMRelX (float x){return (x - SOM_mapDims[0]);}
 	public float getSOMRelY (float y){return (y - SOM_mapDims[1]);}
-	
-	public float[] interpFloatAra(float[] a, float[] b, float t){
-		if(a.length != b.length){mapMgr.dispMessage("mySOMMapUIWin","interpFloatAra","Error in interpFloatAra calc - array sizes not equal."); return null;}
-		float[] res = new float[a.length];
-		for(int i=0;i<res.length;++i){res[i] = (a[i]*(1-t)) + (b[i]*t);}
-		return res;		
-	}
-	
-	private float[] interpFirstXFloatAraMult(float[] a, float[] b, float t, int x, float mult){
-		if((a.length < x) || ( b.length < x)){mapMgr.dispMessage("mySOMMapUIWin","interpFirstXFloatAraMult","Error in interpFirstXFloatAra calc - arrays not big enough to return " + x + " values."); return null;}
-		float[] res = new float[x];
-		if (mult == 1.0){for(int i=0;i<res.length;++i){res[i] = (a[i]*(1-t)) + (b[i]*t);}} 
-		else {			
-			float mT = mult*t, m1t = mult * (1-t);
-			for(int i=0;i<res.length;++i){res[i] = ((a[i]*m1t) + (b[i]*mT));}	
-		}
-		return res;		
-	}
-	//get treemap of features that interpolates between two maps of features
-	private TreeMap<Integer, Float> interpTreeMap(TreeMap<Integer, Float> a, TreeMap<Integer, Float> b, float t, float mult){
-		TreeMap<Integer, Float> res = new TreeMap<Integer, Float>();
-		float Onemt = 1.0f-t;
-		if(mult==1.0) {
-			//first go through all a values
-			for(Integer key : a.keySet()) {
-				Float aVal = a.get(key), bVal = b.get(key);
-				if(bVal == null) {bVal = 0.0f;}
-				res.put(key, (aVal*Onemt) + (bVal*t));			
-			}
-			//next all b values
-			for(Integer key : b.keySet()) {
-				Float aVal = a.get(key);
-				if(aVal == null) {aVal = 0.0f;} else {continue;}		//if aVal is not null then calced already
-				Float bVal = b.get(key);
-				res.put(key, (aVal*Onemt) + (bVal*t));			
-			}
-		} else {//scale by mult - precomputes color values
-			float m1t = mult*Onemt, mt = mult*t;
-			//first go through all a values
-			for(Integer key : a.keySet()) {
-				Float aVal = a.get(key), bVal = b.get(key);
-				if(bVal == null) {bVal = 0.0f;}
-				res.put(key, (aVal*m1t) + (bVal*mt));			
-			}
-			//next all b values
-			for(Integer key : b.keySet()) {
-				Float aVal = a.get(key);
-				if(aVal == null) {aVal = 0.0f;} else {continue;}		//if aVal is not null then calced already
-				Float bVal = b.get(key);
-				res.put(key, (aVal*m1t) + (bVal*mt));			
-			}			
-		}		
-		return res;
-	}//interpolate between 2 tree maps
 	
 
 	//given pixel location relative to upper left corner of map, return map node
@@ -570,45 +518,16 @@ public class mySOMMapUIWin extends myDispWindow {
 			return false;
 		}
 	}//chkMouseOvr
-	
-	//return interpolated feature vector on map at location given by x,y, where x,y is float location of map using mapnodes as integral locations
-	private TreeMap<Integer, Float> getInterpFtrs(float x, float y){
-		int xInt = (int) Math.floor(x+mapMgr.mapX)%mapMgr.mapX, yInt = (int) Math.floor(y+mapMgr.mapY)%mapMgr.mapY, xIntp1 = (xInt+1)%mapMgr.mapX, yIntp1 = (yInt+1)%mapMgr.mapY;		//assume torroidal map		
-		//int xInt = (int) Math.floor(x), yInt = (int) Math.floor(y), xIntp1 = (xInt+1)%mapMgr.mapX, yIntp1 = (yInt+1)%mapMgr.mapY;		//assume torroidal map		
-		//need to divide by width/height of map * # cols/rows to get mapped to actual map nodes
-		//dispMessage("In getDataPointAtLoc : Mouse loc in Nodes : " + x + ","+y+ "\txInt : "+ xInt + " yInt : " + yInt );
-		float xInterp = (x+1) %1, yInterp = (y+1) %1;
-		//always compare standardized feature data in test/train data to standardized feature data in map
-		TreeMap<Integer, Float> LowXLowYFtrs = mapMgr.MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt)).getCurrentFtrMap(SOMMapManager.useScaledDat), LowXHiYFtrs= mapMgr.MapNodes.get(new Tuple<Integer, Integer>(xInt,yIntp1)).getCurrentFtrMap(SOMMapManager.useScaledDat),
-				 HiXLowYFtrs= mapMgr.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yInt)).getCurrentFtrMap(SOMMapManager.useScaledDat),  HiXHiYFtrs= mapMgr.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yIntp1)).getCurrentFtrMap(SOMMapManager.useScaledDat);
-		
-//		TreeMap<Integer, Float> LowXLowYFtrs = mapMgr.MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt)).getCurrentFtrMap(dataFrmtToUseToTrain), LowXHiYFtrs= mapMgr.MapNodes.get(new Tuple<Integer, Integer>(xInt,yIntp1)).getCurrentFtrMap(dataFrmtToUseToTrain),
-//				 HiXLowYFtrs= mapMgr.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yInt)).getCurrentFtrMap(dataFrmtToUseToTrain),  HiXHiYFtrs= mapMgr.MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yIntp1)).getCurrentFtrMap(dataFrmtToUseToTrain);
-		try{
-			TreeMap<Integer, Float> ftrs = interpTreeMap(interpTreeMap(LowXLowYFtrs, LowXHiYFtrs,yInterp,1.0f),interpTreeMap(HiXLowYFtrs, HiXHiYFtrs,yInterp,1.0f),xInterp,255.0f);	
-			return ftrs;
-		} catch (Exception e){
-			mapMgr.dispMessage("mySOMMapUIWin","getInterpFtrs","Exception triggered in mySOMMapUIWin::getInterpFtrs : \n"+e.toString() + "\n\tMessage : "+e.getMessage() );
-			return null;
-		}		
-	}//getInterpFtrs
-	
 	//get datapoint at passed location in map coordinates (so should be in frame of map's upper right corner) - assume map is square and not hex
 	public DispSOMMapExample getDataPointAtLoc(float x, float y, myPointf locPt){//, boolean useScFtrs){
 		float sensitivity = (float) guiObjs[uiMseRegionSensIDX].getVal();
-		TreeMap<Integer, Float> ftrs = getInterpFtrs(x,y);
+		TreeMap<Integer, Float> ftrs = mapMgr.getInterpFtrs(x,y);
 		if(ftrs == null) {return null;} 
 		DispSOMMapExample dp = mapMgr.buildTmpDataExample(locPt, ftrs, sensitivity);
 		dp.setMapLoc(locPt);			
 		return dp;
 	}//getDataPointAtLoc	
 	
-//	//return a ftrMap at a location
-//	public TreeMap<Integer, Float> getDataMapAtLoc(float x, float y){
-//		TreeMap<Integer, Float> ftrs = getInterpFtrs(x,y);
-//		return ftrs;
-//	}//getDataClrAtLoc
-		
 	//make color based on ftr value at particular index
 	//jpIDX is index in feature vector we are querying
 	//call this if map is trained on unmodified data
@@ -695,7 +614,7 @@ public class mySOMMapUIWin extends myDispWindow {
 				int yCol = y * mapLocClrImg[0].width;
 				for(int x = 0; x < mapLocClrImg[0].width; ++x){
 					c = getMapNodeLocFromPxlLoc(x, y,mapScaleVal);
-					TreeMap<Integer, Float> ftrs = getInterpFtrs(c[0],c[1]);
+					TreeMap<Integer, Float> ftrs = mapMgr.getInterpFtrs(c[0],c[1]);
 					//for (int i=0;i<mapLocClrImg.length;++i) {	mapLocClrImg[i].pixels[x+yCol] = getDataClrFromFtrVec(ftrs, i);}
 					for (Integer jp : ftrs.keySet()) {mapLocClrImg[jp].pixels[x+yCol] = getDataClrFromFtrVec(ftrs, jp);}
 				}
@@ -741,7 +660,7 @@ public class mySOMMapUIWin extends myDispWindow {
 	//if launching threads for custom functions, need to remove clearFuncBtnState call in function below and call clearFuncBtnState when thread ends
 	private void custFunc0(){
 		//load data from raw local csvs of db download
-		mapMgr.loadAllRawData((rawDataSource==0), getPrivFlags(useOnlyEvntsToTrainIDX), getPrivFlags(appendTrainDataIDX));
+		mapMgr.loadAllRawData((rawDataSource==0), getPrivFlags(useOnlyEvntsToTrainIDX));
 		clearFuncBtnState(0,false);
 	}	
 	private void custFunc1(){
@@ -750,12 +669,12 @@ public class mySOMMapUIWin extends myDispWindow {
 		clearFuncBtnState(1,false);
 	}		
 	private void custFunc2(){	
-		mapMgr.buildAndSaveTrainingData(dataFrmtToUseToTrain, (float)(.01*this.guiObjs[uiTrainDatPartIDX].getVal()));//pass fraction of data to use for training
+		mapMgr.buildAndSaveTrainingData((float)(.01*this.guiObjs[uiTrainDatPartIDX].getVal()));//pass fraction of data to use for training
 		clearFuncBtnState(2,false);
 	}			
 	private void custFunc3(){			
 		//combine func1 and func2 with launching map
-		mapMgr.dbgLoadCSVBuildDataTrainMap(getPrivFlags(useOnlyEvntsToTrainIDX),dataFrmtToUseToTrain, (float)(.01*this.guiObjs[uiTrainDatPartIDX].getVal()));
+		mapMgr.dbgLoadCSVBuildDataTrainMap(getPrivFlags(useOnlyEvntsToTrainIDX), (float)(.01*this.guiObjs[uiTrainDatPartIDX].getVal()));
 		this.setPrivFlags(buildSOMExe, true);
 		clearFuncBtnState(3,false);
 	}			
