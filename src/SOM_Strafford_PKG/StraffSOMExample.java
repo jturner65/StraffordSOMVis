@@ -1401,14 +1401,14 @@ abstract class StraffTrainData{
 		ArrayList<Integer> newJPGOrderArray = newEvMapOfJPAras.get(-1);
 		if(newJPGOrderArray == null) {//adding only single jpg, without existing preference order
 			newJPGOrderArray = new ArrayList<Integer> ();
-			newJPGOrderArray.add(newEvMapOfJPAras.firstKey());//this adds only jpg to array
-		} 	
+			newJPGOrderArray.add(newEvMapOfJPAras.firstKey());//this adds only jpg to array	
+		}
 		JpgJpDataRecord rec;
 		for (int i = 0; i < newJPGOrderArray.size(); ++i) {					//for every jpg key in ordered array
 			int jpg = newJPGOrderArray.get(i);								//get list of jps for this jpg				
 			rec = new JpgJpDataRecord(jpg,i,optVal);						//build a jpg->jp record for this jpg, passing order of jps under this jpg
 			ArrayList<Integer> jpgs = newEvMapOfJPAras.get(jpg);			//get list of jps		
-			for (int j=0;i<jpgs.size();++j) {rec.addToJPList(jpgs.get(j));}	//add each in order
+			for (int j=0;j<jpgs.size();++j) {rec.addToJPList(jpgs.get(j));}	//add each in order
 			listOfJpgsJps.add(rec);				
 		}			
 	}//_buildListOfJpgJps
@@ -1452,9 +1452,14 @@ class TcTagTrainData extends StraffTrainData{
 	
 	//get map of jps and their order as specified in raw data.  NOTE : this is assuming there is only a single JPgroup represented by this TCTagData.  If there are >1 then this data will fail
 	public TreeMap<Integer, Integer> getJPOrderMap(){
-		if(listOfJpgsJps.size()>1) {  	return null;}
-		JpgJpDataRecord jpRec = listOfJpgsJps.get(0);
-		return jpRec.getJPOrderMap();//returns map of order or null if no jps for this record
+		int priority=0;
+		TreeMap<Integer,Integer> orderMap = new TreeMap<Integer,Integer>();
+		for(int i=0;i<listOfJpgsJps.size();++i) {
+			JpgJpDataRecord jpRec = listOfJpgsJps.get(i);
+			ArrayList<Integer> jpList = jpRec.getJPlist();
+			for(int j=0;j<jpList.size(); ++j) {		orderMap.put(jpList.get(j), priority++);}
+		}
+		return orderMap;
 	}//getJPOrderMap()
 	
 	

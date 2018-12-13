@@ -66,12 +66,14 @@ public class mySOMMapUIWin extends myDispWindow {
 		uiMapLrnEndIDX			= 13,			//end learning rate
 		uiMapRadStIDX			= 14,			//start radius
 		uiMapRadEndIDX			= 15,			//end radius
-		uiJPToDispIDX			= 16,			//which JP to display on map
-		uiJPGToDispIDX			= 17,			//which group of jp's (a single jpg) to display on map
-		uiNodeWtDispThreshIDX 	= 18,		//threshold for display of map nodes on individual weight maps
-		uiMseRegionSensIDX		= 19;			//senstivity threshold for mouse-over, to determine membership to a particular jp (amount a query on the map per feature needs to be to be considered part of the JP that feature represents)
-		
-	public final int numGUIObjs = 20;	
+		uiJPGToDispIDX			= 16,			//which group of jp's (a single jpg) to display on map
+		uiJPToDispIDX			= 17,			//which JP Ftr IDX to display as map
+		uiProdJpgToDispIDX		= 18,			//display products of this jpg
+		uiProdJpToDispIDX		= 19,			//display products with this jp
+		uiNodeWtDispThreshIDX 	= 20,			//threshold for display of map nodes on individual weight maps
+		uiMseRegionSensIDX		= 21;			//senstivity threshold for mouse-over, to determine membership to a particular jp (amount a query on the map per feature needs to be to be considered part of the JP that feature represents)
+	
+	public final int numGUIObjs = 22;	
 	
 	private double[] uiVals;				//raw values from ui components
 	//source datapoints to be used to build files to send to SOM_MAP
@@ -174,8 +176,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		mapLocClrImg = new PImage[numVals];
 		for(int i=0;i<numVals;++i) {
 			mapLocClrImg[i] = pa.createImage(w, h, pa.RGB);
-		}
-		
+		}		
 	}//initMapAras	
 	
 	//set flag values when finished building map, to speed up initial display
@@ -305,10 +306,12 @@ public class mySOMMapUIWin extends myDispWindow {
 			{0.001, 1.0, 0.001},		//uiMapLrnEndIDX		
 			{2.0, 300.0, 1.0},			//uiMapRadStIDX	 	# nodes	
 			{1.0, 10.0, 1.0},			//uiMapRadEndIDX		# nodes	
+			{0.0, 100, 1.0},			//uiJPGToDispIDX//which group of jp's (a single jpg) to display on map - idx into list of jps
 			{0.0, 260, 1.0},			//uiJPToDispIDX//which JP to display on map - idx into list of jps
-			{0.0, 100, 1.0},				//uiJPGToDispIDX//which group of jp's (a single jpg) to display on map - idx into list of jps
+			{0.0, 100, 1.0},			//uiProdJpgToDispIDX//which products to display by jpg
+			{0.0, 260, 1.0},			//uiProdJpToDispIDX//which product jp to display
 			{0.0, 1.0, .01},			//uiMapNodeWtDispThreshIDX
-			{0.0, 1.0, .1}				//uiMseRegionSensIDX
+			{0.0, 1.0, .1},				//uiMseRegionSensIDX
 	
 		};					
 		guiStVals = new double[]{	
@@ -328,10 +331,12 @@ public class mySOMMapUIWin extends myDispWindow {
 			0.01,	//uiMapLrnEndIDX	
 			20.0,	//uiMapRadStIDX	 	
 			1.0,	//uiMapRadEndIDX
-			0,     //uiJPToDispIDX/
 			0,      //uiJPGToDispIDX
+			0,     	//uiJPToDispIDX/
+			0,      //uiProdJpgToDispIDX
+			0,     	//uiProdJpToDispIDX/
 			.04f,	//uiMapNodeWtDispThreshIDX
-			0//uiMseRegionSensIDX
+			0,		//uiMseRegionSensIDX
 		};								//starting value
 		uiVals = new double[numGUIObjs];//raw values
 		System.arraycopy(guiStVals, 0, uiVals, 0, numGUIObjs);
@@ -352,8 +357,10 @@ public class mySOMMapUIWin extends myDispWindow {
 				"End Learn Rate",  		//uiMapLrnEndIDX
 				"Start Cool Radius",  	//uiMapRadStIDX	 
 				"End Cool Radius", 		//uiMapRadEndIDX	
-				"JP Shown", //uiJPToDispIDX/
-				"JPGrp Shown",     //uiJPGToDispIDX
+				"JPGrp Ftrs Shown",     //uiJPGToDispIDX
+				"JP Ftr Shown", 		//uiJPToDispIDX
+				"JPG for Prods to Show",  //uiProdJpgToDispIDX  
+				"JP for Prods to Show",   //uiProdJpToDispIDX
 				"Map Node Disp Wt Thresh",//uiMapNodeWtDispThreshIDX
 				"Mouse Over JP Sensitivity"	//uiMseRegionSensIDX
 				
@@ -377,8 +384,10 @@ public class mySOMMapUIWin extends myDispWindow {
 			{false, false, true},   	//uiMapLrnEndIDX	 	
 			{true, false, true},    	//uiMapRadStIDX	 	
 			{true, false, true},    	//uiMapRadEndIDX
-			{true, true, true},			//uiJPToDispIDX/
 			{true, true, true},			//uiJPGToDispIDX	
+			{true, true, true},			//uiJPToDispIDX
+			{true, true, true},			//uiProdJpgToDispIDX  
+			{true, true, true},			//uiProdJpToDispIDX
 			{false, false, true}, 		//uiMapNodeWtDispThreshIDX
 			{false, false, true},		//uiMapRegionSensIDX
 		};						//per-object  list of boolean flags
@@ -408,11 +417,17 @@ public class mySOMMapUIWin extends myDispWindow {
 			case uiMapNHdFuncIDX	: {return uiMapNHoodList[validx % uiMapNHoodList.length]; }
 			case uiMapRadCoolIDX	: {return uiMapRadClList[validx % uiMapRadClList.length]; }
 			case uiMapLrnCoolIDX	: {return uiMapLrnClList[validx % uiMapLrnClList.length]; }	
+			case uiJPGToDispIDX		: {
+				return mapMgr.getJpGrpByIdxStr(validx); 
+			}	
 			case uiJPToDispIDX		: {
 				return mapMgr.getJpByIdxStr(validx); 
 			}	
-			case uiJPGToDispIDX		: {
-				return mapMgr.getJpGrpByIdxStr(validx); 
+			case uiProdJpgToDispIDX		: {
+				return mapMgr.getProdJpGrpByIdxStr(validx); 
+			}	
+			case uiProdJpToDispIDX		: {
+				return mapMgr.getProdJpByIdxStr(validx); 
 			}	
 		}
 		return "";
@@ -454,24 +469,24 @@ public class mySOMMapUIWin extends myDispWindow {
 				break;}
 			case uiJPToDispIDX : {//highlight display of different region of SOM map corresponding to selected JP				
 				curMapImgIDX = (int)val;
-				mapMgr.dispMessage("\nSOM WIN","setUIWinVals::uiJPToDispIDX", "Click : settingJPFromJPG : " + settingJPFromJPG);
+				//mapMgr.dispMessage("\nSOM WIN","setUIWinVals::uiJPToDispIDX", "Click : settingJPFromJPG : " + settingJPFromJPG);
 				if(!settingJPFromJPG) {
 					int curJPGVal = (int)guiObjs[uiJPGToDispIDX].getVal();
 					int jpgToSet = mapMgr.getUI_JPGrpFromJP(curMapImgIDX, curJPGVal);
-					mapMgr.dispMessage("SOM WIN","setUIWinVals::uiJPToDispIDX", "Attempt to modify uiJPGToDispIDX : cur JPG val : "+ curJPGVal + " | jpgToSet : " + jpgToSet);					
+					//mapMgr.dispMessage("SOM WIN","setUIWinVals::uiJPToDispIDX", "Attempt to modify uiJPGToDispIDX : cur JPG val : "+ curJPGVal + " | jpgToSet : " + jpgToSet);					
 					settingJPGFromJp = true;
 					guiObjs[uiJPGToDispIDX].setVal(jpgToSet);
 					settingJPGFromJp = false;
 				}
-				mapMgr.dispMessage("mySOMMapUIWin","setUIWinVals","uiJPToDispIDX : Setting UI JP Map to display to be idx :" + curMapImgIDX + " Corresponding to JP : " + mapMgr.getJpByIdxStr(curMapImgIDX) );			
+				//mapMgr.dispMessage("mySOMMapUIWin","setUIWinVals","uiJPToDispIDX : Setting UI JP Map to display to be idx :" + curMapImgIDX + " Corresponding to JP : " + mapMgr.getJpByIdxStr(curMapImgIDX) );			
 				
 				break;}
 			case uiJPGToDispIDX : {//highlight display of different region of SOM map corresponding to group of JPs (jpg)
-				mapMgr.dispMessage("\nSOM WIN","setUIWinVals::uiJPGToDispIDX", "Click : settingJPGFromJp : " + settingJPGFromJp);
+				//mapMgr.dispMessage("\nSOM WIN","setUIWinVals::uiJPGToDispIDX", "Click : settingJPGFromJp : " + settingJPGFromJp);
 				if(!settingJPGFromJp) {
 					int curJPVal = (int)guiObjs[uiJPToDispIDX].getVal();
 					int jpToSet = mapMgr.getUI_FirstJPFromJPG((int)val, curJPVal);
-					mapMgr.dispMessage("SOM WIN","setUIWinVals:uiJPGToDispIDX", "Attempt to modify uiJPToDispIDX : curJPVal : "  +curJPVal + " | jpToSet : " + jpToSet);
+					//mapMgr.dispMessage("SOM WIN","setUIWinVals:uiJPGToDispIDX", "Attempt to modify uiJPToDispIDX : curJPVal : "  +curJPVal + " | jpToSet : " + jpToSet);
 					settingJPFromJPG = true;
 					guiObjs[uiJPToDispIDX].setVal(jpToSet);				
 					settingJPFromJPG = false;

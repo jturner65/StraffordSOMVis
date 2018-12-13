@@ -1159,6 +1159,9 @@ public class SOMMapManager {
 	public String getJpByIdxStr(int idx) {return jpJpgrpMon.getJpByIdxStr(idx);}	
 	public String getJpGrpByIdxStr(int idx) {return jpJpgrpMon.getJpGrpByIdxStr(idx);}
 		
+	public String getProdJpByIdxStr(int idx) {return jpJpgrpMon.getProdJpByIdxStr(idx);}	
+	public String getProdJpGrpByIdxStr(int idx) {return jpJpgrpMon.getProdJpGrpByIdxStr(idx);}
+		
 	//this will return the appropriate jpgrp for the given jpIDX (ftr idx)
 	public int getUI_JPGrpFromJP(int jpIdx, int curVal) {		return jpJpgrpMon.getUI_JPGrpFromJP(jpIdx, curVal);}
 	//this will return the first(lowest) jp for a particular jpgrp
@@ -1232,7 +1235,7 @@ public class SOMMapManager {
 			ProductExample ex = new ProductExample(this, (TcTagData)tcDat);
 			productMap.put(ex.OID, ex);
 		}
-		dispMessage("SOMMapManager","procRawProductData","Finished.");		
+		dispMessage("SOMMapManager","procRawProductData","Finished processing  : " + tcTagRawData.size()+ " raw records.");		
 	}//procRawProductData
 	
 	//this will scale unmodified ftr data - scaled or normalized data does not need this
@@ -1272,7 +1275,7 @@ public class SOMMapManager {
 		//now handle loaded jp and jpgroup data
 		jpJpgrpMon.setJpJpgrpNames(rawDataArrays.get(straffDataFileNames[jpDataIDX]),rawDataArrays.get(straffDataFileNames[jpgDataIDX]));
 		//to free up memory before we build feature weight vectors
-		rawDataArrays = new ConcurrentSkipListMap<String, ArrayList<BaseRawData>>();		//finalize builds each example's occurence structures, which describe the jp-jpg relationships found in the example
+		rawDataArrays = null;//new ConcurrentSkipListMap<String, ArrayList<BaseRawData>>();		//finalize builds each example's occurence structures, which describe the jp-jpg relationships found in the example
 		
 		dispMessage("SOMMapManager","procRawLoadedData","Begin initial finalize of tmp prospect map to aggregate all JPs and determine records that are valid training examples");		
 		//finalize each potential prospect and product - this will aggregate all the jp's that are seen, as well as finding all records that are bad due to having a 0 ftr vector
