@@ -1262,6 +1262,7 @@ class SOMMapNodeExample extends StraffSOMExample{
 	private static float ftrThresh = 0.0f;
 	public Tuple<Integer,Integer> mapNodeCoord;	
 	private TreeMap<Double,ArrayList<StraffSOMExample>> examplesBMU;	//best training examples in this unit, keyed by distance ; may be equidistant, so put in array at each distance
+	private float logExSize;						//log of size of examples + 1, used to display nodes with examples with visual cue to population
 	private int numMappedTEx;						//# of mapped training examples to this node
 
 	//feature type denotes what kind of features the tkns being sent represent - 0 is unmodded, 1 is standardized across all data for each feature, 2 is normalized across all features for single data point
@@ -1391,6 +1392,7 @@ class SOMMapNodeExample extends StraffSOMExample{
 		//TODO : this label is minimally descriptive. 
 		//Ideal situation would be to build map node lable by having vote of all nodes that are closest to this node
 		label = examplesBMU.firstEntry().getValue().get(0).getLabel();
+		logExSize = (float) Math.log(examplesBMU.size() + 1);
 	}//addBMUExample
 	
 	
@@ -1406,6 +1408,7 @@ class SOMMapNodeExample extends StraffSOMExample{
 		}
 		return label;}
 	public int getExmplBMUSize() {return  examplesBMU.size();}
+	public float getLogExmplBMUSize() {return logExSize;}
 	
 	public void drawMeSmall(SOM_StraffordMain p, int jpIDX){
 		p.pushMatrix();p.pushStyle();
@@ -1489,7 +1492,7 @@ abstract class baseDataPtVis{
 	
 	public final void drawMeWithWt(SOM_StraffordMain p, float wt, int clr, int txtClr, String ID){
 		p.pushMatrix();p.pushStyle();	
-		p.show(mapLoc, 10.0f*wt, 2,  clr, clr, txtClr,  new String[] {ID+" : ",String.format("%.4f", wt)}); 
+		p.show(mapLoc, wt, 2,  clr, clr, txtClr,  new String[] {ID+" : ",String.format("%.4f", wt)}); 
 		p.popStyle();p.popMatrix();		
 	}//drawMeWithWt
 	

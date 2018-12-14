@@ -24,16 +24,17 @@ public class mySOMMapUIWin extends myDispWindow {
 		//display/interaction
 		mapDrawTrainDatIDX		= 7,			//draw training examples
 		mapDrawTrDatLblIDX		= 8,			//draw labels for training samples
-		mapDrawMapNodesIDX		= 9,			//draw map nodes
-		mapDrawAllMapNodesIDX	= 10,			//draw all map nodes, even empty
-		showSelRegionIDX		= 11,			//highlight a specific region of the map, either all nodes above a certain threshold for a chosen jp or jpgroup
-		showSelJPIDX			= 12, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
+		mapDrawWtMapNodesIDX	= 9,			//draw map nodes with non-0 (present) wt vals
+		mapDrawPopMapNodesIDX   = 10,			//draw map nodes that are bmus for training examples
+		mapDrawAllMapNodesIDX	= 11,			//draw all map nodes, even empty
+		showSelRegionIDX		= 12,			//highlight a specific region of the map, either all nodes above a certain threshold for a chosen jp or jpgroup
+		showSelJPIDX			= 13, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
 		//train/test data management
-		somTrainDataLoadedIDX	= 13,			//whether data used to build map has been loaded yet
-		saveLocClrImgIDX		= 14,			//
-		useOnlyEvntsToTrainIDX  = 15;			//only use records that have event jpgs/jps to train, otherwise use records that also have jpgs/jps only specified in prospect db
+		somTrainDataLoadedIDX	= 14,			//whether data used to build map has been loaded yet
+		saveLocClrImgIDX		= 15,			//
+		useOnlyEvntsToTrainIDX  = 16;			//only use records that have event jpgs/jps to train, otherwise use records that also have jpgs/jps only specified in prospect db
 	
-	public static final int numPrivFlags = 16;
+	public static final int numPrivFlags = 17;
 	
 	//SOM map list options
 	public String[] 
@@ -120,17 +121,17 @@ public class mySOMMapUIWin extends myDispWindow {
 		truePrivFlagNames = new String[]{								//needs to be in order of flags
 				"Train W/Recs W/Event Data", "Building SOM", "Resetting Def Vals", "Loading Feature BMUs",
 				"Using ChiSq for Ftr Distance", "Unshared Ftrs are 0",	"Hide Train Data",
-				"Hide Train Lbls",	"Hide Pop Map Nodes","Hide Map Nodes", "Hide Products"
+				"Hide Train Lbls",	"Hide Map Nodes (by Wt)","Hide Map Nodes (by Pop)", "Hide Map Nodes", "Hide Products"
 		};
 		falsePrivFlagNames = new String[]{			//needs to be in order of flags
 				"Train W/All Recs","Build New Map ","Reset Def Vals","Not Loading Feature BMUs",
 				"Not Using ChiSq Distance", "Ignoring Unshared Ftrs","Show Train Data",
-				"Show Train Lbls",	"Show Pop Map Nodes","Show Map Nodes", "Show Products"
+				"Show Train Lbls",	"Show Map Nodes (by Wt)","Show Map Nodes (by Pop)","Show Map Nodes", "Show Products"
 		};
 		privModFlgIdxs = new int[]{
 				useOnlyEvntsToTrainIDX, buildSOMExe, resetMapDefsIDX, mapLoadFtrBMUsIDX,
 				mapUseChiSqDistIDX,mapSetSmFtrZeroIDX,mapDrawTrainDatIDX,
-				mapDrawTrDatLblIDX,mapDrawMapNodesIDX,mapDrawAllMapNodesIDX, mapDrawPrdctNodesIDX};
+				mapDrawTrDatLblIDX,mapDrawWtMapNodesIDX,mapDrawPopMapNodesIDX,mapDrawAllMapNodesIDX, mapDrawPrdctNodesIDX};
 		numClickBools = privModFlgIdxs.length;	
 		//maybe have call for 		initPrivBtnRects(0);	
 		initPrivBtnRects(0,numClickBools);
@@ -151,7 +152,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		initPrivFlags(numPrivFlags);			
 		setPrivFlags(mapLoadFtrBMUsIDX,true);
 		setPrivFlags(mapDrawTrainDatIDX,false);
-		setPrivFlags(mapDrawMapNodesIDX,false);
+		setPrivFlags(mapDrawWtMapNodesIDX,false);
 		setPrivFlags(mapUseChiSqDistIDX,true);
 		setPrivFlags(useOnlyEvntsToTrainIDX, true);
 		mapMgr.setCurrentDataFormat((int)(this.guiObjs[uiTrainDataFrmtIDX].getVal()));
@@ -181,7 +182,7 @@ public class mySOMMapUIWin extends myDispWindow {
 	public void setFlagsDoneMapBuild(){
 		setPrivFlags(mapDrawTrainDatIDX, false);
 		setPrivFlags(mapDrawTrDatLblIDX, false);
-		setPrivFlags(mapDrawMapNodesIDX, false);
+		setPrivFlags(mapDrawWtMapNodesIDX, false);
 		setPrivFlags(mapDrawAllMapNodesIDX, false);
 	}
 	
@@ -206,9 +207,23 @@ public class mySOMMapUIWin extends myDispWindow {
 				break;}							
 			case mapDrawTrDatLblIDX 	: {//draw labels for training samples                                                       
 				break;}
-			case mapDrawMapNodesIDX		: {//draw map nodes
+			case mapDrawWtMapNodesIDX		: {//draw map nodes
+				if (val) {//turn off other node displays
+					setPrivFlags(mapDrawPopMapNodesIDX, false);
+					setPrivFlags(mapDrawAllMapNodesIDX, false);					
+				}
 				break;}							
+			case mapDrawPopMapNodesIDX  : {				
+				if (val) {//turn off other node displays
+					setPrivFlags(mapDrawWtMapNodesIDX, false);
+					setPrivFlags(mapDrawAllMapNodesIDX, false);					
+				}
+				break;}
 			case mapDrawAllMapNodesIDX	: {//draw all map nodes, even empty
+				if (val) {//turn off other node displays
+					setPrivFlags(mapDrawPopMapNodesIDX, false);
+					setPrivFlags(mapDrawWtMapNodesIDX, false);					
+				}
 				break;}							
 //			case mapShowLocClrIDX		: {//draw all map nodes, even empty
 //				break;}						
@@ -596,8 +611,10 @@ public class mySOMMapUIWin extends myDispWindow {
 		if(getPrivFlags(mapDrawPrdctNodesIDX)){		mapMgr.drawProductNodes(pa, curMapImgIDX, true);}
 		pa.popStyle();pa.popMatrix();
 		//draw map nodes, either with or without empty nodes
+		if(getPrivFlags(mapDrawWtMapNodesIDX)){			mapMgr.drawNodesWithWt(pa, mapNodeWtDispThresh, curMapImgIDX, mapNodeClr, mapNodeClr);}//mapMgr.drawExMapNodes( pa, curMapImgIDX, mapNodeClr, mapNodeClr);		} 
+		if(getPrivFlags(mapDrawPopMapNodesIDX)) {	mapMgr.drawExMapNodes(pa, curMapImgIDX, mapNodeClr, mapNodeClr);}
 		if(getPrivFlags(mapDrawAllMapNodesIDX)){	mapMgr.drawAllNodes( pa, curMapImgIDX, mapNodeClr, mapNodeClr);		} 
-		if(getPrivFlags(mapDrawMapNodesIDX)){		mapMgr.drawNodesWithWt(pa, mapNodeWtDispThresh, curMapImgIDX, mapNodeClr, mapNodeClr);}//mapMgr.drawExMapNodes( pa, curMapImgIDX, mapNodeClr, mapNodeClr);		} 
+		
 		pa.popStyle();pa.popMatrix();
 	}//drawMap()		
 	

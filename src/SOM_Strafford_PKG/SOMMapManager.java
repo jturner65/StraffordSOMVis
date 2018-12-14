@@ -117,7 +117,10 @@ public class SOMMapManager {
 	public String SOMDataDir;
 	//debug info
 	//date/time of debug pre-made map
-	private String _DBG_Map_fileNow = "12_03_10_30";
+	private String _DBG_Map_fileNow = "12_14_14_25";
+	//map topology for debug
+	private String _DBG_PreBuiltMapConfig = "_x20_y20_k2";
+	
 	//prebuilt map values
 	private int _DBG_Map_numSmpls = 459110, _DBG_Map_numTrain = 413199, _DBG_Map_numTest = 45911;
 	
@@ -1163,7 +1166,7 @@ public class SOMMapManager {
 		minsFileName = getSOMMapMinsFileName(),		//mins data percol .csv file
 		diffsFileName = getSOMMapDiffsFileName(),	//diffs data percol .csv file
 		
-		outFilePrfx = getSOMMapOutFileBase() + "_x10_y10_k2";
+		outFilePrfx = getSOMMapOutFileBase() + _DBG_PreBuiltMapConfig;
 		//build new map descriptor and execute
 		//structure holding SOM_MAP specific cmd line args and file names and such
 		//now load new map data and configure SOMMapManager obj to hold all appropriate data
@@ -1536,16 +1539,18 @@ public class SOMMapManager {
 		SortedMap<Float,ArrayList<SOMMapNodeExample>> headMap = map.headMap(valThresh);
 		for(Float key : headMap.keySet()) {
 			ArrayList<SOMMapNodeExample> ara = headMap.get(key);
-			for (SOMMapNodeExample node : ara) {		node.drawMeWithWt(pa, key, pa.gui_Yellow, pa.gui_Green, node.OID);}
+			for (SOMMapNodeExample node : ara) {		node.drawMeWithWt(pa, 10.0f*key, pa.gui_Yellow, pa.gui_Green, node.OID);}
 		}
 		pa.popStyle();pa.popMatrix();
-	} 
-		
+	}//drawNodesWithWt
+	
 	public void drawExMapNodes(SOM_StraffordMain pa, int curMapImgIDX, int[] dpFillClr, int[] dpStkClr) {
 		pa.pushMatrix();pa.pushStyle();
 		pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
 		//PerJPHiWtMapNodes
-		for(SOMMapNodeExample node : nodesWithEx){			node.drawMeMap(pa, 2);}
+		for(SOMMapNodeExample node : nodesWithEx){			
+			//float wt = Math.log
+			node.drawMeWithWt(pa, node.getLogExmplBMUSize(), pa.gui_Yellow, pa.gui_Green, node.OID);}
 		pa.popStyle();pa.popMatrix();		
 	}
 	
