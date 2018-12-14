@@ -169,9 +169,8 @@ public class SOMMapManager {
 	//feature type used for currently trained/loaded map
 	private int curMapFtrType;
 	
-	//distance to use : 2 : scaled features, 1: chisq features or 0 : regular feature dists
-	public int distType = 0;
-
+	//distance to use :  1: chisq features or 0 : regular feature dists
+	private boolean useChiSqDist;
 	
 	//map dims is used to calculate distances for BMUs - based on screen dimensions - need to change this?
 	private float[] mapDims;
@@ -578,36 +577,35 @@ public class SOMMapManager {
 	public boolean isMapDrawable(){return getFlag(loaderRtnIDX) && getFlag(mapDataLoadedIDX);}
 
 
-	/**
-	 * calc distance between two data points, using L2 calculation or standardized (divided by variance) euc
-	 * @param a,b nodes to measure distance
-	 * @param dataVar variance in ftr data between nodes for chi sq dist
-	 * @return dist
-	 */
-	public double dpDistFunc(StraffSOMExample a, StraffSOMExample b, float[] dataVar){
-		float[] bigFtrs, smlFtrs, bigSclFtrs, smlSclFtrs; 
-		float[] aftrData = a.getFtrs(), bftrData = b.getFtrs();
-		float[] astdFtrData = a.getStdFtrs(), bstdFtrData = b.getStdFtrs();
-		
-		if (aftrData.length >= bftrData.length) {
-			bigFtrs = aftrData;
-			smlFtrs = bftrData;
-			bigSclFtrs = astdFtrData;
-			smlSclFtrs = bstdFtrData;			
-		} else {
-			bigFtrs = bftrData;
-			smlFtrs = aftrData;
-			bigSclFtrs = bstdFtrData;
-			smlSclFtrs = astdFtrData;		
-		}
-		
-		switch (distType) {
-			case 0 : return calcPtDist(bigFtrs, smlFtrs); 					//dflt dist measure - l2 norm
-			case 1 : return calcPtChiDist(bigFtrs, smlFtrs, dataVar);		//chi dist measure
-			case 2 : return calcPtDist(bigSclFtrs, smlSclFtrs);				//scaled dist measure
-			default : return calcPtDist(bigFtrs, smlFtrs);					//dflt dist measure - l2 norm
-		}
-	}//distFunc	
+//	/**
+//	 * calc distance between two data points, using L2 calculation or standardized (divided by variance) euc
+//	 * @param a,b nodes to measure distance
+//	 * @return dist
+//	 */
+//	public double dpDistFunc(StraffSOMExample a, StraffSOMExample b, int ftrType){		
+//		float[] bigFtrs, smlFtrs, bigSclFtrs, smlSclFtrs; 
+//		float[] aftrData = a.getFtrs(), bftrData = b.getFtrs();
+//		float[] astdFtrData = a.getStdFtrs(), bstdFtrData = b.getStdFtrs();
+//		
+//		if (aftrData.length >= bftrData.length) {
+//			bigFtrs = aftrData;
+//			smlFtrs = bftrData;
+//			bigSclFtrs = astdFtrData;
+//			smlSclFtrs = bstdFtrData;			
+//		} else {
+//			bigFtrs = bftrData;
+//			smlFtrs = aftrData;
+//			bigSclFtrs = bstdFtrData;
+//			smlSclFtrs = astdFtrData;		
+//		}
+//		//dist type set by UI/user input -> TODO set this from SOM Exec Object
+//		switch (distType) {
+//			case 0 : return calcPtDist(bigFtrs, smlFtrs); 					//dflt dist measure - l2 norm
+//			case 1 : return calcPtChiDist(bigFtrs, smlFtrs, map_ftrsVar);		//chi dist measure - uses map node feature variance
+//			case 2 : return calcPtDist(bigSclFtrs, smlSclFtrs);				//scaled dist measure
+//			default : return calcPtDist(bigFtrs, smlFtrs);					//dflt dist measure - l2 norm
+//		}
+//	}//distFunc	
 	//passing variance for chi sq dist
 	private double calcPtChiDist(float[] bigFtrs, float[] smFtrs, float[] dataVar){
 		return Math.sqrt(calcSqPtChiDist(bigFtrs, smFtrs,dataVar));
@@ -631,6 +629,10 @@ public class SOMMapManager {
 		return res;	
 	}//calcPtDist
 
+	
+	
+	
+	
 	public boolean isToroidal(){
 		if(null==SOMExeDat){return false;}
 		return SOMExeDat.isToroidal();
@@ -963,7 +965,11 @@ public class SOMMapManager {
 		boolean singleThread=numUsableThreads<=1;//this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
 		if(singleThread) {
 			//for every product find closest map node
-			for (int i=0;i<productData.length;++i) {	productData[i].addAllMapNodeNeighbors(MapNodes, curMapFtrType);}
+			if (useChiSqDist) {
+				for (int i=0;i<productData.length;++i) {	productData[i].findBMUFromNodes_ChiSq(MapNodes, curMapFtrType);		}			
+			} else {
+				for (int i=0;i<productData.length;++i) {	productData[i].findBMUFromNodes(MapNodes, curMapFtrType);		}				
+			}
 		} else {		
 			List<Future<Boolean>> prdcttMapperFtrs = new ArrayList<Future<Boolean>>();
 			List<straffProductsToMapBuilder> prdcttMappers = new ArrayList<straffProductsToMapBuilder>();
@@ -972,12 +978,12 @@ public class SOMMapManager {
 			int stIDX = 0;
 			int endIDX = numForEachThrd;		
 			for (int i=0; i<(numUsableThreads-1);++i) {				
-				prdcttMappers.add(new straffProductsToMapBuilder(this,stIDX, endIDX, i));
+				prdcttMappers.add(new straffProductsToMapBuilder(this,stIDX, endIDX, useChiSqDist, i));
 				stIDX = endIDX;
 				endIDX += numForEachThrd;
 			}
 			//last one probably won't end at endIDX, so use length
-			prdcttMappers.add(new straffProductsToMapBuilder(this,stIDX, productData.length, numUsableThreads-1));
+			prdcttMappers.add(new straffProductsToMapBuilder(this,stIDX, productData.length, useChiSqDist, numUsableThreads-1));
 			try {prdcttMapperFtrs = th_exec.invokeAll(prdcttMappers);for(Future<Boolean> f: prdcttMapperFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }		
 		}
 		dispMessage("SOMMapManager","setProductBMUs","Finished Mapping products to best matching units.");
@@ -1180,7 +1186,9 @@ public class SOMMapManager {
 		
 	}//dbgBuildExistingMap
 		
-
+	public boolean getUseChiSqDist() {return useChiSqDist;}
+	public void setUseChiSqDist(boolean _useChiSq) {useChiSqDist=_useChiSq;}
+	
 	public String getJpByIdxStr(int idx) {return jpJpgrpMon.getJpByIdxStr(idx);}	
 	public String getJpGrpByIdxStr(int idx) {return jpJpgrpMon.getJpGrpByIdxStr(idx);}
 		
@@ -1403,10 +1411,7 @@ public class SOMMapManager {
 		}		
 		return res;
 	}//interpolate between 2 tree maps
-	
-
-	
-	
+		
 	//show first numToShow elemens of array of BaseRawData, either just to console or to applet window
 	private void dispRawDataAra(ArrayList<BaseRawData> sAra, int numToShow) {
 		if (sAra.size() < numToShow) {numToShow = sAra.size();}
@@ -1486,8 +1491,6 @@ public class SOMMapManager {
 		return _list;
 	}
 	
-	
-	
 	//performs Durstenfeld  shuffle, leaves 0->stIdx alone - for testing/training data
 	public String[] shuffleStrList(String[] _list, String type, int stIdx){
 		String tmp = "";
@@ -1505,8 +1508,8 @@ public class SOMMapManager {
 	//if connected to UI, draw data - only called from window
 	public void drawTrainData(SOM_StraffordMain pa, int curMapImgIDX, boolean drawLbls) {
 		if(drawLbls){
-			for(int i=0;i<trainData.length;++i){trainData[i].drawMeLblMap(pa,trainData[i].label,false);}} 
-		else {for(int i=0;i<trainData.length;++i){trainData[i].drawMeMap(pa, 2,trainData[i].label);}}	
+			for(int i=0;i<trainData.length;++i){trainData[i].drawMeLblMap(pa,false);}} 
+		else {for(int i=0;i<trainData.length;++i){trainData[i].drawMeMap(pa, 2);}}	
 	}//drawTrainData
 	
 	//draw all product nodes with max vals corresponding to current JPIDX
@@ -1514,10 +1517,10 @@ public class SOMMapManager {
 		pa.pushMatrix();pa.pushStyle();
 		ArrayList<ProductExample> prodsToShow = (showJPorJPG ? productsByJp.get(jpJpgrpMon.getProdJpByIdx(prodJpIDX)) :  productsByJpg.get(jpJpgrpMon.getProdJpGrpByIdx(prodJpIDX)));
 		for(ProductExample ex : prodsToShow) {
-			ex.drawMeWithWt(pa, 1.0f, pa.gui_Magenta, ex.label);
+			ex.drawMeLinkedToBMU(pa);
 		}		
 		pa.popStyle();pa.popMatrix();
-	}
+	}//drawProductNodes
 	
 	public void drawAllNodes(SOM_StraffordMain pa, int curJPIdx, int[] dpFillClr, int[] dpStkClr) {
 		pa.pushMatrix();pa.pushStyle();
@@ -1533,7 +1536,7 @@ public class SOMMapManager {
 		SortedMap<Float,ArrayList<SOMMapNodeExample>> headMap = map.headMap(valThresh);
 		for(Float key : headMap.keySet()) {
 			ArrayList<SOMMapNodeExample> ara = headMap.get(key);
-			for (SOMMapNodeExample node : ara) {		node.drawMeWithWt(pa, key, 2,node.label);}
+			for (SOMMapNodeExample node : ara) {		node.drawMeWithWt(pa, key, pa.gui_Yellow, pa.gui_Green, node.OID);}
 		}
 		pa.popStyle();pa.popMatrix();
 	} 
@@ -1542,7 +1545,7 @@ public class SOMMapManager {
 		pa.pushMatrix();pa.pushStyle();
 		pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
 		//PerJPHiWtMapNodes
-		for(SOMMapNodeExample node : nodesWithEx){			node.drawMeMap(pa, 2,node.label);}
+		for(SOMMapNodeExample node : nodesWithEx){			node.drawMeMap(pa, 2);}
 		pa.popStyle();pa.popMatrix();		
 	}
 	
@@ -1825,7 +1828,7 @@ class dataClass implements Comparable<dataClass> {
 	
 	public String label;
 	public String lrnKey;
-	public String cls;
+	private String cls;
 	
 	public int jpGrp, jp;
 	//color of this class, for vis rep
@@ -1840,6 +1843,8 @@ class dataClass implements Comparable<dataClass> {
 	public dataClass(dataClass _o){this(_o.lrnKey, _o.label,_o.cls, _o.clrVal);}//copy ctor
 	//set the defini
 	public void setJpJPG(int _jpGrp, int _jp) {jpGrp=_jpGrp;jp=_jp;}
+	
+	
 	
 	//this will guarantee that, so long as a string has only one period, the value returned will be in the appropriate format for this mocapClass to match it
 	//reparses and recalcs subject and clip from passed val

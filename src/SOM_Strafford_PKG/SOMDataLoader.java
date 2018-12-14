@@ -15,6 +15,9 @@ public class SOMDataLoader implements Runnable {
 	
 	public final static float nodeDistThresh = 100000.0f;
 	
+	public int ftrTypeUsedToTrain;
+	public boolean useChiSqDist;
+	
 	//public boolean loadFtrBMUs;
 
 	private int[] stFlags;						//state flags - bits in array holding relevant process info
@@ -48,6 +51,8 @@ public class SOMDataLoader implements Runnable {
 	}
 	//load results from map processing - fnames needs to be modified to handle this
 	private boolean execDataLoad(){
+		ftrTypeUsedToTrain = mapMgr.getCurrMapDataFrmt();
+		useChiSqDist = mapMgr.getUseChiSqDist();
 		//must load jp's and jpg's that were used for this map
 		//load map weights for all map nodes
 		boolean success = loadSOMWts();			
@@ -206,38 +211,71 @@ public class SOMDataLoader implements Runnable {
 		String [] strs= mapMgr.loadFileIntoStringAra(bmFileName, "Loaded best matching unit data file : "+bmFileName, "Error reading best matching unit file : "+bmFileName);
 		if(strs==null){return false;}
 		String[] tkns;
-		for (int i=0;i<strs.length;++i){//load in data on all bmu's
-			if(i < 2){
-				tkns = strs[i].replace('%', ' ').trim().split(mapMgr.SOM_FileToken);
-				if(i==0){
-					if(!checkMapDim(tkns,"Best Matching Units file " + getFName(bmFileName))){return false;}
-				} else {	
-					int tNumTDat = Integer.parseInt(tkns[0]);
-					if(tNumTDat != mapMgr.numTrainData) { //don't forget added emtpy vector
-						mapMgr.dispMessage("DataLoader","loadSOM_BMUs","!!Best Matching Units file " + getFName(bmFileName) + " # of training examples : " + tNumTDat +" does not match # of training examples in training data " + mapMgr.numTrainData+". Loading aborted." ); 
-						return false;}
-				}
-				continue;
-			} 
-			tkns = strs[i].split(mapMgr.SOM_FileToken);
-			if(tkns.length < 2){continue;}//shouldn't happen
-			
-			Tuple<Integer,Integer> mapLoc = new Tuple<Integer, Integer>(Integer.parseInt(tkns[2]),Integer.parseInt(tkns[1]));//map locations in bmu data are in (y,x) order (row major)
-			SOMMapNodeExample tmpMapNode = mapMgr.MapNodes.get(mapLoc);
-			if(null==tmpMapNode){ mapMgr.dispMessage("DataLoader","loadSOM_BMUs","!!!!!!!!!Map node stated as best matching unit for training example " + tkns[0] + " not found in map ... somehow. "); return false;}//catastrophic error shouldn't be possible
-			Integer dpIdx = Integer.parseInt(tkns[0]);	//datapoint index in training data		
+		if (useChiSqDist) {		//setting chi check here to minimize if checks.  hundreds of thousands (if not millions) of if checks per load.	 May need to stream load
+			for (int i=0;i<strs.length;++i){//load in data on all bmu's
+				if(i < 2){
+					tkns = strs[i].replace('%', ' ').trim().split(mapMgr.SOM_FileToken);
+					if(i==0){
+						if(!checkMapDim(tkns,"Best Matching Units file " + getFName(bmFileName))){return false;}//otw continue
+					} else {	
+						int tNumTDat = Integer.parseInt(tkns[0]);
+						if(tNumTDat != mapMgr.numTrainData) { //don't forget added emtpy vector
+							mapMgr.dispMessage("DataLoader","loadSOM_BMUs","!!Best Matching Units file " + getFName(bmFileName) + " # of training examples : " + tNumTDat +" does not match # of training examples in training data " + mapMgr.numTrainData+". Loading aborted." ); 
+							return false;}
+					}
+					continue;
+				} 
+				tkns = strs[i].split(mapMgr.SOM_FileToken);
+				if(tkns.length < 2){continue;}//shouldn't happen				
+				Tuple<Integer,Integer> mapLoc = new Tuple<Integer, Integer>(Integer.parseInt(tkns[2]),Integer.parseInt(tkns[1]));//map locations in bmu data are in (y,x) order (row major)
+				SOMMapNodeExample tmpMapNode = mapMgr.MapNodes.get(mapLoc);
+				if(null==tmpMapNode){ mapMgr.dispMessage("DataLoader","loadSOM_BMUs","!!!!!!!!!Map node stated as best matching unit for training example " + tkns[0] + " not found in map ... somehow. "); return false;}//catastrophic error shouldn't be possible
+				Integer dpIdx = Integer.parseInt(tkns[0]);	//datapoint index in training data		
+				StraffSOMExample tmpDataPt = mapMgr.trainData[dpIdx];
+				if(null==tmpDataPt){ mapMgr.dispMessage("DataLoader","loadSOM_BMUs","!!Training Datapoint given by idx in BMU file str tok : " + tkns[0] + " of string : --" + strs[i] + "-- not found in training data. "); return false;}//catastrophic error shouldn't happen
+				//must have mapMgr.map_ftrsVar known by here for chi-sq dist 
+				tmpDataPt.setBMU_ChiSq(tmpMapNode, ftrTypeUsedToTrain);
+				//debug to verify node row/col order
+				//dbgVerifyBMUs(tmpMapNode, tmpDataPt,Integer.parseInt(tkns[1]) ,Integer.parseInt(tkns[2]));
+				mapMgr.nodesWithEx.add(tmpMapNode);
+				mapMgr.nodesWithNoEx.remove(tmpMapNode);
+				//mapMgr.dispMessage("DataLoader : Tuple "  + mapLoc + " from str @ i-2 = " + (i-2) + " node : " + tmpMapNode.toString());
+			}//for each training data point			
+		} else {			
+			for (int i=0;i<strs.length;++i){//load in data on all bmu's
+				if(i < 2){
+					tkns = strs[i].replace('%', ' ').trim().split(mapMgr.SOM_FileToken);
+					if(i==0){
+						if(!checkMapDim(tkns,"Best Matching Units file " + getFName(bmFileName))){return false;}//otw continue
+					} else {	
+						int tNumTDat = Integer.parseInt(tkns[0]);
+						if(tNumTDat != mapMgr.numTrainData) { //don't forget added emtpy vector
+							mapMgr.dispMessage("DataLoader","loadSOM_BMUs","!!Best Matching Units file " + getFName(bmFileName) + " # of training examples : " + tNumTDat +" does not match # of training examples in training data " + mapMgr.numTrainData+". Loading aborted." ); 
+							return false;}
+					}
+					continue;
+				} 
+				tkns = strs[i].split(mapMgr.SOM_FileToken);
+				if(tkns.length < 2){continue;}//shouldn't happen
+				
+				Tuple<Integer,Integer> mapLoc = new Tuple<Integer, Integer>(Integer.parseInt(tkns[2]),Integer.parseInt(tkns[1]));//map locations in bmu data are in (y,x) order (row major)
+				SOMMapNodeExample tmpMapNode = mapMgr.MapNodes.get(mapLoc);
+				if(null==tmpMapNode){ mapMgr.dispMessage("DataLoader","loadSOM_BMUs","!!!!!!!!!Map node stated as best matching unit for training example " + tkns[0] + " not found in map ... somehow. "); return false;}//catastrophic error shouldn't be possible
+				Integer dpIdx = Integer.parseInt(tkns[0]);	//datapoint index in training data		
 
-			StraffSOMExample tmpDataPt = mapMgr.trainData[dpIdx];
-			if(null==tmpDataPt){ mapMgr.dispMessage("DataLoader","loadSOM_BMUs","!!Training Datapoint given by idx in BMU file str tok : " + tkns[0] + " of string : --" + strs[i] + "-- not found in training data. "); return false;}//catastrophic error shouldn't happen
-			//passing per-ftr variance for chi sq distan			
-			//using variance for chi dq dist calculation - also sets distance of node from bmu using whatever the current distance calculation is set to be
-			tmpDataPt.setBMU(tmpMapNode,mapMgr.map_ftrsVar);
-			//debug to verify node row/col order
-			//dbgVerifyBMUs(tmpMapNode, tmpDataPt,Integer.parseInt(tkns[1]) ,Integer.parseInt(tkns[2]));
-			mapMgr.nodesWithEx.add(tmpMapNode);
-			mapMgr.nodesWithNoEx.remove(tmpMapNode);
-			//mapMgr.dispMessage("DataLoader : Tuple "  + mapLoc + " from str @ i-2 = " + (i-2) + " node : " + tmpMapNode.toString());
-		}
+				StraffSOMExample tmpDataPt = mapMgr.trainData[dpIdx];
+				if(null==tmpDataPt){ mapMgr.dispMessage("DataLoader","loadSOM_BMUs","!!Training Datapoint given by idx in BMU file str tok : " + tkns[0] + " of string : --" + strs[i] + "-- not found in training data. "); return false;}//catastrophic error shouldn't happen
+				//passing per-ftr variance for chi sq distan			
+				//using variance for chi dq dist calculation - also sets distance of node from bmu using whatever the current distance calculation is set to be
+				//must have mapMgr.map_ftrsVar known by here for chi-sq dist 
+				tmpDataPt.setBMU(tmpMapNode, ftrTypeUsedToTrain);
+				//debug to verify node row/col order
+				//dbgVerifyBMUs(tmpMapNode, tmpDataPt,Integer.parseInt(tkns[1]) ,Integer.parseInt(tkns[2]));
+				mapMgr.nodesWithEx.add(tmpMapNode);
+				mapMgr.nodesWithNoEx.remove(tmpMapNode);
+				//mapMgr.dispMessage("DataLoader : Tuple "  + mapLoc + " from str @ i-2 = " + (i-2) + " node : " + tmpMapNode.toString());
+			}//for each training data point	
+		}//if chisq dist else
 		boolean isTorroid = mapMgr.isToroidal();
 		float dist,minDist;
 		//set all empty mapnodes to have a label based on the closest mapped node's label
@@ -274,7 +312,14 @@ public class SOMDataLoader implements Runnable {
 		//this is alternate node with column-major key
 		Tuple<Integer,Integer> mapAltLoc = new Tuple<Integer, Integer>(x,y);//verifying correct row/col order - tmpMapNode should be closer to mapMgr.trainData[dpIdx] than to tmpAltMapNode
 		SOMMapNodeExample tmpAltMapNode = mapMgr.MapNodes.get(mapAltLoc);
-		double tmpDist =  mapMgr.dpDistFunc(tmpMapNode, tmpDataPt,mapMgr.map_ftrsVar);
+		//if using chi-sq dist, must know mapMgr.map_ftrsVar by now
+		//double tmpDist =  mapMgr.dpDistFunc(tmpAltMapNode, tmpDataPt);
+		double tmpDist;
+		if (useChiSqDist) {
+			tmpDist =  tmpDataPt.getSqDistFromFtrType_ChiSq(tmpAltMapNode, ftrTypeUsedToTrain);  //mapMgr.dpDistFunc(tmpAltMapNode, tmpDataPt);
+		} else {
+			tmpDist =  tmpDataPt.getSqDistFromFtrType(tmpAltMapNode,ftrTypeUsedToTrain);  //mapMgr.dpDistFunc(tmpAltMapNode, tmpDataPt);
+		}
 		if(tmpDist < tmpDataPt._distToBMU ) {
 			mapMgr.dispMessage("DataLoader","loadSOM_BMUs:dbgVerifyBMUs","Somehow bmu calc is incorrect - x/y order of map node location perhaps is swapped? dataPt " + tmpDataPt.OID + " is closer to "+ tmpAltMapNode.OID + " than to predicted BMU : " + tmpMapNode.OID+" : dists : " +tmpDist + " vs. " +tmpDataPt._distToBMU);
 		}
@@ -344,10 +389,12 @@ public class SOMDataLoader implements Runnable {
 class straffProductsToMapBuilder implements Callable<Boolean>{
 	SOMMapManager mapMgr;
 	int stIdx, endIdx, curMapFtrType, thdIDX;
-	public straffProductsToMapBuilder(SOMMapManager _mapMgr, int _stProdIDX, int _endProdIDX, int _thdIDX) {
+	boolean useChiSqDist;
+	public straffProductsToMapBuilder(SOMMapManager _mapMgr, int _stProdIDX, int _endProdIDX, boolean _useChiSqDist, int _thdIDX) {
 		mapMgr = _mapMgr;
 		stIdx = _stProdIDX;
 		endIdx = _endProdIDX;
+		useChiSqDist =_useChiSqDist;
 		thdIDX= _thdIDX;
 		curMapFtrType = mapMgr.getCurrMapDataFrmt();
 	}	
@@ -355,7 +402,11 @@ class straffProductsToMapBuilder implements Callable<Boolean>{
 	public Boolean call() throws Exception {
 		//for every product find closest map node
 		mapMgr.dispMessage("straffProductsToMapBuilder", "Run Thread : " +thdIDX, "Starting product mapping");
-		for (int i=stIdx;i<endIdx;++i) {	mapMgr.productData[i].addAllMapNodeNeighbors(mapMgr.MapNodes, curMapFtrType);}		
+		if (useChiSqDist) {
+			for (int i=stIdx;i<endIdx;++i) {	mapMgr.productData[i].findBMUFromNodes_ChiSq(mapMgr.MapNodes, curMapFtrType);	}					
+		} else {
+			for (int i=stIdx;i<endIdx;++i) {	mapMgr.productData[i].findBMUFromNodes(mapMgr.MapNodes,  curMapFtrType);	}				
+		}
 		mapMgr.dispMessage("straffProductsToMapBuilder", "Run Thread : " +thdIDX, "Finished product mapping");
 		return true;
 	}	

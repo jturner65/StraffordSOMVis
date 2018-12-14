@@ -18,24 +18,22 @@ public class mySOMMapUIWin extends myDispWindow {
 		resetMapDefsIDX			= 1,			//reset default UI values for map
 		mapDataLoadedIDX		= 2,			//whether map has been loaded or not	
 		mapLoadFtrBMUsIDX 		= 3,			//whether or not to load the best matching units for each feature - this is a large construct so load only if necessary
-		mapUseSclFtrDistIDX 	= 4,			//whether or not to use the scaled (0-1) ftrs or the unscaled features for distance measures
-		mapUseChiSqDistIDX		= 5,			//whether or not to use chi-squared (weighted) distance for features
-		mapSetSmFtrZeroIDX		= 6,			//whether or not distances between two datapoints assume that absent features in smaller-length datapoints are 0, or to ignore the values in the larger datapoints
-		mapDrawPrdctNodesIDX 	= 7,
+		mapUseChiSqDistIDX		= 4,			//whether to use chi-squared (weighted by variance) distance for features or regular euclidean dist
+		mapSetSmFtrZeroIDX		= 5,			//whether or not distances between two datapoints assume that absent features in smaller-length datapoints are 0, or to ignore the values in the larger datapoints
+		mapDrawPrdctNodesIDX 	= 6,
 		//display/interaction
-		mapDrawTrainDatIDX		= 8,			//draw training examples
-		mapDrawTrDatLblIDX		= 9,			//draw labels for training samples
-		mapDrawMapNodesIDX		= 10,			//draw map nodes
-		mapDrawAllMapNodesIDX	= 11,			//draw all map nodes, even empty
-		//mapShowLocClrIDX 		= 12,			//show img built of map with each pxl clr built from the 1st 3 features of the interpolated point at that pxl between the map nodes
-		showSelRegionIDX		= 12,			//highlight a specific region of the map, either all nodes above a certain threshold for a chosen jp or jpgroup
-		showSelJPIDX			= 13, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
+		mapDrawTrainDatIDX		= 7,			//draw training examples
+		mapDrawTrDatLblIDX		= 8,			//draw labels for training samples
+		mapDrawMapNodesIDX		= 9,			//draw map nodes
+		mapDrawAllMapNodesIDX	= 10,			//draw all map nodes, even empty
+		showSelRegionIDX		= 11,			//highlight a specific region of the map, either all nodes above a certain threshold for a chosen jp or jpgroup
+		showSelJPIDX			= 12, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
 		//train/test data management
-		somTrainDataLoadedIDX	= 14,			//whether data used to build map has been loaded yet
-		saveLocClrImgIDX		= 15,			//
-		useOnlyEvntsToTrainIDX  = 16;			//only use records that have event jpgs/jps to train, otherwise use records that also have jpgs/jps only specified in prospect db
+		somTrainDataLoadedIDX	= 13,			//whether data used to build map has been loaded yet
+		saveLocClrImgIDX		= 14,			//
+		useOnlyEvntsToTrainIDX  = 15;			//only use records that have event jpgs/jps to train, otherwise use records that also have jpgs/jps only specified in prospect db
 	
-	public static final int numPrivFlags = 17;
+	public static final int numPrivFlags = 16;
 	
 	//SOM map list options
 	public String[] 
@@ -121,18 +119,18 @@ public class mySOMMapUIWin extends myDispWindow {
 	public void initAllPrivBtns(){
 		truePrivFlagNames = new String[]{								//needs to be in order of flags
 				"Train W/Recs W/Event Data", "Building SOM", "Resetting Def Vals", "Loading Feature BMUs",
-				"Using Scaled Ftrs For Dist Calc","Using ChiSq for Ftr Distance", "Unshared Ftrs are 0",	"Hide Train Data",
-				"Hide Train Lbls",	"Hide Pop Map Nodes","Hide Map Nodes", "Hide Products"//, "Showing Ftr Clr"
+				"Using ChiSq for Ftr Distance", "Unshared Ftrs are 0",	"Hide Train Data",
+				"Hide Train Lbls",	"Hide Pop Map Nodes","Hide Map Nodes", "Hide Products"
 		};
 		falsePrivFlagNames = new String[]{			//needs to be in order of flags
 				"Train W/All Recs","Build New Map ","Reset Def Vals","Not Loading Feature BMUs",
-				"Using Unscaled Ftrs For Dist Calc","Not Using ChiSq Distance", "Ignoring Unshared Ftrs",	"Show Train Data",
-				"Show Train Lbls",	"Show Pop Map Nodes","Show Map Nodes", "Show Products"//, "Not Showing Ftr Clr"
+				"Not Using ChiSq Distance", "Ignoring Unshared Ftrs","Show Train Data",
+				"Show Train Lbls",	"Show Pop Map Nodes","Show Map Nodes", "Show Products"
 		};
 		privModFlgIdxs = new int[]{
 				useOnlyEvntsToTrainIDX, buildSOMExe, resetMapDefsIDX, mapLoadFtrBMUsIDX,
-				mapUseSclFtrDistIDX,mapUseChiSqDistIDX,mapSetSmFtrZeroIDX,mapDrawTrainDatIDX,
-				mapDrawTrDatLblIDX,mapDrawMapNodesIDX,mapDrawAllMapNodesIDX, mapDrawPrdctNodesIDX};//,mapShowLocClrIDX};
+				mapUseChiSqDistIDX,mapSetSmFtrZeroIDX,mapDrawTrainDatIDX,
+				mapDrawTrDatLblIDX,mapDrawMapNodesIDX,mapDrawAllMapNodesIDX, mapDrawPrdctNodesIDX};
 		numClickBools = privModFlgIdxs.length;	
 		//maybe have call for 		initPrivBtnRects(0);	
 		initPrivBtnRects(0,numClickBools);
@@ -187,8 +185,6 @@ public class mySOMMapUIWin extends myDispWindow {
 		setPrivFlags(mapDrawAllMapNodesIDX, false);
 	}
 	
-	private void setSOMDataDistType(int val) {if (mapMgr != null) {mapMgr.distType = val;}}
-	
 	@Override
 	public void setPrivFlags(int idx, boolean val){
 		int flIDX = idx/32, mask = 1<<(idx%32);
@@ -198,21 +194,10 @@ public class mySOMMapUIWin extends myDispWindow {
 			case resetMapDefsIDX		: {if(val){resetUIVals(); setPrivFlags(resetMapDefsIDX,false);}}
 			case mapDataLoadedIDX 		: {break;}			//placeholder				
 			case mapLoadFtrBMUsIDX 		: {//whether or not to load the best matching units for each feature - this is a large construct so load only if necessary				
-				break;}							
-			case mapUseSclFtrDistIDX 	: {//whether or not to use the scaled (0-1) ftrs or the unscaled features for distance measures 
-				//turn off chi sq flag if this is set
-				//distance to use: 2 : scaled features, 1: chisq features or 0 : regular feature dists				
-				if(val){
-					setPrivFlags(mapUseChiSqDistIDX, false);
-					setSOMDataDistType(2);
-				} else {					setSOMDataDistType(0);			}
-				break;}							
+				break;}											
 			case mapUseChiSqDistIDX		: {//whether or not to use chi-squared (weighted) distance for features
 				//turn off scaled ftrs if this is set
-				if(val){
-					setPrivFlags(mapUseSclFtrDistIDX, false);
-					setSOMDataDistType(1);
-				} else {					setSOMDataDistType(0);			}
+				mapMgr.setUseChiSqDist(val);
 				break;}							
 			case mapSetSmFtrZeroIDX		: {//whether or not distances between two datapoints assume that absent features in smaller-length datapoints are 0, or to ignore the values in the larger datapoints
 				mapMgr.setFlag(mapMgr.mapSetSmFtrZeroIDX, val);
@@ -606,7 +591,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		//draw nodes
 		pa.pushMatrix();pa.pushStyle();
 		pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
-		if(mseOvrData != null){mseOvrData.drawMeLblMap(pa,mseOvrData.label,true);}
+		if(mseOvrData != null){mseOvrData.drawMeLblMap(pa,true);}
 		if(getPrivFlags(mapDrawTrainDatIDX)){		mapMgr.drawTrainData(pa, curMapImgIDX, getPrivFlags(mapDrawTrDatLblIDX));}	
 		if(getPrivFlags(mapDrawPrdctNodesIDX)){		mapMgr.drawProductNodes(pa, curMapImgIDX, true);}
 		pa.popStyle();pa.popMatrix();

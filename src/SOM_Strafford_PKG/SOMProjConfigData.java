@@ -5,7 +5,8 @@ package SOM_Strafford_PKG;
 public class SOMProjConfigData {
 	public SOMMapManager map;
 	private String[] fnames; 
-	private static final int numFiles = 5;		
+	private static final int numFiles = 5;	
+
 	//TODO
 	//info required for raw data read from csv/db and preprocessing
 	

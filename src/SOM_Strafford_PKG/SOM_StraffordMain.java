@@ -826,6 +826,7 @@ public class SOM_StraffordMain extends PApplet {
 	}
 	public void line(double x1, double y1, double z1, double x2, double y2, double z2){line((float)x1,(float)y1,(float)z1,(float)x2,(float)y2,(float)z2 );}
 	public void line(myPoint p1, myPoint p2){line((float)p1.x,(float)p1.y,(float)p1.z,(float)p2.x,(float)p2.y,(float)p2.z);}
+	public void line(myPointf p1, myPointf p2){line(p1.x,p1.y,p1.z,p2.x,p2.y,p2.z);}
 
 	//use current display window's fill color for text color
 	public void drawOnScreenData(){
@@ -1289,7 +1290,7 @@ public class SOM_StraffordMain extends PApplet {
 //			popStyle(); popMatrix();} // render sphere of radius r and center P)
 
 	//inRect means draw inside rectangle
-	public void show(myPointf P, float rad, int det, int[] fclr, int[] sclr, int tclr, String txt, boolean useBKGBox) {
+	public void show(myPointf P, float rad, int det, int[] fclr, int[] strkclr, int tclr, String txt, boolean useBKGBox) {
 		pushMatrix(); pushStyle(); 
 		translate(P.x,P.y,P.z); 
 		if(useBKGBox){
@@ -1298,38 +1299,38 @@ public class SOM_StraffordMain extends PApplet {
 			rect(0,6.0f,txt.length()*7.8f,-15);
 			tclr = gui_Black;
 		} 
-		setFill(fclr,255); setStroke(sclr,255);			
+		setFill(fclr,255); setStroke(strkclr,255);			
 		sphereDetail(det);
 		sphere(rad); 
 		showOffsetText(1.2f * rad,tclr, txt);
 		popStyle(); popMatrix();} // render sphere of radius r and center P)
 	
 	//show sphere of certain radius
-	public void show(myPointf P, float rad, int det, int[] fclr, int[] sclr) {
+	public void show(myPointf P, float rad, int det, int[] fclr, int[] strkclr) {
 		pushMatrix(); pushStyle(); 
-		if((fclr!= null) && (sclr!= null)){setFill(fclr,255); setStroke(sclr,255);}
+		if((fclr!= null) && (strkclr!= null)){setFill(fclr,255); setStroke(strkclr,255);}
 		sphereDetail(det);
 		translate(P.x,P.y,P.z); 
 		sphere(rad); 
 		popStyle(); popMatrix();} // render sphere of radius r and center P)
 	
-	public void show(myPointf P, float rad, int det, int fclr, int sclr) {//only call with set fclr and sclr
+	public void show(myPointf P, float rad, int det, int fclr, int strkclr) {//only call with set fclr and sclr
 		pushMatrix(); pushStyle(); 
 		setColorValFill(fclr,255); 
-		setColorValStroke(sclr,255);
+		setColorValStroke(strkclr,255);
 		sphereDetail(det);
 		translate(P.x,P.y,P.z); 
 		sphere(rad); 
 		popStyle(); popMatrix();} // render sphere of radius r and center P)
 	
-	public void show(myPointf P, float rad, int det, int fclr, int sclr, int tclr, String[] txtAra) {//only call with set fclr and sclr
+	public void show(myPointf P, float rad, int det, int fclr, int strkclr, int tclr, String[] txtAra) {//only call with set fclr and sclr
 		pushMatrix(); pushStyle(); 
 		setColorValFill(fclr,255); 
-		setColorValStroke(sclr,255);
+		setColorValStroke(strkclr,255);
 		sphereDetail(det);
 		translate(P.x,P.y,P.z); 
 		sphere(rad); 
-		showOffsetTextAra(1.2f * rad,tclr, txtAra);
+		showOffsetTextAra(1.2f * rad, tclr, txtAra);
 		popStyle(); popMatrix();} // render sphere of radius r and center P)
 	
 	public void show(myPointf P, float rad, int det){			
