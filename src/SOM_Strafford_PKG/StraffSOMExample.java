@@ -173,7 +173,6 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		}		
 	}//buildMapOfJPsToRank
 	
-	
 	//return the rank of the passed jp
 	protected Integer getJPRankForMap(int mapToGetIDX, int jp) {
 		String mapToGet = jpMapTypeKeys[mapToGetIDX];
@@ -181,7 +180,7 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		Integer rank = mapOfRanks.get(jp);
 		if (rank==null) {rank = mapData.numFtrs;}
 		return rank;
-	}	
+	}//getJPRankForMap
 	
 	//add passed map node, with passed feature distance, to neighborhood nodes
 	protected void addMapUnitToNeighbrhdMap(SOMMapNodeExample _n, double _dist) {
@@ -296,7 +295,6 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		return loc;		
 	}//findNodeLocWrap
 	
-	
 	//determine map location based on neighborhood nodes, accounting for torroidal wrap
 	private void setExactMapLoc() {
 		myPointf totalLoc = new myPointf(), locToAdd;
@@ -320,6 +318,9 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 				totalLoc._add(myPointf._mult(locToAdd, invDistP1));				
 			}			
 		}
+		totalLoc.x += mapW;totalLoc.x %= mapW;
+		totalLoc.y += mapH;totalLoc.y %= mapH;
+		
 		this.mapLoc.set(totalLoc);
 	}//setExactMapLoc
 	
@@ -930,7 +931,6 @@ class ProspectExample extends StraffSOMExample{
 		return res;
 	}
 
-
 }//class prospectExample
 
 /**
@@ -1464,10 +1464,10 @@ abstract class baseDataPtVis{
 	public void setMapLoc(myPointf _pt){mapLoc = new myPointf(_pt);}
 	
 	//draw this example with a line linking it to its best matching unit
-	public final void drawMeLinkedToBMU(SOM_StraffordMain p){
+	public final void drawMeLinkedToBMU(SOM_StraffordMain p, float _rad){
 		p.pushMatrix();p.pushStyle();
 		//draw point of radius rad at mapLoc - actual location on map
-		p.show(mapLoc, rad, drawDet, p.gui_Yellow,p.gui_Yellow);
+		p.show(mapLoc, _rad, drawDet, p.gui_Yellow,p.gui_Yellow);
 		//draw line to bmu location
 		p.setColorValStroke(p.gui_Yellow,255);
 		p.strokeWeight(1.0f);

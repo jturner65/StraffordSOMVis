@@ -1476,8 +1476,6 @@ class mySideBarMenu extends myDispWindow{
 	@Override
 	protected String getUIListValStr(int UIidx, int validx){
 		switch(UIidx){
-//		case gIDX_UIElem2List 		: {return keySigs[(validx % keySigs.length)]; }
-//		case gIDX_UIElem3List	: {return ""+ noteVals[(validx % noteVals.length)]+ " ("+timeSigDenom[(validx % timeSigDenom.length)]+")";}		
 		}
 		return "";
 	}//dispUIListObj

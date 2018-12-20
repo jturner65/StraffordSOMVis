@@ -46,7 +46,7 @@ public class SOMDataLoader implements Runnable {
 		}
 		else {
 			mapMgr.setFlag(SOMMapManager.loaderRtnIDX,false);
-			mapMgr.dispMessage("DataLoader","run","Data loader Failed : fnames structure out of sync or file IO error ");
+			mapMgr.dispMessage("DataLoader","run","Data loader Failed : Required files not all loaded or file IO error ");
 		}
 	}
 	//load results from map processing - fnames needs to be modified to handle this
@@ -85,7 +85,7 @@ public class SOMDataLoader implements Runnable {
 	
 	//this will make sure that all scaled features are actually scaled and nonscaled are actually nonscaled
 	public boolean loadDiffsMins(){
-		String diffsFileName = projConfigData.getDiffsFName(), minsFileName = projConfigData.getMinsFName();
+		String diffsFileName = projConfigData.getSOMMapDiffsFileName(), minsFileName = projConfigData.getSOMMapMinsFileName();
 		//load normalizing values for datapoints in weights - differences and mins, used to scale/descale training and map data
 		mapMgr.diffsVals = loadCSVSrcDataPoint(diffsFileName);
 		if((null==mapMgr.diffsVals) || (mapMgr.diffsVals.length < 1)){mapMgr.dispMessage("DataLoader","condAllData","!!error reading diffsFile : " + diffsFileName); return false;}
@@ -134,15 +134,15 @@ public class SOMDataLoader implements Runnable {
 		Tuple<Integer,Integer> mapLoc;
 		float[] tmpMapMaxs = null;
 		for (int i=0;i<strs.length;++i){//load in data 
-			if(i < 2){
+			if(i < 2){//first 2 lines are map description : line 0 is map row/col count; map 2 is # ftrs
 				tkns = strs[i].replace('%', ' ').trim().split(mapMgr.SOM_FileToken);
 				//set map size in nodes
 				if(i==0){mapY = Integer.parseInt(tkns[0]);mapMgr.setMapY(mapY);mapX = Integer.parseInt(tkns[1]);mapMgr.setMapX(mapX);	} 
-				else {	
+				else {	//# ftrs in map
 					mapMgr.numFtrs = Integer.parseInt(tkns[0]);
 					ftrNames = new String[mapMgr.numFtrs];
-					for(int j=0;j<mapMgr.numFtrs;++j){ftrNames[j]=""+j;}					
-					mapMgr.dataHdr = new dataDesc(mapMgr, ftrNames);				//assign numbers to feature name data header
+					for(int j=0;j<mapMgr.numFtrs;++j){ftrNames[j]=""+j;}			//build temporary names for each feature idx in feature vector					
+					//mapMgr.dataHdr = new dataDesc(mapMgr, ftrNames);				//assign numbers to feature name data header 
 					mapMgr.map_ftrsMean = new float[mapMgr.numFtrs];
 					tmpMapMaxs = new float[mapMgr.numFtrs];
 					mapMgr.map_ftrsMin = new float[mapMgr.numFtrs];
@@ -177,12 +177,13 @@ public class SOMDataLoader implements Runnable {
 		float diff;
 		//reset this to manage all map nodes
 		mapMgr.initPerJPMapOfNodes();
+		float[] ftrData ;
 		//for every node, now build standardized features 
 		for(Tuple<Integer, Integer> key : mapMgr.MapNodes.keySet()){
 			SOMMapNodeExample tmp = mapMgr.MapNodes.get(key);
 			tmp.buildStdFtrsMapFromFtrData_MapNode(mapMgr.map_ftrsMin, mapMgr.map_ftrsDiffs);
 			//accumulate map ftr moments
-			float[] ftrData = tmp.getFtrs();
+			ftrData = tmp.getFtrs();
 			for(int d = 0; d<mapMgr.numFtrs; ++d){
 				diff = mapMgr.map_ftrsMean[d] - ftrData[d];
 				mapMgr.map_ftrsVar[d] += diff*diff;

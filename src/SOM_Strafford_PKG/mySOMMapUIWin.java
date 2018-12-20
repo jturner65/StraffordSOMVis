@@ -27,14 +27,17 @@ public class mySOMMapUIWin extends myDispWindow {
 		mapDrawWtMapNodesIDX	= 9,			//draw map nodes with non-0 (present) wt vals
 		mapDrawPopMapNodesIDX   = 10,			//draw map nodes that are bmus for training examples
 		mapDrawAllMapNodesIDX	= 11,			//draw all map nodes, even empty
-		showSelRegionIDX		= 12,			//highlight a specific region of the map, either all nodes above a certain threshold for a chosen jp or jpgroup
-		showSelJPIDX			= 13, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
+		mapDrawAnalysisVisIDX	= 12,			//whether or not to draw feature calc analysis graphs
+		mapDrawAnalysisIndivIDX	= 13,			//true == draw individual JP detail analysis, false == draw all jp's summary analysis (as block image)
+		
+		showSelRegionIDX		= 14,			//highlight a specific region of the map, either all nodes above a certain threshold for a chosen jp or jpgroup
+		showSelJPIDX			= 15, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
 		//train/test data management
-		somTrainDataLoadedIDX	= 14,			//whether data used to build map has been loaded yet
-		saveLocClrImgIDX		= 15,			//
-		useOnlyEvntsToTrainIDX  = 16;			//only use records that have event jpgs/jps to train, otherwise use records that also have jpgs/jps only specified in prospect db
+		somTrainDataLoadedIDX	= 16,			//whether data used to build map has been loaded yet
+		saveLocClrImgIDX		= 17,			//
+		useOnlyEvntsToTrainIDX  = 18;			//only use records that have event jpgs/jps to train, otherwise use records that also have jpgs/jps only specified in prospect db
 	
-	public static final int numPrivFlags = 17;
+	public static final int numPrivFlags = 19;
 	
 	//SOM map list options
 	public String[] 
@@ -98,9 +101,7 @@ public class mySOMMapUIWin extends myDispWindow {
 	public static final float mapScaleVal = 10.0f;
 	
 	public DispSOMMapExample mseOvrData;//label of mouse-over location in map
-	
-	private myPoint ULCrnr;	//upper left corner of map square - use to orient any drawn trajectories
-	
+		
 	/////////
 	//custom debug/function ui button names -empty will do nothing
 	public String[] menuDbgBtnNames = new String[] {"Disp JPs","Disp Calc","Disp Ftrs","Disp Raw Data","Dbg 5"};//must have literals for every button or this is ignored by UI - buttons correspond to guiBtnNames list in mySideBarMenu 
@@ -111,27 +112,31 @@ public class mySOMMapUIWin extends myDispWindow {
 	public mySOMMapUIWin(SOM_StraffordMain _p, String _n, int _flagIdx, int[] fc, int[] sc, float[] rd, float[] rdClosed, String _winTxt, boolean _canDrawTraj) {
 		super(_p, _n, _flagIdx, fc, sc, rd, rdClosed, _winTxt, _canDrawTraj);
 		float stY = rectDim[1]+rectDim[3]-4*yOff,stYFlags = stY + 2*yOff;		
-		trajFillClrCnst = SOM_StraffordMain.gui_DarkCyan;		//override this in the ctor of the instancing window class
+		trajFillClrCnst = SOM_StraffordMain.gui_DarkCyan;	
 		trajStrkClrCnst = SOM_StraffordMain.gui_Cyan;
 		super.initThisWin(_canDrawTraj, true, false);
-	}
+	}//ctor
+	
 	@Override
 	//initialize all private-flag based UI buttons here - called by base class
 	public void initAllPrivBtns(){
 		truePrivFlagNames = new String[]{								//needs to be in order of flags
 				"Train W/Recs W/Event Data", "Building SOM", "Resetting Def Vals", "Loading Feature BMUs",
 				"Using ChiSq for Ftr Distance", "Unshared Ftrs are 0",	"Hide Train Data",
-				"Hide Train Lbls",	"Hide Map Nodes (by Wt)","Hide Map Nodes (by Pop)", "Hide Map Nodes", "Hide Products"
+				"Hide Train Lbls",	"Hide Map Nodes (by Wt)","Hide Map Nodes (by Pop)", "Hide Map Nodes", "Hide Products",
+				"Hide Calc Analysis", "Show Summary Analysis"
 		};
 		falsePrivFlagNames = new String[]{			//needs to be in order of flags
 				"Train W/All Recs","Build New Map ","Reset Def Vals","Not Loading Feature BMUs",
 				"Not Using ChiSq Distance", "Ignoring Unshared Ftrs","Show Train Data",
-				"Show Train Lbls",	"Show Map Nodes (by Wt)","Show Map Nodes (by Pop)","Show Map Nodes", "Show Products"
+				"Show Train Lbls",	"Show Map Nodes (by Wt)","Show Map Nodes (by Pop)","Show Map Nodes", "Show Products",
+				"Show Calc Analysis", "Show Specific JP Analysis"
 		};
 		privModFlgIdxs = new int[]{
 				useOnlyEvntsToTrainIDX, buildSOMExe, resetMapDefsIDX, mapLoadFtrBMUsIDX,
 				mapUseChiSqDistIDX,mapSetSmFtrZeroIDX,mapDrawTrainDatIDX,
-				mapDrawTrDatLblIDX,mapDrawWtMapNodesIDX,mapDrawPopMapNodesIDX,mapDrawAllMapNodesIDX, mapDrawPrdctNodesIDX};
+				mapDrawTrDatLblIDX,mapDrawWtMapNodesIDX,mapDrawPopMapNodesIDX,mapDrawAllMapNodesIDX, mapDrawPrdctNodesIDX,
+				mapDrawAnalysisVisIDX, mapDrawAnalysisIndivIDX};
 		numClickBools = privModFlgIdxs.length;	
 		//maybe have call for 		initPrivBtnRects(0);	
 		initPrivBtnRects(0,numClickBools);
@@ -142,7 +147,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		float offset = 20;
 		float width = rectDim[3]-(2*offset),//actually height, but want it square, and space is wider than high, so we use height as constraint - ends up being 834.8 x 834.8 with default screen dims
 		xStart = rectDim[0] + .5f*(rectDim[2] - width);
-		
+		//start x and y and dimensions of full map visualization as function of visible window size;
 		SOM_mapDims = new float[]{xStart, rectDim[1] + offset, width, width};
 		mapMgr = new SOMMapManager(pa.th_exec,SOM_mapDims);
 		//only set for visualization
@@ -153,7 +158,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		setPrivFlags(mapLoadFtrBMUsIDX,true);
 		setPrivFlags(mapDrawTrainDatIDX,false);
 		setPrivFlags(mapDrawWtMapNodesIDX,false);
-		setPrivFlags(mapUseChiSqDistIDX,true);
+		setPrivFlags(mapUseChiSqDistIDX,false);
 		setPrivFlags(useOnlyEvntsToTrainIDX, true);
 		mapMgr.setCurrentDataFormat((int)(this.guiObjs[uiTrainDataFrmtIDX].getVal()));
 		//dataFrmtToUseToTrain = (int)(this.guiObjs[uiTrainDataFrmtIDX].getVal());
@@ -164,9 +169,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		dpFillClr = pa.getClr(SOM_StraffordMain.gui_White);
 		dpStkClr = pa.getClr(SOM_StraffordMain.gui_Blue);	
 		initMapAras(1);
-		ULCrnr = new myPoint(SOM_mapDims[0],SOM_mapDims[1],0);
-		mseOvrData = null;	
-				
+		mseOvrData = null;					
 	}//initMe
 	
 	protected void initMapAras(int numVals) {
@@ -224,7 +227,13 @@ public class mySOMMapUIWin extends myDispWindow {
 					setPrivFlags(mapDrawPopMapNodesIDX, false);
 					setPrivFlags(mapDrawWtMapNodesIDX, false);					
 				}
-				break;}							
+				break;}	
+			case mapDrawAnalysisVisIDX: {//whether or not to draw feature calc analysis graphs                                                   
+				break;}
+			
+			case mapDrawAnalysisIndivIDX: {//true == draw individual JP detail analysis, false == draw all jp's summary analysis (as block image)  
+				break;}
+			
 //			case mapShowLocClrIDX		: {//draw all map nodes, even empty
 //				break;}						
 			case showSelRegionIDX		 : {//highlight a specific region of the map, either all nodes above a certain threshold for a chosen jp or jpgroup
@@ -234,9 +243,8 @@ public class mySOMMapUIWin extends myDispWindow {
 			case saveLocClrImgIDX : {break;}//save image
 			case useOnlyEvntsToTrainIDX : {break;}//whether or not to limit training data set to only records that have specified jpgroups/jps from events, or to also use recs that only have specifications in prospect records
 		}
-	}//setFlag	
+	}//setFlag		
 	
-
 	//first verify that new .lrn file exists, then
 	//build new SOM_MAP map using UI-entered values, then load resultant data
 	protected void buildNewSOMMap(){
@@ -278,11 +286,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		mapMgr.dispMessage("mySOMMapUIWin","buildNewSOMMap","Map Build " + (returnCode ? "Completed Successfully." : "Failed due to error."));
 		setPrivFlags(buildSOMExe, false);
 	}//buildNewSOMMap	
-	
-	//public void setUIValues()
-	
-	
-	
+
 	
 	//initialize structure to hold modifiable menu regions
 	@Override
@@ -398,6 +402,24 @@ public class mySOMMapUIWin extends myDispWindow {
 			buildGUIObjs(guiObjNames,guiStVals,guiMinMaxModVals,guiBoolVals,new double[]{xOff,yOff});			//builds a horizontal list of UI comps
 		}
 	}
+	
+	//update UI values from passed SOM_MAPDat object's current state
+	public void setUIValues(SOM_MapDat mapDat) {
+		HashMap<String, Integer> mapInts = mapDat.getMapInts();
+		HashMap<String, Float> mapFloats = mapDat.getMapFloats();
+		HashMap<String, String> mapStrings = mapDat.getMapStrings();
+		for (String key : mapInts.keySet()) {
+			
+		}
+		
+	}//setUIValues
+	
+	
+	
+	
+	
+	
+	
 	public void resetUIVals(){
 		for(int i=0; i<guiStVals.length;++i){	
 			guiObjs[i].setVal(guiStVals[i]);
@@ -593,27 +615,40 @@ public class mySOMMapUIWin extends myDispWindow {
 	public void drawMap(){
 		//draw map rectangle
 		pa.pushMatrix();pa.pushStyle();
-		pa.noLights();
-		pa.scale(mapScaleVal);
-		pa.image(mapLocClrImg[curMapImgIDX],SOM_mapDims[0]/mapScaleVal,SOM_mapDims[1]/mapScaleVal); if(getPrivFlags(saveLocClrImgIDX)){mapLocClrImg[curMapImgIDX].save(mapMgr.getSOMLocClrImgForJPFName(curMapImgIDX));  setPrivFlags(saveLocClrImgIDX,false);}
-		pa.lights();
-		//pa.setColorValFill(SOM_SphereMain.gui_OffWhite);
-		//pa.rect(mapDims);//TODO replace with a texture
+			pa.noLights();
+			pa.scale(mapScaleVal);
+			float stX, stY;
+			if (getPrivFlags(mapDrawAnalysisVisIDX)) {	
+				stX = SOM_mapDims[0]/mapScaleVal;
+				stY = SOM_mapDims[1]/mapScaleVal;
+
+				if (getPrivFlags(mapDrawAnalysisIndivIDX)) {//draw detail single jp analysis					
+					mapMgr.drawAnalysisOneJp(pa, curMapImgIDX);		
+				} else {//draw summary info for all jps
+					mapMgr.drawAnalysisAllJps(pa);
+				}
+				pa.scale(.5f);
+			} else {
+				stX = SOM_mapDims[0]/mapScaleVal;
+				stY = SOM_mapDims[1]/mapScaleVal;
+			}
+			pa.image(mapLocClrImg[curMapImgIDX],stX,stY); if(getPrivFlags(saveLocClrImgIDX)){mapLocClrImg[curMapImgIDX].save(mapMgr.getSOMLocClrImgForJPFName(curMapImgIDX));  setPrivFlags(saveLocClrImgIDX,false);}			
+			pa.lights();
 		pa.popStyle();pa.popMatrix();
 		
 		pa.pushMatrix();pa.pushStyle();
-		pa.translate(SOM_mapDims[0],SOM_mapDims[1],0);
-		//draw nodes
-		pa.pushMatrix();pa.pushStyle();
-		pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
-		if(mseOvrData != null){mseOvrData.drawMeLblMap(pa,true);}
-		if(getPrivFlags(mapDrawTrainDatIDX)){		mapMgr.drawTrainData(pa, curMapImgIDX, getPrivFlags(mapDrawTrDatLblIDX));}	
-		if(getPrivFlags(mapDrawPrdctNodesIDX)){		mapMgr.drawProductNodes(pa, curMapImgIDX, true);}
-		pa.popStyle();pa.popMatrix();
-		//draw map nodes, either with or without empty nodes
-		if(getPrivFlags(mapDrawWtMapNodesIDX)){			mapMgr.drawNodesWithWt(pa, mapNodeWtDispThresh, curMapImgIDX, mapNodeClr, mapNodeClr);}//mapMgr.drawExMapNodes( pa, curMapImgIDX, mapNodeClr, mapNodeClr);		} 
-		if(getPrivFlags(mapDrawPopMapNodesIDX)) {	mapMgr.drawExMapNodes(pa, curMapImgIDX, mapNodeClr, mapNodeClr);}
-		if(getPrivFlags(mapDrawAllMapNodesIDX)){	mapMgr.drawAllNodes( pa, curMapImgIDX, mapNodeClr, mapNodeClr);		} 
+			pa.translate(SOM_mapDims[0],SOM_mapDims[1],0);
+			//draw nodes
+			pa.pushMatrix();pa.pushStyle();
+				pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
+				if(mseOvrData != null){mseOvrData.drawMeLblMap(pa,true);}
+				if(getPrivFlags(mapDrawTrainDatIDX)){		mapMgr.drawTrainData(pa, curMapImgIDX, getPrivFlags(mapDrawTrDatLblIDX));}	
+				if(getPrivFlags(mapDrawPrdctNodesIDX)){		mapMgr.drawProductNodes(pa, curMapImgIDX, true);}
+			pa.popStyle();pa.popMatrix();
+			//draw map nodes, either with or without empty nodes
+			if(getPrivFlags(mapDrawWtMapNodesIDX)){		mapMgr.drawNodesWithWt(pa, mapNodeWtDispThresh, curMapImgIDX, mapNodeClr, mapNodeClr);}//mapMgr.drawExMapNodes( pa, curMapImgIDX, mapNodeClr, mapNodeClr);		} 
+			if(getPrivFlags(mapDrawPopMapNodesIDX)) {	mapMgr.drawExMapNodes(pa, curMapImgIDX, mapNodeClr, mapNodeClr);}
+			if(getPrivFlags(mapDrawAllMapNodesIDX)){	mapMgr.drawAllNodes( pa, curMapImgIDX, mapNodeClr, mapNodeClr);		} 
 		
 		pa.popStyle();pa.popMatrix();
 	}//drawMap()		
@@ -779,12 +814,12 @@ public class mySOMMapUIWin extends myDispWindow {
 	@Override
 	protected void hndlMouseRelIndiv() {	}	
 	@Override
-	public void hndlFileLoadIndiv(String[] vals, int[] stIdx) {
+	public void hndlFileLoadIndiv(String[] vals, int[] stIdx) {//TODO manage this directly in map manager
 		
 	}
 
 	@Override
-	public ArrayList<String> hndlFileSaveIndiv() {
+	public ArrayList<String> hndlFileSaveIndiv() {//TODO manage this directly in map manager
 		ArrayList<String> res = new ArrayList<String>();
 
 		return res;

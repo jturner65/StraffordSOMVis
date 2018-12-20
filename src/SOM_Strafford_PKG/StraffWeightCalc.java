@@ -41,7 +41,8 @@ public class StraffWeightCalc {
 	
 	public StraffWeightCalc(SOMMapManager _map, String _fileName, MonitorJpJpgrp _jpJpgMon) {
 		map = _map;
-		now = map.instancedNow.getTime();
+		Calendar nowCal = map.getInstancedNow();
+		now = nowCal.getTime();
 		jpJpgMon = _jpJpgMon;
 		loadConfigAndSetVars( _fileName);
 	}//ctor
@@ -153,8 +154,32 @@ public class StraffWeightCalc {
 		return res;
 	}//calcFeatureVector
 	
-	//build an array of opt values for all jps for given opt occurrence (which represents a positive opt value applied to all idxs)
-	//public Float[] calcOptContribution
+	//after all features are calculated, run this to finalize reporting statistics on eq performance
+	public void finalizeCalcAnalysis() {for(JPWeightEquation jpEq:eqs.values()) {jpEq.calcStats.aggregateCalcVals(jpJpgMon.getJpToFtrIDX(jpEq.jp));}}
+	
+	//retrieve a list of all eq data per ftr
+	public ArrayList<String> getCalcAnalysisRes(){
+		ArrayList<String> res = new ArrayList<String>();
+		for(JPWeightEquation jpEq:eqs.values()) {			
+			res.addAll(jpEq.calcStats.getCalcRes());
+		}
+		return res;
+	}//getCalcAnalysisRes
+	
+	//draw res of all calcs as single rectangle of height ht and width barWidth*num eqs
+	public void drawAllCalcRes(SOM_StraffordMain p, int ht, int barWidth) {		
+		p.pushMatrix();p.pushStyle();		
+		for(JPWeightEquation jpEq:eqs.values()) {	
+			//draw bar
+			jpEq.calcStats.drawFtrVec(p, ht, barWidth);
+			//move over for next bar
+			p.translate(barWidth, 0.0f, 0.0f);
+		}
+		p.popStyle();p.popMatrix();	
+	}//draw analysis res for each graphically
+	
+	
+	
 	
 	//display calc equations for each JP id
 	@Override
@@ -183,6 +208,8 @@ public class StraffWeightCalc {
 //presence or absence in prospect record
 //count and datetime of occurence in order record
 //count, datetime and opt value of each occurence in opt record. 
+//this object only works on prospect examples.  
+//No other example should use this calculation object, or analysis statistics will be skewed
 class JPWeightEquation {
 	public final StraffWeightCalc calcObj;
 	public static Date now;
@@ -199,6 +226,8 @@ class JPWeightEquation {
 			optCoeffIDX = 2,
 			linkCoeffIDX = 3;
 	public static int numEqs = 4;
+	//these names must match order and number of component idxs above
+	public static String[] calcNames = new String[] {"Prospect","Order","Opt","Link"};
 	
 	private final Float[] Mult;						//multiplier for membership functions
 	private final Float[] Offset;					//offsets for membership functions	
@@ -207,13 +236,11 @@ class JPWeightEquation {
 	private final Float[] Decay;
 	//analysis function for this eq component
 	public calcAnalysis calcStats;	
+	//if this equation is using default values for coefficients
 	public boolean isDefault;
-	//just for display purposes
-	private String ftrBuffer;
-	
+
 	public JPWeightEquation(StraffWeightCalc _calcObj, int _jp, int _jpIdx, Float[] _m, Float[] _o, Float[] _d, boolean _isDefault) {
 		calcObj = _calcObj; now = calcObj.now;jp=_jp;jpIdx=_jpIdx;
-		ftrBuffer = (jpIdx >=100) ? "" : (jpIdx >=10) ? " " : "  ";
 		Mult = new Float[numEqs];
 		Offset = new Float[numEqs];
 		Decay = new Float[numEqs];
@@ -271,23 +298,25 @@ class JPWeightEquation {
 	//calculate a particular example's weight value for this object's jp
 	public float calcVal(ProspectExample ex, jpOccurrenceData orderJpOccurrences, jpOccurrenceData linkJpOccurrences, jpOccurrenceData optJpOccurrences) {	
 		boolean hasData = false;
-		float [] vals = new float[numEqs];			//all individual values calculated - this is so we can easily aggregate analysis results to calc object
+		//float [] vals = new float[numEqs];			//all individual values calculated - this is so we can easily aggregate analysis results to calc object
 			//this jp was used set in prospect record : scale propsect contribution by update date of record - assumes accurate at time of update
-		if (ex.prs_JP == jp) {					vals[prspctCoeffIDX] = scaleCalc(prspctCoeffIDX, 1, ex.prs_LUDate);		hasData = true;}
+		if (ex.prs_JP == jp) {					calcStats.workSpace[prspctCoeffIDX] = scaleCalc(prspctCoeffIDX, 1, ex.prs_LUDate);		hasData = true;}
 			//handle order occurrences for this jp.   aggregate every order occurrence, with decay on importance based on date
-		if (orderJpOccurrences != null) {		vals[orderCoeffIDX] = aggregateOccs(orderJpOccurrences, orderCoeffIDX);	hasData = true;}
+		if (orderJpOccurrences != null) {		calcStats.workSpace[orderCoeffIDX] = aggregateOccs(orderJpOccurrences, orderCoeffIDX);	hasData = true;}
 			//for links use same mechanism as orders - handle differences through weightings - aggregate every order occurrence, with decay on importance based on date
-		if (linkJpOccurrences != null) {		vals[linkCoeffIDX] = aggregateOccs(linkJpOccurrences, linkCoeffIDX);	hasData = true;}
+		if (linkJpOccurrences != null) {		calcStats.workSpace[linkCoeffIDX] = aggregateOccs(linkJpOccurrences, linkCoeffIDX);	hasData = true;}
 			//user opts - these are handled differently - calcOptRes return of -9999 means negative opt specified for this jp alone (ignores negative opts across all jps) - should force total from eq for this jp to be ==0
-		if (optJpOccurrences != null) {			vals[optCoeffIDX] = calcOptRes(optJpOccurrences);						hasData = true;}	
+		if (optJpOccurrences != null) {			calcStats.workSpace[optCoeffIDX] = calcOptRes(optJpOccurrences);						hasData = true;}	
 		if (hasData) {calcObj.incrBnds(jpIdx);		}
-		float res = calcStats.getValFromCalcs(vals, vals[optCoeffIDX]==optOutSntnlVal);
+		float res = calcStats.getValFromCalcs(calcStats.workSpace[optCoeffIDX]==optOutSntnlVal);
 		return res;
 	}//calcVal
 	
 	//string rep of this calc
 	public String toString() {
+		String ftrBuffer = (jpIdx >=100) ? "" : (jpIdx >=10) ? " " : "  ";//to align output
 		String res = "JP : "+ String.format("%3d", jp) +" Ftr[" + jpIdx + "]" + ftrBuffer + " = ";
+		//base prospect
 		res += "(("+String.format("%.3f", Mult[prspctCoeffIDX]) + "/(1 + "+String.format("%.4f", Decay[prspctCoeffIDX])+"*DLU)) + "+String.format("%.4f", Offset[prspctCoeffIDX])+")"; 
 		//order
 		res += " + ("+ String.format("%.3f", Mult[orderCoeffIDX]) + "*[sum(NumOcc[i]/(1 + "+String.format("%.4f", Decay[orderCoeffIDX])+" * DEV)) for each event i] + "+String.format("%.4f", Offset[orderCoeffIDX])+")"; 		
@@ -305,30 +334,144 @@ class calcAnalysis{
 		//per JPWeightEquation analysis of data
 		//corresponding eq - get all pertinent info from this object
 	private JPWeightEquation eq;	
-		//totals seen across all examples per individual calcs(prospect, opt, order, link, etc)
-	private float[] vals;
-		//total seen across all individual calcs, across all examples
-	private float ttlVal;	
+		//totals seen across all examples per individual calc components(prospect, opt, order, link, etc);sum of sq value, for variance/std calc
+	private float[] vals, valSq;
+		//%'s of total seen for each calc - each val divided by total val; mean and variance aggregates
+	private float[] ratios, means, stdVals, meansOpts, stdValsOpts;
+		//workspace used by calc object to hold values - all individual values calculated - this is so we can easily aggregate analysis results to calc object	
+	public float[] workSpace;
+		//total seen across all individual calcs, across all examples; mean value sent per non-opt, sqVal for std calc; stdVal of totals
+	private float ttlVal, ttlSqVal, ttlMeansVec_vis, ttlStdsVec_vis, ttlMeansOptVec_vis, ttlStdsOptVec_vis;
+		//analysis vals : mean and std including opt outs, and without counting them, fraction of opt outs in # total records
+	private float ttlMeanWithOpt, ttlMeanNoOpt, ttlStdWithOpt, ttlStdNoOpt, ratioOptOut = 1.0f;	
 		//number of eqs processed - increment on total
 	private int numExamplesWithJP = 0;
+	private int numExamplesNoOptOut = 0;
+
+	//array of analysis components for string display
+	private ArrayList<String> analysisRes;
+	//how far to move down for text
+	private static float txtYOff = 3.0f;
 	
-	public calcAnalysis(JPWeightEquation _eq) {eq=_eq;vals = new float[eq.numEqs];}
+	public calcAnalysis(JPWeightEquation _eq) {eq=_eq;vals = new float[eq.numEqs];valSq = new float[vals.length];workSpace = new float[vals.length];}
 		//add values for a particular calc run - returns calc total
-	public float getValFromCalcs(float[] _eqVals, boolean optOut) {
+	public float getValFromCalcs(boolean optOut) {
 		++numExamplesWithJP;
 		if (optOut) {return 0.0f;	}//opt result means all values are cleared out (user opted out of this specific JP) so only increment numExamplesWithJP
+		++numExamplesNoOptOut;
 			//res is per record result - this is result of eq for calculation, used by weight.
 		float res = 0;
 			//add all results and also add all individual results to vals
-		for (int i=0;i<_eqVals.length;++i) {
-			res += _eqVals[i];
-			vals[i] += _eqVals[i];
+		for (int i=0;i<vals.length;++i) {
+			res += workSpace[i];
+			vals[i] += workSpace[i];
+			valSq[i] += workSpace[i] * workSpace[i];//variance== (sum ( vals^2))/N  - mean^2
 		}
 		ttlVal += res;
+		ttlSqVal += res*res;
 		return res;		
 	}//addCalcsToVals	
 	
-	//TODO add analysis functionality
+	//aggregate collected values and calculate all relevant statistics
+	public void aggregateCalcVals(int ftrIdx) {
+		ratios = new float[vals.length];
+		means = new float[vals.length];
+		stdVals = new float[vals.length];
+		meansOpts = new float[vals.length];
+		stdValsOpts = new float[vals.length];
+		ttlMeansVec_vis = 0;
+		ttlStdsVec_vis = 0;
+		ttlMeansOptVec_vis = 0;
+		ttlStdsOptVec_vis = 0;
+		analysisRes = new ArrayList<String>();
+		ratioOptOut = 1.0f;	
+		String perCompMuStd = "";
+		if(ttlVal == 0.0f) {return;}
+		for (int i=0;i<vals.length;++i) {
+			ratios[i] = vals[i]/ttlVal;
+			means[i] = vals[i]/numExamplesNoOptOut;
+			ttlMeansVec_vis += means[i];
+			meansOpts[i] = vals[i]/numExamplesWithJP;
+			ttlMeansOptVec_vis +=meansOpts[i];
+			stdVals[i] = (float) Math.sqrt((valSq[i]/numExamplesNoOptOut) - (means[i]*means[i]));
+			ttlStdsVec_vis += stdVals[i];
+			stdValsOpts[i] = (float) Math.sqrt((valSq[i]/numExamplesWithJP) - (meansOpts[i]*meansOpts[i]));
+			ttlStdsOptVec_vis += stdValsOpts[i];
+			
+			perCompMuStd += "|Mu:"+String.format("%.5f",means[i])+"|Std:"+String.format("%.5f",stdVals[i]);
+		}
+		ratioOptOut = 1 - (1.0f*numExamplesNoOptOut)/numExamplesWithJP;			//ratio of all examples that have opted out with 0 ttl contribution to jp in ftr
+		ttlMeanNoOpt = ttlVal/numExamplesNoOptOut;
+		ttlMeanWithOpt = ttlVal/numExamplesWithJP;
+		ttlStdNoOpt = (float) Math.sqrt((ttlSqVal/numExamplesNoOptOut)  - (ttlMeanNoOpt * ttlMeanNoOpt));
+		ttlStdWithOpt = (float) Math.sqrt((ttlSqVal/numExamplesWithJP)  - (ttlMeanWithOpt * ttlMeanWithOpt));
+		
+		analysisRes.add("FTR : "+String.format("%03d", ftrIdx)+"|JP : "+String.format("%03d", eq.jp)+"|% opt:"+String.format("%.5f",ratioOptOut)
+					+"|MU : " + String.format("%.5f",ttlMeanNoOpt)+"|Std : " + String.format("%.5f",ttlStdNoOpt) 
+					+"|MU w/opt : " +String.format("%.5f",ttlMeanWithOpt)+"|Std w/opt : " +String.format("%.5f",ttlStdWithOpt));
+		analysisRes.add(perCompMuStd);
+	}//aggregateCalcVals
+		
+	//this will display a vertical bar corresponding to the performance of the analyzed calculation.
+	//each component of calc object will have a different color
+	//height - the height of the bar.  start each vertical bar at upper left corner, put text beneath bar
+	public void drawFtrVec(SOM_StraffordMain p, int height, int width){
+		drawSpecifcFtrVec(p,height,width, ratios, 1.0f);	
+	}//drawFtrVec
+	
+	//this will display a vertical bar corresponding to the performance of the analyzed calculation.
+	//each component of calc object will have a different color
+	//height - the height of the bar.  start each vertical bar at upper left corner, put text beneath bar
+	private void drawSpecifcFtrVec(SOM_StraffordMain p, int height, int width, float[] vals, float denom){
+		p.pushMatrix();p.pushStyle();
+		float rCompHeight, rYSt = 0.0f, htMult = height/denom;
+		for(int i =0;i<ratios.length;++i) {
+			p.setColorValFill(p.gui_Yellow+i, 255);
+			rCompHeight = htMult * vals[i];
+			p.rect(0.0f, rYSt, width, rCompHeight);
+			rYSt+=rCompHeight;
+		}
+		//rect is corner mode
+		p.popStyle();p.popMatrix();		
+	}//drawFtrVec
+	
+	//draw vertical bar describing per-comp values with
+	private void drawSpecificFtrVecWithText(SOM_StraffordMain p, int height, int width, float[] vals, float denom, String valTtl, String[] valDesc ) {
+		p.pushMatrix();p.pushStyle();
+		p.drawText(valTtl, 0, 0, 0, p.gui_White);
+		p.translate(0.0f, txtYOff, 0.0f);
+		drawSpecifcFtrVec(p,height,width, vals, denom);
+		p.translate(0.0f, txtYOff, 0.0f);
+		for(String s : valDesc) {
+			p.drawText(s, 0, 0, 0, p.gui_White);
+			p.translate(0.0f, txtYOff, 0.0f);
+		}
+		//move down and print out relevant text
+		p.popStyle();p.popMatrix();		
+	}//drawSpecificFtrVecWithText
+	
+	//draw a single ftr vector as a wide bar; include text for descriptions
+	//width is per bar
+	public void drawIndivFtrVec(SOM_StraffordMain p, int ftrIDX, int height, int width){
+		p.pushMatrix();p.pushStyle();
+		//title here?
+		p.drawText("Calc Values for ftr idx : " +ftrIDX + " jp "+eq.jp, 0, 0, 0, p.gui_White);
+		p.translate(0.0f, txtYOff, 0.0f);
+		drawSpecificFtrVecWithText(p,height,width, ratios, 1.0f, "Ratios", new String[] {String.format("Ratio of Opts To Ttl : %.5f",ratioOptOut)});
+		p.translate(width*1.5f, 0.0f, 0.0f);
+		drawSpecificFtrVecWithText(p,height,width, means, ttlMeansVec_vis, "Means", new String[] {String.format("Mean : %.5f",ttlMeanNoOpt)});
+		p.translate(width*1.5f, 0.0f, 0.0f);
+		drawSpecificFtrVecWithText(p,height,width, meansOpts, ttlMeansOptVec_vis,"Means w/Opts", new String[] {String.format("Mean w/opts : %.5f",ttlMeanWithOpt)});
+		p.translate(width*1.5f, 0.0f, 0.0f);
+		drawSpecificFtrVecWithText(p,height,width, stdVals, ttlStdsVec_vis,"Stds", new String[] {String.format("Stds : %.5f",ttlStdNoOpt)});
+		p.translate(width*1.5f, 0.0f, 0.0f);
+		drawSpecificFtrVecWithText(p,height,width, stdValsOpts, ttlStdsOptVec_vis,"Stds w/Opts", new String[] {String.format("Mean w/opts : %.5f",ttlStdWithOpt)});
+
+		p.popStyle();p.popMatrix();		
+	}//drawIndivFtrVec
+
+	//return basic stats for this calc in tight object
+	public ArrayList<String> getCalcRes() {return analysisRes;	}//calcRes
 	
 	
 }//calcAnalysis
