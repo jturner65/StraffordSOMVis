@@ -1,0 +1,12 @@
+### This file holds config data for a particular experimental setup ###
+### Base Configuration Data ###
+useSparseTrainingData,true
+useSparseTestingData,true
+trainTestPartition,0.900000
+expNumSmpls,459110
+expNumTrain,413199
+expNumTest,45911
+dataType,stdFtrs
+dateTimeStrAra[0],2018_12_27_12_33
+dateTimeStrAra[1],12_27_12_33
+### End Configuration Data ###

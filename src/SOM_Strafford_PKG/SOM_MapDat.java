@@ -10,28 +10,34 @@ package SOM_Strafford_PKG;
 import java.util.*;
 
 public class SOM_MapDat{
-	private final String curOS;							//os currently running - use to modify exec string for mac?
-	private String execDir;								//SOM_MAP execution directory
+	//os currently running - use to modify exec string for mac/linux
+	private final String curOS;		
+	//SOM_MAP execution directory
+	private String execDir;		
+	//actual string used to execute som program
 	private String execSOMStr;
+	//these are name-value pairs of command line arguments for SOM exe
 	private HashMap<String, Integer> mapInts;			// mapCols (x), mapRows (y), mapEpochs, mapKType, mapStRad, mapEndRad;
 	private HashMap<String, Float> mapFloats;			// mapStLrnRate, mapEndLrnRate;
 	private HashMap<String, String> mapStrings;			// mapGridShape, mapBounds, mapRadCool, mapNHood, mapLearnCool;	
 	
+	//file names used for SOM
 	private String trainDataDenseFN,		//training data file name for dense data
-			trainDataSparseFN,			//for sparse data
-			outFilesPrefix;			//output from map prefix
+			trainDataSparseFN,				//for sparse data
+			outFilesPrefix;					//output from map prefix
 	private boolean isSparse;
-	private String[] execStrAra;	//holds arg list sent to som executable
-	private String dbgExecStr;		//string to be executed on command line, for ease in debugging	
+	private String[] execStrAra;			//holds arg list sent to som executable
+	private String dbgExecStr;				//string to be executed on command line, built for ease in debugging	
 	
 	//boolean state flags
 	private int[] stFlags;						//state flags - bits in array holding relevant process info
 	private static int 
 		debugIDX 		= 0,
 		rdyToTrainIDX	= 1,
-		trainedIDX		= 2;
-	
+		trainedIDX		= 2;	
 	private static int numFlags = 3;
+	
+	
 		
 	//
 	public SOM_MapDat(String _curOS) {
@@ -42,21 +48,27 @@ public class SOM_MapDat{
 		
 	}//ctor
 	
+	
 	//set all SOM data from UI values passed from map manager TODO this will be deprecated - these values should be set as UI input changes
 	//public void setUIMapData(String _SOM_Dir, String _execStr, HashMap<String, Integer> _mapInts, HashMap<String, Float> _mapFloats, HashMap<String, String> _mapStrings, String _trndDenseFN, String _trndSparseFN, String _outPfx){
-	public void setUIMapData(SOMProjConfigData _config, HashMap<String, Integer> _mapInts, HashMap<String, Float> _mapFloats, HashMap<String, String> _mapStrings, String _outFilesPrefix){
-		execDir = _config.getSOM_FullExecPath();
-		execSOMStr = _config.getSOM_Map_EXECSTR();
-		trainDataDenseFN = _config.getSOMMapLRNFileName();
-		trainDataSparseFN = _config.getSOMMapSVMFileName();
-		outFilesPrefix = _outFilesPrefix;
-
+	public void setArgsMapData(SOMProjConfigData _config, HashMap<String, Integer> _mapInts, HashMap<String, Float> _mapFloats, HashMap<String, String> _mapStrings){
 		mapInts = _mapInts;
 		isSparse = (mapInts.get("mapKType") > 1);//0 and 1 are dense cpu/gpu, 2 is sparse cpu
 		mapFloats = _mapFloats;
 		mapStrings = _mapStrings;
+
+		execDir = _config.getSOM_FullExecPath();
+		execSOMStr = _config.getSOM_Map_EXECSTR();
+		trainDataDenseFN = _config.getSOMMapLRNFileName();
+		trainDataSparseFN = _config.getSOMMapSVMFileName();
+		outFilesPrefix = _config.getSOMMapOutFileBase(getOutNameSuffix());
+
 		init();
 	}//SOM_MapDat ctor from data	
+
+	//return output name suffix used for this map's data files
+	public String getOutNameSuffix() {	return "_x"+mapInts.get("mapCols")+"_y"+mapInts.get("mapRows")+"_k"+mapInts.get("mapKType");}
+	
 	
 	//build an object based on an array of strings read from a file
 	//array is array of strings holding comma sep key-value pairs, grouped by construct, with tags denoting which construct

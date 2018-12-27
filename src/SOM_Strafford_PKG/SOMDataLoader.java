@@ -203,12 +203,55 @@ public class SOMDataLoader implements Runnable {
 		res +="\n";
 		mapMgr.dispMessage("DataLoader","dbgDispFtrAra",res);
 	}//dbgDispFtrAra
+
+	//load into multiple arrays for multi-threaded processing
+	public String[][] loadFileIntoStringAra_MT(String fileName, String dispYesStr, String dispNoStr, int numThds) {
+		try {return _loadFileIntoStringAra_MT(fileName, dispYesStr, dispNoStr, numThds);} 
+		catch (Exception e) {e.printStackTrace(); } 
+		return new String[0][];
+	}
+	//load files into multiple arrays for multi-threaded processing
+	private String[][] _loadFileIntoStringAra_MT(String fileName, String dispYesStr, String dispNoStr, int numThds) throws IOException {		
+		FileInputStream inputStream = null;
+		Scanner sc = null;
+		List<String>[] lines = new ArrayList[numThds];
+		for (int i=0;i<numThds;++i) {lines[i]=new ArrayList<String>();	}
+		String[][] res = new String[numThds][];
+		int idx = 0, count = 0;
+		try {
+		    inputStream = new FileInputStream(fileName);
+		    sc = new Scanner(inputStream);
+		    while (sc.hasNextLine()) {
+		    	lines[idx].add(sc.nextLine()); 
+		    	idx = (idx + 1)%numThds;
+		    	count++;
+		    }
+		    //Scanner suppresses exceptions
+		    if (sc.ioException() != null) { throw sc.ioException(); }
+		    mapMgr.dispMessage("DataLoader", "_loadFileIntoStringAra_MT",dispYesStr+"\tLength : " +  count + " distributed into "+lines.length+" arrays.");
+		    for (int i=0;i<lines.length;++i) {
+		    	res[i] = lines[i].toArray(new String[0]);	
+		    }
+		} catch (Exception e) {	
+			e.printStackTrace();
+			mapMgr.dispMessage("DataLoader", "_loadFileIntoStringAra_MT","!!"+dispNoStr);
+			res= new String[0][];
+		} 
+		finally {
+		    if (inputStream != null) {inputStream.close();		    }
+		    if (sc != null) { sc.close();		    }
+		}
+		return res;
+	}//_loadFileIntoStringAra_MT
+
+	
 	
 	//load best matching units for each training example - has values : idx, mapy, mapx.  Uses file built by som code.  can be verified by comparing actual example distance from each node
 	private boolean loadSOM_BMUs(){//modifies existing nodes and datapoints only
 		String bmFileName = projConfigData.getSOMResFName(projConfigData.bmuIDX);
 		if(bmFileName.length() < 1){return false;}
 		mapMgr.nodesWithEx.clear();
+		mapMgr.dispMessage("DataLoader","loadSOM_BMUs","Start Loading BMU File : "+bmFileName);
 		String [] strs= mapMgr.loadFileIntoStringAra(bmFileName, "Loaded best matching unit data file : "+bmFileName, "Error reading best matching unit file : "+bmFileName);
 		if(strs==null){return false;}
 		String[] tkns;
