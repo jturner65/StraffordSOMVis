@@ -1,12 +1,8 @@
 package SOM_Strafford_PKG;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
+import java.util.*;
+import java.util.concurrent.*;
 
 //structure to hold all the file names, file configurations and general program configurations required to run the SOM project
 //will manage that all file names need to be reset when any are changed
@@ -23,10 +19,12 @@ public class SOMProjConfigData {
 	
 	////////////////////////////////
 	//debug info - default map to load - TODO move this to (or build this from) a default exp config file file
-	//data format used in map training
+	//data format used in map training StraffSOM_2018_12_27_12_33_DebugRun
 	private int _DBG_dataFrmt = 1;
 	//date/time of debug pre-made map
-	private String _DBG_Map_fileNow = "12_14_14_25";
+	private String _DBG_Map_fileNow = "12_27_12_33";
+	//date/time used in folder for debug of pre-made map
+	private String _DBG_Map_fldrNow = "2018_"+_DBG_Map_fileNow+"_DebugRun";
 	//map topology for debug
 	private String _DBG_PreBuiltMapConfig = "_x20_y20_k2";	
 	//prebuilt map values
@@ -280,13 +278,14 @@ public class SOMProjConfigData {
 	//dataFrmt : format used to train SOM == 0:unmodded; 1:std'ized; 2:normed
 	public void setSOM_ExpFileNames(int _numSmpls, int _numTrain, int _numTest){
 		//enable these to be set manually based on passed "now"		
-		mapMgr.dispMessage("SOMProjConfigData","setSOM_ExpFileNames","instancedNow : " + instancedNow.toString());
+		mapMgr.dispMessage("SOMProjConfigData","setSOM_ExpFileNames","Start setting file names and example counts");
 		expNumSmpls = _numSmpls;
 		expNumTrain = _numTrain;
 		expNumTest = _numTest;
 		String nowDir = getDirNameAndBuild(straffSOMProcSubDir+ "StraffSOM_"+dateTimeStrAra[0]+File.separator);
 		String fileNow = dateTimeStrAra[1];
 		setSOM_ExpFileNames( fileNow, nowDir);		
+		mapMgr.dispMessage("SOMProjConfigData","setSOM_ExpFileNames","Finished setting file names and example counts");
 	}//setSOM_ExpFileNames
 	
 	private void setSOM_ExpFileNames(String fileNow, String nowDir){
@@ -317,7 +316,7 @@ public class SOMProjConfigData {
 	public void setSOM_UseDBGMap() {		//TOOD replace this when saved file with appropriate format
 		//load map values from pre-trained map using this data - IGNORES VALUES SET IN UI	
 		//setSOMNamesDBG(_DBG_Map_numSmpls, _DBG_Map_numTrain, _DBG_Map_numTest, _DBG_Map_fileNow, mapMgr.getDataTypeNameFromInt(_DBG_dataFrmt));
-		dateTimeStrAra = new String[] {_DBG_Map_fileNow+"_DebugRun", _DBG_Map_fileNow};
+		dateTimeStrAra = new String[] {_DBG_Map_fldrNow, _DBG_Map_fileNow};
 		dataType = mapMgr.getDataTypeNameFromInt(_DBG_dataFrmt);		
 		//set to debug suffix on output 
 		SOMOutExpSffx = _DBG_PreBuiltMapConfig;	

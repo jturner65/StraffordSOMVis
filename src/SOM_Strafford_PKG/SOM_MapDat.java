@@ -85,8 +85,11 @@ public class SOM_MapDat{
 			++idx;		
 		}
 		if(idx == numLines) {System.out.println("SOM_MapDat::buildSOMMapDatFromAra : ERROR :  Array of description information not correct format to build SOM_MapDat object.  Aborting.");	return;	}
+		//use ara to pass index via ptr
+		int[] idxAra = new int[] {idx};
 		//read in method vars
-		tmpVars = _readArrayIntoStringMap(new int[] {idx}, numLines, "### mapInts descriptors", _descrAra);
+		System.out.println("SOM_MapDat::buildSOMMapDatFromAra : IDX : " + idx + " : _descrAra[idx] : "+_descrAra[idx]);
+		tmpVars = _readArrayIntoStringMap(idxAra, numLines, "###", _descrAra);// mapInts descriptors", _descrAra);
 		if (tmpVars == null) {return;}
 		execDir = tmpVars.get("execDir").trim();
 		execSOMStr = tmpVars.get("execSOMStr").trim();
@@ -95,15 +98,15 @@ public class SOM_MapDat{
 		outFilesPrefix = tmpVars.get("outFilesPrefix").trim();
 		isSparse = (tmpVars.get("isSparse").trim().toLowerCase().contains("true") ? true : false);
 		//integer SOM cmnd line args
-		tmpVars = _readArrayIntoStringMap(new int[] {idx}, numLines, "### mapFloats descriptors", _descrAra);
+		tmpVars = _readArrayIntoStringMap(idxAra, numLines, "###", _descrAra);// mapFloats descriptors", _descrAra);
 		if (tmpVars == null) {return;}
 		for(String key : tmpVars.keySet()) {mapInts.put(key, Integer.parseInt(tmpVars.get(key).trim()));}
 		//float SOM Cmnd Line Args
-		tmpVars = _readArrayIntoStringMap(new int[] {idx}, numLines, "### mapStrings descriptors", _descrAra);
+		tmpVars = _readArrayIntoStringMap(idxAra, numLines, "###", _descrAra);// mapStrings descriptors", _descrAra);
 		if (tmpVars == null) {return;}
 		for(String key : tmpVars.keySet()) {mapFloats.put(key, Float.parseFloat(tmpVars.get(key).trim()));}		
 		//String SOM Cmnd Line Args
-		tmpVars = _readArrayIntoStringMap(new int[] {idx}, numLines, "### End Descriptor Data", _descrAra);
+		tmpVars = _readArrayIntoStringMap(idxAra, numLines, "###", _descrAra);// End Descriptor Data", _descrAra);
 		if (tmpVars == null) {return;}
 		for(String key : tmpVars.keySet()) {mapStrings.put(key, tmpVars.get(key).trim());}
 		init();
@@ -122,12 +125,14 @@ public class SOM_MapDat{
 		boolean foundDataPartition = false;
 		//load base vars here
 		while ((!foundDataPartition) && (idx[0] < numLines)) {
-			if(_descrAra[idx[0]].contains(_partitionStr)) {foundDataPartition=true;}
-			String[] dat = _descrAra[idx[0]].trim().split(",");
+			String desc = _descrAra[idx[0]];
+			if(desc.contains(_partitionStr)) {foundDataPartition=true; ++idx[0]; continue;}
+			String[] dat = desc.trim().split(",");
+			System.out.println("IDX : " + idx[0] + " == "+  desc +"  | Split : "+ dat[0] +" | " + dat[1]);
 			tmpVars.put(dat[0], dat[1]);
 			++idx[0];	
 		}	
-		if(idx[0] == numLines) {System.out.println("SOM_MapDat::buildSOMMapDatFromAra : ERROR :  Array of description information not correct format to build SOM_MapDat object - failed finding partition bound : " +_partitionStr + ".  Aborting.");	return null;}
+		if(!foundDataPartition) {System.out.println("SOM_MapDat::_readArrayIntoStringMap : ERROR :  Array of description information not correct format to build SOM_MapDat object - failed finding partition bound : " +_partitionStr + ".  Aborting.");	return tmpVars;}
 		return tmpVars;
 	}//read array into map of strings, to be processed into object variables
 
@@ -138,7 +143,7 @@ public class SOM_MapDat{
 		res.add("### It should be used to build a SOM_MapDat object which then is consumed to control the execution of the SOM.");
 		res.add("### Base Vars");
 		res.add("execDir,"+execDir);
-		res.add("execStr,"+execSOMStr);
+		res.add("execSOMStr,"+execSOMStr);
 		res.add("isSparse,"+isSparse);
 		res.add("trainDataDenseFN,"+trainDataDenseFN);
 		res.add("trainDataSparseFN,"+trainDataSparseFN);

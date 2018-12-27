@@ -7,6 +7,6 @@ expNumSmpls,459110
 expNumTrain,413199
 expNumTest,45911
 dataType,stdFtrs
-dateTimeStrAra[0],2018_12_27_12_33
+dateTimeStrAra[0],2018_12_27_12_33_DebugRun
 dateTimeStrAra[1],12_27_12_33
 ### End Configuration Data ###
