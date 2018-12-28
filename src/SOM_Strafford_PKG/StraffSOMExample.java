@@ -726,6 +726,7 @@ class ProspectExample extends StraffSOMExample{
 	}//buildDataFromCSVString	
 
 	protected void initObjsData() {
+		rad = 3.0f;
 		eventsByDateMap = new TreeMap<String, TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>>>();
 		for (String key : mapKeys) {eventsByDateMap.put(key, new TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>> ());	}
 		//occurrence structures - keyed by type, then by JP

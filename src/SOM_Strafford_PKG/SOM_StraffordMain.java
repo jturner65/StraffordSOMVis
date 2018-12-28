@@ -395,7 +395,6 @@ public class SOM_StraffordMain extends PApplet {
 		int wIdx = dispSOMMapIDX,fIdx=showSOMMapUI;
 		dispWinFrames[wIdx] = new mySOMMapUIWin(this, winTitles[wIdx], fIdx,winFillClrs[wIdx], winStrkClrs[wIdx], winRectDimOpen[wIdx], winRectDimClose[wIdx], winDescr[wIdx],canDrawInWin[wIdx]);
 		for(int i =0; i < numDispWins; ++i){
-
 			int scIdx = dispWinIs3D[i] ? 1 : 0;
 			dispWinFrames[i].finalInit(dispWinIs3D[i], canMoveView[i], sceneCtrValsBase[scIdx], sceneFcsValsBase[scIdx]);
 			dispWinFrames[i].setTrajColors(winTrajFillClrs[i], winTrajStrkClrs[i]);
@@ -1245,11 +1244,15 @@ public class SOM_StraffordMain extends PApplet {
 	public void showVec( myPointf ctr, float len, myVectorf v){line(ctr.x,ctr.y,ctr.z,ctr.x+(v.x)*len,ctr.y+(v.y)*len,ctr.z+(v.z)*len);}
 	
 	public void showOffsetText(float d, int tclr, String txt){
-		setColorValFill(tclr);setColorValStroke(tclr);
+		setColorValFill(tclr, 255);setColorValStroke(tclr, 255);
 		text(txt, d, d,d); 
+	}	
+	public void showOffsetText2D(float d, int tclr, String txt){
+		setColorValFill(tclr, 255);setColorValStroke(tclr, 255);
+		text(txt, d, d,0); 
 	}
 	public void showOffsetTextAra(float d, int tclr, String[] txtAra){
-		setColorValFill(tclr);setColorValStroke(tclr);
+		setColorValFill(tclr, 255);setColorValStroke(tclr, 255);
 		float y = d;
 		for (String txt : txtAra) {
 			text(txt, d, y, d);

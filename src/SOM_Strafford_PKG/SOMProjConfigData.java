@@ -182,6 +182,7 @@ public class SOMProjConfigData {
 		String expFileName = getSOMMapExpFileName();
 		String[] expStrAra = mapMgr.loadFileIntoStringAra(expFileName, "SOM_MapDat Config File loaded", "SOM_MapDat Config File Failed to load");
 		SOMExeDat.buildFromStringArray(expStrAra);
+		mapMgr.setUIValsFromLoad(SOMExeDat);
 		mapMgr.dispMessage("SOMProjConfigData","loadSOM_Exp","Finished loading SOM Exe config data.");
 		mapMgr.dispMessage("SOMProjConfigData","loadSOM_Exp","Loading project configuration data");
 

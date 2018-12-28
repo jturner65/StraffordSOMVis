@@ -28,16 +28,15 @@ public class mySOMMapUIWin extends myDispWindow {
 		mapDrawPopMapNodesIDX   = 10,			//draw map nodes that are bmus for training examples
 		mapDrawAllMapNodesIDX	= 11,			//draw all map nodes, even empty
 		mapDrawAnalysisVisIDX	= 12,			//whether or not to draw feature calc analysis graphs
-		mapDrawAnalysisIndivIDX	= 13,			//true == draw individual JP detail analysis, false == draw all jp's summary analysis (as block image)
 		
-		showSelRegionIDX		= 14,			//highlight a specific region of the map, either all nodes above a certain threshold for a chosen jp or jpgroup
-		showSelJPIDX			= 15, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
+		showSelRegionIDX		= 13,			//highlight a specific region of the map, either all nodes above a certain threshold for a chosen jp or jpgroup
+		showSelJPIDX			= 14, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
 		//train/test data management
-		somTrainDataLoadedIDX	= 16,			//whether data used to build map has been loaded yet
-		saveLocClrImgIDX		= 17,			//
-		useOnlyEvntsToTrainIDX  = 18;			//only use records that have event jpgs/jps to train, otherwise use records that also have jpgs/jps only specified in prospect db
+		somTrainDataLoadedIDX	= 15,			//whether data used to build map has been loaded yet
+		saveLocClrImgIDX		= 16,			//
+		useOnlyEvntsToTrainIDX  = 17;			//only use records that have event jpgs/jps to train, otherwise use records that also have jpgs/jps only specified in prospect db
 	
-	public static final int numPrivFlags = 19;
+	public static final int numPrivFlags = 18;
 	
 	//SOM map list options
 	public String[] 
@@ -91,7 +90,10 @@ public class mySOMMapUIWin extends myDispWindow {
 	//map drawing 	draw/interaction variables
 	public int[] dpFillClr, dpStkClr;
 	public float[] SOM_mapDims;
-	//public boolean saveMapImg;			//whether we should save the img of the map
+	//to draw analysis results
+	private float calcScale = .5f;
+	//set analysisHt equal to be around 1/2 SOM_mapDims height
+	private int analysisHt, analysisAllJPBarWidth, analysisPerJPWidth;
 	
 	//TODO need to make these arrays?
 	private PImage[] mapLocClrImg;//, mapRndClrImg;
@@ -124,19 +126,19 @@ public class mySOMMapUIWin extends myDispWindow {
 				"Train W/Recs W/Event Data", "Building SOM", "Resetting Def Vals", "Loading Feature BMUs",
 				"Using ChiSq for Ftr Distance", "Unshared Ftrs are 0",	"Hide Train Data",
 				"Hide Train Lbls",	"Hide Map Nodes (by Wt)","Hide Map Nodes (by Pop)", "Hide Map Nodes", "Hide Products",
-				"Hide Calc Analysis", "Show Summary Analysis"
+				"Hide Calc Analysis"
 		};
 		falsePrivFlagNames = new String[]{			//needs to be in order of flags
 				"Train W/All Recs","Build New Map ","Reset Def Vals","Not Loading Feature BMUs",
 				"Not Using ChiSq Distance", "Ignoring Unshared Ftrs","Show Train Data",
 				"Show Train Lbls",	"Show Map Nodes (by Wt)","Show Map Nodes (by Pop)","Show Map Nodes", "Show Products",
-				"Show Calc Analysis", "Show Specific JP Analysis"
+				"Show Calc Analysis"
 		};
 		privModFlgIdxs = new int[]{
 				useOnlyEvntsToTrainIDX, buildSOMExe, resetMapDefsIDX, mapLoadFtrBMUsIDX,
 				mapUseChiSqDistIDX,mapSetSmFtrZeroIDX,mapDrawTrainDatIDX,
 				mapDrawTrDatLblIDX,mapDrawWtMapNodesIDX,mapDrawPopMapNodesIDX,mapDrawAllMapNodesIDX, mapDrawPrdctNodesIDX,
-				mapDrawAnalysisVisIDX, mapDrawAnalysisIndivIDX};
+				mapDrawAnalysisVisIDX};
 		numClickBools = privModFlgIdxs.length;	
 		//maybe have call for 		initPrivBtnRects(0);	
 		initPrivBtnRects(0,numClickBools);
@@ -149,6 +151,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		xStart = rectDim[0] + .5f*(rectDim[2] - width);
 		//start x and y and dimensions of full map visualization as function of visible window size;
 		SOM_mapDims = new float[]{xStart, rectDim[1] + offset, width, width};
+
 		mapMgr = new SOMMapManager(pa.th_exec,SOM_mapDims);
 		//only set for visualization
 		mapMgr.win=this;
@@ -228,10 +231,15 @@ public class mySOMMapUIWin extends myDispWindow {
 					setPrivFlags(mapDrawWtMapNodesIDX, false);					
 				}
 				break;}	
-			case mapDrawAnalysisVisIDX: {//whether or not to draw feature calc analysis graphs                                                   
-				break;}
-			
-			case mapDrawAnalysisIndivIDX: {//true == draw individual JP detail analysis, false == draw all jp's summary analysis (as block image)  
+			case mapDrawAnalysisVisIDX: {//whether or not to draw feature calc analysis graphs  
+				if (val) {//if setting to true then aggregate data
+					mapMgr.processCalcAnalysis();		
+					analysisHt = (int) (SOM_mapDims[3]*.45f);
+					//per jp bar width ~= total width / # of jps
+					analysisAllJPBarWidth = (int) (rectDim[2]/(1.0f+mapMgr.numFtrs));
+					//for single jp detail display
+					analysisPerJPWidth = (int) (SOM_mapDims[2]*.1f);
+				}
 				break;}
 			
 //			case mapShowLocClrIDX		: {//draw all map nodes, even empty
@@ -408,18 +416,25 @@ public class mySOMMapUIWin extends myDispWindow {
 		HashMap<String, Integer> mapInts = mapDat.getMapInts();
 		HashMap<String, Float> mapFloats = mapDat.getMapFloats();
 		HashMap<String, String> mapStrings = mapDat.getMapStrings();
-		for (String key : mapInts.keySet()) {
-			
-		}
+
+		this.guiObjs[uiMapColsIDX].setVal(mapInts.get("mapCols"));
+		this.guiObjs[uiMapRowsIDX].setVal(mapInts.get("mapRows"));
+		this.guiObjs[uiMapEpochsIDX].setVal(mapInts.get("mapEpochs"));
+		this.guiObjs[uiMapKTypIDX].setVal(mapInts.get("mapKType"));
+		this.guiObjs[uiMapRadStIDX].setVal(mapInts.get("mapStRad"));
+		this.guiObjs[uiMapRadEndIDX].setVal(mapInts.get("mapEndRad"));
 		
+		this.guiObjs[uiMapLrnStIDX].setVal(mapFloats.get("mapStLrnRate"));
+		this.guiObjs[uiMapLrnEndIDX].setVal(mapFloats.get("mapEndLrnRate"));
+		
+		this.guiObjs[uiMapShapeIDX].setVal(getIdxFromListString(uiMapShapeIDX, mapStrings.get("mapGridShape")));	
+		this.guiObjs[uiMapBndsIDX].setVal(getIdxFromListString(uiMapBndsIDX, mapStrings.get("mapBounds")));	
+		this.guiObjs[uiMapRadCoolIDX].setVal(getIdxFromListString(uiMapRadCoolIDX, mapStrings.get("mapRadCool")));	
+		this.guiObjs[uiMapNHdFuncIDX].setVal(getIdxFromListString(uiMapNHdFuncIDX, mapStrings.get("mapNHood")));	
+		this.guiObjs[uiMapLrnCoolIDX].setVal(getIdxFromListString(uiMapLrnCoolIDX, mapStrings.get("mapLearnCool")));
+				
 	}//setUIValues
-	
-	
-	
-	
-	
-	
-	
+		
 	public void resetUIVals(){
 		for(int i=0; i<guiStVals.length;++i){	
 			guiObjs[i].setVal(guiStVals[i]);
@@ -454,6 +469,28 @@ public class mySOMMapUIWin extends myDispWindow {
 		}
 		return "";
 	}//getUIListValStr
+	
+	private int getIDXofStringInArray(String[] ara, String tok) {
+		for(int i=0;i<ara.length;++i) {
+			if(ara[i].equals(tok)) {return i;}
+		}
+		
+		return -1;
+	}
+	
+	private int getIdxFromListString(int UIidx, String dat) {
+		switch(UIidx){//pa.score.staffs.size()
+			case uiRawDataSourceIDX : {return getIDXofStringInArray(uiRawDataSourceList, dat);}
+			case uiTrainDataFrmtIDX : {return getIDXofStringInArray(uiMapTrainFtrTypeList, dat);} 
+			case uiMapShapeIDX		: {return getIDXofStringInArray(uiMapShapeList, dat);} 
+			case uiMapBndsIDX		: {return getIDXofStringInArray(uiMapBndsList, dat);} 
+			case uiMapKTypIDX		: {return getIDXofStringInArray(uiMapKTypList, dat);} 
+			case uiMapNHdFuncIDX	: {return getIDXofStringInArray(uiMapNHoodList, dat);} 
+			case uiMapRadCoolIDX	: {return getIDXofStringInArray(uiMapRadClList, dat);} 
+			case uiMapLrnCoolIDX	: {return getIDXofStringInArray(uiMapLrnClList, dat);} 
+		}
+		return -1;
+	}
 	
 	public void setUI_JPListMaxVals(int jpGrpLen, int jpLen) {
 		//refresh max size of guiobj - heavy handed, these values won't change often, and this is called -every draw frame-.
@@ -612,27 +649,12 @@ public class mySOMMapUIWin extends myDispWindow {
 	
 	//map node fill and stroke color
 	private final int[] mapNodeClr = new int[] {255, 0,255,255};
-	public void drawMap(){
-		//draw map rectangle
+	//draw map rectangle and map nodes
+	private void drawMapRectangle() {
 		pa.pushMatrix();pa.pushStyle();
 			pa.noLights();
 			pa.scale(mapScaleVal);
-			float stX, stY;
-			if (getPrivFlags(mapDrawAnalysisVisIDX)) {	
-				stX = SOM_mapDims[0]/mapScaleVal;
-				stY = SOM_mapDims[1]/mapScaleVal;
-
-				if (getPrivFlags(mapDrawAnalysisIndivIDX)) {//draw detail single jp analysis					
-					mapMgr.drawAnalysisOneJp(pa, curMapImgIDX);		
-				} else {//draw summary info for all jps
-					mapMgr.drawAnalysisAllJps(pa);
-				}
-				pa.scale(.5f);
-			} else {
-				stX = SOM_mapDims[0]/mapScaleVal;
-				stY = SOM_mapDims[1]/mapScaleVal;
-			}
-			pa.image(mapLocClrImg[curMapImgIDX],stX,stY); if(getPrivFlags(saveLocClrImgIDX)){mapLocClrImg[curMapImgIDX].save(mapMgr.getSOMLocClrImgForJPFName(curMapImgIDX));  setPrivFlags(saveLocClrImgIDX,false);}			
+			pa.image(mapLocClrImg[curMapImgIDX],SOM_mapDims[0]/mapScaleVal,SOM_mapDims[1]/mapScaleVal); if(getPrivFlags(saveLocClrImgIDX)){mapLocClrImg[curMapImgIDX].save(mapMgr.getSOMLocClrImgForJPFName(curMapImgIDX));  setPrivFlags(saveLocClrImgIDX,false);}			
 			pa.lights();
 		pa.popStyle();pa.popMatrix();
 		
@@ -641,15 +663,37 @@ public class mySOMMapUIWin extends myDispWindow {
 			//draw nodes
 			pa.pushMatrix();pa.pushStyle();
 				pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
-				if(mseOvrData != null){mseOvrData.drawMeLblMap(pa,true);}
+				if ((!getPrivFlags(mapDrawAnalysisVisIDX)) && (mseOvrData != null)){mseOvrData.drawMeLblMap(pa,true);}
 				if(getPrivFlags(mapDrawTrainDatIDX)){		mapMgr.drawTrainData(pa, curMapImgIDX, getPrivFlags(mapDrawTrDatLblIDX));}	
 				if(getPrivFlags(mapDrawPrdctNodesIDX)){		mapMgr.drawProductNodes(pa, curMapImgIDX, true);}
 			pa.popStyle();pa.popMatrix();
 			//draw map nodes, either with or without empty nodes
 			if(getPrivFlags(mapDrawWtMapNodesIDX)){		mapMgr.drawNodesWithWt(pa, mapNodeWtDispThresh, curMapImgIDX, mapNodeClr, mapNodeClr);}//mapMgr.drawExMapNodes( pa, curMapImgIDX, mapNodeClr, mapNodeClr);		} 
 			if(getPrivFlags(mapDrawPopMapNodesIDX)) {	mapMgr.drawExMapNodes(pa, curMapImgIDX, mapNodeClr, mapNodeClr);}
-			if(getPrivFlags(mapDrawAllMapNodesIDX)){	mapMgr.drawAllNodes( pa, curMapImgIDX, mapNodeClr, mapNodeClr);		} 
-		
+			if(getPrivFlags(mapDrawAllMapNodesIDX)){	mapMgr.drawAllNodes( pa, curMapImgIDX, mapNodeClr, mapNodeClr);		} 		
+		pa.popStyle();pa.popMatrix();		
+	}//drawMapRectangle
+	
+	private void drawMap(){		
+		//draw map rectangle
+		pa.pushMatrix();pa.pushStyle();
+		if (getPrivFlags(mapDrawAnalysisVisIDX)) {	
+			pa.pushMatrix();pa.pushStyle();	
+			pa.translate((SOM_mapDims[0]+SOM_mapDims[2])*calcScale + 20,SOM_mapDims[1]*calcScale + 10,0.0f);
+			//pa.setFill(new int[] {0,255,0}, 255);
+//			pa.rect(0,0,analysisPerJPWidth,analysisHt);
+			mapMgr.drawAnalysisOneJp(pa,analysisHt, analysisPerJPWidth,curMapImgIDX);	
+			pa.popStyle();pa.popMatrix();
+			
+			pa.pushMatrix();pa.pushStyle();
+			pa.translate(rectDim[0]+5,(SOM_mapDims[1]+SOM_mapDims[3])*calcScale + 10,0.0f);
+//			pa.setFill(new int[] {255,0,0}, 255);
+//			pa.rect(0,0,analysisAllJPBarWidth*mapMgr.numFtrs,analysisHt);
+			mapMgr.drawAnalysisAllJps(pa, analysisHt, analysisAllJPBarWidth, curMapImgIDX);
+			pa.popStyle();pa.popMatrix();
+			pa.scale(calcScale);				
+		}		
+		drawMapRectangle();		
 		pa.popStyle();pa.popMatrix();
 	}//drawMap()		
 	
@@ -667,7 +711,6 @@ public class mySOMMapUIWin extends myDispWindow {
 				for(int x = 0; x < mapLocClrImg[0].width; ++x){
 					c = getMapNodeLocFromPxlLoc(x, y,mapScaleVal);
 					TreeMap<Integer, Float> ftrs = mapMgr.getInterpFtrs(c[0],c[1]);
-					//for (int i=0;i<mapLocClrImg.length;++i) {	mapLocClrImg[i].pixels[x+yCol] = getDataClrFromFtrVec(ftrs, i);}
 					for (Integer jp : ftrs.keySet()) {mapLocClrImg[jp].pixels[x+yCol] = getDataClrFromFtrVec(ftrs, jp);}
 				}
 			}

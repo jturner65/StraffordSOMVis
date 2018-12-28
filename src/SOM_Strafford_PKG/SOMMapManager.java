@@ -81,15 +81,16 @@ public class SOMMapManager {
 			tcTagsDataLoadedIDX			= 8,			//raw tc taggings data loaded not proced
 			jpDataLoadedIDX				= 9,			//raw jp data loaded not proced
 			jpgDataLoadedIDX			= 10,			//raw jpg data loaded not proced
-			
-			rawPrspctEvDataProcedIDX	= 11,			//all raw prospect/event data has been loaded and processed into StraffSOMExamples (prospect)
-			rawProducDataProcedIDX		= 12,			//all raw product data (from tc_taggings) has been loaded and processed into StraffSOMExamples (product)
+			calcAnalsysSavedIDX			= 11,			//whether calc analysis data from feature vector construction has been aggregated and saved - set false when ftrs are calced, set true when user selects calc anaysis to be performed,
+			rawPrspctEvDataProcedIDX	= 12,			//all raw prospect/event data has been loaded and processed into StraffSOMExamples (prospect)
+			rawProducDataProcedIDX		= 13,			//all raw product data (from tc_taggings) has been loaded and processed into StraffSOMExamples (product)
 			//training data saved state : 
-			denseTrainDataSavedIDX 		= 13,			//all current prospect data has been saved as a training data file for SOM (.lrn format) - strafford doesn't use dense training data
-			sparseTrainDataSavedIDX		= 14,			//sparse data format using .svm file descriptions (basically a map with a key:value pair of ftr index : ftr value
-			testDataSavedIDX			= 15;			//save test data in sparse format csv
+			denseTrainDataSavedIDX 		= 14,			//all current prospect data has been saved as a training data file for SOM (.lrn format) - strafford doesn't use dense training data
+			sparseTrainDataSavedIDX		= 15,			//sparse data format using .svm file descriptions (basically a map with a key:value pair of ftr index : ftr value
+			testDataSavedIDX			= 16;			//save test data in sparse format csv
+			
 
-	public static final int numFlags = 16;	
+	public static final int numFlags = 17;	
 	
 	//////////////////////////////
 	//data in files created by SOM_MAP separated by spaces
@@ -415,36 +416,6 @@ public class SOMMapManager {
 	//return true if loader is done and if data is successfully loaded
 	public boolean isMapDrawable(){return getFlag(loaderRtnIDX) && getFlag(mapDataLoadedIDX);}
 
-
-//	/**
-//	 * calc distance between two data points, using L2 calculation or standardized (divided by variance) euc
-//	 * @param a,b nodes to measure distance
-//	 * @return dist
-//	 */
-//	public double dpDistFunc(StraffSOMExample a, StraffSOMExample b, int ftrType){		
-//		float[] bigFtrs, smlFtrs, bigSclFtrs, smlSclFtrs; 
-//		float[] aftrData = a.getFtrs(), bftrData = b.getFtrs();
-//		float[] astdFtrData = a.getStdFtrs(), bstdFtrData = b.getStdFtrs();
-//		
-//		if (aftrData.length >= bftrData.length) {
-//			bigFtrs = aftrData;
-//			smlFtrs = bftrData;
-//			bigSclFtrs = astdFtrData;
-//			smlSclFtrs = bstdFtrData;			
-//		} else {
-//			bigFtrs = bftrData;
-//			smlFtrs = aftrData;
-//			bigSclFtrs = bstdFtrData;
-//			smlSclFtrs = astdFtrData;		
-//		}
-//		//dist type set by UI/user input -> TODO set this from SOM Exec Object
-//		switch (distType) {
-//			case 0 : return calcPtDist(bigFtrs, smlFtrs); 					//dflt dist measure - l2 norm
-//			case 1 : return calcPtChiDist(bigFtrs, smlFtrs, map_ftrsVar);		//chi dist measure - uses map node feature variance
-//			case 2 : return calcPtDist(bigSclFtrs, smlSclFtrs);				//scaled dist measure
-//			default : return calcPtDist(bigFtrs, smlFtrs);					//dflt dist measure - l2 norm
-//		}
-//	}//distFunc	
 	//passing variance for chi sq dist
 	private double calcPtChiDist(float[] bigFtrs, float[] smFtrs, float[] dataVar){
 		return Math.sqrt(calcSqPtChiDist(bigFtrs, smFtrs,dataVar));
@@ -725,9 +696,12 @@ public class SOMMapManager {
 		//we need the jp-jpg counts and relationships dictated by the data by here.
 		setJPDataFromExampleData(prospectMap);
 		dispMessage("SOMMapManager","finishSOMExampleBuild","End setJPDataFromExampleData");// | Start processHoldOutOptRecs");		
-
+		//reset calc analysis objects
+		ftrCalcObj.resetAllCalcObjs();
 		dispMessage("SOMMapManager","finishSOMExampleBuild","Begin buildFeatureVector prospects");
 		for (ProspectExample ex : prospectMap.values()) {			ex.buildFeatureVector();	}
+		//set calc analysis state flag to be false
+		setFlag(calcAnalsysSavedIDX, false);
 		dispMessage("SOMMapManager","finishSOMExampleBuild","End buildFeatureVector prospects");
 		
 		dispMessage("SOMMapManager","finishSOMExampleBuild","Begin buildFeatureVector products");
@@ -744,6 +718,11 @@ public class SOMMapManager {
 		
 		dispMessage("SOMMapManager","finishSOMExampleBuild","Finished calculating prospect feature vectors");
 	}//finishSOMExampleBuild
+	
+	//called to process analysis data
+	public void processCalcAnalysis() {
+		if ((ftrCalcObj != null) && (!getFlag(calcAnalsysSavedIDX))) {ftrCalcObj.finalizeCalcAnalysis();setFlag(calcAnalsysSavedIDX, true);		}
+	}
 	
 	//once map is built, find bmus on map for each product
 	public void setProductBMUs() {
@@ -914,6 +893,12 @@ public class SOMMapManager {
 		
 	public String getProdJpByIdxStr(int idx) {return jpJpgrpMon.getProdJpByIdxStr(idx);}	
 	public String getProdJpGrpByIdxStr(int idx) {return jpJpgrpMon.getProdJpGrpByIdxStr(idx);}
+//		
+//	public int getJpIdxByStr(String dat) {return jpJpgrpMon.getJpIdxByStr(dat);}	
+//	public int getJpGrpIdxByStr(String dat) {return jpJpgrpMon.getJpGrpIdxByStr(dat);}
+//		
+//	public int getProdJpIdxByStr(String dat) {return jpJpgrpMon.getProdJpIdxByStr(dat);}	
+//	public int getProdJpGrpIdxByStr(String dat) {return jpJpgrpMon.getProdJpGrpIdxByStr(dat);}
 		
 	//this will return the appropriate jpgrp for the given jpIDX (ftr idx)
 	public int getUI_JPGrpFromJP(int jpIdx, int curVal) {		return jpJpgrpMon.getUI_JPGrpFromJP(jpIdx, curVal);}
@@ -1236,11 +1221,20 @@ public class SOMMapManager {
 		return _list;
 	}//shuffleStrList	
 	
+	private static int trainDataFrame = 0, numTrainDataFrames = 20;
 	//if connected to UI, draw data - only called from window
 	public void drawTrainData(SOM_StraffordMain pa, int curMapImgIDX, boolean drawLbls) {
 		if(drawLbls){
-			for(int i=0;i<trainData.length;++i){trainData[i].drawMeLblMap(pa,false);}} 
-		else {for(int i=0;i<trainData.length;++i){trainData[i].drawMeMap(pa, 2);}}	
+			for(int i=trainDataFrame;i<trainData.length-numTrainDataFrames;i+=numTrainDataFrames){
+				trainData[i].drawMeLblMap(pa,false);
+			}
+		} 
+		else {
+			for(int i=trainDataFrame;i<trainData.length-numTrainDataFrames;i+=numTrainDataFrames){
+				trainData[i].drawMeMap(pa, 2);
+			}
+		}	
+		trainDataFrame = (trainDataFrame + 1) % numTrainDataFrames;
 	}//drawTrainData
 	
 	//draw all product nodes with max vals corresponding to current JPIDX
@@ -1253,15 +1247,15 @@ public class SOMMapManager {
 		pa.popStyle();pa.popMatrix();
 	}//drawProductNodes
 	
-	public void drawAnalysisAllJps(SOM_StraffordMain pa) {
+	public void drawAnalysisAllJps(SOM_StraffordMain pa, int ht, int barWidth, int curJPIdx) {
 		pa.pushMatrix();pa.pushStyle();
-		
+		ftrCalcObj.drawAllCalcRes(pa, ht, barWidth, curJPIdx);
 		pa.popStyle();pa.popMatrix();
 	}//drawAnalysisAllJps
 	
-	public void drawAnalysisOneJp(SOM_StraffordMain pa, int curJPIdx) {
+	public void drawAnalysisOneJp(SOM_StraffordMain pa,  int ht, int width, int curJPIdx) {
 		pa.pushMatrix();pa.pushStyle();
-		
+		ftrCalcObj.drawSingleFtr(pa, ht, width,jpJpgrpMon.getJpByIdx(curJPIdx));
 		pa.popStyle();pa.popMatrix();
 	}//drawAnalysisOneJp
 	
@@ -1329,6 +1323,10 @@ public class SOMMapManager {
 		if (p == null) {System.out.println(msg);} else {p.outStr2Scr(msg);}
 	}//dispMessage
 	
+	//set UI values from loaded map data, if UI is in use
+	public void setUIValsFromLoad(SOM_MapDat mapDat) {
+		if (win != null) {		win.setUIValues(mapDat);	}
+	}//setUIValsFromLoad
 
 	public void setMapX(int _x){
 		//need to update UI value in win
@@ -1338,7 +1336,7 @@ public class SOMMapManager {
 			boolean didSet = win.setWinToUIVals(win.uiMapColsIDX, mapX);
 			if(!didSet){dispMessage("SOMMapManager","setMapX","Setting ui map x value failed for x = " + _x);}
 		}
-	}
+	}//setMapX
 	public void setMapY(int _y){
 		//need to update UI value in win
 		mapY = _y;
@@ -1347,7 +1345,7 @@ public class SOMMapManager {
 			boolean didSet = win.setWinToUIVals(win.uiMapRowsIDX, mapY);
 			if(!didSet){dispMessage("SOMMapManager","setMapY","Setting ui map y value failed for y = " + _y);}
 		}
-	}
+	}//setMapY
 	
 	public float getMapWidth(){return mapDims[2];}
 	public float getMapHeight(){return mapDims[3];}
@@ -1375,6 +1373,8 @@ public class SOMMapManager {
 				break;}				//all prospect examples saved as training data
 			case testDataSavedIDX : {
 				if (val) {dispMessage("SOMMapManager","setFlag","All "+ this.numTestData + " saved to " + projConfigData.getSOMMapTestFileName() + " using "+(projConfigData.useSparseTestingData ? "Sparse ": "Dense ") + "data format");}
+				break;		}
+			case calcAnalsysSavedIDX : { 
 				break;		}
 		}
 	}//setFlag		

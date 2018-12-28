@@ -35,9 +35,7 @@ public class SOM_MapDat{
 		debugIDX 		= 0,
 		rdyToTrainIDX	= 1,
 		trainedIDX		= 2;	
-	private static int numFlags = 3;
-	
-	
+	private static int numFlags = 3;	
 		
 	//
 	public SOM_MapDat(String _curOS) {
@@ -47,8 +45,7 @@ public class SOM_MapDat{
 		mapStrings	= new HashMap<String, String>();		// mapGridShape, mapBounds, mapRadCool, mapNHood, mapLearnCool;	
 		
 	}//ctor
-	
-	
+		
 	//set all SOM data from UI values passed from map manager TODO this will be deprecated - these values should be set as UI input changes
 	//public void setUIMapData(String _SOM_Dir, String _execStr, HashMap<String, Integer> _mapInts, HashMap<String, Float> _mapFloats, HashMap<String, String> _mapStrings, String _trndDenseFN, String _trndSparseFN, String _outPfx){
 	public void setArgsMapData(SOMProjConfigData _config, HashMap<String, Integer> _mapInts, HashMap<String, Float> _mapFloats, HashMap<String, String> _mapStrings){
@@ -67,8 +64,7 @@ public class SOM_MapDat{
 	}//SOM_MapDat ctor from data	
 
 	//return output name suffix used for this map's data files
-	public String getOutNameSuffix() {	return "_x"+mapInts.get("mapCols")+"_y"+mapInts.get("mapRows")+"_k"+mapInts.get("mapKType");}
-	
+	public String getOutNameSuffix() {	return "_x"+mapInts.get("mapCols")+"_y"+mapInts.get("mapRows")+"_k"+mapInts.get("mapKType");}	
 	
 	//build an object based on an array of strings read from a file
 	//array is array of strings holding comma sep key-value pairs, grouped by construct, with tags denoting which construct
@@ -88,7 +84,6 @@ public class SOM_MapDat{
 		//use ara to pass index via ptr
 		int[] idxAra = new int[] {idx};
 		//read in method vars
-		System.out.println("SOM_MapDat::buildSOMMapDatFromAra : IDX : " + idx + " : _descrAra[idx] : "+_descrAra[idx]);
 		tmpVars = _readArrayIntoStringMap(idxAra, numLines, "###", _descrAra);// mapInts descriptors", _descrAra);
 		if (tmpVars == null) {return;}
 		execDir = tmpVars.get("execDir").trim();
@@ -128,7 +123,7 @@ public class SOM_MapDat{
 			String desc = _descrAra[idx[0]];
 			if(desc.contains(_partitionStr)) {foundDataPartition=true; ++idx[0]; continue;}
 			String[] dat = desc.trim().split(",");
-			System.out.println("IDX : " + idx[0] + " == "+  desc +"  | Split : "+ dat[0] +" | " + dat[1]);
+			//System.out.println("IDX : " + idx[0] + " == "+  desc +"  | Split : "+ dat[0] +" | " + dat[1]);
 			tmpVars.put(dat[0], dat[1]);
 			++idx[0];	
 		}	

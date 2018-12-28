@@ -16,9 +16,9 @@ public class MonitorJpJpgrp {
 	//reference to ids and counts of all jps seen only in prospect record data (not including events)
 	private TreeMap<Integer, Integer> jpPrspctSeenCount;// = new TreeMap<Integer, Integer>();//jpEvSeen
 	//map from jp to idx in resultant feature vector
-	private TreeMap<Integer, Integer> jpToFtrIDX;// = new TreeMap<Integer, Integer>();
+	private TreeMap<Integer, Integer> jpToFtrIDX,prodJpToFtrIDX;
 	//map from jpgroup to integer
-	private TreeMap<Integer, Integer> jpgToIDX;// = new TreeMap<Integer, Integer>();
+	private TreeMap<Integer, Integer> jpgToIDX, prodJpgToIDX;
 	//map from jpgroup to jps corresponding to this group.
 	private TreeMap<Integer, TreeSet <Integer>> jpgsToJps;// = new TreeMap<Integer, TreeSet <Integer>>();
 	//map from jps to owning jpgs
@@ -65,6 +65,10 @@ public class MonitorJpJpgrp {
 		
 		jpToFtrIDX = new TreeMap<Integer, Integer>();	
 		jpgToIDX = new TreeMap<Integer, Integer>();	
+		
+		prodJpToFtrIDX= new TreeMap<Integer, Integer>();	
+		prodJpgToIDX = new TreeMap<Integer, Integer>();	
+		
 		jpByIdx = new Integer[] {1};
 		jpgrpsByIdx = new Integer[] {1};
 		
@@ -156,7 +160,6 @@ public class MonitorJpJpgrp {
 		
 		prodJpByIdx = prodJpSeenCount.keySet().toArray(new Integer[0]);
 		prodJpGrpsByIdx = prodJpgsToJps.keySet().toArray(new Integer[0]);
-		
 
 		for(int i=0;i<jpByIdx.length;++i) {
 			jpToFtrIDX.put(jpByIdx[i], i);
@@ -171,10 +174,30 @@ public class MonitorJpJpgrp {
 			jpGrpNames.put(jpgrpsByIdx[i], name);
 		}
 		
+		for(int i=0;i<prodJpByIdx.length;++i) {
+			prodJpToFtrIDX.put(prodJpByIdx[i], i);
+		}
+		for(int i=0;i<prodJpGrpsByIdx.length;++i) {
+			prodJpgToIDX.put(prodJpGrpsByIdx[i], i);
+		}
+		
 		numFtrs = jpSeenCount.size();
 		mapData.setUI_JPMaxVals(jpgrpsByIdx.length,jpByIdx.length); 
 		mapData.dispMessage("MonitorJpJpgrp","setJPDataFromExampleData","numFtrs : " + numFtrs);
 	}//setJPDataFromProspectData	
+
+//	public int getJpIdxByStr(String dat) {	return findIdxGivenString(jpNames, jpToFtrIDX, dat);}	
+//	public int getJpGrpIdxByStr(String dat) {return findIdxGivenString(jpGrpNames, jpgToIDX, dat);}	
+//	public int getProdJpIdxByStr(String dat) {	return findIdxGivenString(jpNames, prodJpToFtrIDX, dat);}
+//	public int getProdJpGrpIdxByStr(String dat) {	return findIdxGivenString(jpGrpNames, prodJpgToIDX, dat);}
+//	//find index in name list corresponding to passed string
+//	private int findIdxGivenString(TreeMap<Integer, String> map, TreeMap<Integer, Integer> jpToIdx, String tok) {
+//		for(Integer jp : map.keySet()) {
+//			String val = map.get(jp);
+//			if(val.equals(tok)) {return jpToIdx.get(jp);}
+//		}		
+//		return -1;
+//	}//findIdxGivenString
 	
 	//name, jp and ftr idx of jp
 	public String getJpByIdxStr(int uiIDX) {
@@ -189,16 +212,14 @@ public class MonitorJpJpgrp {
 		String name = jpGrpNames.get(jpg);
 		if(name==null) {name="UNK";}
 		return "" +name+ " (jpg:"+ jpg + ",idx:" +idx+ ")";
-	}
-	
+	}	
 	//name, jp and ftr idx of jp for product-specific jpgs and jps
 	public String getProdJpByIdxStr(int uiIDX) {
 		int idx = uiIDX % prodJpByIdx.length, jp=prodJpByIdx[idx];
 		String name = jpNames.get(jp);
 		if(name==null) {name="UNK";}
 		return "" +name+ " (jp:"+ jp + ",idx:" +idx+ ")";
-	}
-	
+	}	
 	//name, jp and ftr idx of jp
 	public String getProdJpGrpByIdxStr(int uiIDX) {
 		int idx = uiIDX % prodJpGrpsByIdx.length, jpg=prodJpGrpsByIdx[idx];

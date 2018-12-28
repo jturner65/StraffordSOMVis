@@ -82,6 +82,11 @@ public class StraffWeightCalc {
 		}
 	}//loadConfigAndSetVars	
 	
+	//this will reset all analysis components of feature vectors.  this is so that new feature calculations won't aggregate stats with old ones
+	public void resetAllCalcObjs() {
+		for ( JPWeightEquation eq : eqs.values()	) {	eq.resetAnalysis();		}
+	}//resetAllCalcObjs
+	
 	public Float[] getMinBndsAra() {return bndsAra[0];}
 	public Float[] getDiffsBndsAra() {return bndsAra[3];}
 	
@@ -154,31 +159,39 @@ public class StraffWeightCalc {
 		return res;
 	}//calcFeatureVector
 	
-	//after all features are calculated, run this to finalize reporting statistics on eq performance
+	//////////////////////////////////////////////////
+	// reporting functions
+	
+	//after all features are calculated, run this first to finalize reporting statistics on eq performance
 	public void finalizeCalcAnalysis() {for(JPWeightEquation jpEq:eqs.values()) {jpEq.calcStats.aggregateCalcVals(jpJpgMon.getJpToFtrIDX(jpEq.jp));}}
 	
-	//retrieve a list of all eq data per ftr
+	//retrieve a list of all eq performance data per ftr
 	public ArrayList<String> getCalcAnalysisRes(){
 		ArrayList<String> res = new ArrayList<String>();
-		for(JPWeightEquation jpEq:eqs.values()) {			
-			res.addAll(jpEq.calcStats.getCalcRes());
-		}
+		for(JPWeightEquation jpEq:eqs.values()) {	res.addAll(jpEq.calcStats.getCalcRes());}
 		return res;
 	}//getCalcAnalysisRes
 	
 	//draw res of all calcs as single rectangle of height ht and width barWidth*num eqs
-	public void drawAllCalcRes(SOM_StraffordMain p, int ht, int barWidth) {		
+	public void drawAllCalcRes(SOM_StraffordMain p, int ht, int barWidth, int curJPIdx) {		
 		p.pushMatrix();p.pushStyle();		
 		for(JPWeightEquation jpEq:eqs.values()) {	
 			//draw bar
-			jpEq.calcStats.drawFtrVec(p, ht, barWidth);
+			jpEq.drawFtrVec(p, ht, barWidth, jpEq.jpIdx==curJPIdx);
 			//move over for next bar
 			p.translate(barWidth, 0.0f, 0.0f);
 		}
 		p.popStyle();p.popMatrix();	
 	}//draw analysis res for each graphically
 	
-	
+	//draw single detailed feature eq detailed analysis
+	public void drawSingleFtr(SOM_StraffordMain p, int ht, int width, Integer jp) {
+		p.pushMatrix();p.pushStyle();		
+		//draw detailed analysis
+		JPWeightEquation jpEq = eqs.get(jp);
+		jpEq.drawIndivFtrVec(p, ht, width);
+		p.popStyle();p.popMatrix();			
+	}//drawSingleFtr
 	
 	
 	//display calc equations for each JP id
@@ -295,6 +308,9 @@ class JPWeightEquation {
 		return res;
 	}//calcOptRes
 	
+	//reset analysis object to clear out all stats from previous run
+	public void resetAnalysis() {calcStats.reset();	}
+	
 	//calculate a particular example's weight value for this object's jp
 	public float calcVal(ProspectExample ex, jpOccurrenceData orderJpOccurrences, jpOccurrenceData linkJpOccurrences, jpOccurrenceData optJpOccurrences) {	
 		boolean hasData = false;
@@ -312,6 +328,10 @@ class JPWeightEquation {
 		return res;
 	}//calcVal
 	
+	public void drawIndivFtrVec(SOM_StraffordMain p, int height, int width) {calcStats.drawIndivFtrVec(p, height, width);	}
+	public void drawFtrVec(SOM_StraffordMain p, int height, int width, boolean selected){calcStats.drawFtrVec(p, height, width,selected);}
+	
+	
 	//string rep of this calc
 	public String toString() {
 		String ftrBuffer = (jpIdx >=100) ? "" : (jpIdx >=10) ? " " : "  ";//to align output
@@ -327,6 +347,7 @@ class JPWeightEquation {
 		return res;
 	}//toString
 		
+	
 }//JPWeightEquation
 
 //this class will hold analysis information for calculations to more clearly understand the results of the current calc object
@@ -351,9 +372,39 @@ class calcAnalysis{
 	//array of analysis components for string display
 	private ArrayList<String> analysisRes;
 	//how far to move down for text
-	private static float txtYOff = 3.0f;
+	private static float txtYOff = 10.0f;
 	
-	public calcAnalysis(JPWeightEquation _eq) {eq=_eq;vals = new float[eq.numEqs];valSq = new float[vals.length];workSpace = new float[vals.length];}
+	private static float[] legendSizes;
+	//disp idx of this calc
+	private final int dispIDX;
+	public calcAnalysis(JPWeightEquation _eq) {eq=_eq;reset();dispIDX = eq.jpIdx%5;legendSizes=new float[eq.numEqs];for(int i=0;i<eq.numEqs;++i) {legendSizes[i]= 1.0f/eq.numEqs;}}
+	//reset this calc analysis object
+	public void reset() {
+		vals = new float[eq.numEqs];
+		valSq = new float[vals.length];
+		workSpace = new float[vals.length];
+		numExamplesWithJP = 0;
+		numExamplesNoOptOut = 0;
+		ttlVal=0.0f;
+		ttlSqVal=0.0f;
+		ratios = new float[vals.length];
+		means = new float[vals.length];
+		stdVals = new float[vals.length];
+		meansOpts = new float[vals.length];
+		stdValsOpts = new float[vals.length];
+		ttlMeansVec_vis = 0;
+		ttlStdsVec_vis = 0;
+		ttlMeansOptVec_vis = 0;
+		ttlStdsOptVec_vis = 0;
+		ttlMeanWithOpt=0.0f;
+		ttlMeanNoOpt=0.0f;
+		ttlStdWithOpt=0.0f;
+		ttlStdNoOpt=0.0f;
+		
+		analysisRes = new ArrayList<String>();
+		ratioOptOut = 1.0f;	
+	}//reset()
+	
 		//add values for a particular calc run - returns calc total
 	public float getValFromCalcs(boolean optOut) {
 		++numExamplesWithJP;
@@ -415,8 +466,18 @@ class calcAnalysis{
 	//this will display a vertical bar corresponding to the performance of the analyzed calculation.
 	//each component of calc object will have a different color
 	//height - the height of the bar.  start each vertical bar at upper left corner, put text beneath bar
-	public void drawFtrVec(SOM_StraffordMain p, int height, int width){
-		drawSpecifcFtrVec(p,height,width, ratios, 1.0f);	
+	public void drawFtrVec(SOM_StraffordMain p, int height, int width, boolean selected){
+		p.pushMatrix();p.pushStyle();
+		if (selected) {
+			p.setColorValFill(p.gui_White, 255);
+			p.rect(0.0f, 0.0f, width, height);
+		} else {
+			drawSpecifcFtrVec(p,height,width, ratios, 1.0f);
+		}
+		p.translate(0.0f, height+txtYOff, 0.0f);
+		p.translate(0.0f, dispIDX*txtYOff, 0.0f);
+		p.showOffsetText2D(0.0f, p.gui_White, ""+eq.jp);
+		p.popStyle();p.popMatrix();	
 	}//drawFtrVec
 	
 	//this will display a vertical bar corresponding to the performance of the analyzed calculation.
@@ -425,39 +486,64 @@ class calcAnalysis{
 	private void drawSpecifcFtrVec(SOM_StraffordMain p, int height, int width, float[] vals, float denom){
 		p.pushMatrix();p.pushStyle();
 		float rCompHeight, rYSt = 0.0f, htMult = height/denom;
-		for(int i =0;i<ratios.length;++i) {
-			p.setColorValFill(p.gui_Yellow+i, 255);
+		for(int i =0;i<vals.length;++i) {
+			p.setColorValFill(p.gui_LightRed+i, 255);
 			rCompHeight = htMult * vals[i];
 			p.rect(0.0f, rYSt, width, rCompHeight);
 			rYSt+=rCompHeight;
 		}
 		//rect is corner mode
 		p.popStyle();p.popMatrix();		
-	}//drawFtrVec
+	}//drawFtrVec	
+
 	
 	//draw vertical bar describing per-comp values with
 	private void drawSpecificFtrVecWithText(SOM_StraffordMain p, int height, int width, float[] vals, float denom, String valTtl, String[] valDesc ) {
 		p.pushMatrix();p.pushStyle();
-		p.drawText(valTtl, 0, 0, 0, p.gui_White);
+		p.showOffsetText2D(0.0f, p.gui_White, valTtl);//p.drawText(valTtl, 0, 0, 0, p.gui_White);
 		p.translate(0.0f, txtYOff, 0.0f);
 		drawSpecifcFtrVec(p,height,width, vals, denom);
-		p.translate(0.0f, txtYOff, 0.0f);
+		p.translate(0.0f, height+txtYOff, 0.0f);
 		for(String s : valDesc) {
-			p.drawText(s, 0, 0, 0, p.gui_White);
+			p.showOffsetText2D(0.0f, p.gui_White, s);//p.drawText(s, 0, 0, 0, p.gui_White);
 			p.translate(0.0f, txtYOff, 0.0f);
 		}
 		//move down and print out relevant text
 		p.popStyle();p.popMatrix();		
 	}//drawSpecificFtrVecWithText
 	
+	private void drawSpecificLegendVecWithText(SOM_StraffordMain p, int height, int width, float[] vals, float denom) {
+		p.pushMatrix();p.pushStyle();
+		p.translate(0.0f, txtYOff, 0.0f);
+		p.showOffsetText2D(0.0f, p.gui_White, "Legend");//p.drawText(valTtl, 0, 0, 0, p.gui_White);
+		p.translate(0.0f, txtYOff, 0.0f);
+		p.pushMatrix();p.pushStyle();
+		float rCompHeight, rYSt = 0.0f, htMult = height/denom;
+		for(int i =0;i<vals.length;++i) {
+			p.setColorValFill(p.gui_LightRed+i, 255);
+			rCompHeight = htMult * vals[i];
+			p.rect(0.0f, rYSt, width, rCompHeight);
+			p.pushMatrix();p.pushStyle();
+			p.translate(10.0f, rYSt+(rCompHeight/2.0f), 0.0f);
+			p.showOffsetText2D(0.0f, p.gui_Black, eq.calcNames[i]);//p.drawText(s, 0, 0, 0, p.gui_White);
+			p.popStyle();p.popMatrix();
+			rYSt+=rCompHeight;
+		}
+		//rect is corner mode
+		p.popStyle();p.popMatrix();		
+
+		//move down and print out relevant text
+		p.popStyle();p.popMatrix();		
+	}//drawSpecificFtrVecWithText	calcNames : String[]
+	
 	//draw a single ftr vector as a wide bar; include text for descriptions
 	//width is per bar
-	public void drawIndivFtrVec(SOM_StraffordMain p, int ftrIDX, int height, int width){
+	public void drawIndivFtrVec(SOM_StraffordMain p, int height, int width){
 		p.pushMatrix();p.pushStyle();
 		//title here?
-		p.drawText("Calc Values for ftr idx : " +ftrIDX + " jp "+eq.jp, 0, 0, 0, p.gui_White);
+		p.showOffsetText2D(0.0f, p.gui_White, "Calc Values for ftr idx : " +eq.jpIdx + " jp "+eq.jp);//p.drawText("Calc Values for ftr idx : " +eq.jpIdx + " jp "+eq.jp, 0, 0, 0, p.gui_White);
 		p.translate(0.0f, txtYOff, 0.0f);
-		drawSpecificFtrVecWithText(p,height,width, ratios, 1.0f, "Ratios", new String[] {String.format("Ratio of Opts To Ttl : %.5f",ratioOptOut)});
+		drawSpecificFtrVecWithText(p,height,width, ratios, 1.0f, "Ratios", new String[] {String.format("Ratio of Opts To Ttl : %.5f",ratioOptOut), String.format("# of examples : %05d",numExamplesWithJP),String.format("# of ex w/o Opt out : %05d",numExamplesNoOptOut)});
 		p.translate(width*1.5f, 0.0f, 0.0f);
 		drawSpecificFtrVecWithText(p,height,width, means, ttlMeansVec_vis, "Means", new String[] {String.format("Mean : %.5f",ttlMeanNoOpt)});
 		p.translate(width*1.5f, 0.0f, 0.0f);
@@ -465,8 +551,9 @@ class calcAnalysis{
 		p.translate(width*1.5f, 0.0f, 0.0f);
 		drawSpecificFtrVecWithText(p,height,width, stdVals, ttlStdsVec_vis,"Stds", new String[] {String.format("Stds : %.5f",ttlStdNoOpt)});
 		p.translate(width*1.5f, 0.0f, 0.0f);
-		drawSpecificFtrVecWithText(p,height,width, stdValsOpts, ttlStdsOptVec_vis,"Stds w/Opts", new String[] {String.format("Mean w/opts : %.5f",ttlStdWithOpt)});
-
+		drawSpecificFtrVecWithText(p,height,width, stdValsOpts, ttlStdsOptVec_vis,"Stds w/Opts", new String[] {String.format("Std w/opts : %.5f",ttlStdWithOpt)});
+		p.translate(width*1.5f, 0.0f, 0.0f);
+		drawSpecificLegendVecWithText(p,height,width, legendSizes, 1.0f);
 		p.popStyle();p.popMatrix();		
 	}//drawIndivFtrVec
 
