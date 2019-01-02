@@ -59,7 +59,9 @@ public class SOMDataLoader implements Runnable {
 		useChiSqDist = mapMgr.getUseChiSqDist();
 		//must load jp's and jpg's that were used for this map
 		//load map weights for all map nodes
-		boolean success = loadSOMWts();			
+		boolean success = loadSOMWts();	
+		//set u-matrix fo all map nodes
+		success = loadSOM_nodeDists();
 		//get training and testing data partitions that were used to train the map - TODO
 		mapMgr.assignTrainTestData();
 		//load mins and diffs of data used to train map
@@ -255,7 +257,6 @@ public class SOMDataLoader implements Runnable {
 		mapMgr.nodesWithEx.clear();
 		mapMgr.dispMessage("DataLoader","loadSOM_BMUs","Start Loading BMU File : "+bmFileName);
 		
-		
 		String [] strs= mapMgr.loadFileIntoStringAra(bmFileName, "Loaded best matching unit data file : "+bmFileName, "Error reading best matching unit file : "+bmFileName);
 		if(strs==null){return false;}
 		
@@ -377,6 +378,43 @@ public class SOMDataLoader implements Runnable {
 		}
 	}//dbgVerifyBMUs	
 	
+	
+	//load the u-matrix data used to build the node distance visualization
+	private boolean loadSOM_nodeDists() {
+		String uMtxBMUFname =  projConfigData.getSOMResFName(projConfigData.umtxIDX);
+		mapMgr.dispMessage("DataLoader","loadSOM_nodeDists","Start Loading U-Matrix File : "+uMtxBMUFname);
+		if(uMtxBMUFname.length() < 1){return false;}
+		String [] strs= mapMgr.loadFileIntoStringAra(uMtxBMUFname, "Loaded U Matrix data file : "+uMtxBMUFname, "Error reading U Matrix data file : "+uMtxBMUFname);
+		if(strs==null){return false;}
+		int numEx = 0, mapX=1, mapY=1,numWtData = 0;
+		String[] tkns;
+		Tuple<Integer, Integer> mapLoc;
+		SOMMapNodeExample dpt;
+		int row;
+		for (int i=0;i<strs.length;++i){//load in data 
+			if(i < 1){//line 0 is map row/col count
+				tkns = strs[i].replace('%', ' ').trim().split(mapMgr.SOM_FileToken);
+				//set map size in nodes
+				mapY = Integer.parseInt(tkns[0]);
+				mapX = Integer.parseInt(tkns[1]);	
+				//TODO compare values here to set values
+				continue;
+			}//if first 2 lines in wts file
+			tkns = strs[i].trim().split(mapMgr.SOM_FileToken);
+			//System.out.println("String : ---"+strs[i]+"---- has length : "+ tkns.length);
+			if(tkns.length < 2){continue;}
+			row = i-1;
+			for (int col=0;col<tkns.length;++col) {
+				mapLoc = new Tuple<Integer, Integer>(col, row);//map locations in som data are increasing in x first, then y (row major)
+				dpt = mapMgr.MapNodes.get(mapLoc);//give each map node its features
+				dpt.setUMatDist(Float.parseFloat(tkns[col].trim()));
+			}	
+		}//
+		mapMgr.dispMessage("DataLoader","loadSOM_nodeDists","Finished loading and processing U-Matrix File : "+uMtxBMUFname);		
+		return true;
+	}//loadSOM_nodeDists
+	
+	
 	//returns sq distance between two map locations - needs to handle wrapping if map built torroidally
 	public float getSqMapDist_flat(SOMMapNodeExample a, SOMMapNodeExample b){		return (a.mapLoc._SqrDist(b.mapLoc));	}//	
 	//returns sq distance between two map locations - needs to handle wrapping if map built torroidally
@@ -422,17 +460,7 @@ public class SOMDataLoader implements Runnable {
 		mapMgr.dispMessage("DataLoader","loadSOM_ftrBMUs","Finished Loading SOM per-feature BMU list from file : " + getFName(ftrBMUFname));
 		return true;
 	}//loadSOM_ftrBMUs	
-	
-	//load the u-matrix data used to build the node distance visualization
-	private boolean loadSOM_nodeDists() {
-		String uMtxBMUFname =  projConfigData.getSOMResFName(projConfigData.umtxIDX);
-		if(uMtxBMUFname.length() < 1){return false;}
-		
-		
-		
-		
-		return true;
-	}//loadSOM_nodeDists
+
 	
 	private void initFlags(){stFlags = new int[1 + numFlags/32]; for(int i = 0; i<numFlags; ++i){setFlag(i,false);}}
 	public void setFlag(int idx, boolean val){

@@ -1086,6 +1086,27 @@ public class SOMMapManager {
 		}		
 	}//getInterpFtrs
 	
+	//return interpolated UMatrix value on map at location given by x,y, where x,y  is float location of map using mapnodes as integral locations
+	public Float getInterpUMatVal(float x, float y){
+		float xInterp = (x+1) %1, yInterp = (y+1) %1;
+		int xInt = (int) Math.floor(x+mapNodeCols)%mapNodeCols, yInt = (int) Math.floor(y+mapNodeRows)%mapNodeRows, xIntp1 = (xInt+1)%mapNodeCols, yIntp1 = (yInt+1)%mapNodeRows;		//assume torroidal map		
+		//always compare standardized feature data in test/train data to standardized feature data in map
+		Float LowXLowYUMat = MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt)).getUMatDist(), LowXHiYUMat= MapNodes.get(new Tuple<Integer, Integer>(xInt,yIntp1)).getUMatDist(),
+				HiXLowYUMat= MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yInt)).getUMatDist(),  HiXHiYUMat= MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yIntp1)).getUMatDist();
+		try{
+			Float uMatVal = interpVal(interpVal(LowXLowYUMat, LowXHiYUMat,yInterp,1.0f),interpVal(HiXLowYUMat, HiXHiYUMat,yInterp,1.0f),xInterp,255.0f);	
+			return uMatVal;
+		} catch (Exception e){
+			dispMessage("mySOMMapUIWin","getInterpFtrs","Exception triggered in mySOMMapUIWin::getInterpFtrs : \n"+e.toString() + "\n\tMessage : "+e.getMessage() );
+			return 0.0f;
+		}
+	}//getInterpUMatVal
+	
+	private float interpVal(float a, float b, float t, float mult) {
+		float res = 0.0f, Onemt = 1.0f-t;
+		return mult*((a*Onemt) + (b*t));		
+	}//interpVal
+	
 	//get treemap of features that interpolates between two maps of features
 	private TreeMap<Integer, Float> interpTreeMap(TreeMap<Integer, Float> a, TreeMap<Integer, Float> b, float t, float mult){
 		TreeMap<Integer, Float> res = new TreeMap<Integer, Float>();
@@ -1217,7 +1238,8 @@ public class SOMMapManager {
 	
 	private static int trainDataFrame = 0, numTrainDataFrames = 20;
 	//if connected to UI, draw data - only called from window
-	public void drawTrainData(SOM_StraffordMain pa, int curMapImgIDX, boolean drawLbls) {
+	public void drawTrainData(SOM_StraffordMain pa, boolean drawLbls) {
+		pa.pushMatrix();pa.pushStyle();
 		if(drawLbls){
 			for(int i=trainDataFrame;i<trainData.length-numTrainDataFrames;i+=numTrainDataFrames){		trainData[i].drawMeLblMap(pa);}
 		} 
@@ -1225,15 +1247,32 @@ public class SOMMapManager {
 			for(int i=trainDataFrame;i<trainData.length-numTrainDataFrames;i+=numTrainDataFrames){		trainData[i].drawMeMap(pa, 2);	}
 		}	
 		trainDataFrame = (trainDataFrame + 1) % numTrainDataFrames;
+		pa.popStyle();pa.popMatrix();
 	}//drawTrainData
+	
+	//draw boxes around each node representing umtrx values derived in SOM code
+	public void drawUMatrix(SOM_StraffordMain pa) {
+		pa.pushMatrix();pa.pushStyle();
+		for(SOMMapNodeExample node : MapNodes.values()){	node.drawMeUMatDist(pa);	}		
+		pa.popStyle();pa.popMatrix();
+	}//drawUMatrix
 	
 	//draw all product nodes with max vals corresponding to current JPIDX
 	public void drawProductNodes(SOM_StraffordMain pa, int prodJpIDX, boolean showJPorJPG) {
 		pa.pushMatrix();pa.pushStyle();
 		ArrayList<ProductExample> prodsToShow = (showJPorJPG ? productsByJp.get(jpJpgrpMon.getProdJpByIdx(prodJpIDX)) :  productsByJpg.get(jpJpgrpMon.getProdJpGrpByIdx(prodJpIDX)));
 		for(ProductExample ex : prodsToShow) {
-			ex.drawMeLinkedToBMU(pa, 5.0f);
+			ex.drawMeLinkedToBMU(pa, 5.0f,ex.OID);
 		}		
+		pa.popStyle();pa.popMatrix();
+	}//drawProductNodes	
+	
+	//show all products
+	public void drawAllProductNodes(SOM_StraffordMain pa) {
+		pa.pushMatrix();pa.pushStyle();
+		for (ArrayList<ProductExample> prodsToShow : productsByJp.values()) {
+			for(ProductExample ex : prodsToShow) {ex.drawMeLinkedToBMU(pa, 5.0f,ex.OID);}		
+		}
 		pa.popStyle();pa.popMatrix();
 	}//drawProductNodes
 	
@@ -1250,10 +1289,17 @@ public class SOMMapManager {
 	}//drawAnalysisOneJp
 	
 	
-	public void drawAllNodes(SOM_StraffordMain pa, int curJPIdx, int[] dpFillClr, int[] dpStkClr) {
+	public void drawAllNodesWted(SOM_StraffordMain pa, int curJPIdx, int[] dpFillClr, int[] dpStkClr) {
 		pa.pushMatrix();pa.pushStyle();
 		pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
 		for(SOMMapNodeExample node : MapNodes.values()){	node.drawMeSmall(pa,curJPIdx);	}
+		pa.popStyle();pa.popMatrix();
+	} 
+		
+	public void drawAllNodes(SOM_StraffordMain pa, int[] dpFillClr, int[] dpStkClr) {
+		pa.pushMatrix();pa.pushStyle();
+		pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
+		for(SOMMapNodeExample node : MapNodes.values()){	node.drawMeSmall(pa);	}
 		pa.popStyle();pa.popMatrix();
 	} 
 		
@@ -1293,6 +1339,12 @@ public class SOMMapManager {
 		float xLoc = (mapNodeLoc.x + .5f) * (mapDims[2]/mapNodeCols), yLoc = (mapNodeLoc.y + .5f) * (mapDims[3]/mapNodeRows);
 		myPointf pt = new myPointf(xLoc, yLoc, 0);
 		return pt;
+	}
+	//return upper left corner of umat box x,y and width,height
+	public float[] buildUMatBoxCrnr(Tuple<Integer,Integer> mapNodeLoc) {
+		float w =  (mapDims[2]/mapNodeCols), h = (mapDims[3]/mapNodeRows);		
+		float[] res = new float[] {mapNodeLoc.x * w, mapNodeLoc.y * h, w, h};
+		return res;
 	}
 		
 	//get time from "start time" (ctor run for map manager)
@@ -1513,7 +1565,7 @@ class messageMgr implements Callable<Boolean> {
 		try {
 			while ((sIn = rdr.readLine()) != null) {
 				String typStr = getStreamType(sIn);		
-				dispMessage("Stream " + typStr+" Line : " + (iter++) + " | Msg : " + sIn);
+				dispMessage("Stream " + typStr+" Line : " + String.format("%04d",iter++) + " | Msg : " + sIn);
 				strbld.append(sIn);			
 				strbld.append(System.getProperty("line.separator"));				
 			}

@@ -1263,7 +1263,10 @@ class SOMMapNodeExample extends StraffSOMExample{
 	private TreeMap<Double,ArrayList<StraffSOMExample>> examplesBMU;	//best training examples in this unit, keyed by distance ; may be equidistant, so put in array at each distance
 	private float logExSize;						//log of size of examples + 1, used to display nodes with examples with visual cue to population
 	private int numMappedTEx;						//# of mapped training examples to this node
-
+	//set from u matrix built by somoclu - the similarity of this node to its neighbors
+	private float uMatDist;
+	private float[] uMatBoxDims;		//box upper left corner x,y and box width,height
+	private int[] uMatClr;
 	//feature type denotes what kind of features the tkns being sent represent - 0 is unmodded, 1 is standardized across all data for each feature, 2 is normalized across all features for single data point
 	public SOMMapNodeExample(SOMMapManager _map, Tuple<Integer,Integer> _mapNode, float[] _ftrs) {
 		super(_map, "MapNode_"+_mapNode.x+"_"+_mapNode.y);
@@ -1299,7 +1302,9 @@ class SOMMapNodeExample extends StraffSOMExample{
 		ftrsBuilt = true;		
 		buildNormFtrData();		
 	}//setFtrsFromFloatAra	
-
+	
+	public void setUMatDist(float _d) {uMatDist = _d; int clr=(int) (255*uMatDist); uMatClr = new int[] {clr,clr,clr};}
+	public float getUMatDist() {return uMatDist;}
 	@Override
 	protected HashSet<Tuple<Integer, Integer>> getSetOfAllJpgJpData() {
 		// TODO Auto-generated method stub
@@ -1325,8 +1330,10 @@ class SOMMapNodeExample extends StraffSOMExample{
 	}//setFtrsFromStrAra
 
 	private void initMapNode(Tuple<Integer,Integer> _mapNode){
+		uMatClr = new int[3];
 		mapNodeCoord = _mapNode;		
 		mapLoc = mapData.buildScaledLoc(mapNodeCoord);
+		uMatBoxDims = mapData.buildUMatBoxCrnr(mapNodeCoord);
 		//these are the same for map nodes
 		mapNodeLoc.set(mapLoc);
 		numMappedTEx = 0;
@@ -1417,6 +1424,22 @@ class SOMMapNodeExample extends StraffSOMExample{
 		p.show(mapLoc, 2, 2, p.gui_Cyan, p.gui_Cyan, p.gui_Green, new String[] {this.OID+":",String.format("%.4f", wt)}); 
 		p.popStyle();p.popMatrix();		
 	}
+	
+	public void drawMeSmall(SOM_StraffordMain p){
+		p.pushMatrix();p.pushStyle();
+		//show(myPointf P, float rad, int det, int[] fclr, int[] sclr, int tclr, String txt, boolean useBKGBox) 
+		p.show(mapLoc, 2, 2, p.gui_Cyan, p.gui_Cyan, p.gui_Green, new String[] {this.OID}); 
+		p.popStyle();p.popMatrix();		
+	}	
+	
+	
+	//draw a box around this node of uMatD color
+	public void drawMeUMatDist(SOM_StraffordMain p){
+		p.pushMatrix();p.pushStyle();
+		p.setFill(uMatClr, 255);
+		p.rect(uMatBoxDims);		
+		p.popStyle();p.popMatrix();	
+	}//drawMeUMatDist
 
 	@Override
 	public void drawMeLblMap(SOM_StraffordMain p){
@@ -1463,10 +1486,10 @@ abstract class baseDataPtVis{
 	public void setMapLoc(myPointf _pt){mapLoc = new myPointf(_pt);}
 	
 	//draw this example with a line linking it to its best matching unit
-	public final void drawMeLinkedToBMU(SOM_StraffordMain p, float _rad){
+	public final void drawMeLinkedToBMU(SOM_StraffordMain p, float _rad, String ID){
 		p.pushMatrix();p.pushStyle();
 		//draw point of radius rad at mapLoc - actual location on map
-		p.show(mapLoc, _rad, drawDet, p.gui_Yellow,p.gui_Yellow);
+		p.show(mapLoc, _rad, drawDet, p.gui_Yellow,p.gui_Yellow, p.gui_White, new String[] {ID});
 		//draw line to bmu location
 		p.setColorValStroke(p.gui_Yellow,255);
 		p.strokeWeight(1.0f);

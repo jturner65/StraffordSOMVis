@@ -192,8 +192,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		for(int i=0;i<mapPerJpgWtImgs.length;++i) {
 			mapPerJpgWtImgs[i] = pa.createImage(w, h, pa.RGB);
 		}		
-		mapUMatrixImg = pa.createImage(w, h, pa.RGB);
-		
+		mapUMatrixImg = pa.createImage(w, h, pa.RGB);		
 	}//initMapAras	
 	
 	//set flag values when finished building map, to speed up initial display
@@ -630,6 +629,13 @@ public class mySOMMapUIWin extends myDispWindow {
 		return clrVal;
 	}//getDataClrFromFtrVec
 	
+	//val is 0->256
+	private int getDataClrFromFloat(Float val) {
+		int ftr = Math.round(val);		
+		int clrVal = ((ftr & 0xff) << 16) + ((ftr & 0xff) << 8) + (ftr & 0xff);
+		return clrVal;
+	}
+	
 	//make color based on ftr value at particular index
 	//jpIDX is index in feature vector we are querying
 	//call this if map is trained on scaled or normed ftr data
@@ -669,23 +675,37 @@ public class mySOMMapUIWin extends myDispWindow {
 		pa.pushMatrix();pa.pushStyle();
 			pa.noLights();
 			pa.scale(mapScaleVal);
-			pa.image(mapPerFtrWtImgs[curMapImgIDX],SOM_mapDims[0]/mapScaleVal,SOM_mapDims[1]/mapScaleVal); if(getPrivFlags(saveLocClrImgIDX)){mapPerFtrWtImgs[curMapImgIDX].save(mapMgr.getSOMLocClrImgForJPFName(curMapImgIDX));  setPrivFlags(saveLocClrImgIDX,false);}			
-			pa.lights();
+			PImage tmpImg;
+			int curImgNum;
+			if(getPrivFlags(mapDrawUMatrixIDX)) {
+				tmpImg = mapUMatrixImg;		
+				curImgNum = -1;
+			} else {
+				tmpImg = mapPerFtrWtImgs[curMapImgIDX];		
+				curImgNum = curMapImgIDX;
+			}
+			pa.image(tmpImg,SOM_mapDims[0]/mapScaleVal,SOM_mapDims[1]/mapScaleVal); if(getPrivFlags(saveLocClrImgIDX)){tmpImg.save(mapMgr.getSOMLocClrImgForJPFName(curImgNum));  setPrivFlags(saveLocClrImgIDX,false);}			
 		pa.popStyle();pa.popMatrix();
 		
 		pa.pushMatrix();pa.pushStyle();
 			pa.translate(SOM_mapDims[0],SOM_mapDims[1],0);
+			if(getPrivFlags(mapDrawTrainDatIDX)){		mapMgr.drawTrainData(pa, getPrivFlags(mapDrawTrDatLblIDX));}	
+			if(getPrivFlags(mapDrawAllMapNodesIDX)){	mapMgr.drawAllNodes( pa, mapNodeClr, mapNodeClr);		} 		
 			//draw nodes
 			pa.pushMatrix();pa.pushStyle();
 				pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
 				if ((!getPrivFlags(mapDrawAnalysisVisIDX)) && (mseOvrData != null)){mseOvrData.drawMeLblMap(pa);}
-				if(getPrivFlags(mapDrawTrainDatIDX)){		mapMgr.drawTrainData(pa, curMapImgIDX, getPrivFlags(mapDrawTrDatLblIDX));}	
-				if(getPrivFlags(mapDrawPrdctNodesIDX)){		mapMgr.drawProductNodes(pa, curMapImgIDX, true);}
 			pa.popStyle();pa.popMatrix();
-			//draw map nodes, either with or without empty nodes
-			if(getPrivFlags(mapDrawWtMapNodesIDX)){		mapMgr.drawNodesWithWt(pa, mapNodeWtDispThresh, curMapImgIDX, mapNodeClr, mapNodeClr);}//mapMgr.drawExMapNodes( pa, curMapImgIDX, mapNodeClr, mapNodeClr);		} 
-			if(getPrivFlags(mapDrawPopMapNodesIDX)) {	mapMgr.drawExMapNodes(pa, curMapImgIDX, mapNodeClr, mapNodeClr);}
-			if(getPrivFlags(mapDrawAllMapNodesIDX)){	mapMgr.drawAllNodes( pa, curMapImgIDX, mapNodeClr, mapNodeClr);		} 		
+			if (curImgNum > -1) {
+				//draw map nodes, either with or without empty nodes
+				if(getPrivFlags(mapDrawPrdctNodesIDX)){		mapMgr.drawProductNodes(pa, curMapImgIDX, true);}
+				if(getPrivFlags(mapDrawWtMapNodesIDX)){		mapMgr.drawNodesWithWt(pa, mapNodeWtDispThresh, curMapImgIDX, mapNodeClr, mapNodeClr);}//mapMgr.drawExMapNodes( pa, curMapImgIDX, mapNodeClr, mapNodeClr);		} 
+				if(getPrivFlags(mapDrawPopMapNodesIDX)) {	mapMgr.drawExMapNodes(pa, curMapImgIDX, mapNodeClr, mapNodeClr);}
+			} else {//draw all products				
+				if(getPrivFlags(mapDrawPrdctNodesIDX)){		mapMgr.drawAllProductNodes(pa);}
+			}
+			//if(getPrivFlags(mapDrawUMatrixIDX)) {		mapMgr.drawUMatrix(pa);}
+			pa.lights();
 		pa.popStyle();pa.popMatrix();		
 	}//drawMapRectangle
 	
@@ -710,14 +730,31 @@ public class mySOMMapUIWin extends myDispWindow {
 		}		
 		drawMapRectangle();		
 		pa.popStyle();pa.popMatrix();
-	}//drawMap()		
+	}//drawMap()	
 	
-	//sets colors of background image of map - any way to speed this up? 
-	//perhaps partition pxls for each thread
+	
+	//set colors of image of umatrix map
+	public void setMapUMatImgClrs() {
+		float[] c;	
+		//mapUMatrixImg
+		//single threaded exec
+		for(int y = 0; y<mapUMatrixImg.height; ++y){
+			int yCol = y * mapUMatrixImg.width;
+			for(int x = 0; x < mapUMatrixImg.width; ++x){
+				c = getMapNodeLocFromPxlLoc(x, y,mapScaleVal);
+				Float val = mapMgr.getInterpUMatVal(c[0],c[1]);
+				mapUMatrixImg.pixels[x+yCol] = getDataClrFromFloat(val);
+			}
+		}
+	}//setMapUMatImgClrs
+	
+	//sets colors of background image of map -- partition pxls for each thread
 	public void setMapImgClrs(){ //mapRndClrImg
 		float[] c;		
 		int stTime = pa.millis();
 		for (int i=0;i<mapPerFtrWtImgs.length;++i) {	mapPerFtrWtImgs[i].loadPixels();}
+		//build uMatrix image
+		setMapUMatImgClrs();
 		//if single threaded
 		int numThds = mapMgr.getNumUsableThreads();
 		boolean mtCapable = mapMgr.isMTCapable();
