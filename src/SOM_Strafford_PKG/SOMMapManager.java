@@ -1072,7 +1072,7 @@ public class SOMMapManager {
 	
 	//return interpolated feature vector on map at location given by x,y, where x,y is float location of map using mapnodes as integral locations
 	public TreeMap<Integer, Float> getInterpFtrs(float x, float y){
-		float xInterp = (x+1) %1, yInterp = (y+1) %1;
+		float xInterp = (x+mapNodeCols) %1, yInterp = (y+mapNodeRows) %1;
 		int xInt = (int) Math.floor(x+mapNodeCols)%mapNodeCols, yInt = (int) Math.floor(y+mapNodeRows)%mapNodeRows, xIntp1 = (xInt+1)%mapNodeCols, yIntp1 = (yInt+1)%mapNodeRows;		//assume torroidal map		
 		//always compare standardized feature data in test/train data to standardized feature data in map
 		TreeMap<Integer, Float> LowXLowYFtrs = MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt)).getCurrentFtrMap(curMapFtrType), LowXHiYFtrs= MapNodes.get(new Tuple<Integer, Integer>(xInt,yIntp1)).getCurrentFtrMap(curMapFtrType),
@@ -1087,14 +1087,14 @@ public class SOMMapManager {
 	}//getInterpFtrs
 	
 	//return interpolated UMatrix value on map at location given by x,y, where x,y  is float location of map using mapnodes as integral locations
-	public Float getInterpUMatVal(float x, float y){
-		float xInterp = (x+1) %1, yInterp = (y+1) %1;
+	public Float getBiLinInterpUMatVal(float x, float y){
+		float xInterp = (x+mapNodeCols) %1, yInterp = (y+mapNodeRows) %1;
 		int xInt = (int) Math.floor(x+mapNodeCols)%mapNodeCols, yInt = (int) Math.floor(y+mapNodeRows)%mapNodeRows, xIntp1 = (xInt+1)%mapNodeCols, yIntp1 = (yInt+1)%mapNodeRows;		//assume torroidal map		
 		//always compare standardized feature data in test/train data to standardized feature data in map
 		Float LowXLowYUMat = MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt)).getUMatDist(), LowXHiYUMat= MapNodes.get(new Tuple<Integer, Integer>(xInt,yIntp1)).getUMatDist(),
 				HiXLowYUMat= MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yInt)).getUMatDist(),  HiXHiYUMat= MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yIntp1)).getUMatDist();
 		try{
-			Float uMatVal = interpVal(interpVal(LowXLowYUMat, LowXHiYUMat,yInterp,1.0f),interpVal(HiXLowYUMat, HiXHiYUMat,yInterp,1.0f),xInterp,255.0f);	
+			Float uMatVal = linInterpVal(linInterpVal(LowXLowYUMat, LowXHiYUMat,yInterp,1.0f),linInterpVal(HiXLowYUMat, HiXHiYUMat,yInterp,1.0f),xInterp,255.0f);	
 			return uMatVal;
 		} catch (Exception e){
 			dispMessage("mySOMMapUIWin","getInterpFtrs","Exception triggered in mySOMMapUIWin::getInterpFtrs : \n"+e.toString() + "\n\tMessage : "+e.getMessage() );
@@ -1102,10 +1102,24 @@ public class SOMMapManager {
 		}
 	}//getInterpUMatVal
 	
-	private float interpVal(float a, float b, float t, float mult) {
+	private float linInterpVal(float a, float b, float t, float mult) {
 		float res = 0.0f, Onemt = 1.0f-t;
 		return mult*((a*Onemt) + (b*t));		
 	}//interpVal
+	
+	//return interpolated UMatrix value on map at location given by x,y, where x,y  is float location of map using mapnodes as integral locations
+	public Float getBiCubicInterpUMatVal(float x, float y){
+		float xInterp = (x+mapNodeCols) %1, yInterp = (y+mapNodeRows) %1;
+		int xInt = (int) Math.floor(x+mapNodeCols)%mapNodeCols, yInt = (int) Math.floor(y+mapNodeRows)%mapNodeRows;		//assume torroidal map		
+		SOMMapNodeExample ex = MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt));
+		try{
+			Float uMatVal = 255.0f*(ex.biCubicInterp(xInterp, yInterp));
+			return uMatVal;
+		} catch (Exception e){
+			dispMessage("mySOMMapUIWin","getInterpFtrs","Exception triggered in mySOMMapUIWin::getInterpFtrs : \n"+e.toString() + "\n\tMessage : "+e.getMessage() );
+			return 0.0f;
+		}
+	}//getInterpUMatVal
 	
 	//get treemap of features that interpolates between two maps of features
 	private TreeMap<Integer, Float> interpTreeMap(TreeMap<Integer, Float> a, TreeMap<Integer, Float> b, float t, float mult){
@@ -1238,14 +1252,9 @@ public class SOMMapManager {
 	
 	private static int trainDataFrame = 0, numTrainDataFrames = 20;
 	//if connected to UI, draw data - only called from window
-	public void drawTrainData(SOM_StraffordMain pa, boolean drawLbls) {
+	public void drawTrainData(SOM_StraffordMain pa) {
 		pa.pushMatrix();pa.pushStyle();
-		if(drawLbls){
-			for(int i=trainDataFrame;i<trainData.length-numTrainDataFrames;i+=numTrainDataFrames){		trainData[i].drawMeLblMap(pa);}
-		} 
-		else {
-			for(int i=trainDataFrame;i<trainData.length-numTrainDataFrames;i+=numTrainDataFrames){		trainData[i].drawMeMap(pa, 2);	}
-		}	
+		for(int i=trainDataFrame;i<trainData.length-numTrainDataFrames;i+=numTrainDataFrames){		trainData[i].drawMeMap(pa, 2);	}
 		trainDataFrame = (trainDataFrame + 1) % numTrainDataFrames;
 		pa.popStyle();pa.popMatrix();
 	}//drawTrainData
@@ -1315,7 +1324,7 @@ public class SOMMapManager {
 		pa.popStyle();pa.popMatrix();
 	}//drawNodesWithWt
 	
-	public void drawExMapNodes(SOM_StraffordMain pa, int curMapImgIDX, int[] dpFillClr, int[] dpStkClr) {
+	public void drawExMapNodes(SOM_StraffordMain pa, int[] dpFillClr, int[] dpStkClr) {
 		pa.pushMatrix();pa.pushStyle();
 		pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
 		//PerJPHiWtMapNodes
@@ -1346,7 +1355,13 @@ public class SOMMapManager {
 		float[] res = new float[] {mapNodeLoc.x * w, mapNodeLoc.y * h, w, h};
 		return res;
 	}
-		
+	//mapNodeCols, mapNodeRows
+	public Tuple<Integer,Integer> getMapLocTuple(int xLoc, int yLoc){return new Tuple<Integer,Integer>((xLoc +mapNodeCols)%mapNodeCols, (yLoc+mapNodeRows)%mapNodeRows );}
+	//update map node neighborhoods with umat info
+	public void setMapNodeNbrhdUMat() {
+		for(SOMMapNodeExample ex : MapNodes.values()) {	ex.buildNeighborWtVals();	}
+	}
+	
 	//get time from "start time" (ctor run for map manager)
 	protected long getCurTime() {			
 		Instant instant = Instant.now();

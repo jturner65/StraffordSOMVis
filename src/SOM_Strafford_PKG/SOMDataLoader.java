@@ -410,6 +410,7 @@ public class SOMDataLoader implements Runnable {
 				dpt.setUMatDist(Float.parseFloat(tkns[col].trim()));
 			}	
 		}//
+		mapMgr.setMapNodeNbrhdUMat();
 		mapMgr.dispMessage("DataLoader","loadSOM_nodeDists","Finished loading and processing U-Matrix File : "+uMtxBMUFname);		
 		return true;
 	}//loadSOM_nodeDists
@@ -474,29 +475,29 @@ public class SOMDataLoader implements Runnable {
 	public boolean getFlag(int idx){int bitLoc = 1<<(idx%32);return (stFlags[idx/32] & bitLoc) == bitLoc;}		
 }//dataLoader
 
-////load best matching units for each provided example
-//class straffBMULoader implements Callable<Boolean>{
-//	SOMMapManager mapMgr;
-//	int stIdx, endIdx, thdIDX;
-//	boolean useChiSqDist;
-//	String [] strs;
-//	public straffBMULoader(SOMMapManager _mapMgr, int _stProdIDX, int _endProdIDX, boolean _useChiSqDist, String [] _strs, int _thdIDX) {
-//		mapMgr = _mapMgr;
-//		stIdx = _stProdIDX;
-//		endIdx = _endProdIDX;
-//		useChiSqDist =_useChiSqDist;
-//		thdIDX= _thdIDX;	
-//		strs = _strs;
-//	}//ctor
-//
-//	@Override
-//	public Boolean call() throws Exception {
-//		// TODO Auto-generated method stub
-//		return true;
-//	}
-//	
-//	
-//}//straffBMULoader
+//load best matching units for each provided example
+class straffBMULoader implements Callable<Boolean>{
+	SOMMapManager mapMgr;
+	int stIdx, endIdx, thdIDX;
+	boolean useChiSqDist;
+	String [] strs;
+	public straffBMULoader(SOMMapManager _mapMgr, int _stProdIDX, int _endProdIDX, boolean _useChiSqDist, String [] _strs, int _thdIDX) {
+		mapMgr = _mapMgr;
+		stIdx = _stProdIDX;
+		endIdx = _endProdIDX;
+		useChiSqDist =_useChiSqDist;
+		thdIDX= _thdIDX;	
+		strs = _strs;
+	}//ctor
+
+	@Override
+	public Boolean call() throws Exception {
+		// TODO Auto-generated method stub
+		return true;
+	}
+	
+	
+}//straffBMULoader
 
 
 //class to determine which products are closest to which map nodes

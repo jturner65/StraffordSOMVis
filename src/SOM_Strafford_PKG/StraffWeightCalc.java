@@ -72,7 +72,7 @@ public class StraffWeightCalc {
 		int numFtrs = jpJpgMon.getNumFtrs();
 		for (int i=0;i<numFtrs;++i) {
 			Integer jp = jpJpgMon.getJpByIdx(i);
-			JPWeightEquation eq = new JPWeightEquation(this,jp, i, dfltM, dfltO, dfltD, true);
+			JPWeightEquation eq = new JPWeightEquation(this,jpJpgMon.getJPNameFromJP(jp),jp, i, dfltM, dfltO, dfltD, true);
 			eqs.put(jp, eq);
 		}//
 		//now go through every line and build eqs for specified jps
@@ -123,7 +123,7 @@ public class StraffWeightCalc {
 		Integer jp = Integer.parseInt(strVals[0]);
 		Float[] jpM = getFAraFromStrAra(strVals,mIdx), jpO = getFAraFromStrAra(strVals,oIdx), jpD = getFAraFromStrAra(strVals,dIdx);
 		Integer idx = jpJpgMon.getJpToFtrIDX(jp);
-		JPWeightEquation eq = new JPWeightEquation(this,jp, idx, jpM, jpO, jpD, false);
+		JPWeightEquation eq = new JPWeightEquation(this, jpJpgMon.getJPNameFromJP(jp),jp, idx, jpM, jpO, jpD, false);
 		eqs.put(jp, eq);
 	}//addIndivJpEq
 	//read in string array of weight values, convert and put in float array
@@ -228,6 +228,7 @@ class JPWeightEquation {
 	public static Date now;
 	public static final Date oldDate = new GregorianCalendar(2009, Calendar.JANUARY, 1).getTime();
 	public final int jp, jpIdx;				//corresponding jp, jp index in weight vector
+	public final String jpName;
 	
 	//sentinel value for opt calc meaning force total res for this calc to be 0 based on negative per-jp opt from user
 	private static final float optOutSntnlVal = -9999.0f;
@@ -252,8 +253,8 @@ class JPWeightEquation {
 	//if this equation is using default values for coefficients
 	public boolean isDefault;
 
-	public JPWeightEquation(StraffWeightCalc _calcObj, int _jp, int _jpIdx, Float[] _m, Float[] _o, Float[] _d, boolean _isDefault) {
-		calcObj = _calcObj; now = calcObj.now;jp=_jp;jpIdx=_jpIdx;
+	public JPWeightEquation(StraffWeightCalc _calcObj, String _name, int _jp, int _jpIdx, Float[] _m, Float[] _o, Float[] _d, boolean _isDefault) {
+		calcObj = _calcObj; now = calcObj.now;jp=_jp;jpIdx=_jpIdx; jpName=_name;
 		Mult = new Float[numEqs];
 		Offset = new Float[numEqs];
 		Decay = new Float[numEqs];
@@ -316,15 +317,15 @@ class JPWeightEquation {
 		boolean hasData = false;
 		//float [] vals = new float[numEqs];			//all individual values calculated - this is so we can easily aggregate analysis results to calc object
 			//this jp was used set in prospect record : scale propsect contribution by update date of record - assumes accurate at time of update
-		if (ex.prs_JP == jp) {					calcStats.workSpace[prspctCoeffIDX] = scaleCalc(prspctCoeffIDX, 1, ex.prs_LUDate);		hasData = true;}
+		if (ex.prs_JP == jp) {		hasData = true;				calcStats.setWSVal(prspctCoeffIDX, scaleCalc(prspctCoeffIDX, 1, ex.prs_LUDate));		}//calcStats.workSpace[prspctCoeffIDX] = scaleCalc(prspctCoeffIDX, 1, ex.prs_LUDate);		}
 			//handle order occurrences for this jp.   aggregate every order occurrence, with decay on importance based on date
-		if (orderJpOccurrences != null) {		calcStats.workSpace[orderCoeffIDX] = aggregateOccs(orderJpOccurrences, orderCoeffIDX);	hasData = true;}
+		if (orderJpOccurrences != null) {	hasData = true;		calcStats.setWSVal(orderCoeffIDX, aggregateOccs(orderJpOccurrences, orderCoeffIDX));}//calcStats.workSpace[orderCoeffIDX] = aggregateOccs(orderJpOccurrences, orderCoeffIDX);}
 			//for links use same mechanism as orders - handle differences through weightings - aggregate every order occurrence, with decay on importance based on date
-		if (linkJpOccurrences != null) {		calcStats.workSpace[linkCoeffIDX] = aggregateOccs(linkJpOccurrences, linkCoeffIDX);	hasData = true;}
+		if (linkJpOccurrences != null) {	hasData = true;		calcStats.setWSVal(linkCoeffIDX, aggregateOccs(linkJpOccurrences, linkCoeffIDX));	}//calcStats.workSpace[linkCoeffIDX] = aggregateOccs(linkJpOccurrences, linkCoeffIDX);	}
 			//user opts - these are handled differently - calcOptRes return of -9999 means negative opt specified for this jp alone (ignores negative opts across all jps) - should force total from eq for this jp to be ==0
-		if (optJpOccurrences != null) {			calcStats.workSpace[optCoeffIDX] = calcOptRes(optJpOccurrences);						hasData = true;}	
+		if (optJpOccurrences != null) {		hasData = true;		calcStats.setWSVal(optCoeffIDX, calcOptRes(optJpOccurrences));}	//calcStats.workSpace[optCoeffIDX] = calcOptRes(optJpOccurrences);}	
 		if (hasData) {calcObj.incrBnds(jpIdx);		}
-		float res = calcStats.getValFromCalcs(calcStats.workSpace[optCoeffIDX]==optOutSntnlVal);
+		float res = calcStats.getValFromCalcs(optCoeffIDX, optOutSntnlVal);//(calcStats.workSpace[optCoeffIDX]==optOutSntnlVal);
 		return res;
 	}//calcVal
 	
@@ -360,7 +361,7 @@ class calcAnalysis{
 		//%'s of total seen for each calc - each val divided by total val; mean and variance aggregates
 	private float[] ratios, means, stdVals, meansOpts, stdValsOpts;
 		//workspace used by calc object to hold values - all individual values calculated - this is so we can easily aggregate analysis results to calc object	
-	public float[] workSpace;
+	private float[] workSpace;
 		//total seen across all individual calcs, across all examples; mean value sent per non-opt, sqVal for std calc; stdVal of totals
 	private float ttlVal, ttlSqVal, ttlMeansVec_vis, ttlStdsVec_vis, ttlMeansOptVec_vis, ttlStdsOptVec_vis;
 		//analysis vals : mean and std including opt outs, and without counting them, fraction of opt outs in # total records
@@ -368,6 +369,8 @@ class calcAnalysis{
 		//number of eqs processed - increment on total
 	private int numExamplesWithJP = 0;
 	private int numExamplesNoOptOut = 0;
+		//counts of each type
+	private int[] eqTypeCount;
 
 	//array of analysis components for string display
 	private ArrayList<String> analysisRes;
@@ -381,6 +384,7 @@ class calcAnalysis{
 	//reset this calc analysis object
 	public void reset() {
 		vals = new float[eq.numEqs];
+		eqTypeCount = new int[eq.numEqs];
 		valSq = new float[vals.length];
 		workSpace = new float[vals.length];
 		numExamplesWithJP = 0;
@@ -405,8 +409,14 @@ class calcAnalysis{
 		ratioOptOut = 1.0f;	
 	}//reset()
 	
+	public void setWSVal(int idx, float val) {
+		workSpace[idx]=val;		
+		if (val != 0.0f) {eqTypeCount[idx]++;}		
+	}
+	
 		//add values for a particular calc run - returns calc total
-	public float getValFromCalcs(boolean optOut) {
+	public float getValFromCalcs(int optCoeffIDX, float optOutValCk) {
+		boolean optOut = workSpace[optCoeffIDX]==optOutValCk;
 		++numExamplesWithJP;
 		if (optOut) {return 0.0f;	}//opt result means all values are cleared out (user opted out of this specific JP) so only increment numExamplesWithJP
 		++numExamplesNoOptOut;
@@ -525,7 +535,7 @@ class calcAnalysis{
 			p.rect(0.0f, rYSt, width, rCompHeight);
 			p.pushMatrix();p.pushStyle();
 			p.translate(10.0f, rYSt+(rCompHeight/2.0f), 0.0f);
-			p.showOffsetText2D(0.0f, p.gui_Black, eq.calcNames[i]);//p.drawText(s, 0, 0, 0, p.gui_White);
+			p.showOffsetText2D(0.0f, p.gui_Black, eq.calcNames[i] + " : "+ eqTypeCount[i]+" exmpls.");//p.drawText(s, 0, 0, 0, p.gui_White);
 			p.popStyle();p.popMatrix();
 			rYSt+=rCompHeight;
 		}
@@ -541,7 +551,7 @@ class calcAnalysis{
 	public void drawIndivFtrVec(SOM_StraffordMain p, int height, int width){
 		p.pushMatrix();p.pushStyle();
 		//title here?
-		p.showOffsetText2D(0.0f, p.gui_White, "Calc Values for ftr idx : " +eq.jpIdx + " jp "+eq.jp);//p.drawText("Calc Values for ftr idx : " +eq.jpIdx + " jp "+eq.jp, 0, 0, 0, p.gui_White);
+		p.showOffsetText2D(0.0f, p.gui_White, "Calc Values for ftr idx : " +eq.jpIdx + " jp "+eq.jp + " : " + eq.jpName);//p.drawText("Calc Values for ftr idx : " +eq.jpIdx + " jp "+eq.jp, 0, 0, 0, p.gui_White);
 		p.translate(0.0f, txtYOff, 0.0f);
 		drawSpecificFtrVecWithText(p,height,width, ratios, 1.0f, "Ratios", new String[] {String.format("Ratio of Opts To Ttl : %.5f",ratioOptOut), String.format("# of examples : %05d",numExamplesWithJP),String.format("# of ex w/o Opt out : %05d",numExamplesNoOptOut)});
 		p.translate(width*1.5f, 0.0f, 0.0f);

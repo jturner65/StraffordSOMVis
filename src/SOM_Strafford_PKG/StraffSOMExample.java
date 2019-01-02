@@ -1219,8 +1219,6 @@ class DispSOMMapExample extends StraffSOMExample{
 		}
 	}//ctor
 	
-	
-	
 	//not used by this object
 	@Override
 	protected HashSet<Tuple<Integer, Integer>> getSetOfAllJpgJpData() {
@@ -1260,6 +1258,8 @@ class DispSOMMapExample extends StraffSOMExample{
 class SOMMapNodeExample extends StraffSOMExample{
 	private static float ftrThresh = 0.0f;
 	public Tuple<Integer,Integer> mapNodeCoord;	
+	public Tuple<Integer,Integer>[][] neighborMapCoords;				//array of arrays of row x col of neighbors to this node.  This node is 1,1.  
+	public float[][] neighborUMatWts;
 	private TreeMap<Double,ArrayList<StraffSOMExample>> examplesBMU;	//best training examples in this unit, keyed by distance ; may be equidistant, so put in array at each distance
 	private float logExSize;						//log of size of examples + 1, used to display nodes with examples with visual cue to population
 	private int numMappedTEx;						//# of mapped training examples to this node
@@ -1334,6 +1334,16 @@ class SOMMapNodeExample extends StraffSOMExample{
 		mapNodeCoord = _mapNode;		
 		mapLoc = mapData.buildScaledLoc(mapNodeCoord);
 		uMatBoxDims = mapData.buildUMatBoxCrnr(mapNodeCoord);
+		int xLoc,yLoc;
+		neighborMapCoords = new Tuple[4][];
+		for(int row=-1;row<3;++row) {
+			neighborMapCoords[row+1] = new Tuple[4];
+			yLoc = row + mapNodeCoord.y;
+			for(int col=-1;col<3;++col) {
+				xLoc = col + mapNodeCoord.x;
+				neighborMapCoords[row+1][col+1] = mapData.getMapLocTuple(xLoc, yLoc);
+			}
+		}
 		//these are the same for map nodes
 		mapNodeLoc.set(mapLoc);
 		numMappedTEx = 0;
@@ -1341,6 +1351,27 @@ class SOMMapNodeExample extends StraffSOMExample{
 		//allJPs should be made by here
 		buildFeatureVector();
 	}//initMapNode
+	
+	//build 4x4 float array of neighbor wt vals
+	public void buildNeighborWtVals() {
+		neighborUMatWts = new float[4][];		
+		for(int row=0;row<4;++row) {
+			neighborUMatWts[row]=new float[4];
+			for(int col=0;col<4;++col) {
+				neighborUMatWts[row][col] = mapData.MapNodes.get(neighborMapCoords[row][col]).getUMatDist();
+			}
+		}
+	}//buildNeighborWtVals
+	
+	//cubic formula in 1 dim
+	private float findCubicVal(float[] p, float t) { 	return p[1]+0.5f*t*(p[2]-p[0] + t*(2.0f*p[0]-5.0f*p[1]+4.0f*p[2]-p[3] + t*(3.0f*(p[1]-p[2])+p[3]-p[0]))); }
+	//return bicubic interpolation of each neighbor's UMatWt
+	public float biCubicInterp(float tx, float ty) {
+		float [] aAra = new float[4];
+		for (int row=0;row<4;++row) {aAra[row]=findCubicVal(neighborUMatWts[row], tx);}
+		float val = findCubicVal(aAra, ty);
+		return ((val <= 0.0f) ? 0.0f : (val > 1.0f) ? 1.0f : val);
+	}//biCubicInterp
 	
 	@Override
 	//feature is already made in constructor
@@ -1414,7 +1445,7 @@ class SOMMapNodeExample extends StraffSOMExample{
 		}
 		return label;}
 	public int getExmplBMUSize() {return  examplesBMU.size();}
-	public float getLogExmplBMUSize() {return logExSize;}
+	public float getLogExmplBMUSize() {return logExSize * 3.0f;}
 	
 	public void drawMeSmall(SOM_StraffordMain p, int jpIDX){
 		p.pushMatrix();p.pushStyle();

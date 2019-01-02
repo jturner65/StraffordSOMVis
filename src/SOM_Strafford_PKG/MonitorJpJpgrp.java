@@ -291,7 +291,9 @@ public class MonitorJpJpgrp {
 		Integer res = counts.get(key);
 		return (res == null ? 0 : res);
 	}
-		
+	
+	public String getJPNameFromJP(Integer jp) {return getNameNullChk(jp, jpNames);}
+	
 	/////////////////////////////
 	//Load this object's data
 	public void loadAllData(String fileName) {
