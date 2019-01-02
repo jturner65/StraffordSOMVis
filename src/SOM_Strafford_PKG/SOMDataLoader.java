@@ -37,7 +37,9 @@ public class SOMDataLoader implements Runnable {
 
 	@Override
 	public void run(){
+		mapMgr.dispMessage("DataLoader","run","Starting data loader");			
 		if(projConfigData.allReqFilesLoaded()){
+			mapMgr.dispMessage("DataLoader","run","All required files are loaded.");			
 			boolean success = execDataLoad() ;
 			mapMgr.setFlag(SOMMapManager.mapDataLoadedIDX,success);
 			mapMgr.setFlag(SOMMapManager.loaderRtnIDX,true);
@@ -48,7 +50,9 @@ public class SOMDataLoader implements Runnable {
 			mapMgr.setFlag(SOMMapManager.loaderRtnIDX,false);
 			mapMgr.dispMessage("DataLoader","run","Data loader Failed : Required files not all loaded or file IO error ");
 		}
-	}
+		mapMgr.resetButtonState(0);
+	}//run
+	
 	//load results from map processing - fnames needs to be modified to handle this
 	private boolean execDataLoad(){
 		ftrTypeUsedToTrain = mapMgr.getCurrMapDataFrmt();
@@ -113,8 +117,8 @@ public class SOMDataLoader implements Runnable {
 	//verify file map dimensions agree
 	private boolean checkMapDim(String[] tkns, String errorMSG){
 		int tmapY = Integer.parseInt(tkns[0]), tmapX = Integer.parseInt(tkns[1]);
-		if((tmapY != mapMgr.getMapY()) || (tmapX != mapMgr.getMapX())) { 
-			mapMgr.dispMessage("DataLoader","checkMapDim","!!"+ errorMSG + " dimensions : " + tmapX +","+tmapY+" do not match dimensions of learned weights " + mapMgr.getMapX() +","+mapMgr.getMapY()+". Loading aborted."); 
+		if((tmapY != mapMgr.getMapNodeRows()) || (tmapX != mapMgr.getMapNodeCols())) { 
+			mapMgr.dispMessage("DataLoader","checkMapDim","!!"+ errorMSG + " dimensions : " + tmapX +","+tmapY+" do not match dimensions of learned weights " + mapMgr.getMapNodeCols() +","+mapMgr.getMapNodeRows()+". Loading aborted."); 
 			return false;} 
 		return true;		
 	}
@@ -137,7 +141,7 @@ public class SOMDataLoader implements Runnable {
 			if(i < 2){//first 2 lines are map description : line 0 is map row/col count; map 2 is # ftrs
 				tkns = strs[i].replace('%', ' ').trim().split(mapMgr.SOM_FileToken);
 				//set map size in nodes
-				if(i==0){mapY = Integer.parseInt(tkns[0]);mapMgr.setMapY(mapY);mapX = Integer.parseInt(tkns[1]);mapMgr.setMapX(mapX);	} 
+				if(i==0){mapY = Integer.parseInt(tkns[0]);mapMgr.setMapNumRows(mapY);mapX = Integer.parseInt(tkns[1]);mapMgr.setMapNumCols(mapX);	} 
 				else {	//# ftrs in map
 					mapMgr.numFtrs = Integer.parseInt(tkns[0]);
 					ftrNames = new String[mapMgr.numFtrs];
@@ -170,7 +174,7 @@ public class SOMDataLoader implements Runnable {
 		//need to have all features built to scale features		
 		mapMgr.map_ftrsDiffs = new float[mapMgr.numFtrs];
 		//initialize array of images to display map of particular feature with
-		mapMgr.initMapAras(mapMgr.numFtrs);
+		mapMgr.initMapAras();
 		
 		for(int d = 0; d<mapMgr.numFtrs; ++d){mapMgr.map_ftrsMean[d] /= 1.0f*numEx;mapMgr.map_ftrsDiffs[d]=tmpMapMaxs[d]-mapMgr.map_ftrsMin[d];}
 		//set stdftrs for map nodes and variance calc
@@ -243,8 +247,6 @@ public class SOMDataLoader implements Runnable {
 		}
 		return res;
 	}//_loadFileIntoStringAra_MT
-
-	
 	
 	//load best matching units for each training example - has values : idx, mapy, mapx.  Uses file built by som code.  can be verified by comparing actual example distance from each node
 	private boolean loadSOM_BMUs(){//modifies existing nodes and datapoints only
@@ -252,8 +254,11 @@ public class SOMDataLoader implements Runnable {
 		if(bmFileName.length() < 1){return false;}
 		mapMgr.nodesWithEx.clear();
 		mapMgr.dispMessage("DataLoader","loadSOM_BMUs","Start Loading BMU File : "+bmFileName);
+		
+		
 		String [] strs= mapMgr.loadFileIntoStringAra(bmFileName, "Loaded best matching unit data file : "+bmFileName, "Error reading best matching unit file : "+bmFileName);
 		if(strs==null){return false;}
+		
 		String[] tkns;
 		if (useChiSqDist) {		//setting chi check here to minimize if checks.  hundreds of thousands (if not millions) of if checks per load.	 May need to stream load
 			for (int i=0;i<strs.length;++i){//load in data on all bmu's
@@ -282,7 +287,7 @@ public class SOMDataLoader implements Runnable {
 				//debug to verify node row/col order
 				//dbgVerifyBMUs(tmpMapNode, tmpDataPt,Integer.parseInt(tkns[1]) ,Integer.parseInt(tkns[2]));
 				mapMgr.nodesWithEx.add(tmpMapNode);
-				mapMgr.nodesWithNoEx.remove(tmpMapNode);
+				//mapMgr.nodesWithNoEx.remove(tmpMapNode);
 				//mapMgr.dispMessage("DataLoader : Tuple "  + mapLoc + " from str @ i-2 = " + (i-2) + " node : " + tmpMapNode.toString());
 			}//for each training data point			
 		} else {			
@@ -316,10 +321,13 @@ public class SOMDataLoader implements Runnable {
 				//debug to verify node row/col order
 				//dbgVerifyBMUs(tmpMapNode, tmpDataPt,Integer.parseInt(tkns[1]) ,Integer.parseInt(tkns[2]));
 				mapMgr.nodesWithEx.add(tmpMapNode);
-				mapMgr.nodesWithNoEx.remove(tmpMapNode);
+				//mapMgr.nodesWithNoEx.remove(tmpMapNode);
 				//mapMgr.dispMessage("DataLoader : Tuple "  + mapLoc + " from str @ i-2 = " + (i-2) + " node : " + tmpMapNode.toString());
 			}//for each training data point	
 		}//if chisq dist else
+		//remove all examples that have been 
+		for (SOMMapNodeExample tmpMapNode : mapMgr.nodesWithEx) {			mapMgr.nodesWithNoEx.remove(tmpMapNode);		}
+		
 		boolean isTorroid = mapMgr.isToroidal();
 		float dist,minDist;
 		//set all empty mapnodes to have a label based on the closest mapped node's label
@@ -415,6 +423,17 @@ public class SOMDataLoader implements Runnable {
 		return true;
 	}//loadSOM_ftrBMUs	
 	
+	//load the u-matrix data used to build the node distance visualization
+	private boolean loadSOM_nodeDists() {
+		String uMtxBMUFname =  projConfigData.getSOMResFName(projConfigData.umtxIDX);
+		if(uMtxBMUFname.length() < 1){return false;}
+		
+		
+		
+		
+		return true;
+	}//loadSOM_nodeDists
+	
 	private void initFlags(){stFlags = new int[1 + numFlags/32]; for(int i = 0; i<numFlags; ++i){setFlag(i,false);}}
 	public void setFlag(int idx, boolean val){
 		int flIDX = idx/32, mask = 1<<(idx%32);
@@ -426,6 +445,30 @@ public class SOMDataLoader implements Runnable {
 	}//setFlag	
 	public boolean getFlag(int idx){int bitLoc = 1<<(idx%32);return (stFlags[idx/32] & bitLoc) == bitLoc;}		
 }//dataLoader
+
+////load best matching units for each provided example
+//class straffBMULoader implements Callable<Boolean>{
+//	SOMMapManager mapMgr;
+//	int stIdx, endIdx, thdIDX;
+//	boolean useChiSqDist;
+//	String [] strs;
+//	public straffBMULoader(SOMMapManager _mapMgr, int _stProdIDX, int _endProdIDX, boolean _useChiSqDist, String [] _strs, int _thdIDX) {
+//		mapMgr = _mapMgr;
+//		stIdx = _stProdIDX;
+//		endIdx = _endProdIDX;
+//		useChiSqDist =_useChiSqDist;
+//		thdIDX= _thdIDX;	
+//		strs = _strs;
+//	}//ctor
+//
+//	@Override
+//	public Boolean call() throws Exception {
+//		// TODO Auto-generated method stub
+//		return true;
+//	}
+//	
+//	
+//}//straffBMULoader
 
 
 //class to determine which products are closest to which map nodes
@@ -472,18 +515,18 @@ class straffMapVisImgBuilder implements Callable<Boolean>{
 		MapNodes = mapMgr.MapNodes;
 		ftrType = mapMgr.getCurrMapDataFrmt();
 		mapLocClrImg = _mapLocClrImg;
-		mapX = mapMgr.mapX;
+		mapX = mapMgr.getMapNodeCols();
 		xSt = _xVals[0];
 		xEnd = _xVals[1];
 		if(mapLocClrImg.length == 0) {		imgW = 0;} 
 		else {								imgW = mapLocClrImg[0].width;}
-		mapY = mapMgr.mapY;
+		mapY = mapMgr.getMapNodeRows();
 		ySt = _yVals[0];
 		yEnd = _yVals[1];
 
 		mapScaleVal = _mapScaleVal;
-		sclMultXPerPxl = mapScaleVal * mapMgr.nodeXPerPxl;
-		sclMultYPerPxl = mapScaleVal * mapMgr.nodeYPerPxl;
+		sclMultXPerPxl = mapScaleVal * mapMgr.getNodePerPxlCol();
+		sclMultYPerPxl = mapScaleVal * mapMgr.getNodePerPxlRow();
 	}//ctor
 	
 	public float[] getMapNodeLocFromPxlLoc(float mapPxlX, float mapPxlY){	return new float[]{(mapPxlX * sclMultXPerPxl) - .5f, (mapPxlY * sclMultYPerPxl) - .5f};}	
@@ -533,8 +576,10 @@ class straffMapVisImgBuilder implements Callable<Boolean>{
 		//dispMessage("In getDataPointAtLoc : Mouse loc in Nodes : " + x + ","+y+ "\txInt : "+ xInt + " yInt : " + yInt );
 		float xInterp = (x+1) %1, yInterp = (y+1) %1;
 		//always compare standardized feature data in test/train data to standardized feature data in map
-		TreeMap<Integer, Float> LowXLowYFtrs = MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt)).getCurrentFtrMap(ftrType), LowXHiYFtrs= MapNodes.get(new Tuple<Integer, Integer>(xInt,yIntp1)).getCurrentFtrMap(ftrType),
-				 HiXLowYFtrs= MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yInt)).getCurrentFtrMap(ftrType),  HiXHiYFtrs= MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yIntp1)).getCurrentFtrMap(ftrType);
+		TreeMap<Integer, Float> LowXLowYFtrs = MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt)).getCurrentFtrMap(ftrType), 
+				LowXHiYFtrs= MapNodes.get(new Tuple<Integer, Integer>(xInt,yIntp1)).getCurrentFtrMap(ftrType),
+				HiXLowYFtrs= MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yInt)).getCurrentFtrMap(ftrType),  
+				HiXHiYFtrs= MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yIntp1)).getCurrentFtrMap(ftrType);
 		try{
 			TreeMap<Integer, Float> ftrs = interpTreeMap(interpTreeMap(LowXLowYFtrs, LowXHiYFtrs,yInterp,1.0f),interpTreeMap(HiXLowYFtrs, HiXHiYFtrs,yInterp,1.0f),xInterp,255.0f);	
 			return ftrs;
@@ -567,8 +612,7 @@ class straffMapVisImgBuilder implements Callable<Boolean>{
 			}
 		}
 		return true;
-	}
-	
+	}	
 }//straffMapVisImgBuilder
 
 //this class will load the pre-procced csv data into the prospect data structure owned by the SOMMapData object

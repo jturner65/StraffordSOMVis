@@ -112,13 +112,15 @@ public class SOM_StraffordMain extends PApplet {
 		glblLastSimFrameTime = millis();
 		return modAmtMillis;
 	}
+	
+	//main draw loop
 	public void draw(){	
 		if(!flags[finalInitDone]) {initOnce(); return;}	
 		float modAmtMillis = getModAmtMillis();
 		//simulation section
 		if(flags[runSim] ){
 			//run simulation
-			drawCount++;									//needed to stop draw update so that pausing sim retains animation positions	
+			drawCount++;									//needed here to stop draw update so that pausing sim retains animation positions	
 			for(int i =1; i<numDispWins; ++i){if((isShowingWindow(i)) && (dispWinFrames[i].getFlags(myDispWindow.isRunnable))){dispWinFrames[i].simulate(modAmtMillis);}}
 			if(flags[singleStep]){setFlags(runSim,false);}
 			simCycles++;
@@ -177,6 +179,19 @@ public class SOM_StraffordMain extends PApplet {
 		dispWinFrames[0].drawHeader(modAmtMillis);
 		drawOnScreenData();				//debug and on-screen data
 	}//drawUI	
+	
+	//called by sidebar menu to display current window's UI components
+	public void drawWindowGuiObjs(){
+		if(curFocusWin != -1){
+			pushMatrix();pushStyle();
+			dispWinFrames[curFocusWin].drawGUIObjs();					//draw what user-modifiable fields are currently available
+			dispWinFrames[curFocusWin].drawClickableBooleans();					//draw what user-modifiable fields are currently available
+			dispWinFrames[curFocusWin].drawCustMenuObjs();					//customizable menu objects for each window
+			//also launch custom function here
+			dispWinFrames[curFocusWin].checkCustMenuUIObjs();			
+			popStyle();	popMatrix();	
+		}
+	}//
 
 	//handle pressing keys 0-9
 	//keyVal is actual value of key (screen character as int)
@@ -244,7 +259,6 @@ public class SOM_StraffordMain extends PApplet {
 	}
 	public void mouseMoved(){for(int i =0; i<numDispWins; ++i){if (dispWinFrames[i].handleMouseMove(mouseX, mouseY)){return;}}}
 	public void mousePressed() {
-		//verify left button if(mouseButton == LEFT)
 		setFlags(mouseClicked, true);
 		if(mouseButton == LEFT){			mouseClicked(0);} 
 		else if (mouseButton == RIGHT) {	mouseClicked(1);}
@@ -310,7 +324,7 @@ public class SOM_StraffordMain extends PApplet {
 	//turn off specific function button that might have been kept on during processing - btn must be in range of size of guiBtnSt[mySideBarMenu.btnAuxFuncIdx]
 	//isSlowProc means function this was waiting on is a slow process and escaped the click release in the window (i.e. if isSlowProc then we must force button to be off)
 	public void clearFuncBtnSt(int btn, boolean isSlowProc) {clearBtnState(mySideBarMenu.btnAuxFuncIdx,btn, isSlowProc);}
-	//process to delete an existing component
+
 	public void handleFuncSelCmp(int btn, int val){handleFuncSelCmp(btn, val, true);}					//display specific windows - multi-select/ always on if sel
 	public void handleFuncSelCmp(int btn, int val, boolean callFlags){
 		if(!callFlags){
@@ -848,10 +862,8 @@ public class SOM_StraffordMain extends PApplet {
 		    drawInfoStr(1.1f, dispWinFrames[curFocusWin].strkClr); 
 			popStyle();	popMatrix();	
 		}
-	}
-	
-	
-	
+	}//drawOnScreenData
+		
 	//print out multiple-line text to screen
 	public void ml_text(String str, float x, float y){
 		String[] res = str.split("\\r?\\n");
@@ -1293,21 +1305,28 @@ public class SOM_StraffordMain extends PApplet {
 //			popStyle(); popMatrix();} // render sphere of radius r and center P)
 
 	//inRect means draw inside rectangle
-	public void show(myPointf P, float rad, int det, int[] fclr, int[] strkclr, int tclr, String txt, boolean useBKGBox) {
+	public void showBox(myPointf P, float rad, int det, int[] fclr, int[] strkclr, int tclr, String txt) {
 		pushMatrix(); pushStyle(); 
-		translate(P.x,P.y,P.z); 
-		if(useBKGBox){
-			fill(255,255,255,150);
-			stroke(0,0,0,255);
-			rect(0,6.0f,txt.length()*7.8f,-15);
-			tclr = gui_Black;
-		} 
+		translate(P.x,P.y,P.z);
+		fill(255,255,255,150);
+		stroke(0,0,0,255);
+		rect(0,6.0f,txt.length()*7.8f,-15);
+		tclr = gui_Black;		
 		setFill(fclr,255); setStroke(strkclr,255);			
 		sphereDetail(det);
 		sphere(rad); 
 		showOffsetText(1.2f * rad,tclr, txt);
 		popStyle(); popMatrix();} // render sphere of radius r and center P)
 	
+	//inRect means draw inside rectangle
+	public void showNoBox(myPointf P, float rad, int det, int[] fclr, int[] strkclr, int tclr, String txt) {
+		pushMatrix(); pushStyle(); 
+		translate(P.x,P.y,P.z); 
+		setFill(fclr,255); setStroke(strkclr,255);			
+		sphereDetail(det);
+		sphere(rad); 
+		showOffsetText(1.2f * rad,tclr, txt);
+		popStyle(); popMatrix();} // render sphere of radius r and center P)
 	//show sphere of certain radius
 	public void show(myPointf P, float rad, int det, int[] fclr, int[] strkclr) {
 		pushMatrix(); pushStyle(); 

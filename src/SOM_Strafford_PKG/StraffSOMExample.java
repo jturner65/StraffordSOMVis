@@ -233,7 +233,7 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	// mapNodeNghbrs (9 node neighborood) must be set before this is called, and has bmu set as closest, with key being distance
 	//distsToNodes is distance of this node to all map nodes in neighborhood
 	protected void buildNghbrhdMapNodes_ChiSq(int _ftrType){
-		int mapColsSize = mapData.getMapX(), mapRowSize = mapData.getMapY();
+		int mapColsSize = mapData.getMapNodeCols(), mapRowSize = mapData.getMapNodeRows();
 		int mapCtrX = bmu.mapNodeCoord.x, mapCtrY = bmu.mapNodeCoord.y;
 		Integer xTup, yTup;
 		//go through all mapData.MapNodes 
@@ -257,7 +257,7 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	// mapNodeNghbrs (9 node neighborood) must be set before this is called, and has bmu set as closest, with key being distance
 	//distsToNodes is distance of this node to all map nodes in neighborhood
 	protected void buildNghbrhdMapNodes(int _ftrType){
-		int mapColsSize = mapData.getMapX(), mapRowSize = mapData.getMapY();
+		int mapColsSize = mapData.getMapNodeCols(), mapRowSize = mapData.getMapNodeRows();
 		int mapCtrX = bmu.mapNodeCoord.x, mapCtrY = bmu.mapNodeCoord.y;
 		Integer xTup, yTup;
 		//go through all mapData.MapNodes 
@@ -474,8 +474,6 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 
 	//implement this for all inheriting classes - use already-known data to build label for example
 	public abstract void buildLabelIndiv();
-	
-	
 	
 	private String _toCSVString(TreeMap<Integer, Float> ftrs) {
 		String res = ""+OID+",";
@@ -916,10 +914,10 @@ class ProspectExample extends StraffSOMExample{
 	}
 
 	@Override
-	public void drawMeLblMap(SOM_StraffordMain p, boolean showBKGBox) {
+	public void drawMeLblMap(SOM_StraffordMain p) {
 		p.pushMatrix();p.pushStyle();
 		//draw point of radius rad at maploc with label	
-		p.show(mapLoc, getRad(), 5, label.clrVal,label.clrVal, SOM_StraffordMain.gui_FaintGray, label.label,showBKGBox);
+		p.showNoBox(mapLoc, getRad(), 5, label.clrVal,label.clrVal, SOM_StraffordMain.gui_FaintGray, label.label);
 		p.popStyle();p.popMatrix();			}
 	
 	@Override
@@ -1126,10 +1124,10 @@ class ProductExample extends StraffSOMExample{
 	}//setFtrMinMax
 	
 	@Override
-	public void drawMeLblMap(SOM_StraffordMain p, boolean showBKGBox){
+	public void drawMeLblMap(SOM_StraffordMain p){
 		p.pushMatrix();p.pushStyle();
 		//draw point of radius rad at maploc with label	
-		p.show(mapLoc, getRad(), 5, label.clrVal,label.clrVal, SOM_StraffordMain.gui_FaintGray, label.label, showBKGBox);
+		p.showNoBox(mapLoc, getRad(), 5, label.clrVal,label.clrVal, SOM_StraffordMain.gui_FaintGray, label.label);
 		p.popStyle();p.popMatrix();		
 	}//drawLabel
 	
@@ -1241,10 +1239,10 @@ class DispSOMMapExample extends StraffSOMExample{
 	@Override
 	public void finalizeBuild() {}
 	@Override
-	public void drawMeLblMap(SOM_StraffordMain p, boolean showBKGBox){
+	public void drawMeLblMap(SOM_StraffordMain p){
 		p.pushMatrix();p.pushStyle();
 		//draw point of radius rad at maploc with label	
-		p.show(mapLoc, rad, 5, clrVal,clrVal, SOM_StraffordMain.gui_LightGreen, mseLabelDat, showBKGBox);
+		p.showBox(mapLoc, rad, 5, clrVal,clrVal, SOM_StraffordMain.gui_LightGreen, mseLabelDat);
 		p.popStyle();p.popMatrix();		
 	}//drawLabel
 
@@ -1421,10 +1419,10 @@ class SOMMapNodeExample extends StraffSOMExample{
 	}
 
 	@Override
-	public void drawMeLblMap(SOM_StraffordMain p, boolean showBKGBox){
+	public void drawMeLblMap(SOM_StraffordMain p){
 		p.pushMatrix();p.pushStyle();
 		//draw point of radius rad at maploc with label	
-		p.show(mapLoc, getRad(), 5, label.clrVal,label.clrVal, SOM_StraffordMain.gui_FaintGray, label.label, showBKGBox);
+		p.showNoBox(mapLoc, getRad(), 5, label.clrVal,label.clrVal, SOM_StraffordMain.gui_FaintGray, label.label);
 		p.popStyle();p.popMatrix();		
 	}//drawLabel
 
@@ -1497,12 +1495,12 @@ abstract class baseDataPtVis{
 		p.popStyle();p.popMatrix();		
 	}//drawMeWithWt
 	
-	public abstract void drawMeLblMap(SOM_StraffordMain p, boolean showBKGBox);
+	public abstract void drawMeLblMap(SOM_StraffordMain p);
 	
 	public void drawMeRanked(SOM_StraffordMain p, String lbl, int[] clr, float rad, int rank){
 		p.pushMatrix();p.pushStyle();
 		//draw point of radius rad at maploc with label and no background box	
-		p.show(mapLoc, rad, drawDet, clr, clr, SOM_StraffordMain.gui_White, lbl, false);
+		p.showNoBox(mapLoc, rad, drawDet, clr, clr, SOM_StraffordMain.gui_White, lbl);
 		p.popStyle();p.popMatrix();
 	}
 }//baseDataPtVis

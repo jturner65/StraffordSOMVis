@@ -28,15 +28,16 @@ public class mySOMMapUIWin extends myDispWindow {
 		mapDrawPopMapNodesIDX   = 10,			//draw map nodes that are bmus for training examples
 		mapDrawAllMapNodesIDX	= 11,			//draw all map nodes, even empty
 		mapDrawAnalysisVisIDX	= 12,			//whether or not to draw feature calc analysis graphs
+		mapDrawUMatrixIDX		= 13,			//draw visualization of u matrix - distance between nodes
 		
-		showSelRegionIDX		= 13,			//highlight a specific region of the map, either all nodes above a certain threshold for a chosen jp or jpgroup
-		showSelJPIDX			= 14, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
+		showSelRegionIDX		= 14,			//highlight a specific region of the map, either all nodes above a certain threshold for a chosen jp or jpgroup
+		showSelJPIDX			= 15, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
 		//train/test data management
-		somTrainDataLoadedIDX	= 15,			//whether data used to build map has been loaded yet
-		saveLocClrImgIDX		= 16,			//
-		useOnlyEvntsToTrainIDX  = 17;			//only use records that have event jpgs/jps to train, otherwise use records that also have jpgs/jps only specified in prospect db
+		somTrainDataLoadedIDX	= 16,			//whether data used to build map has been loaded yet
+		saveLocClrImgIDX		= 17,			//
+		useOnlyEvntsToTrainIDX  = 18;			//only use records that have event jpgs/jps to train, otherwise use records that also have jpgs/jps only specified in prospect db
 	
-	public static final int numPrivFlags = 18;
+	public static final int numPrivFlags = 19;
 	
 	//SOM map list options
 	public String[] 
@@ -95,8 +96,13 @@ public class mySOMMapUIWin extends myDispWindow {
 	//set analysisHt equal to be around 1/2 SOM_mapDims height
 	private int analysisHt, analysisAllJPBarWidth, analysisPerJPWidth;
 	
-	//TODO need to make these arrays?
-	private PImage[] mapLocClrImg;//, mapRndClrImg;
+	//array of per-ftr map wts
+	private PImage[] mapPerFtrWtImgs;
+	//array of per jpg map wts - equally weighted all jps within jpg
+	private PImage[] mapPerJpgWtImgs;
+	//image of umatrix (distance between nodes)
+	private PImage mapUMatrixImg;
+	
 	//which map is currently being shown
 	private int curMapImgIDX;
 	//scaling value - use this to decrease the image size and increase the scaling so it is rendered the same size
@@ -126,19 +132,19 @@ public class mySOMMapUIWin extends myDispWindow {
 				"Train W/Recs W/Event Data", "Building SOM", "Resetting Def Vals", "Loading Feature BMUs",
 				"Using ChiSq for Ftr Distance", "Unshared Ftrs are 0",	"Hide Train Data",
 				"Hide Train Lbls",	"Hide Map Nodes (by Wt)","Hide Map Nodes (by Pop)", "Hide Map Nodes", "Hide Products",
-				"Hide Calc Analysis"
+				"Hide Node Distances (U Mtrx)",	"Hide Calc Analysis"
 		};
 		falsePrivFlagNames = new String[]{			//needs to be in order of flags
 				"Train W/All Recs","Build New Map ","Reset Def Vals","Not Loading Feature BMUs",
 				"Not Using ChiSq Distance", "Ignoring Unshared Ftrs","Show Train Data",
 				"Show Train Lbls",	"Show Map Nodes (by Wt)","Show Map Nodes (by Pop)","Show Map Nodes", "Show Products",
-				"Show Calc Analysis"
+				"Show Node Distances (U Mtrx)","Show Calc Analysis"
 		};
 		privModFlgIdxs = new int[]{
 				useOnlyEvntsToTrainIDX, buildSOMExe, resetMapDefsIDX, mapLoadFtrBMUsIDX,
 				mapUseChiSqDistIDX,mapSetSmFtrZeroIDX,mapDrawTrainDatIDX,
 				mapDrawTrDatLblIDX,mapDrawWtMapNodesIDX,mapDrawPopMapNodesIDX,mapDrawAllMapNodesIDX, mapDrawPrdctNodesIDX,
-				mapDrawAnalysisVisIDX};
+				mapDrawUMatrixIDX,mapDrawAnalysisVisIDX};
 		numClickBools = privModFlgIdxs.length;	
 		//maybe have call for 		initPrivBtnRects(0);	
 		initPrivBtnRects(0,numClickBools);
@@ -171,17 +177,23 @@ public class mySOMMapUIWin extends myDispWindow {
 		//moved from mapMgr ctor, to remove dependence on papplet in that object
 		dpFillClr = pa.getClr(SOM_StraffordMain.gui_White);
 		dpStkClr = pa.getClr(SOM_StraffordMain.gui_Blue);	
-		initMapAras(1);
+		initMapAras(1, 1);
 		mseOvrData = null;					
 	}//initMe
 	
-	protected void initMapAras(int numVals) {
+	protected void initMapAras(int numJPVals, int numJPGVals) {
 		curMapImgIDX = 0;
 		int w = (int) (SOM_mapDims[2]/mapScaleVal), h = (int) (SOM_mapDims[3]/mapScaleVal);
-		mapLocClrImg = new PImage[numVals];
-		for(int i=0;i<numVals;++i) {
-			mapLocClrImg[i] = pa.createImage(w, h, pa.RGB);
+		mapPerFtrWtImgs = new PImage[numJPVals];
+		for(int i=0;i<mapPerFtrWtImgs.length;++i) {
+			mapPerFtrWtImgs[i] = pa.createImage(w, h, pa.RGB);
 		}		
+		mapPerJpgWtImgs = new PImage[numJPGVals];
+		for(int i=0;i<mapPerJpgWtImgs.length;++i) {
+			mapPerJpgWtImgs[i] = pa.createImage(w, h, pa.RGB);
+		}		
+		mapUMatrixImg = pa.createImage(w, h, pa.RGB);
+		
 	}//initMapAras	
 	
 	//set flag values when finished building map, to speed up initial display
@@ -240,6 +252,9 @@ public class mySOMMapUIWin extends myDispWindow {
 					//for single jp detail display
 					analysisPerJPWidth = (int) (SOM_mapDims[2]*.1f);
 				}
+				break;}
+			case mapDrawUMatrixIDX :{//whether to show the UMatrix (distance between nodes) representation of the map - overrides per-ftr display
+				
 				break;}
 			
 //			case mapShowLocClrIDX		: {//draw all map nodes, even empty
@@ -576,7 +591,7 @@ public class mySOMMapUIWin extends myDispWindow {
 	
 
 	//given pixel location relative to upper left corner of map, return map node
-	public float[] getMapNodeLocFromPxlLoc(float mapPxlX, float mapPxlY, float sclVal){	return new float[]{(sclVal* mapPxlX * mapMgr.nodeXPerPxl) - .5f, (sclVal* mapPxlY * mapMgr.nodeYPerPxl) - .5f};}	
+	public float[] getMapNodeLocFromPxlLoc(float mapPxlX, float mapPxlY, float sclVal){	return new float[]{(sclVal* mapPxlX * mapMgr.getNodePerPxlCol()) - .5f, (sclVal* mapPxlY * mapMgr.getNodePerPxlRow()) - .5f};}	
 	//check whether the mouse is over a legitimate map location
 	public boolean chkMouseOvr(int mouseX, int mouseY){		
 		float mapMseX = getSOMRelX(mouseX), mapMseY = getSOMRelY(mouseY);//, mapLocX = mapX * mapMseX/mapDims[2],mapLocY = mapY * mapMseY/mapDims[3] ;
@@ -654,7 +669,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		pa.pushMatrix();pa.pushStyle();
 			pa.noLights();
 			pa.scale(mapScaleVal);
-			pa.image(mapLocClrImg[curMapImgIDX],SOM_mapDims[0]/mapScaleVal,SOM_mapDims[1]/mapScaleVal); if(getPrivFlags(saveLocClrImgIDX)){mapLocClrImg[curMapImgIDX].save(mapMgr.getSOMLocClrImgForJPFName(curMapImgIDX));  setPrivFlags(saveLocClrImgIDX,false);}			
+			pa.image(mapPerFtrWtImgs[curMapImgIDX],SOM_mapDims[0]/mapScaleVal,SOM_mapDims[1]/mapScaleVal); if(getPrivFlags(saveLocClrImgIDX)){mapPerFtrWtImgs[curMapImgIDX].save(mapMgr.getSOMLocClrImgForJPFName(curMapImgIDX));  setPrivFlags(saveLocClrImgIDX,false);}			
 			pa.lights();
 		pa.popStyle();pa.popMatrix();
 		
@@ -663,7 +678,7 @@ public class mySOMMapUIWin extends myDispWindow {
 			//draw nodes
 			pa.pushMatrix();pa.pushStyle();
 				pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
-				if ((!getPrivFlags(mapDrawAnalysisVisIDX)) && (mseOvrData != null)){mseOvrData.drawMeLblMap(pa,true);}
+				if ((!getPrivFlags(mapDrawAnalysisVisIDX)) && (mseOvrData != null)){mseOvrData.drawMeLblMap(pa);}
 				if(getPrivFlags(mapDrawTrainDatIDX)){		mapMgr.drawTrainData(pa, curMapImgIDX, getPrivFlags(mapDrawTrDatLblIDX));}	
 				if(getPrivFlags(mapDrawPrdctNodesIDX)){		mapMgr.drawProductNodes(pa, curMapImgIDX, true);}
 			pa.popStyle();pa.popMatrix();
@@ -702,43 +717,44 @@ public class mySOMMapUIWin extends myDispWindow {
 	public void setMapImgClrs(){ //mapRndClrImg
 		float[] c;		
 		int stTime = pa.millis();
-		for (int i=0;i<mapLocClrImg.length;++i) {	mapLocClrImg[i].loadPixels();}
+		for (int i=0;i<mapPerFtrWtImgs.length;++i) {	mapPerFtrWtImgs[i].loadPixels();}
 		//if single threaded
-		boolean singleThread=mapMgr.numUsableThreads<=1;//this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
-		if(singleThread) {				
-			for(int y = 0; y<mapLocClrImg[0].height; ++y){
-				int yCol = y * mapLocClrImg[0].width;
-				for(int x = 0; x < mapLocClrImg[0].width; ++x){
-					c = getMapNodeLocFromPxlLoc(x, y,mapScaleVal);
-					TreeMap<Integer, Float> ftrs = mapMgr.getInterpFtrs(c[0],c[1]);
-					for (Integer jp : ftrs.keySet()) {mapLocClrImg[jp].pixels[x+yCol] = getDataClrFromFtrVec(ftrs, jp);}
-				}
-			}
-		} else {
+		int numThds = mapMgr.getNumUsableThreads();
+		boolean mtCapable = mapMgr.isMTCapable();
+		if(mtCapable) {				
 			//partition into mapMgr.numUsableThreads threads - split x values by this #, use all y values
-			int numPartitions = mapMgr.numUsableThreads;
-			int numXPerPart = mapLocClrImg[0].width / numPartitions;			
-			int numXLastPart = (mapLocClrImg[0].width - (numXPerPart*numPartitions)) + numXPerPart;
+			int numPartitions = numThds;
+			int numXPerPart = mapPerFtrWtImgs[0].width / numPartitions;			
+			int numXLastPart = (mapPerFtrWtImgs[0].width - (numXPerPart*numPartitions)) + numXPerPart;
 			List<Future<Boolean>> mapImgFtrs = new ArrayList<Future<Boolean>>();
 			List<straffMapVisImgBuilder> mapImgBuilders = new ArrayList<straffMapVisImgBuilder>();
 			int[] xVals = new int[] {0,0};
-			int[] yVals = new int[] {0,mapLocClrImg[0].height};
+			int[] yVals = new int[] {0,mapPerFtrWtImgs[0].height};
 			
 			for (int i=0; i<numPartitions-1;++i) {	
 				xVals[1] += numXPerPart;
 				//(SOMMapManager _mapMgr, PImage[] _mapLocClrImg, int[] _xVals, int[] _yVals,  float _mapScaleVal)
-				mapImgBuilders.add(new straffMapVisImgBuilder(mapMgr, mapLocClrImg, xVals, yVals, mapScaleVal));
+				mapImgBuilders.add(new straffMapVisImgBuilder(mapMgr, mapPerFtrWtImgs, xVals, yVals, mapScaleVal));
 				xVals[0] = xVals[1];				
 			}
 			//last one
 			xVals[1] += numXLastPart;
-			mapImgBuilders.add(new straffMapVisImgBuilder(mapMgr, mapLocClrImg, xVals, yVals, mapScaleVal));
+			mapImgBuilders.add(new straffMapVisImgBuilder(mapMgr, mapPerFtrWtImgs, xVals, yVals, mapScaleVal));
 			try {mapImgFtrs = pa.th_exec.invokeAll(mapImgBuilders);for(Future<Boolean> f: mapImgFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }					
-	
+		} else {
+			//single threaded exec
+			for(int y = 0; y<mapPerFtrWtImgs[0].height; ++y){
+				int yCol = y * mapPerFtrWtImgs[0].width;
+				for(int x = 0; x < mapPerFtrWtImgs[0].width; ++x){
+					c = getMapNodeLocFromPxlLoc(x, y,mapScaleVal);
+					TreeMap<Integer, Float> ftrs = mapMgr.getInterpFtrs(c[0],c[1]);
+					for (Integer jp : ftrs.keySet()) {mapPerFtrWtImgs[jp].pixels[x+yCol] = getDataClrFromFtrVec(ftrs, jp);}
+				}
+			}
 		}
-		for (int i=0;i<mapLocClrImg.length;++i) {	mapLocClrImg[i].updatePixels();		}
+		for (int i=0;i<mapPerFtrWtImgs.length;++i) {	mapPerFtrWtImgs[i].updatePixels();		}
 		int endTime = pa.millis();
-		mapMgr.dispMessage("mySOMMapUIWin", "setMapImgClrs", "Time to build all vis imgs : "  + ((endTime-stTime)/1000.0f) + "s | Threading : " + (singleThread ? "Single" : "Multi ("+mapMgr.numUsableThreads+")"));
+		mapMgr.dispMessage("mySOMMapUIWin", "setMapImgClrs", "Time to build all vis imgs : "  + ((endTime-stTime)/1000.0f) + "s | Threading : " + (mtCapable ? "Multi ("+numThds+")" : "Single" ));
 	}//setMapImgClrs
 		
 	//return strings for directory names and for individual file names that describe the data being saved.  used for screenshots, and potentially other file saving
@@ -751,37 +767,47 @@ public class mySOMMapUIWin extends myDispWindow {
 		return new String[]{dirString,fileString};	
 	}
 
+	//call from custFunc/custDbg functions being launched in threads
+	//these are launched in threads to allow UI to respond to user input
+	public void resetButtonState(int _type) {
+		switch(_type) {
+		case 0 : {			clearFuncBtnState( true); return;}
+		case 1 : {			clearDBGBtnState(true);  return;}
+		}
+	}//resetButtonState
+	
 	//custom functions launched by UI input
-	//if launching threads for custom functions, need to remove clearFuncBtnState call in function below and call clearFuncBtnState when thread ends
+	//if launching threads for custom functions, need to remove clearFuncBtnState call in function below and call clearFuncBtnState (with slow proc==true) when thread ends
+	//thread launch allows for btn display state to change - necessary for processes that take a while
 	private void custFunc0(){
 		//load data from raw local csvs of db download
 		mapMgr.loadAllRawData((rawDataSource==0), getPrivFlags(useOnlyEvntsToTrainIDX));
-		clearFuncBtnState(0,false);
+		resetButtonState(0);
 	}	
 	private void custFunc1(){
 		//load data from preprocessed local csv files
 		mapMgr.loadAllPreProccedData(getPrivFlags(useOnlyEvntsToTrainIDX));
-		clearFuncBtnState(1,false);
+		resetButtonState(0);
 	}		
 	private void custFunc2(){	
 		mapMgr.buildAndSaveTrainingData((float)(.01*this.guiObjs[uiTrainDatPartIDX].getVal()));//pass fraction of data to use for training
-		clearFuncBtnState(2,false);
 	}			
 	private void custFunc3(){			
 		//combine func1 and func2 with launching map
 		mapMgr.dbgLoadCSVBuildDataTrainMap(getPrivFlags(useOnlyEvntsToTrainIDX), (float)(.01*this.guiObjs[uiTrainDatPartIDX].getVal()));
 		this.setPrivFlags(buildSOMExe, true);
-		clearFuncBtnState(3,false);
+		resetButtonState(0);
 	}			
 	private void custFunc4(){	
 		//load a pre-built map and render it - map needs to coincide with the data currently in memory
 		mapMgr.dbgBuildExistingMap();
-		clearFuncBtnState(4,false);
-	}		
+		//resetButtonState(0);		//called in thread that performs load		
+	}	
+	
 	@Override
-	public void clickFunction(int btnNum) {
-		mapMgr.dispMessage("mySOMMapUIWin","clickFunction","click cust function in "+name+" : btn : " + btnNum);
-		switch(btnNum){
+	protected void launchCustFunc() {
+		mapMgr.dispMessage("mySOMMapUIWin","clickFunction","click cust function in "+name+" : btn : " + curCustFunc);
+		switch(curCustFunc){
 			case 0 : {	custFunc0();	break;}
 			case 1 : {	custFunc1();	break;}
 			case 2 : {	custFunc2();	break;}
@@ -799,31 +825,25 @@ public class mySOMMapUIWin extends myDispWindow {
 	//if launching threads for debugging, need to remove clearDBGState call in function below and call clearDBGState when thread ends
 	private void dbgFunc0() {	
 		mapMgr.dbgShowUniqueJPsSeen();
-		clearDBGBtnState(0,false);
 	}	
 	private void dbgFunc1(){
 		mapMgr.dbgShowCalcEqs();
-		clearDBGBtnState(1,false);
 	}	
 	private void dbgFunc2(){
 		mapMgr.dbgShowAllFtrVecs();
-		clearDBGBtnState(2,false);
 	}	
 	private void dbgFunc3(){	
 		mapMgr.dbgShowAllRawData();
-		clearDBGBtnState(3,false);
 	}	
 	private void dbgFunc4(){	
-		clearDBGBtnState(4,false);
 	}	
 	private void dbgFunc5(){	
-		clearDBGBtnState(5,false);
 	}	
 
 	@Override
-	public void clickDebug(int btnNum){
-		mapMgr.dispMessage("mySOMMapUIWin","clickDebug","click debug in "+name+" : btn : " + btnNum);
-		switch(btnNum){
+	protected void launchDebug(){
+		mapMgr.dispMessage("mySOMMapUIWin","clickDebug","click debug in "+name+" : btn : " + curCustDbg);
+		switch(curCustDbg){
 			case 0 : {	dbgFunc0();	break;}//verify priority queue functionality
 			case 1 : {	dbgFunc1();	break;}//verify FEL pq integrity
 			case 2 : {	dbgFunc2();	break;}
@@ -832,6 +852,7 @@ public class mySOMMapUIWin extends myDispWindow {
 			case 5 : {	dbgFunc5();	break;}
 			default : {break;}
 		}		
+		resetButtonState(1);
 	}//clickDebug
 	//handle mouseover 
 	@Override

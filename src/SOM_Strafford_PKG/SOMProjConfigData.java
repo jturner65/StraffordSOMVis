@@ -103,7 +103,6 @@ public class SOMProjConfigData {
 	//this string holds experiment-specific string used for output files - x,y and k of map used to generate output.  this is set 
 	//separately from calls to setSOM_ExpFileNames because experimental parameters can change between the saving of training data and the running of the experiment
 	private String SOMOutExpSffx;
-
 	
 	public SOMProjConfigData(SOMMapManager _map) {
 		mapMgr=_map;
@@ -126,11 +125,10 @@ public class SOMProjConfigData {
 			mapMgr.dispMessage("SOMProjConfigData","Constructor","Failed to find base application directory "+ baseDir + " due to : " + e);
 		}
 		mapMgr.dispMessage("SOMProjConfigData","Constructor","Canonical Path to application directory : " + straffBasefDir);
-		mapMgr.dispMessage("SOMProjConfigData","Constructor","Loading Project configuration file. (Not yet implemented : TODO : build project config to facilitate turnkey operation.)");	
 		
 		SOMOutExpSffx = "x-1_y-1_k-1";//illegal values, needs to be set
 		dataType = "NONE";
-		
+		//get current time
 		instancedNow = Calendar.getInstance();
 		fnames = new String[numFiles];
 		for(int i=0;i<numFiles;++i){fnames[i]="";}

@@ -181,7 +181,7 @@ public class MonitorJpJpgrp {
 			prodJpgToIDX.put(prodJpGrpsByIdx[i], i);
 		}
 		
-		numFtrs = jpSeenCount.size();
+		numFtrs = jpSeenCount.size();//needs to be same size as jpByIdx.length
 		mapData.setUI_JPMaxVals(jpgrpsByIdx.length,jpByIdx.length); 
 		mapData.dispMessage("MonitorJpJpgrp","setJPDataFromExampleData","numFtrs : " + numFtrs);
 	}//setJPDataFromProspectData	
@@ -228,8 +228,8 @@ public class MonitorJpJpgrp {
 		return "" +name+ " (jpg:"+ jpg + ",idx:" +idx+ ")";
 	}
 	
-	public int getLenJpByIdxStr() {		return jpByIdx.length;	}	
-	public int getLenJpGrpByIdxStr(){	return jpgrpsByIdx.length; }
+	public int getLenJpByIdx() {		return jpByIdx.length;	}//# of jps seen
+	public int getLenJpGrpByIdx(){	return jpgrpsByIdx.length; }//# of jpgrps seen
 	
 	//this will return the appropriate jpgrp for the given jpIDX (ftr idx)
 	public int getUI_JPGrpFromJP(int jpIdx, int curVal) {
@@ -291,8 +291,7 @@ public class MonitorJpJpgrp {
 		Integer res = counts.get(key);
 		return (res == null ? 0 : res);
 	}
-	
-	
+		
 	/////////////////////////////
 	//Load this object's data
 	public void loadAllData(String fileName) {

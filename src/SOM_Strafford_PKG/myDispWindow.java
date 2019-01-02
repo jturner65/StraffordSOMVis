@@ -128,7 +128,12 @@ public abstract class myDispWindow {
 	
 	//path to save screenshots for this dispwindow
 	protected final String ssPathBase;
-		
+	
+	//these ints hold the index of which custom functions or debug functions should be launched.  
+	//these are set when the sidebar menu is clicked and these processes are requested, and they are set to -1 when these processes are launched.  this is so the buttons can be turned on before the process starts
+	protected int curCustFunc = -1, curCustDbg = -1;
+	//this is set to true when curCustXXX vals are set to != -1; this is used as a 1-frame buffer to allow the UI to turn on the source buttons of these functions
+	private boolean custClickSetThisFrame = false, custFuncDbgLaunched = false;
 	
 	public myDispWindow(SOM_StraffordMain _p, String _n, int _flagIdx, int[] fc,  int[] sc, float[] rd, float[] rdClosed, String _winTxt, boolean _canDrawTraj) {
 		pa=_p;
@@ -939,8 +944,6 @@ public abstract class myDispWindow {
 		unSetCamOrient();
 	}//handleViewTargetChange
 	
-	
-	
 	protected myPoint getMsePoint(myPoint pt){return getFlags(myDispWindow.is3DWin) ? getMsePtAs3DPt((int)pt.x, (int)pt.y) : pt;}
 	protected myPoint getMsePoint(int mouseX, int mouseY){return getFlags(myDispWindow.is3DWin) ? getMsePtAs3DPt(mouseX, mouseY) : pa.P(mouseX,mouseY,0);}
 	public boolean handleMouseMove(int mouseX, int mouseY){
@@ -1103,6 +1106,21 @@ public abstract class myDispWindow {
 		return res.toArray(new String[0]);	
 	}
 	
+	//setup the launch of UI-driven custom functions or debugging capabilities, which will execute next frame
+	
+	//UI controlled auxiliary functionality
+	public final void clickFunction(int btnNum) {		curCustFunc = btnNum; custClickSetThisFrame = true;}
+	//UI controlled debug functionality
+	public final void clickDebug(int btnNum) {curCustDbg = btnNum;custClickSetThisFrame = true;}
+	
+	//check if either custom function or debugging has been launched and process if so
+	public final void checkCustMenuUIObjs() {
+		if (custClickSetThisFrame) { custClickSetThisFrame = false;custFuncDbgLaunched=false;return;}	
+		if (custFuncDbgLaunched) {return;}//has been launched don't relaunch
+		if(curCustFunc != -1) {launchCustFunc();custFuncDbgLaunched=true;	return;	}		
+		if(curCustDbg != -1) {	launchDebug();	custFuncDbgLaunched=true;	return;	}		
+	}//checkCustMenuUIObjs
+	
 	//set colors of the trajectory for this window
 	public void setTrajColors(int _tfc, int _tsc){trajFillClrCnst = _tfc;trajStrkClrCnst = _tsc;initTmpTrajStuff(getFlags(trajPointsAreFlat));}
 	//get key used to access arrays in traj array
@@ -1168,11 +1186,11 @@ public abstract class myDispWindow {
 	protected boolean setWinToUIVals(int UIidx, double val){return val == guiObjs[UIidx].setVal(val);}
 
 	//UI controlled debug functionality
-	public abstract void clickDebug(int btnNum);
-	protected void clearDBGBtnState(int btnNum, boolean isSlow){pa.clearDBGBtnSt(btnNum,isSlow);}
+	protected abstract void launchDebug();
+	protected void clearDBGBtnState(boolean isSlow){if (curCustDbg==-1) {return;}pa.clearDBGBtnSt(curCustDbg,isSlow); curCustDbg=-1;}
 	//UI controlled auxiliary functionality
-	public abstract void clickFunction(int btnNum);
-	protected void clearFuncBtnState(int btnNum, boolean isSlow) {pa.clearFuncBtnSt(btnNum,isSlow);}	
+	protected abstract void launchCustFunc();
+	protected void clearFuncBtnState(boolean isSlow) {if (curCustFunc==-1) {return;}pa.clearFuncBtnSt(curCustFunc,isSlow);curCustFunc=-1;}	
 	
 	//return relevant name information for files and directories to be used to build screenshots/saved files
 	
@@ -1526,14 +1544,14 @@ class mySideBarMenu extends myDispWindow{
 	protected void hndlMouseRelIndiv() {	clearAllBtnStates();}
 
 	private void drawSideBarBooleans(){
-		//draw booleans and their state
+		//draw main booleans and their state
 		pa.translate(10,yOff*2);
 		pa.setColorValFill(SOM_StraffordMain.gui_Black);
 		pa.text("Boolean Flags",0,yOff*.20f);
 		pa.translate(0,clkFlgsStY);
 		for(int idx =0; idx<pa.numFlagsToShow; ++idx){
 			int i = pa.flagsToShow.get(idx);
-			if(pa.flags[i] ){													dispMenuTxtLat(truePFlagNames[i],pFlagColors[i], true);			}
+			if(pa.flags[i] ){												dispMenuTxtLat(truePFlagNames[i],pFlagColors[i], true);			}
 			else {	if(truePFlagNames[i].equals(falsePFlagNames[i])) {		dispMenuTxtLat(truePFlagNames[i],new int[]{180,180,180}, false);}	
 					else {													dispMenuTxtLat(falsePFlagNames[i],new int[]{0,255-pFlagColors[i][1],255-pFlagColors[i][2]}, true);}		
 			}
@@ -1548,7 +1566,7 @@ class mySideBarMenu extends myDispWindow{
 		}
 	}
 	
-	//draw UI buttons
+	//draw UI buttons that control functions, debug and global load/save stubs
 	private void drawSideBarButtons(){
 		pa.translate(xOff*.5f,(float)minBtnClkY);
 		pa.setFill(new int[]{0,0,0}, 255);
@@ -1587,24 +1605,20 @@ class mySideBarMenu extends myDispWindow{
 			drawSideBarButtons();						//draw buttons
 		pa.popStyle();	pa.popMatrix();	
 		pa.pushMatrix();pa.pushStyle();
-			drawGUIObjs();					//draw what global user-modifiable fields are currently available
+			drawGUIObjs();					//draw what global user-modifiable fields are currently available 
 		pa.popStyle();	pa.popMatrix();			
 		pa.pushMatrix();pa.pushStyle();
-			drawWindowGuiObjs();		
+			pa.drawWindowGuiObjs();			//draw objects for window with primary focus
 		pa.popStyle();	pa.popMatrix();	
 	}
-	@Override
-	public void drawCustMenuObjs(){}
 	
-	private void drawWindowGuiObjs(){
-		if(pa.curFocusWin != -1){
-			pa.pushMatrix();pa.pushStyle();
-			pa.dispWinFrames[pa.curFocusWin].drawGUIObjs();					//draw what user-modifiable fields are currently available
-			pa.dispWinFrames[pa.curFocusWin].drawClickableBooleans();					//draw what user-modifiable fields are currently available
-			pa.dispWinFrames[pa.curFocusWin].drawCustMenuObjs();					//customizable menu objects for each window
-			pa.popStyle();	pa.popMatrix();	
-		}
-	}
+	@Override
+	public void drawCustMenuObjs(){}	
+	@Override
+	protected void launchDebug() {	}
+	@Override
+	protected void launchCustFunc() {	}
+
 	//no custom camera handling for menu , float rx, float ry, float dz are all now member variables of every window
 	@Override
 	protected void setCameraIndiv(float[] camVals){}
@@ -1622,10 +1636,6 @@ class mySideBarMenu extends myDispWindow{
 	protected String[] getSaveFileDirNamesPriv() {return new String[]{"menuDir","menuFile"};	}
 	@Override
 	public void drawClickableBooleans() {	}//this is only for non-sidebar menu windows, to display their own personal buttons
-	@Override
-	public void clickFunction(int btnNum) {}		//only for display windows
-	@Override
-	public void clickDebug(int btnNum){}	
 	@Override
 	protected myPoint getMsePtAs3DPt(int mouseX, int mouseY){return pa.P(mouseX,mouseY,0);}
 	@Override
@@ -1664,6 +1674,7 @@ class mySideBarMenu extends myDispWindow{
 		String res = super.toString();
 		return res;
 	}
+
 }//mySideBarMenu
 
 

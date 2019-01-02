@@ -1,34 +1,19 @@
 package SOM_Strafford_PKG;
 
 import java.io.*;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
 
 
 //this class holds the data describing a SOM and the data used to both build and query the som
 public class SOMMapManager {
-//	//source directory for reading all source csv files, writing intermediate outputs, executing SOM_MAP and writing results
-//	private String straffBasefDir;
-//	//calcFileWeights is file holding config for calc object
-//	private static final String calcWtFileName = "WeightEqConfig.csv";
-//	//short name to be used in file names to denote this project
-//	private final String SOMProjName = "straff";
-	
 	//struct maintaining complete project configuration and information from config files - all file name data and building needs to be done by this object
 	public SOMProjConfigData projConfigData;			
-
-	//lowest rank to display of bmus/mapnodes
-	//private static final int dispRankThresh = 10;
-	
-	////////////////////////////////////////////////////////////////////////////////////////////////
-	//OS data
-	//OS this application is currently running on
-	//private final String OSUsed;
-		
+			
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	//map descriptions
-	//description of SOM_MAP exe params
-	//private SOM_MapDat SOMExeDat;	
+	
 	//all nodes of som map, keyed by node location
 	public TreeMap<Tuple<Integer,Integer>, SOMMapNodeExample> MapNodes;
 	//keyed by field used in lrn file (float rep of individual record, 
@@ -61,36 +46,32 @@ public class SOMMapManager {
 	public int numInputData, numTrainData, numTestData;
 	
 	public Float[] diffsVals, minsVals;	//values to return scaled values to actual data points - multiply wts by diffsVals, add minsVals
-	//# of nodes in x/y
-	public int mapX =0, mapY =0;
-	//# of nodes / map dim  in x/y
-	public float nodeXPerPxl, nodeYPerPxl;
 	
 	private int[] stFlags;						//state flags - bits in array holding relevant process info
 	public static final int
 			debugIDX 					= 0,
-			mapDataLoadedIDX			= 1,			//som map data is cleanly loaded
-			loaderRtnIDX				= 2,			//dataloader has finished - wait on this to draw map
-			mapSetSmFtrZeroIDX  		= 3,			//map small vector's features to 0, otherwise only compare non-zero features
+			isMTCapableIDX				= 1,
+			mapDataLoadedIDX			= 2,			//som map data is cleanly loaded
+			loaderRtnIDX				= 3,			//dataloader has finished - wait on this to draw map
+			mapSetSmFtrZeroIDX  		= 4,			//map small vector's features to 0, otherwise only compare non-zero features
 			
 			//raw data loading/processing state : 
-			prospectDataLoadedIDX		= 4,			//raw prospect data has been loaded but not yet processed
-			optDataLoadedIDX			= 5,			//raw opt data has been loaded but not processed
-			orderDataLoadedIDX			= 6,			//raw order data loaded not proced
-			linkDataLoadedIDX			= 7,			//raw link data loaded not proced
-			tcTagsDataLoadedIDX			= 8,			//raw tc taggings data loaded not proced
-			jpDataLoadedIDX				= 9,			//raw jp data loaded not proced
-			jpgDataLoadedIDX			= 10,			//raw jpg data loaded not proced
-			calcAnalsysSavedIDX			= 11,			//whether calc analysis data from feature vector construction has been aggregated and saved - set false when ftrs are calced, set true when user selects calc anaysis to be performed,
-			rawPrspctEvDataProcedIDX	= 12,			//all raw prospect/event data has been loaded and processed into StraffSOMExamples (prospect)
-			rawProducDataProcedIDX		= 13,			//all raw product data (from tc_taggings) has been loaded and processed into StraffSOMExamples (product)
+			prospectDataLoadedIDX		= 5,			//raw prospect data has been loaded but not yet processed
+			optDataLoadedIDX			= 6,			//raw opt data has been loaded but not processed
+			orderDataLoadedIDX			= 7,			//raw order data loaded not proced
+			linkDataLoadedIDX			= 8,			//raw link data loaded not proced
+			tcTagsDataLoadedIDX			= 9,			//raw tc taggings data loaded not proced
+			jpDataLoadedIDX				= 10,			//raw jp data loaded not proced
+			jpgDataLoadedIDX			= 11,			//raw jpg data loaded not proced
+			calcAnalsysSavedIDX			= 12,			//whether calc analysis data from feature vector construction has been aggregated and saved - set false when ftrs are calced, set true when user selects calc anaysis to be performed,
+			rawPrspctEvDataProcedIDX	= 13,			//all raw prospect/event data has been loaded and processed into StraffSOMExamples (prospect)
+			rawProducDataProcedIDX		= 14,			//all raw product data (from tc_taggings) has been loaded and processed into StraffSOMExamples (product)
 			//training data saved state : 
-			denseTrainDataSavedIDX 		= 14,			//all current prospect data has been saved as a training data file for SOM (.lrn format) - strafford doesn't use dense training data
-			sparseTrainDataSavedIDX		= 15,			//sparse data format using .svm file descriptions (basically a map with a key:value pair of ftr index : ftr value
-			testDataSavedIDX			= 16;			//save test data in sparse format csv
-			
-
-	public static final int numFlags = 17;	
+			denseTrainDataSavedIDX 		= 15,			//all current prospect data has been saved as a training data file for SOM (.lrn format) - strafford doesn't use dense training data
+			sparseTrainDataSavedIDX		= 16,			//sparse data format using .svm file descriptions (basically a map with a key:value pair of ftr index : ftr value
+			testDataSavedIDX			= 17;			//save test data in sparse format csv
+		
+	public static final int numFlags = 18;	
 	
 	//////////////////////////////
 	//data in files created by SOM_MAP separated by spaces
@@ -132,8 +113,7 @@ public class SOMMapManager {
 	//map of prospectExamples built from database data, keyed by prospect OID
 	public ConcurrentSkipListMap<String, ProspectExample> prospectMap;	
 	//map of products build from TC_Taggings entries, keyed by tag ID (synthesized upon creation)
-	private ConcurrentSkipListMap<String, ProductExample> productMap;
-	
+	private ConcurrentSkipListMap<String, ProductExample> productMap;	
 	
 	//manage all jps and jpgs seen in project
 	public MonitorJpJpgrp jpJpgrpMon;	
@@ -151,6 +131,10 @@ public class SOMMapManager {
 	
 	//map dims is used to calculate distances for BMUs - based on screen dimensions - need to change this?
 	private float[] mapDims;
+	//# of nodes in x/y
+	private int mapNodeCols =0, mapNodeRows =0;
+	//# of nodes / map dim  in x/y
+	private float nodeXPerPxl, nodeYPerPxl;
 	
 	//////////////////////
 	// misc.
@@ -158,20 +142,32 @@ public class SOMMapManager {
 	public SOM_StraffordMain p;
 	public mySOMMapUIWin win;				//owning window
 	
+	//time of current process start, from initial construction of mapmgr - TODO use this to monitor specific process time elapsed.  set to 0 at beginning of a particular process, then measure time elapsed in process
+	private long curProcStartTime;
+	//TODO name of currently executing process
+	private String curProcName;
+	//time mapMgr built, in millis - used as offset for instant to provide smaller values for timestamp
+	private final long mapMgrBuiltTime;
+	
 	//threading constructions
 	private ExecutorService th_exec;	//to access multithreading - instance from calling program
-	public final int numUsableThreads;		//# of threads usable by the application
+	private final int numUsableThreads;		//# of threads usable by the application
 	///////////////////////////////////
 	
 	public SOMMapManager(SOM_StraffordMain _pa, mySOMMapUIWin _win, ExecutorService _th_exec, float[] _dims) {
 		p=_pa; win=_win;th_exec=_th_exec;		
+		//want # of usable background threads.  Leave 2 for primary process (and potential draw loop)
+		numUsableThreads = Runtime.getRuntime().availableProcessors() - 2;
+		//for display of time since processes occur
+		Instant now = Instant.now();
+		mapMgrBuiltTime = now.toEpochMilli();//milliseconds since 1/1/1970 when this exec was built.
+		initFlags();
+		//set if this is multi-threaded capable - need more than 1 outside of 2 primary threads (i.e. only perform multithreaded calculations if 4 or more threads are available on host)
+		setFlag(isMTCapableIDX, numUsableThreads>1);
 		
 		//build project configuration data object - this manages all file locations and other configuration options
 		projConfigData = new SOMProjConfigData(this);
-		
-		//want # of usable background threads.  Leave 2 for primary process (and potential draw loop)
-		numUsableThreads = Runtime.getRuntime().availableProcessors() - 2;
-		initFlags();
+
 		mapDims = _dims;
 		//raw data from csv's/db
 		rawDataArrays = new ConcurrentSkipListMap<String, ArrayList<BaseRawData>>();
@@ -279,11 +275,11 @@ public class SOMMapManager {
 	//only appropriate if using UI
 	public void setMapImgClrs(){if (win != null) {win.setMapImgClrs();} else {dispMessage("SOMMapManager","setMapImgClrs","Display window doesn't exist, can't build visualization images; ignoring.");}}
 	//only appropriate if using UI
-	public void initMapAras(int numFtrs) {
+	public void initMapAras() {
 		if (win != null) {
 			dispMessage("SOMMapManager","initMapAras","Initializing per-feature map display to hold : "+ numFtrs+" map images.");
-			win.initMapAras(numFtrs);} 
-		else {dispMessage("SOMMapManager","initMapAras","Display window doesn't exist, can't build map visualization image arrays; ignoring.");}}
+			win.initMapAras(numFtrs, jpJpgrpMon.getLenJpGrpByIdx());
+		} else {dispMessage("SOMMapManager","initMapAras","Display window doesn't exist, can't build map visualization image arrays; ignoring.");}}
 	
 	//only appropriate if using UI
 	public void setSaveLocClrImg(boolean val) {if (win != null) { win.setPrivFlags(win.saveLocClrImgIDX,val);}}
@@ -333,7 +329,7 @@ public class SOMMapManager {
 		String[] cmdExecStr = mapExeDat.getExecStrAra();
 		//if(showDebug){
 		dispMessage("SOMMapManager","_buildNewMap","Execution Arguments passed to SOM, parsed by flags and values: ");
-		dispMessageAra(cmdExecStr,"_buildNewMap",2);//2 strings per line, display execution command	
+		dispMessageAra(cmdExecStr,"SOMMapManager","_buildNewMap",2);//2 strings per line, display execution command	
 		//}
 		//http://stackoverflow.com/questions/10723346/why-should-avoid-using-runtime-exec-in-java		
 		String wkDirStr = mapExeDat.getExeWorkingDir(), 
@@ -759,7 +755,7 @@ public class SOMMapManager {
 	public void dbgDispProductWtSpans() {
 		//debug - display spans of weights of all features in products
 		String[] prodExVals = ProductExample.getMinMaxDists();
-		this.dispMessageAra(prodExVals, "SOMMapManager::finishSOMExampleBuild : spans of all product ftrs seen", 1);		
+		dispMessageAra(prodExVals,"SOMMapManager", "SOMMapManager::finishSOMExampleBuild : spans of all product ftrs seen", 1);		
 	}//dbgDispProductWtSpans()
 	
 	public String getDataTypeNameFromCurFtrType() {return getDataTypeNameFromInt(curMapFtrType);}	
@@ -785,7 +781,7 @@ public class SOMMapManager {
 	}//getDataFrmtTypeFromName
 	
 	//using the passed map, build the testing and training data partitions
-	private void buildTestTrainFromProspectMap(float trainTestPartition, boolean saveData) {
+	private void buildTestTrainFromProspectMap(float trainTestPartition, boolean isNotDebugData) {
 		dispMessage("SOMMapManager","buildTestTrainFromInput","Building Training and Testing Partitions.");
 		//set partition size in project config
 		projConfigData.setTrainTestPartition(trainTestPartition);
@@ -810,9 +806,13 @@ public class SOMMapManager {
 		//dbg disp
 		//for(ProductExample prdEx : productData) {dispMessage("SOMMapManager","buildTestTrainFromInput",prdEx.toString());}
 		//build file names, including info for data type used to train map
-		projConfigData.buildDateTimeStrAraAndDType(getDataTypeNameFromCurFtrType());
-		projConfigData.setSOM_ExpFileNames(inputData.length, numTrainData, numTestData);
-		if (saveData) {	projConfigData.launchTestTrainSaveThrds(th_exec, curMapFtrType);	}
+		if (isNotDebugData) {//will save results to new directory
+			projConfigData.buildDateTimeStrAraAndDType(getDataTypeNameFromCurFtrType());
+			projConfigData.setSOM_ExpFileNames(inputData.length, numTrainData, numTestData);
+			projConfigData.launchTestTrainSaveThrds(th_exec, curMapFtrType);	
+		} else {		//will load results from previously run experiment
+			projConfigData.setSOM_UseDBGMap();		
+		}
 		
 		dispMessage("SOMMapManager","buildTestTrainFromInput","Finished Building Training and Testing Partitions.  Train size : " + numTrainData+ " Testing size : " + numTestData + " Product data size : " +productData.length +".");
 	}//buildTestTrainFromInput
@@ -848,6 +848,7 @@ public class SOMMapManager {
 	
 	//load preproc csv and build training and testing partitions
 	public void dbgLoadCSVBuildDataTrainMap(boolean useOnlyEvents, float trainTestPartition) {
+		dispMessage("SOMMapManager","dbgLoadCSVBuildDataTrainMap","Start Loading all CSV Build Data to train map.");
 		loadAllPreProccedData(useOnlyEvents);
 		//build SOM data
 		buildTestTrainFromProspectMap(trainTestPartition, true);	
@@ -866,6 +867,7 @@ public class SOMMapManager {
 		saveStrings(minsFileName,new String[]{minStr});		
 		saveStrings(diffsFileName,new String[]{diffStr});		
 		dispMessage("SOMMapManager","dbgLoadCSVBuildDataTrainMap","Strafford Prospects Mins and Diffs Files Saved");	
+		dispMessage("SOMMapManager","dbgLoadCSVBuildDataTrainMap","Finished Loading all CSV Build Data to train map.");
 	}//
 	
 	//load the data used to build a map - NOTE this may break if different data is used to build the map than the current data
@@ -876,13 +878,8 @@ public class SOMMapManager {
 		projConfigData.setTrainTestPartitionDBG();
 		//build data partitions - use partition size set via constants in debug
 		buildTestTrainFromProspectMap(projConfigData.getTrainTestPartition(), false);	
-
-		//load results from previously run experiment
-		projConfigData.setSOM_UseDBGMap();		
-
 		dispMessage("SOMMapManager","dbgBuildExistingMap","Current projConfigData before dataLoader Call : " + projConfigData.toString());
 		th_exec.execute(new SOMDataLoader(this,true,projConfigData));//fire and forget load task to load		
-		
 	}//dbgBuildExistingMap
 		
 	public boolean getUseChiSqDist() {return useChiSqDist;}
@@ -1075,11 +1072,8 @@ public class SOMMapManager {
 	
 	//return interpolated feature vector on map at location given by x,y, where x,y is float location of map using mapnodes as integral locations
 	public TreeMap<Integer, Float> getInterpFtrs(float x, float y){
-		int xInt = (int) Math.floor(x+mapX)%mapX, yInt = (int) Math.floor(y+mapY)%mapY, xIntp1 = (xInt+1)%mapX, yIntp1 = (yInt+1)%mapY;		//assume torroidal map		
-		//int xInt = (int) Math.floor(x), yInt = (int) Math.floor(y), xIntp1 = (xInt+1)%mapMgr.mapX, yIntp1 = (yInt+1)%mapMgr.mapY;		//assume torroidal map		
-		//need to divide by width/height of map * # cols/rows to get mapped to actual map nodes
-		//dispMessage("In getDataPointAtLoc : Mouse loc in Nodes : " + x + ","+y+ "\txInt : "+ xInt + " yInt : " + yInt );
 		float xInterp = (x+1) %1, yInterp = (y+1) %1;
+		int xInt = (int) Math.floor(x+mapNodeCols)%mapNodeCols, yInt = (int) Math.floor(y+mapNodeRows)%mapNodeRows, xIntp1 = (xInt+1)%mapNodeCols, yIntp1 = (yInt+1)%mapNodeRows;		//assume torroidal map		
 		//always compare standardized feature data in test/train data to standardized feature data in map
 		TreeMap<Integer, Float> LowXLowYFtrs = MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt)).getCurrentFtrMap(curMapFtrType), LowXHiYFtrs= MapNodes.get(new Tuple<Integer, Integer>(xInt,yIntp1)).getCurrentFtrMap(curMapFtrType),
 				 HiXLowYFtrs= MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yInt)).getCurrentFtrMap(curMapFtrType),  HiXHiYFtrs= MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yIntp1)).getCurrentFtrMap(curMapFtrType);
@@ -1225,14 +1219,10 @@ public class SOMMapManager {
 	//if connected to UI, draw data - only called from window
 	public void drawTrainData(SOM_StraffordMain pa, int curMapImgIDX, boolean drawLbls) {
 		if(drawLbls){
-			for(int i=trainDataFrame;i<trainData.length-numTrainDataFrames;i+=numTrainDataFrames){
-				trainData[i].drawMeLblMap(pa,false);
-			}
+			for(int i=trainDataFrame;i<trainData.length-numTrainDataFrames;i+=numTrainDataFrames){		trainData[i].drawMeLblMap(pa);}
 		} 
 		else {
-			for(int i=trainDataFrame;i<trainData.length-numTrainDataFrames;i+=numTrainDataFrames){
-				trainData[i].drawMeMap(pa, 2);
-			}
+			for(int i=trainDataFrame;i<trainData.length-numTrainDataFrames;i+=numTrainDataFrames){		trainData[i].drawMeMap(pa, 2);	}
 		}	
 		trainDataFrame = (trainDataFrame + 1) % numTrainDataFrames;
 	}//drawTrainData
@@ -1293,32 +1283,50 @@ public class SOMMapManager {
 	
 	//find distance on map
 	public myPoint buildScaledLoc(float x, float y){		
-		float xLoc = (x + .5f) * (mapDims[2]/mapX), yLoc = (y + .5f) * (mapDims[3]/mapY);
+		float xLoc = (x + .5f) * (mapDims[2]/mapNodeCols), yLoc = (y + .5f) * (mapDims[3]/mapNodeRows);
 		myPoint pt = new myPoint(xLoc, yLoc, 0);
 		return pt;
 	}
 	
 	//distance on map	
 	public myPointf buildScaledLoc(Tuple<Integer,Integer> mapNodeLoc){		
-		float xLoc = (mapNodeLoc.x + .5f) * (mapDims[2]/mapX), yLoc = (mapNodeLoc.y + .5f) * (mapDims[3]/mapY);
+		float xLoc = (mapNodeLoc.x + .5f) * (mapDims[2]/mapNodeCols), yLoc = (mapNodeLoc.y + .5f) * (mapDims[3]/mapNodeRows);
 		myPointf pt = new myPointf(xLoc, yLoc, 0);
 		return pt;
 	}
+		
+	//get time from "start time" (ctor run for map manager)
+	protected long getCurTime() {			
+		Instant instant = Instant.now();
+		return instant.toEpochMilli() - mapMgrBuiltTime;//milliseconds since 1/1/1970, subtracting when mapmgr was built to keep millis low		
+	}//getCurTime() 
 	
-	public int getMapX(){return mapX;}
-	public int getMapY(){return mapY;}	
+	//returns a positive int value in millis of current world time since sim start
+	protected long getCurRunTimeForProc() {	return getCurTime() - curProcStartTime;}
+	
+	protected String getTimeStrFromProcStart() {return  getTimeStrFromPassedMillis(getCurRunTimeForProc());}
+	//get a decent display of passed milliseconds elapsed
+	//	long msElapsed = getCurRunTimeForProc();
+	protected String getTimeStrFromPassedMillis(long msElapsed) {
+		long ms = msElapsed % 1000, sec = (msElapsed / 1000) % 60, min = (msElapsed / 60000) % 60, hr = (msElapsed / 3600000) % 24;	
+		String res = String.format("%02d:%02d:%02d.%03d", hr, min, sec, ms);
+		return res;
+	}//getTimeStrFromPassedMillis	
 	
 	//show array of strings, either just to console or to applet window
-	public void dispMessageAra(String[] sAra, String callingMethod, int perLine) {
-		for(int i=0;i<sAra.length; i+=perLine){
+	public void dispMessageAra(String[] _sAra, String _callingClass, String _callingMethod, int _perLine) {
+		String callingClassPrfx = getTimeStrFromProcStart() +"|" + _callingClass;		 
+		for(int i=0;i<_sAra.length; i+=_perLine){
 			String s = "";
-			for(int j=0; j<perLine; ++j){	
-				if((i+j >= sAra.length)) {continue;}
-				s+= sAra[i+j]+ "\t";}
-			dispMessage("SOMMapManager",callingMethod,s);
+			for(int j=0; j<_perLine; ++j){	
+				if((i+j >= _sAra.length)) {continue;}
+				s+= _sAra[i+j]+ "\t";}
+			_dispMessage_base(callingClassPrfx,_callingMethod,s);
 		}
 	}
-	public void dispMessage(String srcClass, String srcMethod, String msgText) {
+	
+	public void dispMessage(String srcClass, String srcMethod, String msgText) {_dispMessage_base(getTimeStrFromProcStart() +"|" + srcClass,srcMethod,msgText);	}	
+	private void _dispMessage_base(String srcClass, String srcMethod, String msgText) {
 		String msg = srcClass + "::" + srcMethod + " : " + msgText;
 		if (p == null) {System.out.println(msg);} else {p.outStr2Scr(msg);}
 	}//dispMessage
@@ -1327,28 +1335,37 @@ public class SOMMapManager {
 	public void setUIValsFromLoad(SOM_MapDat mapDat) {
 		if (win != null) {		win.setUIValues(mapDat);	}
 	}//setUIValsFromLoad
+	
+	public void resetButtonState(int _type) {
+		if (win != null) {	win.resetButtonState(_type);}
+	}
 
-	public void setMapX(int _x){
+	public void setMapNumCols(int _x){
 		//need to update UI value in win
-		mapX = _x;
-		nodeXPerPxl = mapX/this.mapDims[2];
+		mapNodeCols = _x;
+		nodeXPerPxl = mapNodeCols/this.mapDims[2];
 		if (win != null) {			
-			boolean didSet = win.setWinToUIVals(win.uiMapColsIDX, mapX);
+			boolean didSet = win.setWinToUIVals(win.uiMapColsIDX, mapNodeCols);
 			if(!didSet){dispMessage("SOMMapManager","setMapX","Setting ui map x value failed for x = " + _x);}
 		}
 	}//setMapX
-	public void setMapY(int _y){
+	public void setMapNumRows(int _y){
 		//need to update UI value in win
-		mapY = _y;
-		nodeYPerPxl = mapY/this.mapDims[3];
+		mapNodeRows = _y;
+		nodeYPerPxl = mapNodeRows/this.mapDims[3];
 		if (win != null) {			
-			boolean didSet = win.setWinToUIVals(win.uiMapRowsIDX, mapY);
+			boolean didSet = win.setWinToUIVals(win.uiMapRowsIDX, mapNodeRows);
 			if(!didSet){dispMessage("SOMMapManager","setMapY","Setting ui map y value failed for y = " + _y);}
 		}
 	}//setMapY
 	
 	public float getMapWidth(){return mapDims[2];}
 	public float getMapHeight(){return mapDims[3];}
+	public int getMapNodeCols(){return mapNodeCols;}
+	public int getMapNodeRows(){return mapNodeRows;}	
+	
+	public float getNodePerPxlCol() {return nodeXPerPxl;}
+	public float getNodePerPxlRow() {return nodeYPerPxl;}	
 	
 	private void initFlags(){stFlags = new int[1 + numFlags/32]; for(int i = 0; i<numFlags; ++i){setFlag(i,false);}}
 	public void setAllFlags(int[] idxs, boolean val) {for (int idx : idxs) {setFlag(idx, val);}}
@@ -1356,7 +1373,9 @@ public class SOMMapManager {
 		int flIDX = idx/32, mask = 1<<(idx%32);
 		stFlags[flIDX] = (val ?  stFlags[flIDX] | mask : stFlags[flIDX] & ~mask);
 		switch (idx) {//special actions for each flag
-			case debugIDX : {break;}			
+			case debugIDX : {break;}	
+			case isMTCapableIDX : {						//whether or not the host architecture can support multiple execution threads
+				break;}
 			case mapDataLoadedIDX	: {break;}		
 			case loaderRtnIDX : {break;}
 			case mapSetSmFtrZeroIDX : {break;}
@@ -1376,9 +1395,13 @@ public class SOMMapManager {
 				break;		}
 			case calcAnalsysSavedIDX : { 
 				break;		}
+			
 		}
 	}//setFlag		
 	public boolean getFlag(int idx){int bitLoc = 1<<(idx%32);return (stFlags[idx/32] & bitLoc) == bitLoc;}		
+	//convenience funcs to check for whether mt capable, and to return # of usable threads (total host threads minus some reserved for processing)
+	public boolean isMTCapable() {return getFlag(isMTCapableIDX);}
+	public int getNumUsableThreads() {return numUsableThreads;}
 	
 	public String toString(){
 		String res = "Weights Data : \n";
@@ -1419,7 +1442,6 @@ class SOMFeature{
 
 }//SOMFeature
 
-
 //class description for a data point - used to distinguish different jp-jpg members - class membership is determined by comparing the label
 //TODO change this to some other structure, or other comparison mechanism?  allow for subset membership check?
 class dataClass implements Comparable<dataClass> {
@@ -1441,9 +1463,7 @@ class dataClass implements Comparable<dataClass> {
 	public dataClass(dataClass _o){this(_o.lrnKey, _o.label,_o.cls, _o.clrVal);}//copy ctor
 	//set the defini
 	public void setJpJPG(int _jpGrp, int _jp) {jpGrp=_jpGrp;jp=_jp;}
-	
-	
-	
+		
 	//this will guarantee that, so long as a string has only one period, the value returned will be in the appropriate format for this mocapClass to match it
 	//reparses and recalcs subject and clip from passed val
 	public static String getPrfxFromData(String val){
@@ -1461,7 +1481,7 @@ class dataClass implements Comparable<dataClass> {
 	}	
 }//dataClass
 
-//manage a message stream from a process
+//manage a message stream from a launched external process
 class messageMgr implements Callable<Boolean> {
 	SOMMapManager mapMgr;
 	final Process process;
