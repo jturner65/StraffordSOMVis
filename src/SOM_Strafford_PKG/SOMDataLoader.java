@@ -2,9 +2,7 @@ package SOM_Strafford_PKG;
 
 import java.io.*;
 import java.util.*;
-import java.util.concurrent.Callable;
-import java.util.concurrent.Future;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.*;
 
 import processing.core.PImage;
 
@@ -211,22 +209,25 @@ public class SOMDataLoader implements Runnable {
 	}//dbgDispFtrAra
 
 	//load into multiple arrays for multi-threaded processing
-	public String[][] loadFileIntoStringAra_MT(String fileName, String dispYesStr, String dispNoStr, int numThds) {
-		try {return _loadFileIntoStringAra_MT(fileName, dispYesStr, dispNoStr, numThds);} 
+	public String[][] loadFileIntoStringAra_MT(String fileName, String dispYesStr, String dispNoStr, int numHdrLines, int numThds) {
+		try {return _loadFileIntoStringAra_MT(fileName, dispYesStr, dispNoStr, numHdrLines, numThds);} 
 		catch (Exception e) {e.printStackTrace(); } 
 		return new String[0][];
 	}
 	//load files into multiple arrays for multi-threaded processing
-	private String[][] _loadFileIntoStringAra_MT(String fileName, String dispYesStr, String dispNoStr, int numThds) throws IOException {		
+	private String[][] _loadFileIntoStringAra_MT(String fileName, String dispYesStr, String dispNoStr, int numHdrLines, int numThds) throws IOException {		
 		FileInputStream inputStream = null;
 		Scanner sc = null;
 		List<String>[] lines = new ArrayList[numThds];
 		for (int i=0;i<numThds;++i) {lines[i]=new ArrayList<String>();	}
-		String[][] res = new String[numThds][];
+		String[][] res = new String[numThds+1][];
+		String[] hdrRes = new String[numHdrLines];
 		int idx = 0, count = 0;
 		try {
 		    inputStream = new FileInputStream(fileName);
 		    sc = new Scanner(inputStream);
+		    for(int i=0;i<numHdrLines;++i) {    	hdrRes[i]=sc.nextLine();   }
+		    
 		    while (sc.hasNextLine()) {
 		    	lines[idx].add(sc.nextLine()); 
 		    	idx = (idx + 1)%numThds;
@@ -235,9 +236,8 @@ public class SOMDataLoader implements Runnable {
 		    //Scanner suppresses exceptions
 		    if (sc.ioException() != null) { throw sc.ioException(); }
 		    mapMgr.dispMessage("DataLoader", "_loadFileIntoStringAra_MT",dispYesStr+"\tLength : " +  count + " distributed into "+lines.length+" arrays.");
-		    for (int i=0;i<lines.length;++i) {
-		    	res[i] = lines[i].toArray(new String[0]);	
-		    }
+		    for (int i=0;i<lines.length;++i) {res[i] = lines[i].toArray(new String[0]);	 }
+		    res[res.length-1]=hdrRes;
 		} catch (Exception e) {	
 			e.printStackTrace();
 			mapMgr.dispMessage("DataLoader", "_loadFileIntoStringAra_MT","!!"+dispNoStr);
@@ -250,85 +250,97 @@ public class SOMDataLoader implements Runnable {
 		return res;
 	}//_loadFileIntoStringAra_MT
 	
+	//verify the best matching units file is as we expect it to be
+	private boolean checkBMUHeader(String[] hdrStrAra, String bmFileName) {
+		String[] tkns = hdrStrAra[0].replace('%', ' ').trim().split(mapMgr.SOM_FileToken);
+		if(!checkMapDim(tkns,"Best Matching Units file " + getFName(bmFileName))){return false;}//otw continue
+		tkns = hdrStrAra[1].replace('%', ' ').trim().split(mapMgr.SOM_FileToken);
+		int tNumTDat = Integer.parseInt(tkns[0]);
+		if(tNumTDat != mapMgr.numTrainData) { //don't forget added emtpy vector
+			mapMgr.dispMessage("DataLoader","loadSOM_BMUs","!!Best Matching Units file " + getFName(bmFileName) + " # of training examples : " + tNumTDat +" does not match # of training examples in training data " + mapMgr.numTrainData+". Loading aborted." ); 
+			return false;}			
+		
+		return true;
+	}//checkBMUHeader
+	
 	//load best matching units for each training example - has values : idx, mapy, mapx.  Uses file built by som code.  can be verified by comparing actual example distance from each node
 	private boolean loadSOM_BMUs(){//modifies existing nodes and datapoints only
 		String bmFileName = projConfigData.getSOMResFName(projConfigData.bmuIDX);
 		if(bmFileName.length() < 1){return false;}
 		mapMgr.nodesWithEx.clear();
 		mapMgr.dispMessage("DataLoader","loadSOM_BMUs","Start Loading BMU File : "+bmFileName);
+		String[] tkns;			
+		String[] strs= mapMgr.loadFileIntoStringAra(bmFileName, "Loaded best matching unit data file : "+bmFileName, "Error reading best matching unit file : "+bmFileName);			
+		if((strs==null) || (strs.length == 0)){return false;}
+		if (! checkBMUHeader(strs, bmFileName)) {return false;}
+		int numThds =  mapMgr.getNumUsableThreads();
+		int bmuListIDX = 0;
+		int numMapCols = mapMgr.getMapNodeCols();
 		
-		String [] strs= mapMgr.loadFileIntoStringAra(bmFileName, "Loaded best matching unit data file : "+bmFileName, "Error reading best matching unit file : "+bmFileName);
-		if(strs==null){return false;}
+		HashMap<SOMMapNodeExample, ArrayList<StraffSOMExample>>[] bmusToExs = new HashMap[numThds];
+		for (int i=0;i<numThds;++i) {
+			bmusToExs[i] = new HashMap<SOMMapNodeExample, ArrayList<StraffSOMExample>>();
+		}
+		int mapNodeX, mapNodeY, dpIdx;
+		for (int i=2;i<strs.length;++i){//load in data on all bmu's
+			tkns = strs[i].split(mapMgr.SOM_FileToken);
+			if(tkns.length < 2){continue;}//shouldn't happen	
+			mapNodeX = Integer.parseInt(tkns[2]);
+			mapNodeY = Integer.parseInt(tkns[1]);
+			dpIdx = Integer.parseInt(tkns[0]);	//datapoint index in training data		
+			Tuple<Integer,Integer> mapLoc = new Tuple<Integer, Integer>(mapNodeX,mapNodeY);//map locations in bmu data are in (y,x) order (row major)
+			SOMMapNodeExample tmpMapNode = mapMgr.MapNodes.get(mapLoc);
+			if(null==tmpMapNode){ mapMgr.dispMessage("DataLoader","loadSOM_BMUs","!!!!!!!!!Map node stated as best matching unit for training example " + tkns[0] + " not found in map ... somehow. "); return false;}//catastrophic error shouldn't be possible
+			StraffSOMExample tmpDataPt = mapMgr.trainData[dpIdx];
+			if(null==tmpDataPt){ mapMgr.dispMessage("DataLoader","loadSOM_BMUs","!!Training Datapoint given by idx in BMU file str tok : " + tkns[0] + " of string : --" + strs[i] + "-- not found in training data. "); return false;}//catastrophic error shouldn't happen
+			
+			bmuListIDX = ((mapNodeX * numMapCols) + mapNodeY) % numThds;
+			ArrayList<StraffSOMExample> bmuExs = bmusToExs[bmuListIDX].get(tmpMapNode);
+			if(bmuExs == null) {bmuExs = new ArrayList<StraffSOMExample>(); bmusToExs[bmuListIDX].put(tmpMapNode, bmuExs);}
+			bmuExs.add(tmpDataPt);				
+			//debug to verify node row/col order
+			//dbgVerifyBMUs(tmpMapNode, tmpDataPt,Integer.parseInt(tkns[1]) ,Integer.parseInt(tkns[2]));
+			mapMgr.nodesWithEx.add(tmpMapNode);
+			//mapMgr.nodesWithNoEx.remove(tmpMapNode);
+			//mapMgr.dispMessage("DataLoader : Tuple "  + mapLoc + " from str @ i-2 = " + (i-2) + " node : " + tmpMapNode.toString());
+		}//for each training data point			
+		mapMgr.dispMessage("DataLoader","loadSOM_BMUs","Built bmus map, now calc dists for examples");
+		boolean doMT = mapMgr.isMTCapable();
+		if (doMT) {
+			List<Future<Boolean>> bmuDataBldFtrs;
+			List<straffBMULoader> bmuDataLoaders = new ArrayList<straffBMULoader>();
+			////////////////////
+			for(int i=0;i<numThds;++i) {
+				bmuDataLoaders.add(new straffBMULoader(mapMgr,ftrTypeUsedToTrain,useChiSqDist, bmusToExs[i],i));
+			}
+			try {bmuDataBldFtrs = mapMgr.getTh_Exec().invokeAll(bmuDataLoaders);for(Future<Boolean> f: bmuDataBldFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }		
 		
-		String[] tkns;
-		if (useChiSqDist) {		//setting chi check here to minimize if checks.  hundreds of thousands (if not millions) of if checks per load.	 May need to stream load
-			for (int i=0;i<strs.length;++i){//load in data on all bmu's
-				if(i < 2){
-					tkns = strs[i].replace('%', ' ').trim().split(mapMgr.SOM_FileToken);
-					if(i==0){
-						if(!checkMapDim(tkns,"Best Matching Units file " + getFName(bmFileName))){return false;}//otw continue
-					} else {	
-						int tNumTDat = Integer.parseInt(tkns[0]);
-						if(tNumTDat != mapMgr.numTrainData) { //don't forget added emtpy vector
-							mapMgr.dispMessage("DataLoader","loadSOM_BMUs","!!Best Matching Units file " + getFName(bmFileName) + " # of training examples : " + tNumTDat +" does not match # of training examples in training data " + mapMgr.numTrainData+". Loading aborted." ); 
-							return false;}
-					}
-					continue;
-				} 
-				tkns = strs[i].split(mapMgr.SOM_FileToken);
-				if(tkns.length < 2){continue;}//shouldn't happen				
-				Tuple<Integer,Integer> mapLoc = new Tuple<Integer, Integer>(Integer.parseInt(tkns[2]),Integer.parseInt(tkns[1]));//map locations in bmu data are in (y,x) order (row major)
-				SOMMapNodeExample tmpMapNode = mapMgr.MapNodes.get(mapLoc);
-				if(null==tmpMapNode){ mapMgr.dispMessage("DataLoader","loadSOM_BMUs","!!!!!!!!!Map node stated as best matching unit for training example " + tkns[0] + " not found in map ... somehow. "); return false;}//catastrophic error shouldn't be possible
-				Integer dpIdx = Integer.parseInt(tkns[0]);	//datapoint index in training data		
-				StraffSOMExample tmpDataPt = mapMgr.trainData[dpIdx];
-				if(null==tmpDataPt){ mapMgr.dispMessage("DataLoader","loadSOM_BMUs","!!Training Datapoint given by idx in BMU file str tok : " + tkns[0] + " of string : --" + strs[i] + "-- not found in training data. "); return false;}//catastrophic error shouldn't happen
-				//must have mapMgr.map_ftrsVar known by here for chi-sq dist 
-				tmpDataPt.setBMU_ChiSq(tmpMapNode, ftrTypeUsedToTrain);
-				//debug to verify node row/col order
-				//dbgVerifyBMUs(tmpMapNode, tmpDataPt,Integer.parseInt(tkns[1]) ,Integer.parseInt(tkns[2]));
-				mapMgr.nodesWithEx.add(tmpMapNode);
-				//mapMgr.nodesWithNoEx.remove(tmpMapNode);
-				//mapMgr.dispMessage("DataLoader : Tuple "  + mapLoc + " from str @ i-2 = " + (i-2) + " node : " + tmpMapNode.toString());
-			}//for each training data point			
-		} else {			
-			for (int i=0;i<strs.length;++i){//load in data on all bmu's
-				if(i < 2){
-					tkns = strs[i].replace('%', ' ').trim().split(mapMgr.SOM_FileToken);
-					if(i==0){
-						if(!checkMapDim(tkns,"Best Matching Units file " + getFName(bmFileName))){return false;}//otw continue
-					} else {	
-						int tNumTDat = Integer.parseInt(tkns[0]);
-						if(tNumTDat != mapMgr.numTrainData) { //don't forget added emtpy vector
-							mapMgr.dispMessage("DataLoader","loadSOM_BMUs","!!Best Matching Units file " + getFName(bmFileName) + " # of training examples : " + tNumTDat +" does not match # of training examples in training data " + mapMgr.numTrainData+". Loading aborted." ); 
-							return false;}
-					}
-					continue;
-				} 
-				tkns = strs[i].split(mapMgr.SOM_FileToken);
-				if(tkns.length < 2){continue;}//shouldn't happen
-				
-				Tuple<Integer,Integer> mapLoc = new Tuple<Integer, Integer>(Integer.parseInt(tkns[2]),Integer.parseInt(tkns[1]));//map locations in bmu data are in (y,x) order (row major)
-				SOMMapNodeExample tmpMapNode = mapMgr.MapNodes.get(mapLoc);
-				if(null==tmpMapNode){ mapMgr.dispMessage("DataLoader","loadSOM_BMUs","!!!!!!!!!Map node stated as best matching unit for training example " + tkns[0] + " not found in map ... somehow. "); return false;}//catastrophic error shouldn't be possible
-				Integer dpIdx = Integer.parseInt(tkns[0]);	//datapoint index in training data		
+			
 
-				StraffSOMExample tmpDataPt = mapMgr.trainData[dpIdx];
-				if(null==tmpDataPt){ mapMgr.dispMessage("DataLoader","loadSOM_BMUs","!!Training Datapoint given by idx in BMU file str tok : " + tkns[0] + " of string : --" + strs[i] + "-- not found in training data. "); return false;}//catastrophic error shouldn't happen
-				//passing per-ftr variance for chi sq distan			
-				//using variance for chi dq dist calculation - also sets distance of node from bmu using whatever the current distance calculation is set to be
-				//must have mapMgr.map_ftrsVar known by here for chi-sq dist 
-				tmpDataPt.setBMU(tmpMapNode, ftrTypeUsedToTrain);
-				//debug to verify node row/col order
-				//dbgVerifyBMUs(tmpMapNode, tmpDataPt,Integer.parseInt(tkns[1]) ,Integer.parseInt(tkns[2]));
-				mapMgr.nodesWithEx.add(tmpMapNode);
-				//mapMgr.nodesWithNoEx.remove(tmpMapNode);
-				//mapMgr.dispMessage("DataLoader : Tuple "  + mapLoc + " from str @ i-2 = " + (i-2) + " node : " + tmpMapNode.toString());
-			}//for each training data point	
-		}//if chisq dist else
+		} else {		
+			//below is the slowest section of this code - to improve performance this part should be multithreaded
+			if (useChiSqDist) {
+				for (HashMap<SOMMapNodeExample, ArrayList<StraffSOMExample>> bmuToExsMap : bmusToExs) {
+					for (SOMMapNodeExample tmpMapNode : bmuToExsMap.keySet()) {
+						ArrayList<StraffSOMExample> exs = bmuToExsMap.get(tmpMapNode);
+						for(StraffSOMExample ex : exs) {ex.setBMU_ChiSq(tmpMapNode, ftrTypeUsedToTrain);	}
+					}
+				}
+				
+			} else {
+				for (HashMap<SOMMapNodeExample, ArrayList<StraffSOMExample>> bmuToExsMap : bmusToExs) {
+					for (SOMMapNodeExample tmpMapNode : bmuToExsMap.keySet()) {
+						ArrayList<StraffSOMExample> exs = bmuToExsMap.get(tmpMapNode);
+						for(StraffSOMExample ex : exs) {ex.setBMU(tmpMapNode, ftrTypeUsedToTrain);	}
+					}
+				}				
+			}
+		}//if mt else single thd
+		
+		mapMgr.dispMessage("DataLoader","loadSOM_BMUs","Start Pruning No-Example list");
 		//remove all examples that have been 
 		for (SOMMapNodeExample tmpMapNode : mapMgr.nodesWithEx) {			mapMgr.nodesWithNoEx.remove(tmpMapNode);		}
-		
+		mapMgr.dispMessage("DataLoader","loadSOM_BMUs","Done Pruning No-Example list; Start assinging map nodes with no BMUs to have nearest map node to them as BMU.");		
 		boolean isTorroid = mapMgr.isToroidal();
 		float dist,minDist;
 		//set all empty mapnodes to have a label based on the closest mapped node's label
@@ -368,11 +380,8 @@ public class SOMDataLoader implements Runnable {
 		//if using chi-sq dist, must know mapMgr.map_ftrsVar by now
 		//double tmpDist =  mapMgr.dpDistFunc(tmpAltMapNode, tmpDataPt);
 		double tmpDist;
-		if (useChiSqDist) {
-			tmpDist =  tmpDataPt.getSqDistFromFtrType_ChiSq(tmpAltMapNode, ftrTypeUsedToTrain);  //mapMgr.dpDistFunc(tmpAltMapNode, tmpDataPt);
-		} else {
-			tmpDist =  tmpDataPt.getSqDistFromFtrType(tmpAltMapNode,ftrTypeUsedToTrain);  //mapMgr.dpDistFunc(tmpAltMapNode, tmpDataPt);
-		}
+		if (useChiSqDist) {			tmpDist =  tmpDataPt.getSqDistFromFtrType_ChiSq(tmpAltMapNode, ftrTypeUsedToTrain);  }//mapMgr.dpDistFunc(tmpAltMapNode, tmpDataPt);
+		else {						tmpDist =  tmpDataPt.getSqDistFromFtrType(tmpAltMapNode,ftrTypeUsedToTrain);  }//mapMgr.dpDistFunc(tmpAltMapNode, tmpDataPt);
 		if(tmpDist < tmpDataPt._distToBMU ) {
 			mapMgr.dispMessage("DataLoader","loadSOM_BMUs:dbgVerifyBMUs","Somehow bmu calc is incorrect - x/y order of map node location perhaps is swapped? dataPt " + tmpDataPt.OID + " is closer to "+ tmpAltMapNode.OID + " than to predicted BMU : " + tmpMapNode.OID+" : dists : " +tmpDist + " vs. " +tmpDataPt._distToBMU);
 		}
@@ -475,26 +484,43 @@ public class SOMDataLoader implements Runnable {
 	public boolean getFlag(int idx){int bitLoc = 1<<(idx%32);return (stFlags[idx/32] & bitLoc) == bitLoc;}		
 }//dataLoader
 
-//load best matching units for each provided example
+//load best matching units for each provided example - 
 class straffBMULoader implements Callable<Boolean>{
 	SOMMapManager mapMgr;
-	int stIdx, endIdx, thdIDX;
+	int thdIDX;
 	boolean useChiSqDist;
-	String [] strs;
-	public straffBMULoader(SOMMapManager _mapMgr, int _stProdIDX, int _endProdIDX, boolean _useChiSqDist, String [] _strs, int _thdIDX) {
+	int ftrTypeUsedToTrain;
+	HashMap<SOMMapNodeExample, ArrayList<StraffSOMExample>> bmusToExmpl;
+	public straffBMULoader(SOMMapManager _mapMgr, int _ftrTypeUsedToTrain, boolean _useChiSqDist, HashMap<SOMMapNodeExample, ArrayList<StraffSOMExample>> _bmusToExmpl,int _thdIDX) {
 		mapMgr = _mapMgr;
-		stIdx = _stProdIDX;
-		endIdx = _endProdIDX;
+		ftrTypeUsedToTrain = _ftrTypeUsedToTrain;
 		useChiSqDist =_useChiSqDist;
 		thdIDX= _thdIDX;	
-		strs = _strs;
+		bmusToExmpl = _bmusToExmpl;
+		int numExs = 0;
+		for (SOMMapNodeExample tmpMapNode : bmusToExmpl.keySet()) {
+			ArrayList<StraffSOMExample> exs = bmusToExmpl.get(tmpMapNode);
+			numExs += exs.size();
+		}		
+		mapMgr.dispMessage("straffBMULoader","ctor : thd_idx : "+thdIDX, "# of bmus to proc : " +  bmusToExmpl.size() + " # exs : " + numExs);
 	}//ctor
+
 
 	@Override
 	public Boolean call() throws Exception {
-		// TODO Auto-generated method stub
+		if (useChiSqDist) {		
+			for (SOMMapNodeExample tmpMapNode : bmusToExmpl.keySet()) {
+				ArrayList<StraffSOMExample> exs = bmusToExmpl.get(tmpMapNode);
+				for(StraffSOMExample ex : exs) {ex.setBMU_ChiSq(tmpMapNode, ftrTypeUsedToTrain);	}
+			}		
+		} else {		
+			for (SOMMapNodeExample tmpMapNode : bmusToExmpl.keySet()) {
+				ArrayList<StraffSOMExample> exs = bmusToExmpl.get(tmpMapNode);
+				for(StraffSOMExample ex : exs) {ex.setBMU(tmpMapNode, ftrTypeUsedToTrain);	}
+			}
+		}	
 		return true;
-	}
+	}//run
 	
 	
 }//straffBMULoader

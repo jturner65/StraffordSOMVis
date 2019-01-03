@@ -22,7 +22,7 @@ public class SOMMapManager {
 	public ProspectExample[] trainData, inputData, testData;
 	//data for products to be measured on map
 	public ProductExample[] productData;
-	//array of maps of products, with key for each map being
+	//maps of product arrays, with key for each map being either jpg or jp
 	public TreeMap<Integer, ArrayList<ProductExample>> productsByJpg, productsByJp;
 	//array of per jp treemaps of nodes keyed by jp weight
 	public TreeMap<Float,ArrayList<SOMMapNodeExample>>[] PerJPHiWtMapNodes;
@@ -479,7 +479,7 @@ public class SOMMapManager {
 			exList.add(ex);
 			productsByJpg.put(jpg, exList);	
 		}		
-	}
+	}//addProductToProductMaps
 	
 	//fromCSVFiles : whether loading data from csv files or from SQL calls
 	//eventsOnly : only use examples with event data to train
@@ -1250,17 +1250,18 @@ public class SOMMapManager {
 		return _list;
 	}//shuffleStrList	
 	
-	private static int trainDataFrame = 0, numTrainDataFrames = 20;
+	private static int dispDataFrame = 0, numDispDataFrames = 20;
 	//if connected to UI, draw data - only called from window
 	public void drawTrainData(SOM_StraffordMain pa) {
 		pa.pushMatrix();pa.pushStyle();
-		for(int i=trainDataFrame;i<trainData.length-numTrainDataFrames;i+=numTrainDataFrames){		trainData[i].drawMeMap(pa, 2);	}
-		trainDataFrame = (trainDataFrame + 1) % numTrainDataFrames;
+		for(int i=dispDataFrame;i<trainData.length-numDispDataFrames;i+=numDispDataFrames){		trainData[i].drawMeMap(pa);	}
+		for(int i=(trainData.length-numDispDataFrames);i<trainData.length;++i){		trainData[i].drawMeMap(pa);	}				//always draw these (small count < numDispDataFrames
+		dispDataFrame = (dispDataFrame + 1) % numDispDataFrames;
 		pa.popStyle();pa.popMatrix();
 	}//drawTrainData
 	
-	//draw boxes around each node representing umtrx values derived in SOM code
-	public void drawUMatrix(SOM_StraffordMain pa) {
+	//draw boxes around each node representing umtrx values derived in SOM code - deprecated, now drawing image
+	public void drawUMatrixVals(SOM_StraffordMain pa) {
 		pa.pushMatrix();pa.pushStyle();
 		for(SOMMapNodeExample node : MapNodes.values()){	node.drawMeUMatDist(pa);	}		
 		pa.popStyle();pa.popMatrix();
@@ -1279,9 +1280,7 @@ public class SOMMapManager {
 	//show all products
 	public void drawAllProductNodes(SOM_StraffordMain pa) {
 		pa.pushMatrix();pa.pushStyle();
-		for (ArrayList<ProductExample> prodsToShow : productsByJp.values()) {
-			for(ProductExample ex : prodsToShow) {ex.drawMeLinkedToBMU(pa, 5.0f,ex.OID);}		
-		}
+		for(ProductExample ex : productData) {ex.drawMeLinkedToBMU(pa, 5.0f,ex.OID);}		
 		pa.popStyle();pa.popMatrix();
 	}//drawProductNodes
 	
@@ -1298,39 +1297,54 @@ public class SOMMapManager {
 	}//drawAnalysisOneJp
 	
 	
-	public void drawAllNodesWted(SOM_StraffordMain pa, int curJPIdx, int[] dpFillClr, int[] dpStkClr) {
+	public void drawAllNodesWted(SOM_StraffordMain pa, int curJPIdx) {//, int[] dpFillClr, int[] dpStkClr) {
 		pa.pushMatrix();pa.pushStyle();
-		pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
-		for(SOMMapNodeExample node : MapNodes.values()){	node.drawMeSmall(pa,curJPIdx);	}
+		//pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
+		for(SOMMapNodeExample node : MapNodes.values()){	node.drawMeSmallWt(pa,curJPIdx);	}
 		pa.popStyle();pa.popMatrix();
 	} 
 		
-	public void drawAllNodes(SOM_StraffordMain pa, int[] dpFillClr, int[] dpStkClr) {
+	public void drawAllNodes(SOM_StraffordMain pa) {//, int[] dpFillClr, int[] dpStkClr) {
 		pa.pushMatrix();pa.pushStyle();
-		pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
+		//pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
 		for(SOMMapNodeExample node : MapNodes.values()){	node.drawMeSmall(pa);	}
 		pa.popStyle();pa.popMatrix();
 	} 
-		
-	public void drawNodesWithWt(SOM_StraffordMain pa, float valThresh, int curJPIdx, int[] dpFillClr, int[] dpStkClr) {
+	
+	public void drawAllNodesNoLbl(SOM_StraffordMain pa) {//, int[] dpFillClr, int[] dpStkClr) {
 		pa.pushMatrix();pa.pushStyle();
-		pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
+		//pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
+		for(SOMMapNodeExample node : MapNodes.values()){	node.drawMeSmallNoLbl(pa);	}
+		pa.popStyle();pa.popMatrix();
+	} 
+		
+	public void drawNodesWithWt(SOM_StraffordMain pa, float valThresh, int curJPIdx) {//, int[] dpFillClr, int[] dpStkClr) {
+		pa.pushMatrix();pa.pushStyle();
+		//pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
 		TreeMap<Float,ArrayList<SOMMapNodeExample>> map = PerJPHiWtMapNodes[curJPIdx];
 		SortedMap<Float,ArrayList<SOMMapNodeExample>> headMap = map.headMap(valThresh);
 		for(Float key : headMap.keySet()) {
 			ArrayList<SOMMapNodeExample> ara = headMap.get(key);
-			for (SOMMapNodeExample node : ara) {		node.drawMeWithWt(pa, 10.0f*key, pa.gui_Yellow, pa.gui_Green, node.OID);}
+			for (SOMMapNodeExample node : ara) {		node.drawMeWithWt(pa, 10.0f*key, new String[] {""+node.OID+" : ",String.format("%.4f",key)});}
 		}
 		pa.popStyle();pa.popMatrix();
 	}//drawNodesWithWt
 	
-	public void drawExMapNodes(SOM_StraffordMain pa, int[] dpFillClr, int[] dpStkClr) {
+	public void drawExMapNodes(SOM_StraffordMain pa) {//, int[] dpFillClr, int[] dpStkClr) {
 		pa.pushMatrix();pa.pushStyle();
-		pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
+		//pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
+		//PerJPHiWtMapNodes
+		for(SOMMapNodeExample node : nodesWithEx){			
+			float wt = node.getLogExmplBMUSize();
+			node.drawMeWithWt(pa, wt, new String[] {""+node.OID+" : ", ""+node.getNumExamples()});}
+		pa.popStyle();pa.popMatrix();		
+	}	
+	public void drawExMapNodesNoLbl(SOM_StraffordMain pa) {
+		pa.pushMatrix();pa.pushStyle();
 		//PerJPHiWtMapNodes
 		for(SOMMapNodeExample node : nodesWithEx){			
 			//float wt = Math.log
-			node.drawMeWithWt(pa, node.getLogExmplBMUSize(), pa.gui_Cyan, pa.gui_Green, node.OID);}
+			node.drawMeWithWtNoLbl(pa, node.getLogExmplBMUSize());}
 		pa.popStyle();pa.popMatrix();		
 	}	
 	
@@ -1397,6 +1411,19 @@ public class SOMMapManager {
 		String msg = srcClass + "::" + srcMethod + " : " + msgText;
 		if (p == null) {System.out.println(msg);} else {p.outStr2Scr(msg);}
 	}//dispMessage
+
+	//get fill, stroke and text color ID if win exists (to reference papplet) otw returns 0,0,0
+	public int[] getClrVal(ExDataType _type) {
+		if (win==null) {return new int[] {0,0,0};}															//if null then not going to be displaying anything
+		switch(_type) {
+			case ProspectTraining : {		return new int[] {win.pa.gui_Cyan,win.pa.gui_Cyan,win.pa.gui_Blue};}			//corresponds to prospect training example
+			case ProspectTesting : {		return new int[] {win.pa.gui_Magenta,win.pa.gui_Magenta,win.pa.gui_Red};}		//corresponds to prospect testing/held-out example
+			case MapNode : {		return new int[] {win.pa.gui_Green,win.pa.gui_Green,win.pa.gui_Cyan};}			//corresponds to map node example
+			case MouseOver : {		return new int[] {win.pa.gui_White,win.pa.gui_White,win.pa.gui_White};}			//corresponds to mouse example
+			case Product : {		return new int[] {win.pa.gui_Yellow,win.pa.gui_Yellow,win.pa.gui_White};}		//corresponds to product example
+		}
+		return new int[] {win.pa.gui_White,win.pa.gui_White,win.pa.gui_White};
+	}//getClrVal
 	
 	//set UI values from loaded map data, if UI is in use
 	public void setUIValsFromLoad(SOM_MapDat mapDat) {
@@ -1469,6 +1496,7 @@ public class SOMMapManager {
 	//convenience funcs to check for whether mt capable, and to return # of usable threads (total host threads minus some reserved for processing)
 	public boolean isMTCapable() {return getFlag(isMTCapableIDX);}
 	public int getNumUsableThreads() {return numUsableThreads;}
+	public ExecutorService getTh_Exec() {return th_exec;}
 	
 	public String toString(){
 		String res = "Weights Data : \n";

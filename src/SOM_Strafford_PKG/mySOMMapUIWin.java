@@ -23,22 +23,22 @@ public class mySOMMapUIWin extends myDispWindow {
 		mapDrawPrdctNodesIDX 	= 6,
 		//display/interaction
 		mapDrawTrainDatIDX		= 7,			//draw training examples
-		//mapDrawTrDatLblIDX		= 8,			//draw labels for training samples
-		mapDrawWtMapNodesIDX	= 8,			//draw map nodes with non-0 (present) wt vals
-		mapDrawPopMapNodesIDX   = 9,			//draw map nodes that are bmus for training examples
-		mapDrawAllMapNodesIDX	= 10,			//draw all map nodes, even empty
-		mapDrawAnalysisVisIDX	= 11,			//whether or not to draw feature calc analysis graphs
-		mapDrawUMatrixIDX		= 12,			//draw visualization of u matrix - distance between nodes
+		mapDrawNodeLblIDX		= 8,			//draw labels for nodes
+		mapDrawWtMapNodesIDX	= 9,			//draw map nodes with non-0 (present) wt vals
+		mapDrawPopMapNodesIDX   = 10,			//draw map nodes that are bmus for training examples
+		mapDrawAllMapNodesIDX	= 11,			//draw all map nodes, even empty
+		mapDrawAnalysisVisIDX	= 12,			//whether or not to draw feature calc analysis graphs
+		mapDrawUMatrixIDX		= 13,			//draw visualization of u matrix - distance between nodes
 		//mapDrawCubicUMatIDX		= 13,			//true : draw cubic/false draw linear
 		
-		showSelRegionIDX		= 13,			//highlight a specific region of the map, either all nodes above a certain threshold for a chosen jp or jpgroup
-		showSelJPIDX			= 14, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
+		showSelRegionIDX		= 14,			//highlight a specific region of the map, either all nodes above a certain threshold for a chosen jp or jpgroup
+		showSelJPIDX			= 15, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
 		//train/test data management
-		somTrainDataLoadedIDX	= 15,			//whether data used to build map has been loaded yet
-		saveLocClrImgIDX		= 16,			//
-		useOnlyEvntsToTrainIDX  = 17;			//only use records that have event jpgs/jps to train, otherwise use records that also have jpgs/jps only specified in prospect db
+		somTrainDataLoadedIDX	= 16,			//whether data used to build map has been loaded yet
+		saveLocClrImgIDX		= 17,			//
+		useOnlyEvntsToTrainIDX  = 18;			//only use records that have event jpgs/jps to train, otherwise use records that also have jpgs/jps only specified in prospect db
 	
-	public static final int numPrivFlags = 18;
+	public static final int numPrivFlags = 19;
 	
 	//SOM map list options
 	public String[] 
@@ -132,21 +132,19 @@ public class mySOMMapUIWin extends myDispWindow {
 		truePrivFlagNames = new String[]{								//needs to be in order of flags
 				"Train W/Recs W/Event Data", "Building SOM", "Resetting Def Vals", "Loading Feature BMUs",
 				"Using ChiSq for Ftr Distance", "Unshared Ftrs are 0",	"Hide Train Data",
-				//"Hide Train Lbls",	
-				"Hide Map Nodes (by Wt)","Hide Map Nodes (by Pop)", "Hide Map Nodes", "Hide Products",
+				"Hide Node Lbls","Hide Map Nodes (by Wt)","Hide Map Nodes (by Pop)", "Hide Map Nodes", "Hide Products",
 				"Hide U Mtrx Dists (Bi-Cubic)", "Hide Calc Analysis"
 		};
 		falsePrivFlagNames = new String[]{			//needs to be in order of flags
 				"Train W/All Recs","Build New Map ","Reset Def Vals","Not Loading Feature BMUs",
 				"Not Using ChiSq Distance", "Ignoring Unshared Ftrs","Show Train Data",
-				//"Show Train Lbls",	
-				"Show Map Nodes (by Wt)","Show Map Nodes (by Pop)","Show Map Nodes", "Show Products",
+				"Show Node Lbls","Show Map Nodes (by Wt)","Show Map Nodes (by Pop)","Show Map Nodes", "Show Products",
 				"Show U Mtrx Dists (Bi-Cubic)",  "Show Calc Analysis"
 		};
 		privModFlgIdxs = new int[]{
 				useOnlyEvntsToTrainIDX, buildSOMExe, resetMapDefsIDX, mapLoadFtrBMUsIDX,
 				mapUseChiSqDistIDX,mapSetSmFtrZeroIDX,mapDrawTrainDatIDX,
-				//mapDrawTrDatLblIDX,
+				mapDrawNodeLblIDX,
 				mapDrawWtMapNodesIDX,mapDrawPopMapNodesIDX,mapDrawAllMapNodesIDX, mapDrawPrdctNodesIDX,
 				mapDrawUMatrixIDX,mapDrawAnalysisVisIDX};
 		numClickBools = privModFlgIdxs.length;	
@@ -246,6 +244,8 @@ public class mySOMMapUIWin extends myDispWindow {
 					setPrivFlags(mapDrawWtMapNodesIDX, false);					
 				}
 				break;}	
+			case mapDrawNodeLblIDX : {//whether or not to show labels of nodes being displayed				
+				break;}
 			case mapDrawAnalysisVisIDX: {//whether or not to draw feature calc analysis graphs  
 				if (val) {//if setting to true then aggregate data
 					mapMgr.processCalcAnalysis();		
@@ -673,8 +673,13 @@ public class mySOMMapUIWin extends myDispWindow {
 		if(getPrivFlags(buildSOMExe)){buildNewSOMMap();}
 	}
 	
-	//map node fill and stroke color
-	private final int[] mapNodeClr = new int[] {255, 0,255,255};
+	private void drawMseLoc() {
+		pa.pushMatrix();pa.pushStyle();
+			pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
+			mseOvrData.drawMeLblMap(pa);
+		pa.popStyle();pa.popMatrix();		
+	}
+	
 	//draw map rectangle and map nodes
 	private void drawMapRectangle() {
 		pa.pushMatrix();pa.pushStyle();
@@ -694,18 +699,23 @@ public class mySOMMapUIWin extends myDispWindow {
 		
 		pa.pushMatrix();pa.pushStyle();
 			pa.translate(SOM_mapDims[0],SOM_mapDims[1],0);
+			if ((!getPrivFlags(mapDrawAnalysisVisIDX)) && (mseOvrData != null)){	drawMseLoc();}
+			
+			//mapDrawNodeLblIDX
 			if(getPrivFlags(mapDrawTrainDatIDX)){		mapMgr.drawTrainData(pa);}	
-			if(getPrivFlags(mapDrawAllMapNodesIDX)){	mapMgr.drawAllNodes( pa, mapNodeClr, mapNodeClr);		} 		
-			if(getPrivFlags(mapDrawPopMapNodesIDX)) {	mapMgr.drawExMapNodes(pa, mapNodeClr, mapNodeClr);}
+			if(getPrivFlags(mapDrawNodeLblIDX)) {
+				if(getPrivFlags(mapDrawAllMapNodesIDX)){	mapMgr.drawAllNodes(pa);		} 		
+				if(getPrivFlags(mapDrawPopMapNodesIDX)) {	mapMgr.drawExMapNodes(pa);}
+			} else {
+				if(getPrivFlags(mapDrawAllMapNodesIDX)){	mapMgr.drawAllNodesNoLbl(pa);		} 		
+				if(getPrivFlags(mapDrawPopMapNodesIDX)) {	mapMgr.drawExMapNodesNoLbl(pa);}
+				
+			}
 			//draw nodes
-			pa.pushMatrix();pa.pushStyle();
-				pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
-				if ((!getPrivFlags(mapDrawAnalysisVisIDX)) && (mseOvrData != null)){mseOvrData.drawMeLblMap(pa);}
-			pa.popStyle();pa.popMatrix();
 			if (curImgNum > -1) {
 				//draw map nodes, either with or without empty nodes
 				if(getPrivFlags(mapDrawPrdctNodesIDX)){		mapMgr.drawProductNodes(pa, curMapImgIDX, true);}
-				if(getPrivFlags(mapDrawWtMapNodesIDX)){		mapMgr.drawNodesWithWt(pa, mapNodeWtDispThresh, curMapImgIDX, mapNodeClr, mapNodeClr);}//mapMgr.drawExMapNodes( pa, curMapImgIDX, mapNodeClr, mapNodeClr);		} 
+				if(getPrivFlags(mapDrawWtMapNodesIDX)){		mapMgr.drawNodesWithWt(pa, mapNodeWtDispThresh, curMapImgIDX);}//mapMgr.drawExMapNodes( pa, curMapImgIDX, mapNodeClr, mapNodeClr);		} 
 			} else {//draw all products				
 				if(getPrivFlags(mapDrawPrdctNodesIDX)){		mapMgr.drawAllProductNodes(pa);}
 			}
