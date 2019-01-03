@@ -491,14 +491,8 @@ public class SOMMapManager {
 			dispMessage("SOMMapManager","loadAllRawData","WARNING : SQL-based raw data queries not yet implemented.  Use CSV-based raw data to build training data set instead");
 			return;
 		}
-		boolean singleThread=numUsableThreads<=1;//this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
-		if(singleThread) {
-			for (int idx=0;idx<numStraffDataTypes;++idx) {
-				String[] loadRawDatStrs = projConfigData.getRawDataLoadInfo(fromCSVFiles,straffDataFileNames[idx]);
-				boolean[] flags = new boolean[] {fromCSVFiles,straffRawDatUsesJSON[idx], straffRawDatDebugLoad[idx]};
-				loadRawDataVals(loadRawDatStrs, flags,idx);
-			}
-		} else {
+		boolean canMultiThread=isMTCapable();//this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
+		if(canMultiThread) {
 			buildStraffDataLoaders();
 			for (int idx=0;idx<numStraffDataTypes;++idx) {//build a thread per data type //straffRawDatDebugLoad
 				String[] loadRawDatStrs = projConfigData.getRawDataLoadInfo(fromCSVFiles,straffDataFileNames[idx]);
@@ -507,6 +501,12 @@ public class SOMMapManager {
 			}
 			//blocking on callables for multithreaded
 			try {straffDataLdrFtrs = th_exec.invokeAll(straffDataLoaders);for(Future<Boolean> f: straffDataLdrFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }		
+		} else {
+			for (int idx=0;idx<numStraffDataTypes;++idx) {
+				String[] loadRawDatStrs = projConfigData.getRawDataLoadInfo(fromCSVFiles,straffDataFileNames[idx]);
+				boolean[] flags = new boolean[] {fromCSVFiles,straffRawDatUsesJSON[idx], straffRawDatDebugLoad[idx]};
+				loadRawDataVals(loadRawDatStrs, flags,idx);
+			}
 		}
 		//process loaded data
 		//dbgLoadedData(tcTagsIDX);
@@ -568,8 +568,15 @@ public class SOMMapManager {
 			numPartitions = Integer.parseInt(loadRes[0].split(" : ")[1].trim());
 		} catch (Exception e) {e.printStackTrace(); dispMessage("SOMMapManager","loadAllPropsectMapData","Due to error with not finding format file : " + fmtFile+ " no data will be loaded."); return;} 
 		
-		boolean singleThread=numUsableThreads<=1;//this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
-		if(singleThread) {
+		boolean canMultiThread=isMTCapable();//this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
+		if(canMultiThread) {			
+			List<Future<Boolean>> preProcLoadFtrs = new ArrayList<Future<Boolean>>();
+			List<straffCSVDataLoader> preProcLoaders = new ArrayList<straffCSVDataLoader>();
+			for (int i=0; i<numPartitions;++i) {				
+				preProcLoaders.add(new straffCSVDataLoader(this, i, loadSrcFNamePrefixAra[0]+"_"+i+".csv", "Data file " + i +" loaded", "Data File " + i +" Failed to load"));
+			}
+			try {preProcLoadFtrs = th_exec.invokeAll(preProcLoaders);for(Future<Boolean> f: preProcLoadFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }					
+		} else {//load each file in its own csv
 			for (int i=numPartitions-1; i>=0;--i) {
 				String dataFile = loadSrcFNamePrefixAra[0]+"_"+i+".csv";
 				String[] csvLoadRes = loadFileIntoStringAra(dataFile, "Data file " + i +" loaded", "Data File " + i +" Failed to load");
@@ -581,14 +588,7 @@ public class SOMMapManager {
 					ProspectExample ex = new ProspectExample(this, oid, str);
 					prospectMap.put(oid, ex);			
 				}
-			}			
-		} else {//load each file in its own csv
-			List<Future<Boolean>> preProcLoadFtrs = new ArrayList<Future<Boolean>>();
-			List<straffCSVDataLoader> preProcLoaders = new ArrayList<straffCSVDataLoader>();
-			for (int i=0; i<numPartitions;++i) {				
-				preProcLoaders.add(new straffCSVDataLoader(this, i, loadSrcFNamePrefixAra[0]+"_"+i+".csv", "Data file " + i +" loaded", "Data File " + i +" Failed to load"));
-			}
-			try {preProcLoadFtrs = th_exec.invokeAll(preProcLoaders);for(Future<Boolean> f: preProcLoadFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }					
+			}		
 		}	
 		dispMessage("SOMMapManager","loadAllPropsectMapData","Finished loading and preprocessing all local prospect map data and calculating features.  Number of entries in prospectMap : " + prospectMap.size());
 	}//loadAllPropsectMapData	
@@ -723,33 +723,57 @@ public class SOMMapManager {
 	//once map is built, find bmus on map for each product
 	public void setProductBMUs() {
 		dispMessage("SOMMapManager","setProductBMUs","Start Mapping products to best matching units.");
-		boolean singleThread=numUsableThreads<=1;//this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
-		if(singleThread) {
-			//for every product find closest map node
-			if (useChiSqDist) {
-				for (int i=0;i<productData.length;++i) {	productData[i].findBMUFromNodes_ChiSq(MapNodes, curMapFtrType);		}			
-			} else {
-				for (int i=0;i<productData.length;++i) {	productData[i].findBMUFromNodes(MapNodes, curMapFtrType);		}				
-			}
-		} else {		
+		boolean canMultiThread=isMTCapable();//this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
+		if(canMultiThread) {//mapExampleDataToBMUs(SOMMapManager _mapMgr, int _stProdIDX, int _endProdIDX, boolean _useChiSqDist, StraffSOMExample[] _exs, int _thdIDX, String _taskStr) 
 			List<Future<Boolean>> prdcttMapperFtrs = new ArrayList<Future<Boolean>>();
-			List<straffProductsToMapBuilder> prdcttMappers = new ArrayList<straffProductsToMapBuilder>();
+			List<mapExampleDataToBMUs> prdcttMappers = new ArrayList<mapExampleDataToBMUs>();
 			int numForEachThrd = ((int)((productData.length-1)/(1.0f*numUsableThreads))) + 1;
 			//use this many for every thread but last one
 			int stIDX = 0;
 			int endIDX = numForEachThrd;		
 			for (int i=0; i<(numUsableThreads-1);++i) {				
-				prdcttMappers.add(new straffProductsToMapBuilder(this,stIDX, endIDX, useChiSqDist, i));
+				prdcttMappers.add(new mapExampleDataToBMUs(this,stIDX, endIDX, useChiSqDist, productData, i, "Product"));
 				stIDX = endIDX;
 				endIDX += numForEachThrd;
 			}
 			//last one probably won't end at endIDX, so use length
-			prdcttMappers.add(new straffProductsToMapBuilder(this,stIDX, productData.length, useChiSqDist, numUsableThreads-1));
+			prdcttMappers.add(new mapExampleDataToBMUs(this,stIDX, productData.length, useChiSqDist, productData, numUsableThreads-1,"Product"));
 			try {prdcttMapperFtrs = th_exec.invokeAll(prdcttMappers);for(Future<Boolean> f: prdcttMapperFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }		
+		} else {		
+			//for every product find closest map node
+			if (useChiSqDist) {			for (int i=0;i<productData.length;++i) {	productData[i].findBMUFromNodes_ChiSq(MapNodes, curMapFtrType);		}}
+			else {						for (int i=0;i<productData.length;++i) {	productData[i].findBMUFromNodes(MapNodes, curMapFtrType);		}}
 		}
 		dispMessage("SOMMapManager","setProductBMUs","Finished Mapping products to best matching units.");
-
 	}//setProductBMUs
+	
+	//once map is built, find bmus on map for each test data example
+	public void setTestBMUs() {
+		dispMessage("SOMMapManager","setTestBMUs","Start Mapping test (held out) data to best matching units.");
+		boolean canMultiThread=isMTCapable();//this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
+		if(canMultiThread) {
+			List<Future<Boolean>> testMapperFtrs = new ArrayList<Future<Boolean>>();
+			List<mapExampleDataToBMUs> testMappers = new ArrayList<mapExampleDataToBMUs>();
+			int numForEachThrd = ((int)((testData.length-1)/(1.0f*numUsableThreads))) + 1;
+			//use this many for every thread but last one
+			int stIDX = 0;
+			int endIDX = numForEachThrd;		
+			for (int i=0; i<(numUsableThreads-1);++i) {				
+				testMappers.add(new mapExampleDataToBMUs(this,stIDX, endIDX, useChiSqDist, testData, i, "Test Data"));
+				stIDX = endIDX;
+				endIDX += numForEachThrd;
+			}
+			//last one probably won't end at endIDX, so use length
+			testMappers.add(new mapExampleDataToBMUs(this,stIDX, testData.length, useChiSqDist, testData, numUsableThreads-1, "Test Data"));
+			try {testMapperFtrs = th_exec.invokeAll(testMappers);for(Future<Boolean> f: testMapperFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }		
+		} else {		
+			//for every product find closest map node
+			if (useChiSqDist) {			for (int i=0;i<testData.length;++i) {	testData[i].findBMUFromNodes_ChiSq(MapNodes, curMapFtrType);		}}			
+			else {						for (int i=0;i<testData.length;++i) {	testData[i].findBMUFromNodes(MapNodes, curMapFtrType);		}	}			
+		}
+		dispMessage("SOMMapManager","setTestBMUs","Finished Mapping test data to best matching units.");
+	}//setProductBMUs
+	
 	
 	//debug - display spans of weights of all features in products after products are built
 	public void dbgDispProductWtSpans() {
@@ -801,7 +825,7 @@ public class SOMMapManager {
 		//numTrainData and numTestData 
 		for (int i=0;i<trainData.length;++i) {trainData[i]=inputData[i];trainData[i].setIsTrainingDataIDX(true, i);}
 		testData = new ProspectExample[numTestData];
-		for (int i=0;i<testData.length;++i) {testData[i]=inputData[i+numTrainData];trainData[i].setIsTrainingDataIDX(false, i);}
+		for (int i=0;i<testData.length;++i) {testData[i]=inputData[i+numTrainData];testData[i].setIsTrainingDataIDX(false, i);}
 		productData = productMap.values().toArray(new ProductExample[0]);
 		//dbg disp
 		//for(ProductExample prdEx : productData) {dispMessage("SOMMapManager","buildTestTrainFromInput",prdEx.toString());}
@@ -812,8 +836,7 @@ public class SOMMapManager {
 			projConfigData.launchTestTrainSaveThrds(th_exec, curMapFtrType);	
 		} else {		//will load results from previously run experiment
 			projConfigData.setSOM_UseDBGMap();		
-		}
-		
+		}		
 		dispMessage("SOMMapManager","buildTestTrainFromInput","Finished Building Training and Testing Partitions.  Train size : " + numTrainData+ " Testing size : " + numTestData + " Product data size : " +productData.length +".");
 	}//buildTestTrainFromInput
 
@@ -1250,13 +1273,27 @@ public class SOMMapManager {
 		return _list;
 	}//shuffleStrList	
 	
-	private static int dispDataFrame = 0, numDispDataFrames = 20;
+	public int[] getRndClr() {
+		if (win==null) {return new int[] {255,255,255,255};}
+		return win.pa.getRndClr2();
+	}
+	
+	private static int dispTrainDataFrame = 0, numDispTrainDataFrames = 20;
 	//if connected to UI, draw data - only called from window
 	public void drawTrainData(SOM_StraffordMain pa) {
 		pa.pushMatrix();pa.pushStyle();
-		for(int i=dispDataFrame;i<trainData.length-numDispDataFrames;i+=numDispDataFrames){		trainData[i].drawMeMap(pa);	}
-		for(int i=(trainData.length-numDispDataFrames);i<trainData.length;++i){		trainData[i].drawMeMap(pa);	}				//always draw these (small count < numDispDataFrames
-		dispDataFrame = (dispDataFrame + 1) % numDispDataFrames;
+		for(int i=dispTrainDataFrame;i<trainData.length-numDispTrainDataFrames;i+=numDispTrainDataFrames){		trainData[i].drawMeMap(pa);	}
+		for(int i=(trainData.length-numDispTrainDataFrames);i<trainData.length;++i){		trainData[i].drawMeMap(pa);	}				//always draw these (small count < numDispDataFrames
+		dispTrainDataFrame = (dispTrainDataFrame + 1) % numDispTrainDataFrames;
+		pa.popStyle();pa.popMatrix();
+	}//drawTrainData
+	private static int dispTestDataFrame = 0, numDispTestDataFrames = 20;
+	//if connected to UI, draw data - only called from window
+	public void drawTestData(SOM_StraffordMain pa) {
+		pa.pushMatrix();pa.pushStyle();
+		for(int i=dispTestDataFrame;i<testData.length-numDispTestDataFrames;i+=numDispTestDataFrames){		testData[i].drawMeMap(pa);	}
+		for(int i=(testData.length-numDispTestDataFrames);i<testData.length;++i){		testData[i].drawMeMap(pa);	}				//always draw these (small count < numDispDataFrames
+		dispTestDataFrame = (dispTestDataFrame + 1) % numDispTestDataFrames;
 		pa.popStyle();pa.popMatrix();
 	}//drawTrainData
 	
@@ -1334,9 +1371,7 @@ public class SOMMapManager {
 		pa.pushMatrix();pa.pushStyle();
 		//pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
 		//PerJPHiWtMapNodes
-		for(SOMMapNodeExample node : nodesWithEx){			
-			float wt = node.getLogExmplBMUSize();
-			node.drawMeWithWt(pa, wt, new String[] {""+node.OID+" : ", ""+node.getNumExamples()});}
+		for(SOMMapNodeExample node : nodesWithEx){	node.drawMeWithWt(pa, node.getLogExmplBMUSize(), new String[] {""+node.OID+" : ", ""+node.getNumExamples()});}
 		pa.popStyle();pa.popMatrix();		
 	}	
 	public void drawExMapNodesNoLbl(SOM_StraffordMain pa) {
@@ -1348,7 +1383,8 @@ public class SOMMapManager {
 		pa.popStyle();pa.popMatrix();		
 	}	
 	
-	public DispSOMMapExample buildTmpDataExample(myPointf ptrLoc, TreeMap<Integer, Float> ftrs, float sens) {return new DispSOMMapExample(this, ptrLoc, ftrs, sens);}
+	public DispSOMMapExample buildTmpDataExampleFtrs(myPointf ptrLoc, TreeMap<Integer, Float> ftrs, float sens) {return new DispSOMMapExample(this, ptrLoc, ftrs, sens);}
+	public DispSOMMapExample buildTmpDataExampleDists(myPointf ptrLoc, float dist, float sens) {return new DispSOMMapExample(this, ptrLoc, dist, sens);}
 	
 	//find distance on map
 	public myPoint buildScaledLoc(float x, float y){		

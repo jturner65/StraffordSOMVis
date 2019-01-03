@@ -67,16 +67,10 @@ public class SOMDataLoader implements Runnable {
 		//load SOM's best matching units for training data - must be after map wts and training data has been loaded
 		success = loadSOM_BMUs();
 		//if bmus loaded, set bmus for all products
-		if (success) {
-			mapMgr.setProductBMUs();
-		} else {
-			mapMgr.dispMessage("SOMDataLoader", "execDataLoad", "Unable to match products to map nodes since BMU loading failed");
-		}
+		if (success) {			mapMgr.setProductBMUs();		mapMgr.setTestBMUs();} 
+		else {					mapMgr.dispMessage("SOMDataLoader", "execDataLoad", "Unable to match products to map nodes since BMU loading failed");	}
 		//		//load SOM's sorted best matching units for each feature - must be after map wts and training data has been loaded
-		if (getFlag(loadFtrBMUsIDX)){
-			success = loadSOM_ftrBMUs();	
-		}
-
+		if (getFlag(loadFtrBMUsIDX)){			success = loadSOM_ftrBMUs();			}
 		return success;
 	}//execDataLoad
 	
@@ -121,7 +115,7 @@ public class SOMDataLoader implements Runnable {
 			mapMgr.dispMessage("DataLoader","checkMapDim","!!"+ errorMSG + " dimensions : " + tmapX +","+tmapY+" do not match dimensions of learned weights " + mapMgr.getMapNodeCols() +","+mapMgr.getMapNodeRows()+". Loading aborted."); 
 			return false;} 
 		return true;		
-	}
+	}//checkMapDim
 	
 	//load map wts from file built by SOM_MAP - need to know format of original data used to train map	
 	//Map nodes are similar in format to training examples but scaled based on -their own- data
@@ -226,12 +220,11 @@ public class SOMDataLoader implements Runnable {
 		try {
 		    inputStream = new FileInputStream(fileName);
 		    sc = new Scanner(inputStream);
-		    for(int i=0;i<numHdrLines;++i) {    	hdrRes[i]=sc.nextLine();   }
-		    
+		    for(int i=0;i<numHdrLines;++i) {    	hdrRes[i]=sc.nextLine();   }		    
 		    while (sc.hasNextLine()) {
 		    	lines[idx].add(sc.nextLine()); 
 		    	idx = (idx + 1)%numThds;
-		    	count++;
+		    	++count;
 		    }
 		    //Scanner suppresses exceptions
 		    if (sc.ioException() != null) { throw sc.ioException(); }
@@ -314,16 +307,13 @@ public class SOMDataLoader implements Runnable {
 				bmuDataLoaders.add(new straffBMULoader(mapMgr,ftrTypeUsedToTrain,useChiSqDist, bmusToExs[i],i));
 			}
 			try {bmuDataBldFtrs = mapMgr.getTh_Exec().invokeAll(bmuDataLoaders);for(Future<Boolean> f: bmuDataBldFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }		
-		
-			
-
 		} else {		
 			//below is the slowest section of this code - to improve performance this part should be multithreaded
 			if (useChiSqDist) {
 				for (HashMap<SOMMapNodeExample, ArrayList<StraffSOMExample>> bmuToExsMap : bmusToExs) {
 					for (SOMMapNodeExample tmpMapNode : bmuToExsMap.keySet()) {
 						ArrayList<StraffSOMExample> exs = bmuToExsMap.get(tmpMapNode);
-						for(StraffSOMExample ex : exs) {ex.setBMU_ChiSq(tmpMapNode, ftrTypeUsedToTrain);	}
+						for(StraffSOMExample ex : exs) {ex.setBMU_ChiSq(tmpMapNode, ftrTypeUsedToTrain);tmpMapNode.addBMUExample(ex);	}
 					}
 				}
 				
@@ -331,7 +321,7 @@ public class SOMDataLoader implements Runnable {
 				for (HashMap<SOMMapNodeExample, ArrayList<StraffSOMExample>> bmuToExsMap : bmusToExs) {
 					for (SOMMapNodeExample tmpMapNode : bmuToExsMap.keySet()) {
 						ArrayList<StraffSOMExample> exs = bmuToExsMap.get(tmpMapNode);
-						for(StraffSOMExample ex : exs) {ex.setBMU(tmpMapNode, ftrTypeUsedToTrain);	}
+						for(StraffSOMExample ex : exs) {ex.setBMU(tmpMapNode, ftrTypeUsedToTrain);tmpMapNode.addBMUExample(ex);	}
 					}
 				}				
 			}
@@ -505,55 +495,58 @@ class straffBMULoader implements Callable<Boolean>{
 		mapMgr.dispMessage("straffBMULoader","ctor : thd_idx : "+thdIDX, "# of bmus to proc : " +  bmusToExmpl.size() + " # exs : " + numExs);
 	}//ctor
 
-
 	@Override
 	public Boolean call() throws Exception {
 		if (useChiSqDist) {		
 			for (SOMMapNodeExample tmpMapNode : bmusToExmpl.keySet()) {
 				ArrayList<StraffSOMExample> exs = bmusToExmpl.get(tmpMapNode);
-				for(StraffSOMExample ex : exs) {ex.setBMU_ChiSq(tmpMapNode, ftrTypeUsedToTrain);	}
+				for(StraffSOMExample ex : exs) {ex.setBMU_ChiSq(tmpMapNode, ftrTypeUsedToTrain);tmpMapNode.addBMUExample(ex);	}
 			}		
 		} else {		
 			for (SOMMapNodeExample tmpMapNode : bmusToExmpl.keySet()) {
 				ArrayList<StraffSOMExample> exs = bmusToExmpl.get(tmpMapNode);
-				for(StraffSOMExample ex : exs) {ex.setBMU(tmpMapNode, ftrTypeUsedToTrain);	}
+				for(StraffSOMExample ex : exs) {ex.setBMU(tmpMapNode, ftrTypeUsedToTrain); tmpMapNode.addBMUExample(ex);	}
 			}
 		}	
 		return true;
 	}//run
 	
-	
 }//straffBMULoader
 
 
-//class to determine which products are closest to which map nodes
-//partition list of product examples to find bmus
-class straffProductsToMapBuilder implements Callable<Boolean>{
+//this class will take a subset of the passed example data set and map it
+class mapExampleDataToBMUs implements Callable<Boolean>{
 	SOMMapManager mapMgr;
 	int stIdx, endIdx, curMapFtrType, thdIDX;
 	boolean useChiSqDist;
-	public straffProductsToMapBuilder(SOMMapManager _mapMgr, int _stProdIDX, int _endProdIDX, boolean _useChiSqDist, int _thdIDX) {
+	int ftrTypeUsedToTrain;
+	StraffSOMExample[] exs;
+	String taskStr;
+
+	public mapExampleDataToBMUs(SOMMapManager _mapMgr, int _stProdIDX, int _endProdIDX, boolean _useChiSqDist, StraffSOMExample[] _exs, int _thdIDX, String _taskStr) {
 		mapMgr = _mapMgr;
 		stIdx = _stProdIDX;
 		endIdx = _endProdIDX;
 		useChiSqDist =_useChiSqDist;
 		thdIDX= _thdIDX;
+		exs=_exs;
 		curMapFtrType = mapMgr.getCurrMapDataFrmt();
+		taskStr = _taskStr;
 	}	
 	@Override
 	public Boolean call() throws Exception {
 		//for every product find closest map node
-		mapMgr.dispMessage("straffProductsToMapBuilder", "Run Thread : " +thdIDX, "Starting product mapping");
+		mapMgr.dispMessage("mapTestDataToBMUs", "Run Thread : " +thdIDX, "Starting " + taskStr + " mapping");
 		if (useChiSqDist) {
-			for (int i=stIdx;i<endIdx;++i) {	mapMgr.productData[i].findBMUFromNodes_ChiSq(mapMgr.MapNodes, curMapFtrType);	}					
+			for (int i=stIdx;i<endIdx;++i) {	exs[i].findBMUFromNodes_ChiSq(mapMgr.MapNodes, curMapFtrType);	}					
 		} else {
-			for (int i=stIdx;i<endIdx;++i) {	mapMgr.productData[i].findBMUFromNodes(mapMgr.MapNodes,  curMapFtrType);	}				
+			for (int i=stIdx;i<endIdx;++i) {	exs[i].findBMUFromNodes(mapMgr.MapNodes,  curMapFtrType);	}				
 		}
-		mapMgr.dispMessage("straffProductsToMapBuilder", "Run Thread : " +thdIDX, "Finished product mapping");
+		mapMgr.dispMessage("mapTestDataToBMUs", "Run Thread : " +thdIDX, "Finished " + taskStr + " mapping");
 		return true;
-	}	
-}//straffProductsToMapBuilder
-
+	}		
+}//mapTestToBMUs	
+	
 //this will build a single image of the map based on ftr data
 class straffMapVisImgBuilder implements Callable<Boolean>{
 	SOMMapManager mapMgr;

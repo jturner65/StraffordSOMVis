@@ -23,22 +23,23 @@ public class mySOMMapUIWin extends myDispWindow {
 		mapDrawPrdctNodesIDX 	= 6,
 		//display/interaction
 		mapDrawTrainDatIDX		= 7,			//draw training examples
-		mapDrawNodeLblIDX		= 8,			//draw labels for nodes
-		mapDrawWtMapNodesIDX	= 9,			//draw map nodes with non-0 (present) wt vals
-		mapDrawPopMapNodesIDX   = 10,			//draw map nodes that are bmus for training examples
-		mapDrawAllMapNodesIDX	= 11,			//draw all map nodes, even empty
-		mapDrawAnalysisVisIDX	= 12,			//whether or not to draw feature calc analysis graphs
-		mapDrawUMatrixIDX		= 13,			//draw visualization of u matrix - distance between nodes
+		mapDrawTestDatIDX 		= 8,			//draw testing examples - data held out and not used to train the map 
+		mapDrawNodeLblIDX		= 9,			//draw labels for nodes
+		mapDrawWtMapNodesIDX	= 10,			//draw map nodes with non-0 (present) wt vals
+		mapDrawPopMapNodesIDX   = 11,			//draw map nodes that are bmus for training examples
+		mapDrawAllMapNodesIDX	= 12,			//draw all map nodes, even empty
+		mapDrawAnalysisVisIDX	= 13,			//whether or not to draw feature calc analysis graphs
+		mapDrawUMatrixIDX		= 14,			//draw visualization of u matrix - distance between nodes
 		//mapDrawCubicUMatIDX		= 13,			//true : draw cubic/false draw linear
 		
-		showSelRegionIDX		= 14,			//highlight a specific region of the map, either all nodes above a certain threshold for a chosen jp or jpgroup
-		showSelJPIDX			= 15, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
-		//train/test data management
-		somTrainDataLoadedIDX	= 16,			//whether data used to build map has been loaded yet
-		saveLocClrImgIDX		= 17,			//
-		useOnlyEvntsToTrainIDX  = 18;			//only use records that have event jpgs/jps to train, otherwise use records that also have jpgs/jps only specified in prospect db
+		showSelRegionIDX		= 15,			//highlight a specific region of the map, either all nodes above a certain threshold for a chosen jp or jpgroup
+		showSelJPIDX			= 16, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
+		//train/test data managemen
+		somTrainDataLoadedIDX	= 17,			//whether data used to build map has been loaded yet
+		saveLocClrImgIDX		= 18,			//
+		useOnlyEvntsToTrainIDX  = 19;			//only use records that have event jpgs/jps to train, otherwise use records that also have jpgs/jps only specified in prospect db
 	
-	public static final int numPrivFlags = 19;
+	public static final int numPrivFlags = 20;
 	
 	//SOM map list options
 	public String[] 
@@ -131,19 +132,19 @@ public class mySOMMapUIWin extends myDispWindow {
 	public void initAllPrivBtns(){
 		truePrivFlagNames = new String[]{								//needs to be in order of flags
 				"Train W/Recs W/Event Data", "Building SOM", "Resetting Def Vals", "Loading Feature BMUs",
-				"Using ChiSq for Ftr Distance", "Unshared Ftrs are 0",	"Hide Train Data",
+				"Using ChiSq for Ftr Distance", "Unshared Ftrs are 0",	"Hide Train Data", "Hide Test Data",
 				"Hide Node Lbls","Hide Map Nodes (by Wt)","Hide Map Nodes (by Pop)", "Hide Map Nodes", "Hide Products",
 				"Hide U Mtrx Dists (Bi-Cubic)", "Hide Calc Analysis"
 		};
 		falsePrivFlagNames = new String[]{			//needs to be in order of flags
 				"Train W/All Recs","Build New Map ","Reset Def Vals","Not Loading Feature BMUs",
-				"Not Using ChiSq Distance", "Ignoring Unshared Ftrs","Show Train Data",
+				"Not Using ChiSq Distance", "Ignoring Unshared Ftrs","Show Train Data","Show Test Data",
 				"Show Node Lbls","Show Map Nodes (by Wt)","Show Map Nodes (by Pop)","Show Map Nodes", "Show Products",
 				"Show U Mtrx Dists (Bi-Cubic)",  "Show Calc Analysis"
 		};
 		privModFlgIdxs = new int[]{
 				useOnlyEvntsToTrainIDX, buildSOMExe, resetMapDefsIDX, mapLoadFtrBMUsIDX,
-				mapUseChiSqDistIDX,mapSetSmFtrZeroIDX,mapDrawTrainDatIDX,
+				mapUseChiSqDistIDX,mapSetSmFtrZeroIDX,mapDrawTrainDatIDX,mapDrawTestDatIDX,
 				mapDrawNodeLblIDX,
 				mapDrawWtMapNodesIDX,mapDrawPopMapNodesIDX,mapDrawAllMapNodesIDX, mapDrawPrdctNodesIDX,
 				mapDrawUMatrixIDX,mapDrawAnalysisVisIDX};
@@ -224,6 +225,9 @@ public class mySOMMapUIWin extends myDispWindow {
 				break;}							
 			case mapDrawTrainDatIDX		: {//draw training examples
 				break;}							
+			case mapDrawTestDatIDX		: {//draw testing examples
+				break;}								
+			
 //			case mapDrawTrDatLblIDX 	: {//draw labels for training samples                                                       
 //				break;}
 			case mapDrawWtMapNodesIDX		: {//draw map nodes
@@ -614,10 +618,16 @@ public class mySOMMapUIWin extends myDispWindow {
 	//get datapoint at passed location in map coordinates (so should be in frame of map's upper right corner) - assume map is square and not hex
 	public DispSOMMapExample getDataPointAtLoc(float x, float y, myPointf locPt){//, boolean useScFtrs){
 		float sensitivity = (float) guiObjs[uiMseRegionSensIDX].getVal();
-		TreeMap<Integer, Float> ftrs = mapMgr.getInterpFtrs(x,y);
-		if(ftrs == null) {return null;} 
-		DispSOMMapExample dp = mapMgr.buildTmpDataExample(locPt, ftrs, sensitivity);
-		dp.setMapLoc(locPt);			
+		DispSOMMapExample dp;
+		if (this.getPrivFlags(mapDrawUMatrixIDX)) {
+			float dist = mapMgr.getBiCubicInterpUMatVal(x, y);
+			dp = mapMgr.buildTmpDataExampleDists(locPt, dist, sensitivity);			
+		} else {
+			TreeMap<Integer, Float> ftrs = mapMgr.getInterpFtrs(x,y);
+			if(ftrs == null) {return null;} 
+			dp = mapMgr.buildTmpDataExampleFtrs(locPt, ftrs, sensitivity);
+		}
+		dp.setMapLoc(locPt);
 		return dp;
 	}//getDataPointAtLoc	
 	
@@ -673,13 +683,19 @@ public class mySOMMapUIWin extends myDispWindow {
 		if(getPrivFlags(buildSOMExe)){buildNewSOMMap();}
 	}
 	
-	private void drawMseLoc() {
+	private void drawMseLocWts() {
 		pa.pushMatrix();pa.pushStyle();
 			pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
 			mseOvrData.drawMeLblMap(pa);
 		pa.popStyle();pa.popMatrix();		
 	}
-	
+	private void drawMseLocJPs() {
+		pa.pushMatrix();pa.pushStyle();
+			pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
+			mseOvrData.drawMeLblMap(pa);
+		pa.popStyle();pa.popMatrix();		
+	}
+		
 	//draw map rectangle and map nodes
 	private void drawMapRectangle() {
 		pa.pushMatrix();pa.pushStyle();
@@ -699,10 +715,10 @@ public class mySOMMapUIWin extends myDispWindow {
 		
 		pa.pushMatrix();pa.pushStyle();
 			pa.translate(SOM_mapDims[0],SOM_mapDims[1],0);
-			if ((!getPrivFlags(mapDrawAnalysisVisIDX)) && (mseOvrData != null)){	drawMseLoc();}
 			
 			//mapDrawNodeLblIDX
 			if(getPrivFlags(mapDrawTrainDatIDX)){		mapMgr.drawTrainData(pa);}	
+			if(getPrivFlags(mapDrawTestDatIDX)) {			mapMgr.drawTestData(pa);}
 			if(getPrivFlags(mapDrawNodeLblIDX)) {
 				if(getPrivFlags(mapDrawAllMapNodesIDX)){	mapMgr.drawAllNodes(pa);		} 		
 				if(getPrivFlags(mapDrawPopMapNodesIDX)) {	mapMgr.drawExMapNodes(pa);}
@@ -713,10 +729,12 @@ public class mySOMMapUIWin extends myDispWindow {
 			}
 			//draw nodes
 			if (curImgNum > -1) {
+				if ((!getPrivFlags(mapDrawAnalysisVisIDX)) && (mseOvrData != null)){	drawMseLocJPs();}//draw jps for specific location
 				//draw map nodes, either with or without empty nodes
 				if(getPrivFlags(mapDrawPrdctNodesIDX)){		mapMgr.drawProductNodes(pa, curMapImgIDX, true);}
 				if(getPrivFlags(mapDrawWtMapNodesIDX)){		mapMgr.drawNodesWithWt(pa, mapNodeWtDispThresh, curMapImgIDX);}//mapMgr.drawExMapNodes( pa, curMapImgIDX, mapNodeClr, mapNodeClr);		} 
 			} else {//draw all products				
+				if ((!getPrivFlags(mapDrawAnalysisVisIDX)) && (mseOvrData != null)){	drawMseLocWts();}
 				if(getPrivFlags(mapDrawPrdctNodesIDX)){		mapMgr.drawAllProductNodes(pa);}
 			}
 			//if(getPrivFlags(mapDrawUMatrixIDX)) {		mapMgr.drawUMatrix(pa);}

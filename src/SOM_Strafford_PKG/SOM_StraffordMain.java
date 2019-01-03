@@ -1324,6 +1324,7 @@ public class SOM_StraffordMain extends PApplet {
 				stroke(0,0,0,255);
 				strokeWeight(2.5f);
 				rect(rectDims);
+				translate(rectDims[0],0,0);
 				showOffsetTextAra(1.2f * rad, clrs[2], txtAra);
 			popStyle(); popMatrix();
 		popStyle(); popMatrix();} // render sphere of radius r and center P)
@@ -1647,6 +1648,8 @@ public class SOM_StraffordMain extends PApplet {
 	
 	public int getRndClrInt(){return (int)random(0,23);}		//return a random color flag value from below
 	public int[] getRndClr(int alpha){return new int[]{(int)random(0,255),(int)random(0,255),(int)random(0,255),alpha};	}
+	public int[] getRndClr2(){return new int[]{(int)random(50,255),(int)random(25,200),(int)random(80,255),255};	}
+	public int[] getRndClr2(int alpha){return new int[]{(int)random(50,255),(int)random(25,200),(int)random(80,255),alpha};	}
 	public int[] getRndClr(){return getRndClr(255);	}		
 	public Integer[] getClrMorph(int a, int b, double t){return getClrMorph(getClr(a), getClr(b), t);}    
 	public Integer[] getClrMorph(int[] a, int[] b, double t){
