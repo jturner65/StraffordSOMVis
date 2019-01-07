@@ -19,14 +19,23 @@ public class SOMProjConfigData {
 	
 	////////////////////////////////
 	//debug info - default map to load - TODO move this to (or build this from) a default exp config file file
+	//whether to use larger or smaller map
+	private final boolean _useBiggerMap = true;
 	//data format used in map training StraffSOM_2018_12_27_12_33_DebugRun
 	private int _DBG_dataFrmt = 1;
-	//date/time of debug pre-made map
-	private String _DBG_Map_fileNow = "12_27_12_33";
-	//date/time used in folder for debug of pre-made map
-	private String _DBG_Map_fldrNow = "2018_"+_DBG_Map_fileNow+"_DebugRun";
 	//map topology for debug
-	private String _DBG_PreBuiltMapConfig = "_x20_y20_k2";	
+//	private String _DBG_PreBuiltMapConfig = "_x20_y20_k2";	
+	//date/time of debug pre-made map
+//	private String _DBG_Map_fileNow = "12_27_12_33";
+	//date/time used in folder for debug of pre-made map
+//	private String _DBG_Map_fldrNow = "2018_"+_DBG_Map_fileNow+"_DebugRun";
+	//map topology for debug
+	private String _DBG_PreBuiltMapConfig = (_useBiggerMap ? "_x40_y40_k2" : "_x20_y20_k2");	
+	//date/time of debug pre-made map
+	private String _DBG_Map_fileNow = (_useBiggerMap ? "01_03_13_02" : "12_27_12_33");//2019_01_03_13_02
+	//date/time used in folder for debug of pre-made map
+	private String _DBG_Map_fldrNow = (_useBiggerMap ? "2019_"+_DBG_Map_fileNow+"_DebugRun" : "2018_"+_DBG_Map_fileNow+"_DebugRun");
+
 	//prebuilt map values
 	private int _DBG_Map_numSmpls = 459110, _DBG_Map_numTrain = 413199, _DBG_Map_numTest = 45911;
 	///////////////////////////////////////
@@ -177,6 +186,7 @@ public class SOMProjConfigData {
 	public void loadSOM_Exp() {
 		mapMgr.dispMessage("SOMProjConfigData","loadSOM_Exp","Loading SOM Exe config data.");
 		//build file describing experiment and put at this location
+		//NOTE! if running a debug run, be sure to have the line dateTimeStrAra[0],<date_time_value>_DebugRun in config file, otherwise will crash
 		String expFileName = getSOMMapExpFileName();
 		String[] expStrAra = mapMgr.loadFileIntoStringAra(expFileName, "SOM_MapDat Config File loaded", "SOM_MapDat Config File Failed to load");
 		SOMExeDat.buildFromStringArray(expStrAra);

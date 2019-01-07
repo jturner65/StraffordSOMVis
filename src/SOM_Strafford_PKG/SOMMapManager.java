@@ -15,7 +15,7 @@ public class SOMMapManager {
 	//map descriptions
 	
 	//all nodes of som map, keyed by node location
-	public TreeMap<Tuple<Integer,Integer>, SOMMapNodeExample> MapNodes;
+	public TreeMap<Tuple<Integer,Integer>, SOMMapNode> MapNodes;
 	//keyed by field used in lrn file (float rep of individual record, 
 	public TreeMap<String, dataClass> TrainDataLabels;	
 	//data set to be training data, etc
@@ -25,7 +25,9 @@ public class SOMMapManager {
 	//maps of product arrays, with key for each map being either jpg or jp
 	public TreeMap<Integer, ArrayList<ProductExample>> productsByJpg, productsByJp;
 	//array of per jp treemaps of nodes keyed by jp weight
-	public TreeMap<Float,ArrayList<SOMMapNodeExample>>[] PerJPHiWtMapNodes;
+	public TreeMap<Float,ArrayList<SOMMapNode>>[] PerJPHiWtMapNodes;
+	//array of map clusters
+	public ArrayList<SOMMapSegment> segments;
 	
 	//data values directly from the trained map
 	public float[] 
@@ -37,7 +39,11 @@ public class SOMMapManager {
 			td_ftrsMean, td_ftrsVar, 	//TODO perhaps remove these - we have this info already
 			in_ftrsMean, in_ftrsVar; 	//TODO perhaps remove these - we have this info already : per feature training and input data means and variances
 	
-	public HashSet<SOMMapNodeExample> nodesWithEx, nodesWithNoEx;	//map nodes that have examples - for display only
+	public TreeMap<ExDataType, HashSet<SOMMapNode>> nodesWithEx, nodesWithNoEx;	//map nodes that have/don't have training examples - for display only
+	
+	//types of possible mappings to particular map node as bmu
+	//corresponds to these values : ProspectTraining(0),ProspectTesting(1),Product(2)
+	public static final String[] nodeBMUMapTypes = new String[] {"Training", "Testing", "Products"};
 	
 	//features used to train map - these constructs are intended to hold the sorted list of weight ratios for each feature on all map nodes.  this can be very big (as big as the weights structure) so only load if necessary
 	public SOMFeature[] featuresBMUs;
@@ -135,6 +141,9 @@ public class SOMMapManager {
 	private int mapNodeCols =0, mapNodeRows =0;
 	//# of nodes / map dim  in x/y
 	private float nodeXPerPxl, nodeYPerPxl;
+	//threshold of u-dist for nodes to belong to same segment
+	private static float nodeInSegDistThresh = .3f;
+	private float mapMadeWithSegThresh = 0.0f;
 	
 	//////////////////////
 	// misc.
@@ -153,6 +162,7 @@ public class SOMMapManager {
 	private ExecutorService th_exec;	//to access multithreading - instance from calling program
 	private final int numUsableThreads;		//# of threads usable by the application
 	///////////////////////////////////
+	
 	
 	public SOMMapManager(SOM_StraffordMain _pa, mySOMMapUIWin _win, ExecutorService _th_exec, float[] _dims) {
 		p=_pa; win=_win;th_exec=_th_exec;		
@@ -194,31 +204,31 @@ public class SOMMapManager {
 	//build new SOM_MAP map using UI-entered values, then load resultant data
 	//with maps of required SOM exe params
 	//TODO this will be changed to not pass values from UI, but rather to finalize and save values already set in SOM_MapDat object from UI or other user input
-	protected boolean buildNewSOMMap(boolean mapLoadFtrBMUsIDX, HashMap<String, Integer> mapInts, HashMap<String, Float> mapFloats, HashMap<String, String> mapStrings){
+	protected boolean buildNewSOMMap(HashMap<String, Integer> mapInts, HashMap<String, Float> mapFloats, HashMap<String, String> mapStrings){
 		//set and save configurations
 		boolean runSuccess = projConfigData.setSOM_ExperimentRun(mapInts, mapFloats, mapStrings);
 		if(!runSuccess) {
 			return false;
 		}
 		dispMessage("SOMMapManager","buildNewSOMMap","Current projConfigData before dataLoader Call : " + projConfigData.toString());
-		th_exec.execute(new SOMDataLoader(this,mapLoadFtrBMUsIDX,projConfigData));//fire and forget load task to load results from map building
+		th_exec.execute(new SOMDataLoader(this, projConfigData));//fire and forget load task to load results from map building
 		return true;
 	}//buildNewSOMMap	
 	
 	@SuppressWarnings("unchecked")
 	public void initPerJPMapOfNodes() {
 		PerJPHiWtMapNodes = new TreeMap[numFtrs];
-		for (int i=0;i<PerJPHiWtMapNodes.length; ++i) {PerJPHiWtMapNodes[i] = new TreeMap<Float,ArrayList<SOMMapNodeExample>>(new Comparator<Float>() { @Override public int compare(Float o1, Float o2) {   return o2.compareTo(o1);}});}
+		for (int i=0;i<PerJPHiWtMapNodes.length; ++i) {PerJPHiWtMapNodes[i] = new TreeMap<Float,ArrayList<SOMMapNode>>(new Comparator<Float>() { @Override public int compare(Float o1, Float o2) {   return o2.compareTo(o1);}});}
 	}//
 
 	//put a map node in PerJPHiWtMapNodes per-jp array
-	public void setMapNodeFtrStr(SOMMapNodeExample mapNode) {
+	public void setMapNodeFtrStr(SOMMapNode mapNode) {
 		TreeMap<Integer, Float> stdFtrMap = mapNode.getCurrentFtrMap(SOMMapManager.useScaledDat);
 		for (Integer jpIDX : stdFtrMap.keySet()) {
 			Float ftrVal = stdFtrMap.get(jpIDX);
-			ArrayList<SOMMapNodeExample> nodeList = PerJPHiWtMapNodes[jpIDX].get(ftrVal);
+			ArrayList<SOMMapNode> nodeList = PerJPHiWtMapNodes[jpIDX].get(ftrVal);
 			if (nodeList== null) {
-				nodeList = new ArrayList<SOMMapNodeExample>();
+				nodeList = new ArrayList<SOMMapNode>();
 			}
 			nodeList.add(mapNode);
 			PerJPHiWtMapNodes[jpIDX].put(ftrVal, nodeList);
@@ -401,14 +411,44 @@ public class SOMMapManager {
 		trainData = new ProspectExample[0];
 		testData = new ProspectExample[0];
 		inputData = new ProspectExample[0];
-		nodesWithEx = new HashSet<SOMMapNodeExample>();
-		nodesWithNoEx = new HashSet<SOMMapNodeExample>();
+		
+		nodesWithEx = new TreeMap<ExDataType, HashSet<SOMMapNode>>();
+		nodesWithNoEx = new TreeMap<ExDataType, HashSet<SOMMapNode>>();
+		for (ExDataType _type : ExDataType.values()) {
+			nodesWithEx.put(_type, new HashSet<SOMMapNode>());
+			nodesWithNoEx.put(_type, new HashSet<SOMMapNode>());		
+		}		
+		
 		numTrainData = 0;
 		numFtrs = 0;
 		numInputData = 0;
 		projConfigData.setCurDataDir();
 		dispMessage("SOMMapManager","initData","Init Finished");
 	}//initdata
+
+	
+	public void clearBMUNodesWithExs(ExDataType _type) {								nodesWithEx.get(_type).clear();}
+	public void clearBMUNodesWithNoExs(ExDataType _type) {							nodesWithNoEx.get(_type).clear();}
+	public void addExToNodesWithExs(SOMMapNode node, ExDataType _type) {			nodesWithEx.get(_type).add(node);}	
+	public void addExToNodesWithNoExs(SOMMapNode node, ExDataType _type) {			nodesWithNoEx.get(_type).add(node);}	
+	public int getNumNodesWithBMUExs(ExDataType _type) {return nodesWithEx.get(_type).size();}
+	public int getNumNodesWithNoBMUExs(ExDataType _type) {return nodesWithNoEx.get(_type).size();}
+	public HashSet<SOMMapNode> getNodesWithExOfType(ExDataType _type){return nodesWithEx.get(_type);}
+	public HashSet<SOMMapNode> getNodesWithNoExOfType(ExDataType _type){return nodesWithNoEx.get(_type);}
+	
+	
+	//remove all examples in "with" struct from "without" struct
+	public void filterExFromNoEx(ExDataType _type) {
+		//remove all nodes that have been selected by some data point of type _type as a bmu from the "no examples" list
+		HashSet<SOMMapNode> withMap = nodesWithEx.get(_type),withOutMap = nodesWithNoEx.get(_type);		
+		for (SOMMapNode tmpMapNode : withMap) {			withOutMap.remove(tmpMapNode);		}
+	}
+	
+	public void finalizeExMapNodes(ExDataType _type) {
+		HashSet<SOMMapNode> withMap = nodesWithEx.get(_type);
+		for(SOMMapNode node : withMap){		node.finalizeAllBmus(_type);	}
+	}
+	
 	//return true if loader is done and if data is successfully loaded
 	public boolean isMapDrawable(){return getFlag(loaderRtnIDX) && getFlag(mapDataLoadedIDX);}
 
@@ -739,11 +779,14 @@ public class SOMMapManager {
 			//last one probably won't end at endIDX, so use length
 			prdcttMappers.add(new mapExampleDataToBMUs(this,stIDX, productData.length, useChiSqDist, productData, numUsableThreads-1,"Product"));
 			try {prdcttMapperFtrs = th_exec.invokeAll(prdcttMappers);for(Future<Boolean> f: prdcttMapperFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }		
-		} else {		
-			//for every product find closest map node
+		} else {//for every product find closest map node
 			if (useChiSqDist) {			for (int i=0;i<productData.length;++i) {	productData[i].findBMUFromNodes_ChiSq(MapNodes, curMapFtrType);		}}
 			else {						for (int i=0;i<productData.length;++i) {	productData[i].findBMUFromNodes(MapNodes, curMapFtrType);		}}
 		}
+		//go through every product and attach prod to bmu - needs to be done synchronously because don't want to concurrently modify bmus from 2 different prods
+		dispMessage("SOMMapManager","setProductBMUs","Finished finding bmus for all product data. Start adding product data to appropriate bmu's list.");
+		_finalizeBMUProcessing(productData, ExDataType.Product);
+		
 		dispMessage("SOMMapManager","setProductBMUs","Finished Mapping products to best matching units.");
 	}//setProductBMUs
 	
@@ -766,14 +809,27 @@ public class SOMMapManager {
 			//last one probably won't end at endIDX, so use length
 			testMappers.add(new mapExampleDataToBMUs(this,stIDX, testData.length, useChiSqDist, testData, numUsableThreads-1, "Test Data"));
 			try {testMapperFtrs = th_exec.invokeAll(testMappers);for(Future<Boolean> f: testMapperFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }		
-		} else {		
-			//for every product find closest map node
+		} else {//for every product find closest map node
 			if (useChiSqDist) {			for (int i=0;i<testData.length;++i) {	testData[i].findBMUFromNodes_ChiSq(MapNodes, curMapFtrType);		}}			
 			else {						for (int i=0;i<testData.length;++i) {	testData[i].findBMUFromNodes(MapNodes, curMapFtrType);		}	}			
 		}
+		//go through every test example and attach prod to bmu - needs to be done synchronously because don't want to concurrently modify bmus from 2 different test examples
+		dispMessage("SOMMapManager","setTestBMUs","Finished finding bmus for all test data. Start adding test data to appropriate bmu's list.");
+		_finalizeBMUProcessing(testData, ExDataType.ProspectTesting);
+		
 		dispMessage("SOMMapManager","setTestBMUs","Finished Mapping test data to best matching units.");
 	}//setProductBMUs
 	
+	private void _finalizeBMUProcessing(StraffSOMExample[] _exs, ExDataType _type) {
+		for(SOMMapNode mapNode : MapNodes.values()){mapNode.clearBMUExs(_type);addExToNodesWithNoExs(mapNode, _type);}	
+		for (int i=0;i<_exs.length;++i) {	
+			StraffSOMExample ex = _exs[i];
+			ex.bmu.addExToBMUs(ex);	
+			addExToNodesWithExs(ex.bmu, _type);
+		}
+		filterExFromNoEx(_type);		//clear out all nodes that have examples from struct holding no-example map nodes
+		finalizeExMapNodes(_type);		
+	}//_finalizeBMUProcessing
 	
 	//debug - display spans of weights of all features in products after products are built
 	public void dbgDispProductWtSpans() {
@@ -867,7 +923,7 @@ public class SOMMapManager {
 		saveStrings(diffsFileName,new String[]{diffStr});		
 		dispMessage("SOMMapManager","buildAndSaveTrainingData","Strafford Prospects Mins and Diffs Files Saved");	
 	}//buildAndSaveTrainingData	
-	
+
 	
 	//load preproc csv and build training and testing partitions
 	public void dbgLoadCSVBuildDataTrainMap(boolean useOnlyEvents, float trainTestPartition) {
@@ -902,7 +958,7 @@ public class SOMMapManager {
 		//build data partitions - use partition size set via constants in debug
 		buildTestTrainFromProspectMap(projConfigData.getTrainTestPartition(), false);	
 		dispMessage("SOMMapManager","dbgBuildExistingMap","Current projConfigData before dataLoader Call : " + projConfigData.toString());
-		th_exec.execute(new SOMDataLoader(this,true,projConfigData));//fire and forget load task to load		
+		th_exec.execute(new SOMDataLoader(this,projConfigData));//fire and forget load task to load		
 	}//dbgBuildExistingMap
 		
 	public boolean getUseChiSqDist() {return useChiSqDist;}
@@ -936,6 +992,8 @@ public class SOMMapManager {
 	//set flag that SOM file loader is finished to false
 	public void setLoaderRtnFalse() {setFlag(loaderRtnIDX, false);}
 	
+	public static float getNodeInSegThresh() {return nodeInSegDistThresh;}
+	public static void setNodeInSegThresh(float _val) {nodeInSegDistThresh=_val;}	
 	
 	//this will set the current jp->jpg data maps based on passed prospect data map
 	//When acquiring new data, this must be performed after all data is loaded, but before
@@ -997,6 +1055,28 @@ public class SOMMapManager {
 		}
 		dispMessage("SOMMapManager","procRawEventData","Finished.");
 	}//procRawEventData
+	
+	//take existing map and use U-Matrix-distances to determine segment membership.Large distances > thresh (around .7) mean nodes are on a boundary
+	public void buildSegmentsOnMap() {
+		if (nodeInSegDistThresh == mapMadeWithSegThresh) {return;}
+		if ((MapNodes == null) || (MapNodes.size() == 0)) {return;}
+		dispMessage("SOMMapManager","buildSegmentsOnMap","Started building cluster map");	
+		//clear existing segments
+		for (SOMMapNode ex : MapNodes.values()) {ex.clearSeg();}
+		segments = new ArrayList<SOMMapSegment>();
+		SOMMapSegment seg;
+		for (SOMMapNode ex : MapNodes.values()) {
+			if(ex.shouldAddToSegment(nodeInSegDistThresh)) {
+				seg = new SOMMapSegment(this, nodeInSegDistThresh);
+				ex.addToSeg(seg);
+				segments.add(seg);
+			}
+		}		
+		mapMadeWithSegThresh = nodeInSegDistThresh;
+		if(win!=null) {win.setMapSegmentImgClrs();}
+		dispMessage("SOMMapManager","buildSegmentsOnMap","Finished building cluster map");			
+	}//buildSegmentsOnMap()
+
 	
 	//convert raw tc taggings table data to product examples
 	private void procRawProductData(ArrayList<BaseRawData> tcTagRawData) {
@@ -1134,7 +1214,7 @@ public class SOMMapManager {
 	public Float getBiCubicInterpUMatVal(float x, float y){
 		float xInterp = (x+mapNodeCols) %1, yInterp = (y+mapNodeRows) %1;
 		int xInt = (int) Math.floor(x+mapNodeCols)%mapNodeCols, yInt = (int) Math.floor(y+mapNodeRows)%mapNodeRows;		//assume torroidal map		
-		SOMMapNodeExample ex = MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt));
+		SOMMapNode ex = MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt));
 		try{
 			Float uMatVal = 255.0f*(ex.biCubicInterp(xInterp, yInterp));
 			return uMatVal;
@@ -1143,6 +1223,19 @@ public class SOMMapManager {
 			return 0.0f;
 		}
 	}//getInterpUMatVal
+	
+	public int getSegementColorAtPxl(float x, float y) {
+		float xInterp = (x+mapNodeCols) %1, yInterp = (y+mapNodeRows) %1;
+		int xInt = (int) Math.floor(x+mapNodeCols)%mapNodeCols, yInt = (int) Math.floor(y+mapNodeRows)%mapNodeRows;		//assume torroidal map		
+		SOMMapNode ex = MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt));
+		try{
+			Float uMatVal = (ex.biCubicInterp(xInterp, yInterp));
+			return (uMatVal > nodeInSegDistThresh ? 0 : ex.getSegClrAsInt());
+		} catch (Exception e){
+			dispMessage("mySOMMapUIWin","getInterpFtrs","Exception triggered in mySOMMapUIWin::getInterpFtrs : \n"+e.toString() + "\n\tMessage : "+e.getMessage() );
+			return 0;
+		}
+	}
 	
 	//get treemap of features that interpolates between two maps of features
 	private TreeMap<Integer, Float> interpTreeMap(TreeMap<Integer, Float> a, TreeMap<Integer, Float> b, float t, float mult){
@@ -1277,6 +1370,10 @@ public class SOMMapManager {
 		if (win==null) {return new int[] {255,255,255,255};}
 		return win.pa.getRndClr2();
 	}
+	public int[] getRndClr(int alpha) {
+		if (win==null) {return new int[] {255,255,255,alpha};}
+		return win.pa.getRndClr2(alpha);
+	}
 	
 	private static int dispTrainDataFrame = 0, numDispTrainDataFrames = 20;
 	//if connected to UI, draw data - only called from window
@@ -1300,7 +1397,13 @@ public class SOMMapManager {
 	//draw boxes around each node representing umtrx values derived in SOM code - deprecated, now drawing image
 	public void drawUMatrixVals(SOM_StraffordMain pa) {
 		pa.pushMatrix();pa.pushStyle();
-		for(SOMMapNodeExample node : MapNodes.values()){	node.drawMeUMatDist(pa);	}		
+		for(SOMMapNode node : MapNodes.values()){	node.drawMeUMatDist(pa);	}		
+		pa.popStyle();pa.popMatrix();
+	}//drawUMatrix
+	//draw boxes around each node representing segments these nodes belong to
+	public void drawSegments(SOM_StraffordMain pa) {
+		pa.pushMatrix();pa.pushStyle();
+		for(SOMMapNode node : MapNodes.values()){	node.drawMeSegClr(pa);	}		
 		pa.popStyle();pa.popMatrix();
 	}//drawUMatrix
 	
@@ -1337,49 +1440,46 @@ public class SOMMapManager {
 	public void drawAllNodesWted(SOM_StraffordMain pa, int curJPIdx) {//, int[] dpFillClr, int[] dpStkClr) {
 		pa.pushMatrix();pa.pushStyle();
 		//pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
-		for(SOMMapNodeExample node : MapNodes.values()){	node.drawMeSmallWt(pa,curJPIdx);	}
+		for(SOMMapNode node : MapNodes.values()){	node.drawMeSmallWt(pa,curJPIdx);	}
 		pa.popStyle();pa.popMatrix();
 	} 
 		
 	public void drawAllNodes(SOM_StraffordMain pa) {//, int[] dpFillClr, int[] dpStkClr) {
 		pa.pushMatrix();pa.pushStyle();
 		//pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
-		for(SOMMapNodeExample node : MapNodes.values()){	node.drawMeSmall(pa);	}
+		for(SOMMapNode node : MapNodes.values()){	node.drawMeSmall(pa);	}
 		pa.popStyle();pa.popMatrix();
 	} 
 	
 	public void drawAllNodesNoLbl(SOM_StraffordMain pa) {//, int[] dpFillClr, int[] dpStkClr) {
 		pa.pushMatrix();pa.pushStyle();
 		//pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
-		for(SOMMapNodeExample node : MapNodes.values()){	node.drawMeSmallNoLbl(pa);	}
+		for(SOMMapNode node : MapNodes.values()){	node.drawMeSmallNoLbl(pa);	}
 		pa.popStyle();pa.popMatrix();
 	} 
 		
 	public void drawNodesWithWt(SOM_StraffordMain pa, float valThresh, int curJPIdx) {//, int[] dpFillClr, int[] dpStkClr) {
 		pa.pushMatrix();pa.pushStyle();
 		//pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
-		TreeMap<Float,ArrayList<SOMMapNodeExample>> map = PerJPHiWtMapNodes[curJPIdx];
-		SortedMap<Float,ArrayList<SOMMapNodeExample>> headMap = map.headMap(valThresh);
+		TreeMap<Float,ArrayList<SOMMapNode>> map = PerJPHiWtMapNodes[curJPIdx];
+		SortedMap<Float,ArrayList<SOMMapNode>> headMap = map.headMap(valThresh);
 		for(Float key : headMap.keySet()) {
-			ArrayList<SOMMapNodeExample> ara = headMap.get(key);
-			for (SOMMapNodeExample node : ara) {		node.drawMeWithWt(pa, 10.0f*key, new String[] {""+node.OID+" : ",String.format("%.4f",key)});}
+			ArrayList<SOMMapNode> ara = headMap.get(key);
+			for (SOMMapNode node : ara) {		node.drawMeWithWt(pa, 10.0f*key, new String[] {""+node.OID+" : ",String.format("%.4f",key)});}
 		}
 		pa.popStyle();pa.popMatrix();
 	}//drawNodesWithWt
 	
-	public void drawExMapNodes(SOM_StraffordMain pa) {//, int[] dpFillClr, int[] dpStkClr) {
-		pa.pushMatrix();pa.pushStyle();
-		//pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
-		//PerJPHiWtMapNodes
-		for(SOMMapNodeExample node : nodesWithEx){	node.drawMeWithWt(pa, node.getLogExmplBMUSize(), new String[] {""+node.OID+" : ", ""+node.getNumExamples()});}
+	public void drawExMapNodes(SOM_StraffordMain pa, ExDataType _type) {
+		HashSet<SOMMapNode> nodes = nodesWithEx.get(_type);
+		pa.pushMatrix();pa.pushStyle(); 
+		for(SOMMapNode node : nodes){	node.drawMePopLbl(pa, _type);}
 		pa.popStyle();pa.popMatrix();		
 	}	
-	public void drawExMapNodesNoLbl(SOM_StraffordMain pa) {
+	public void drawExMapNodesNoLbl(SOM_StraffordMain pa, ExDataType _type) {
+		HashSet<SOMMapNode> nodes = nodesWithEx.get(_type);
 		pa.pushMatrix();pa.pushStyle();
-		//PerJPHiWtMapNodes
-		for(SOMMapNodeExample node : nodesWithEx){			
-			//float wt = Math.log
-			node.drawMeWithWtNoLbl(pa, node.getLogExmplBMUSize());}
+		for(SOMMapNode node : nodes){				node.drawMePopNoLbl(pa, _type);}
 		pa.popStyle();pa.popMatrix();		
 	}	
 	
@@ -1407,10 +1507,6 @@ public class SOMMapManager {
 	}
 	//mapNodeCols, mapNodeRows
 	public Tuple<Integer,Integer> getMapLocTuple(int xLoc, int yLoc){return new Tuple<Integer,Integer>((xLoc +mapNodeCols)%mapNodeCols, (yLoc+mapNodeRows)%mapNodeRows );}
-	//update map node neighborhoods with umat info
-	public void setMapNodeNbrhdUMat() {
-		for(SOMMapNodeExample ex : MapNodes.values()) {	ex.buildNeighborWtVals();	}
-	}
 	
 	//get time from "start time" (ctor run for map manager)
 	protected long getCurTime() {			
@@ -1454,9 +1550,9 @@ public class SOMMapManager {
 		switch(_type) {
 			case ProspectTraining : {		return new int[] {win.pa.gui_Cyan,win.pa.gui_Cyan,win.pa.gui_Blue};}			//corresponds to prospect training example
 			case ProspectTesting : {		return new int[] {win.pa.gui_Magenta,win.pa.gui_Magenta,win.pa.gui_Red};}		//corresponds to prospect testing/held-out example
+			case Product : {		return new int[] {win.pa.gui_Yellow,win.pa.gui_Yellow,win.pa.gui_White};}		//corresponds to product example
 			case MapNode : {		return new int[] {win.pa.gui_Green,win.pa.gui_Green,win.pa.gui_Cyan};}			//corresponds to map node example
 			case MouseOver : {		return new int[] {win.pa.gui_White,win.pa.gui_White,win.pa.gui_White};}			//corresponds to mouse example
-			case Product : {		return new int[] {win.pa.gui_Yellow,win.pa.gui_Yellow,win.pa.gui_White};}		//corresponds to product example
 		}
 		return new int[] {win.pa.gui_White,win.pa.gui_White,win.pa.gui_White};
 	}//getClrVal
@@ -1537,7 +1633,7 @@ public class SOMMapManager {
 	public String toString(){
 		String res = "Weights Data : \n";
 		for(Tuple<Integer,Integer> key : MapNodes.keySet()){
-			SOMMapNodeExample n = MapNodes.get(key);
+			SOMMapNode n = MapNodes.get(key);
 			res+="Key:"+key.toString()+" : "+n.toCSVString(0)+"\n";}
 		res += "Training Data : \n";
 		for(int i =0; i<trainData.length;++i){ res += trainData[i].toString();}
@@ -1554,7 +1650,7 @@ class SOMFeature{
 	public SOMMapManager map;			//owning map
 	public int fIdx;
 	public String name;
-	public TreeMap<Float,SOMMapNodeExample> sortedBMUs;		//best units for this particular feature, based on weight ratio (this is not actual weight of feature in node)
+	public TreeMap<Float,SOMMapNode> sortedBMUs;		//best units for this particular feature, based on weight ratio (this is not actual weight of feature in node)
 
 	public SOMFeature(SOMMapManager _map, String _name, int _fIdx, String[] _tkns){//_tkns is in order idx%3==0 : wt ration, idx%3==1 : y coord, idx%3==2 : x coord
 		map=_map;fIdx=_fIdx;name=_name;
@@ -1563,7 +1659,7 @@ class SOMFeature{
 	
 	public void setBMUWts(String[] _tkns){
 		if(_tkns == null){map.dispMessage("SOMFeature","setBMUWts","Feature wts not found for feature : " + name + " idx : "+ fIdx);return;}
-		sortedBMUs = new TreeMap<Float,SOMMapNodeExample>();
+		sortedBMUs = new TreeMap<Float,SOMMapNode>();
 	}
 	
 	public String toString(){

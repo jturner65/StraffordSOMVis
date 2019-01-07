@@ -6,6 +6,9 @@ import java.util.regex.Pattern;
 
 
 /**
+ * NOTE : Nothing in this file is thread safe - do not allow for opportunities for concurrent modification 
+ * of any instanced object in this file.
+ * 
  * This class will hold the relevant data acquired from the db to build a datapoint used by the SOM
  * It will take raw data and build the appropriate feature vector, using the appropriate calculation 
  * to weight the various jpgroups/jps appropriately.  The ID of this construct should be such that it 
@@ -44,19 +47,18 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	private TreeMap<String, TreeMap<Integer,Integer>> mapOfJpsVsWtRank;
 	//keys for above maps
 	public static final String[] jpMapTypeKeys = new String[] {"ftrMap", "stdFtrMap", "normFtrMap"};
-	public static final int ftrMapTypeKey = 0, stdFtrMapTypeKey = 1, normFtrMapTypeKey = 2;
-	
+	public static final int ftrMapTypeKey = 0, stdFtrMapTypeKey = 1, normFtrMapTypeKey = 2;	
 	
 	/////////////////////////////
 	// from old DataPoint data
 	
 	//reference to map node that best matches this node
-	protected SOMMapNodeExample bmu;			
+	protected SOMMapNode bmu;			
 	//this is the distance, using the chosen distance measure, to the best matching unit of the map for this example
-	protected double _distToBMU;
+	protected double _sqDistToBMU;
 	//to hold 9 node neighborhood surrounding bmu - using array of nodes because nodes can be equidistant form multiple nodes
 	//TODO set a list of these nodes for each SOMMapNodeExample upon their construction? will this speed up anything?
-	private TreeMap<Double, ArrayList<SOMMapNodeExample>> mapNodeNghbrs;
+	private TreeMap<Double, ArrayList<SOMMapNode>> mapNodeNghbrs;
 	//display label describing this example TODO this needs refinement for strafford-specific data
 	protected dataClass label;
 	
@@ -65,7 +67,7 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		mapData=_map;
 		jpJpgMon = mapData.jpJpgrpMon;
 		OID = _id;
-		_distToBMU = 0.0;
+		_sqDistToBMU = 0.0;
 		ftrsBuilt = false;
 		stdFtrsBuilt = false;
 		normFtrsBuilt = false;
@@ -147,7 +149,7 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	}//addDataToMap
 	
 	//debugging tool to find issues behind occasional BMU seg faults
-	protected boolean checkForErrors(SOMMapNodeExample _n, float[] dataVar){
+	protected boolean checkForErrors(SOMMapNode _n, float[] dataVar){
 		boolean inError = false;
 		if(mapData == null){					mapData.dispMessage("SOMMapNodeExample","checkForErrors","FATAL ERROR : SOMMapData object is null!");		return true;}//if mapdata is null then stop - should have come up before here anyway
 		if(_n==null){							mapData.dispMessage("SOMMapNodeExample","checkForErrors","_n is null!");		inError=true;} 
@@ -184,32 +186,32 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	}//getJPRankForMap
 	
 	//add passed map node, with passed feature distance, to neighborhood nodes
-	protected void addMapUnitToNeighbrhdMap(SOMMapNodeExample _n, double _dist) {
-		ArrayList<SOMMapNodeExample> tmpMap = mapNodeNghbrs.get(_dist);
-		if (null==tmpMap) {tmpMap = new ArrayList<SOMMapNodeExample>();}
+	protected void addMapUnitToNeighbrhdMap(SOMMapNode _n, double _dist) {
+		ArrayList<SOMMapNode> tmpMap = mapNodeNghbrs.get(_dist);
+		if (null==tmpMap) {tmpMap = new ArrayList<SOMMapNode>();}
 		tmpMap.add(_n);
 		mapNodeNghbrs.put(_dist, tmpMap);		
 	}//addMapUnitToNeighbrhdMap
 	
 	//once BMU and distToBMU is set, init map and add node to neighborhood map keyed by dist
 	protected void addBMUToNeighbrhdMap() {
-		mapNodeNghbrs = new TreeMap<Double, ArrayList<SOMMapNodeExample>>();
-		ArrayList<SOMMapNodeExample> tmpMap = new ArrayList<SOMMapNodeExample>();
+		mapNodeNghbrs = new TreeMap<Double, ArrayList<SOMMapNode>>();
+		ArrayList<SOMMapNode> tmpMap = new ArrayList<SOMMapNode>();
 		tmpMap.add(bmu);
 		mapNodeLoc.set(bmu.mapLoc);
-		mapNodeNghbrs.put(_distToBMU, tmpMap);		//to hold 9 neighbor nodes and their ftr distance		
+		mapNodeNghbrs.put(_sqDistToBMU, tmpMap);		//to hold 9 neighbor nodes and their ftr distance		
 	}//addBMUToNeighbrhdMap
 	
 	//this adds the passed node as this example's best matching unit on the map
 	//this also adds this data point to the map's node with a key of the distance
 	//dataVar is variance of feature weights of map nodes.  this is for chi-squared distance measurements
-	public void setBMU(SOMMapNodeExample _n, int _ftrType){
+	public void setBMU(SOMMapNode _n, int _ftrType){
 		setBMU(_n,getSqDistFromFtrType(_n,  _ftrType), _ftrType );
 	}//setBMU
-	public void setBMU(SOMMapNodeExample _n, double _dist, int _ftrType){
+	public void setBMU(SOMMapNode _n, double _dist, int _ftrType){
 		if (checkForErrors(_n, mapData.map_ftrsVar)) {return;}//if true then this is catastrophic error and should interrupt flow here
 		bmu = _n;	
-		_distToBMU = _dist;//getSqDistFromFtrType_ChiSq(bmu,  _ftrType);
+		_sqDistToBMU = _dist;//getSqDistFromFtrType_ChiSq(bmu,  _ftrType);
 		this.mapLoc.set(bmu.mapLoc);
 		
 		addBMUToNeighbrhdMap();
@@ -222,13 +224,13 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	//this adds the passed node as this example's best matching unit on the map
 	//this also adds this data point to the map's node with a key of the distance
 	//dataVar is variance of feature weights of map nodes.  this is for chi-squared distance measurements
-	public void setBMU_ChiSq(SOMMapNodeExample _n, int _ftrType){
+	public void setBMU_ChiSq(SOMMapNode _n, int _ftrType){
 		setBMU_ChiSq(_n,getSqDistFromFtrType_ChiSq(_n,  _ftrType),_ftrType);
 	}
-	public void setBMU_ChiSq(SOMMapNodeExample _n, double _dist, int _ftrType){
+	public void setBMU_ChiSq(SOMMapNode _n, double _dist, int _ftrType){
 		if (checkForErrors(_n, mapData.map_ftrsVar)) {return;}//if true then this is catastrophic error and should interrupt flow here
 		bmu = _n;	
-		_distToBMU = _dist;//getSqDistFromFtrType_ChiSq(bmu,  _ftrType);
+		_sqDistToBMU = _dist;//getSqDistFromFtrType_ChiSq(bmu,  _ftrType);
 		this.mapLoc.set(bmu.mapLoc);
 		
 		addBMUToNeighbrhdMap();
@@ -254,7 +256,7 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 				if((y==0) && (x==0)){continue;}//ignore "center" node - this is bmu
 				yTup = (mapCtrY + y + mapRowSize) % mapRowSize;		
 				Tuple<Integer,Integer> key = new Tuple<Integer, Integer>(xTup, yTup);
-				SOMMapNodeExample node = mapData.MapNodes.get(key);
+				SOMMapNode node = mapData.MapNodes.get(key);
 				double dist = getSqDistFromFtrType_ChiSq(node, _ftrType);
 				addMapUnitToNeighbrhdMap(node, dist);
 			}//for each row/y
@@ -278,7 +280,7 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 				if((y==0) && (x==0)){continue;}//ignore "center" node - this is bmu
 				yTup = (mapCtrY + y + mapRowSize) % mapRowSize;		
 				Tuple<Integer,Integer> key = new Tuple<Integer, Integer>(xTup, yTup);
-				SOMMapNodeExample node = mapData.MapNodes.get(key);
+				SOMMapNode node = mapData.MapNodes.get(key);
 				double dist = getSqDistFromFtrType(node, _ftrType);
 				addMapUnitToNeighbrhdMap(node, dist);
 			}//for each row/y
@@ -297,7 +299,7 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	}//calcWrapMod
 	
 	//return location of passed map node, with value added or subtracted based on whether it wraps around map
-	private myPointf findNodeLocWrap(SOMMapNodeExample ex, Integer bmuX, Integer bmuY, float mapW, float mapH) {
+	private myPointf findNodeLocWrap(SOMMapNode ex, Integer bmuX, Integer bmuY, float mapW, float mapH) {
 		Integer ex_X = ex.mapNodeCoord.x, ex_Y = ex.mapNodeCoord.y;
 		myPointf loc = new myPointf(ex.mapLoc);
 		float locXMod = calcWrapMod(bmuX, ex_X, mapW);
@@ -312,8 +314,8 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		float ttlInvDist = 0.0f,invDistP1;
 		for (double _dist : mapNodeNghbrs.keySet()) {
 			invDistP1 = (float) (1.0f/(1.0f+_dist));					//handles 0 dist - max will be 0, min will be some fraction
-			ArrayList<SOMMapNodeExample> tmpMap = mapNodeNghbrs.get(_dist);
-			for (SOMMapNodeExample ex : tmpMap) {//public static myPointf _mult(myPointf p, float n){ myPointf result = new myPointf(p.x * n, p.y * n, p.z * n); return result;}                          //1 pt, 1 float				
+			ArrayList<SOMMapNode> tmpMap = mapNodeNghbrs.get(_dist);
+			for (SOMMapNode ex : tmpMap) {//public static myPointf _mult(myPointf p, float n){ myPointf result = new myPointf(p.x * n, p.y * n, p.z * n); return result;}                          //1 pt, 1 float				
 				ttlInvDist +=invDistP1;
 			}			
 		}
@@ -322,8 +324,8 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		//scale by ttlInvDist so that all distance wts sum to 1
 		for (double _dist : mapNodeNghbrs.keySet()) {
 			invDistP1 = ((float) (1.0f/(1.0f+_dist))/ttlInvDist);					//handles 0 dist - max will be 0, min will be some fraction
-			ArrayList<SOMMapNodeExample> tmpMap = mapNodeNghbrs.get(_dist);
-			for (SOMMapNodeExample ex : tmpMap) {//public static myPointf _mult(myPointf p, float n){ myPointf result = new myPointf(p.x * n, p.y * n, p.z * n); return result;}                          //1 pt, 1 float			
+			ArrayList<SOMMapNode> tmpMap = mapNodeNghbrs.get(_dist);
+			for (SOMMapNode ex : tmpMap) {//public static myPointf _mult(myPointf p, float n){ myPointf result = new myPointf(p.x * n, p.y * n, p.z * n); return result;}                          //1 pt, 1 float			
 				//if ex is more than 1 in x or y from bmu, then wrap arround, need to add (or subtract) x or y dim of map
 				locToAdd = findNodeLocWrap(ex, bmuX, bmuY, mapW, mapH);
 				totalLoc._add(myPointf._mult(locToAdd, invDistP1));				
@@ -474,90 +476,71 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		return res;
 	}//_getSqFtrDist		
 
+	//given a sqdistance-keyed map of lists of mapnodes, this will find the best matching unit (min distance), with favor given to units that have more examples
+	private SOMMapNode _findBMUFromDistMapOfBMUs(TreeMap<Double, ArrayList<SOMMapNode>> mapNodes) {
+		ArrayList<Tuple<Integer,Integer>> bmuKeys = new ArrayList<Tuple<Integer,Integer>>();
+		Entry<Double, ArrayList<SOMMapNode>> topEntry = mapNodes.firstEntry();
+		_sqDistToBMU = topEntry.getKey();
+		ArrayList<SOMMapNode>  bmuList = topEntry.getValue();
+		int numBMUs = bmuList.size();
+		for (int i=0;i<numBMUs;++i) {	bmuKeys.add(i, bmuList.get(i).mapNodeCoord);	}
+		SOMMapNode bestUnit = null;// bmuList.get(0);//default to first entry
+		if (numBMUs > 1) {//if more than 1 entry with same distance, find entry with most examples - if no entries have examples, then this will default to first entry
+			int maxNumExamples = 0;
+			for (int i=0;i<numBMUs;++i) {
+				SOMMapNode node = bmuList.get(i);
+				int numExamples = node.getNumExamples(ExDataType.ProspectTraining);//want # of training examples
+				if (numExamples >= maxNumExamples) {//need to manage if all map nodes have no direct training examples (might happen on large maps)
+					maxNumExamples = numExamples;
+					bestUnit = node;
+				}		
+			}
+		} else {//only 1
+			bestUnit = bmuList.get(0);
+		}		
+		return bestUnit;		
+	}//
 	
 	//references current map of nodes, finds best matching unit and returns map of all map node tuple addresses and their ftr distances from this node
 	//also build neighborhood nodes
 	//two methods to minimize if calls for chisq dist vs regular euclidean dist
-	public void findBMUFromNodes(TreeMap<Tuple<Integer,Integer>, SOMMapNodeExample> _MapNodes, int _type) {
-		TreeMap<Double, ArrayList<SOMMapNodeExample>> mapNodes = new TreeMap<Double, ArrayList<SOMMapNodeExample>>();
-		TreeMap<Tuple<Integer,Integer>, Double> all_MapNodeLocToSqDist = new TreeMap<Tuple<Integer,Integer>, Double>();			
-		for (SOMMapNodeExample node : _MapNodes.values()) {
-			double sqDistToNode = getSqDistFromFtrType(node, _type);
-			ArrayList<SOMMapNodeExample> tmpAra = mapNodes.get(sqDistToNode);
-			if(tmpAra == null) {tmpAra = new ArrayList<SOMMapNodeExample>();}
+	public void findBMUFromNodes(TreeMap<Tuple<Integer,Integer>, SOMMapNode> _MapNodes, int _ftrtype) {
+		TreeMap<Double, ArrayList<SOMMapNode>> mapNodes = new TreeMap<Double, ArrayList<SOMMapNode>>();
+		//TreeMap<Tuple<Integer,Integer>, Double> all_MapNodeLocToSqDist = new TreeMap<Tuple<Integer,Integer>, Double>();			
+		for (SOMMapNode node : _MapNodes.values()) {
+			double sqDistToNode = getSqDistFromFtrType(node, _ftrtype);
+			ArrayList<SOMMapNode> tmpAra = mapNodes.get(sqDistToNode);
+			if(tmpAra == null) {tmpAra = new ArrayList<SOMMapNode>();}
 			tmpAra.add(node);
 			mapNodes.put(sqDistToNode, tmpAra);		
-			all_MapNodeLocToSqDist.put(node.mapNodeCoord, sqDistToNode);
+			//all_MapNodeLocToSqDist.put(node.mapNodeCoord, sqDistToNode);
 		}				
-		ArrayList<Tuple<Integer,Integer>> bmuKeys = new ArrayList<Tuple<Integer,Integer>>();
-		Entry<Double, ArrayList<SOMMapNodeExample>> topEntry = mapNodes.firstEntry();
-		_distToBMU = topEntry.getKey();
-		ArrayList<SOMMapNodeExample>  bmuList = topEntry.getValue();
-		int numBMUs = bmuList.size();
-		for (int i=0;i<numBMUs;++i) {	bmuKeys.add(i, bmuList.get(i).mapNodeCoord);	}
-		SOMMapNodeExample bestUnit = null;
-		if (numBMUs > 1) {
-			//mapData.dispMessage("ProductExample", "addAllMapNodeNeighbors", "Product : " + this.OID +" has more than 1 bmu (unit with identical distance) : "+numBMUs);
-			int maxNumExamples = 0;
-			for (int i=0;i<numBMUs;++i) {
-				SOMMapNodeExample node = bmuList.get(i);
-				int numExamples = node.getNumExamples();
-				if (numExamples > maxNumExamples) {
-					maxNumExamples = numExamples;
-					bestUnit = node;
-				}
-				//mapData.dispMessage("ProductExample", "addAllMapNodeNeighbors", "\tMap Node " + node.OID + " has "+node.getNumExamples() + " training examples.");				
-			}
-		} else {//only 1
-			bestUnit = bmuList.get(0);
-		}
+		SOMMapNode bestUnit = _findBMUFromDistMapOfBMUs(mapNodes);
 		bmu = bestUnit;										//best unit to this product - if multiples then weighted by # of examples at this unit
 		addBMUToNeighbrhdMap();
 		//find ftr distance to all 8 surrounding nodes and add them to mapNodeNeighbors
-		buildNghbrhdMapNodes( _type);		
+		buildNghbrhdMapNodes( _ftrtype);		
 	}//findBMUFromNodes 	
 	
 	//references current map of nodes, finds best matching unit and returns map of all map node tuple addresses and their ftr distances from this node
 	//using chi sq dist
-	public void findBMUFromNodes_ChiSq(TreeMap<Tuple<Integer,Integer>, SOMMapNodeExample> _MapNodes, int _type) {
-		TreeMap<Double, ArrayList<SOMMapNodeExample>> mapNodes = new TreeMap<Double, ArrayList<SOMMapNodeExample>>();
-		TreeMap<Tuple<Integer,Integer>, Double> all_MapNodeLocToSqDist = new TreeMap<Tuple<Integer,Integer>, Double>();
-		for (SOMMapNodeExample node : _MapNodes.values()) {
-			double sqDistToNode = getSqDistFromFtrType_ChiSq(node, _type);
-			ArrayList<SOMMapNodeExample> tmpAra = mapNodes.get(sqDistToNode);
-			if(tmpAra == null) {tmpAra = new ArrayList<SOMMapNodeExample>();}
+	public void findBMUFromNodes_ChiSq(TreeMap<Tuple<Integer,Integer>, SOMMapNode> _MapNodes, int _ftrtype) {
+		TreeMap<Double, ArrayList<SOMMapNode>> mapNodes = new TreeMap<Double, ArrayList<SOMMapNode>>();
+		//TreeMap<Tuple<Integer,Integer>, Double> all_MapNodeLocToSqDist = new TreeMap<Tuple<Integer,Integer>, Double>();
+		for (SOMMapNode node : _MapNodes.values()) {
+			double sqDistToNode = getSqDistFromFtrType_ChiSq(node, _ftrtype);
+			ArrayList<SOMMapNode> tmpAra = mapNodes.get(sqDistToNode);
+			if(tmpAra == null) {tmpAra = new ArrayList<SOMMapNode>();}
 			tmpAra.add(node);
 			mapNodes.put(sqDistToNode, tmpAra);		
-			all_MapNodeLocToSqDist.put(node.mapNodeCoord, sqDistToNode);
+			//all_MapNodeLocToSqDist.put(node.mapNodeCoord, sqDistToNode);
 		}				
-		ArrayList<Tuple<Integer,Integer>> bmuKeys = new ArrayList<Tuple<Integer,Integer>>();
-		Entry<Double, ArrayList<SOMMapNodeExample>> topEntry = mapNodes.firstEntry();
-		_distToBMU = topEntry.getKey();
-		ArrayList<SOMMapNodeExample> bmuList = topEntry.getValue();
-		int numBMUs = bmuList.size();
-		for (int i=0;i<numBMUs;++i) {			bmuKeys.add(i, bmuList.get(i).mapNodeCoord);		}
-		SOMMapNodeExample bestUnit = null;
-		if (numBMUs > 1) {
-			//mapData.dispMessage("ProductExample", "addAllMapNodeNeighbors", "Product : " + this.OID +" has more than 1 bmu (unit with identical distance) : "+numBMUs);
-			int maxNumExamples = 0;
-			for (int i=0;i<numBMUs;++i) {
-				SOMMapNodeExample node = bmuList.get(i);
-				int numExamples = node.getNumExamples();
-				if (numExamples > maxNumExamples) {
-					maxNumExamples = numExamples;
-					bestUnit = node;
-				}
-				//mapData.dispMessage("ProductExample", "addAllMapNodeNeighbors", "\tMap Node " + node.OID + " has "+node.getNumExamples() + " training examples.");				
-			}
-		} else {//only 1
-			bestUnit = bmuList.get(0);
-		}
+		SOMMapNode bestUnit = _findBMUFromDistMapOfBMUs(mapNodes);
 		bmu = bestUnit;										//best unit to this product - if multiples then weighted by # of examples at this unit
 		addBMUToNeighbrhdMap();
 		//find ftr distance to all 8 surrounding nodes and add them to mapNodeNeighbors
-		buildNghbrhdMapNodes_ChiSq( _type);		
-	}//findBMUFromNodes_ChiSq	
-	
+		buildNghbrhdMapNodes_ChiSq( _ftrtype);		
+	}//findBMUFromNodes_ChiSq		
 	
 	public dataClass getLabel(){return label;}	
 	public final void buildLabel() {
@@ -1009,11 +992,7 @@ class ProspectExample extends StraffSOMExample{
 	
 	//for display only
 	@Override
-	public void buildLabelIndiv() {
-		// TODO Auto-generated method stub
-		
-	}
-
+	public void buildLabelIndiv() {	}
 	@Override
 	public void drawMeLblMap(SOM_StraffordMain p) {
 		p.pushMatrix();p.pushStyle();
@@ -1070,12 +1049,6 @@ class ProductExample extends StraffSOMExample{
 		wtDists = new TreeMap<Integer, Float>();		
 	}//initAllProdData()
 
-	@Override
-	public void buildLabelIndiv() {
-		//TODO build descriptive label based on product info		
-	}
-
-	
 	public static String[] getMinMaxDists() {
 		String[] res = new String[wtMins.size()+1];
 		int i=0;
@@ -1176,6 +1149,9 @@ class ProductExample extends StraffSOMExample{
 		for (Integer IDX : ftrMap.keySet()) {stdFtrMap.put(IDX,ftrMap.get(IDX));}//since features are all weighted to sum to 1, can expect ftrmap == strdizedmap
 		stdFtrsBuilt = true;
 	}//buildStdFtrsMap
+	
+	@Override
+	public void buildLabelIndiv() {}
 	
 	@Override
 	public String toString(){
@@ -1302,22 +1278,106 @@ class DispSOMMapExample extends StraffSOMExample{
 
 }//DispSOMMapExample
 
+//this class will hold a structure to aggregate and process the examples of a particular type that consider owning node a BMU
+class SOMMapNodeBMUExamples{
+	//owning node of these examples
+	private SOMMapNode node;
+	//map of examples that consider node to be their bmu; keyed by euclidian distance
+	private TreeMap<Double,ArrayList<StraffSOMExample>> examplesBMU;
+	//size of examplesBMU
+	private int numMappedEx;
+	//log size of examplesBMU +1, used for visualization radius
+	private float logExSize;	
+	//detail of rendered point representing parent node - should be based roughly on size of population
+	private int nodeSphrDet;
+	//string array holding relevant info for visualization
+	private String[] visLabel;
+	
+	public SOMMapNodeBMUExamples(SOMMapNode _node) {	
+		node = _node;
+		examplesBMU = new TreeMap<Double,ArrayList<StraffSOMExample>>(); 
+		init();
+	}//ctor
+	
+	public void init() {
+		examplesBMU.clear();
+		numMappedEx = 0;
+		logExSize = 0;
+		nodeSphrDet = 2;
+		visLabel = new String[] {""+node.OID+" : ", ""+numMappedEx};
+	}//init
+	
+	//add passed example
+	public void addExample(StraffSOMExample straffSOMExample) {addExample(straffSOMExample._sqDistToBMU,straffSOMExample);}
+	public void addExample(double dist, StraffSOMExample straffSOMExample) {
+		ArrayList<StraffSOMExample> tmpList = examplesBMU.get(dist);
+		if(tmpList == null) {tmpList = new ArrayList<StraffSOMExample>();}
+		tmpList.add(straffSOMExample);		
+		examplesBMU.put(dist, tmpList);		
+		numMappedEx = examplesBMU.size();		
+	}//addExample
+	
+	//finalize calculations - perform after all examples are mapped - used for visualizations
+	public void finalize() {	
+		logExSize = (float) Math.log(numMappedEx + 1)*2;	
+		nodeSphrDet = (int)( Math.log(logExSize+1)+2);
+		visLabel = new String[] {""+node.OID+" : ", ""+numMappedEx};
+	}
+	
+	public boolean hasMappings(){return numMappedEx != 0;}
+	public int getNumExamples() {return numMappedEx;}
+
+	/////////////////////
+	// drawing routines for owning node
+	public void drawMapNodeWithLabel(SOM_StraffordMain p) {
+		p.pushMatrix();p.pushStyle();	
+		p.show(node.mapLoc, logExSize, nodeSphrDet, node.nodeClrs,  visLabel); 		
+		p.popStyle();p.popMatrix();		
+	}
+
+	public void drawMapNodeNoLabel(SOM_StraffordMain p) {
+		p.pushMatrix();p.pushStyle();	
+		p.show(node.mapLoc, logExSize, nodeSphrDet, node.nodeClrs); 		
+		p.popStyle();p.popMatrix();		
+	}
+	
+	//return all example OIDs in array of CSV form, with key being distance and columns holding all examples that distance away
+	public String[] getAllExampleDescs() {
+		ArrayList<String> tmpRes = new ArrayList<String>();
+		for(double dist : examplesBMU.keySet() ) {
+			ArrayList<StraffSOMExample> tmpList = examplesBMU.get(dist);
+			if(tmpList == null) {continue;}//should never happen
+			String tmpStr = String.format("%.6f", dist);
+			for (StraffSOMExample ex : tmpList) {tmpStr += "," + ex.OID;	}
+			tmpRes.add(tmpStr);
+		}		
+		return tmpRes.toArray(new String[1]);		
+	}//getAllTestExamples
+
+
+}//class SOMMapNodeExamples
+
 
 //this class represents a particular node in the SOM map
-class SOMMapNodeExample extends StraffSOMExample{
+class SOMMapNode extends StraffSOMExample{
 	private static float ftrThresh = 0.0f;
 	public Tuple<Integer,Integer> mapNodeCoord;	
-	public Tuple<Integer,Integer>[][] neighborMapCoords;				//array of arrays of row x col of neighbors to this node.  This node is 1,1.  
-	public float[][] neighborUMatWts;
-	private TreeMap<Double,ArrayList<StraffSOMExample>> examplesBMU;	//best training examples in this unit, keyed by distance ; may be equidistant, so put in array at each distance
-	private float logExSize;						//log of size of examples + 1, used to display nodes with examples with visual cue to population
-	private int numMappedTrEx;						//# of mapped training examples to this node
+	
+	private SOMMapNodeBMUExamples trainEx, prospectEx, prodEx;
+	
 	//set from u matrix built by somoclu - the similarity of this node to its neighbors
 	private float uMatDist;
-	private float[] uMatBoxDims;		//box upper left corner x,y and box width,height
-	private int[] uMatClr;
+	private float[] dispBoxDims;		//box upper left corner x,y and box width,height
+	private int[] uMatClr, segClr;
+	private int segClrAsInt;
+	public Tuple<Integer,Integer>[][] neighborMapCoords;				//array of arrays of row x col of neighbors to this node.  This node is 1,1 - this is for square map to use bicubic interpolation
+	public float[][] neighborUMatWts;
+	
+	//owning segment for this map node
+	private SOMMapSegment seg; 
+	
 	//feature type denotes what kind of features the tkns being sent represent - 0 is unmodded, 1 is standardized across all data for each feature, 2 is normalized across all features for single data point
-	public SOMMapNodeExample(SOMMapManager _map, Tuple<Integer,Integer> _mapNode, float[] _ftrs) {
+	public SOMMapNode(SOMMapManager _map, Tuple<Integer,Integer> _mapNode, float[] _ftrs) {
 		super(_map, ExDataType.MapNode,"MapNode_"+_mapNode.x+"_"+_mapNode.y);
 		//ftrTypeMapBuilt = _ftrType;
 		if(_ftrs.length != 0){	setFtrsFromFloatAra(_ftrs);	}
@@ -1326,7 +1386,7 @@ class SOMMapNodeExample extends StraffSOMExample{
 	}
 	
 	//feature type denotes what kind of features the tkns being sent represent
-	public SOMMapNodeExample(SOMMapManager _map,Tuple<Integer,Integer> _mapNode, String[] _strftrs) {
+	public SOMMapNode(SOMMapManager _map,Tuple<Integer,Integer> _mapNode, String[] _strftrs) {
 		super(_map, ExDataType.MapNode, "MapNode_"+_mapNode.x+"_"+_mapNode.y);
 		//ftrTypeMapBuilt = _ftrType;
 		if(_strftrs.length != 0){	setFtrsFromStrAra(_strftrs);	}
@@ -1351,14 +1411,7 @@ class SOMMapNodeExample extends StraffSOMExample{
 		ftrsBuilt = true;		
 		buildNormFtrData();		
 	}//setFtrsFromFloatAra	
-	
-	public void setUMatDist(float _d) {uMatDist = _d; int clr=(int) (255*uMatDist); uMatClr = new int[] {clr,clr,clr};}
-	public float getUMatDist() {return uMatDist;}
-	@Override
-	protected HashSet<Tuple<Integer, Integer>> getSetOfAllJpgJpData() {
-		// TODO Auto-generated method stub
-		return null;
-	}//getSetOfAllJpgJpData
+
 	private void setFtrsFromStrAra(String [] tkns){
 		ftrMap = new TreeMap<Integer, Float>();
 		float ftrVecSqMag = 0.0f;
@@ -1379,19 +1432,49 @@ class SOMMapNodeExample extends StraffSOMExample{
 	}//setFtrsFromStrAra
 
 	private void initMapNode(Tuple<Integer,Integer> _mapNode){
-		uMatClr = new int[3];
 		mapNodeCoord = _mapNode;		
 		mapLoc = mapData.buildScaledLoc(mapNodeCoord);
-		uMatBoxDims = mapData.buildUMatBoxCrnr(mapNodeCoord);
+		dispBoxDims = mapData.buildUMatBoxCrnr(mapNodeCoord);		//box around map node
 		initNeighborMap();
 		//these are the same for map nodes
 		mapNodeLoc.set(mapLoc);
-		numMappedTrEx = 0;
-		examplesBMU = new TreeMap<Double,ArrayList<StraffSOMExample>>();		//defaults to small->large ordering	
+		uMatClr = new int[3];
+		
+		trainEx = new SOMMapNodeBMUExamples(this);//, ExDataType.ProspectTraining);
+		prospectEx  = new SOMMapNodeBMUExamples(this);//, ExDataType.ProspectTesting); 
+		prodEx = new SOMMapNodeBMUExamples(this);//, ExDataType.Product);
 		//allJPs should be made by here
 		buildFeatureVector();
+		clearSeg();
 	}//initMapNode
 	
+	public void clearSeg() {		seg = null;segClr = new int[4]; segClrAsInt = 0x0;}	
+	//add this node to a segment, and its neighbors - must be done after neighbors are found
+	public void addToSeg(SOMMapSegment _seg) {
+		seg=_seg;
+		seg.addNode(this);
+		segClr = seg.getSegClr();
+		segClrAsInt = seg.getSegClrAsInt();
+		int row = 1, col = 1;//1,1 is this node
+		SOMMapNode ex = mapData.MapNodes.get(neighborMapCoords[row][col+1]);
+		if(ex.shouldAddToSegment(seg.thresh)) {ex.addToSeg(seg);}
+		ex = mapData.MapNodes.get(neighborMapCoords[row][col-1]);
+		if(ex.shouldAddToSegment(seg.thresh)) {ex.addToSeg(seg);}
+		ex = mapData.MapNodes.get(neighborMapCoords[row+1][col]);
+		if(ex.shouldAddToSegment(seg.thresh)) {ex.addToSeg(seg);}
+		ex = mapData.MapNodes.get(neighborMapCoords[row-1][col]);
+		if(ex.shouldAddToSegment(seg.thresh)) {ex.addToSeg(seg);}
+		
+	}//	addToSeg
+	
+	//called by neighbor map node to see if this node should be added to segment
+	public boolean shouldAddToSegment(float _thresh) {return (seg==null) && (uMatDist < _thresh);}	
+	public SOMMapSegment getSegment() {return seg;}
+	public int getSegClrAsInt() {return segClrAsInt;}
+	
+	public void setUMatDist(float _d) {uMatDist = _d; int clr=(int) (255*uMatDist); uMatClr = new int[] {clr,clr,clr};}
+	public float getUMatDist() {return uMatDist;}	
+
 	//initialize 4-neighbor node neighborhood - grid of adjacent 4x4 nodes
 	//this is for individual visualization calculations - 
 	//1 node lesser and 2 nodes greater than this node, with location in question being >= this node's location
@@ -1408,7 +1491,7 @@ class SOMMapNodeExample extends StraffSOMExample{
 		}		
 	}//initNeighborMap()
 	
-	//build 4x4 float array of neighbor wt vals
+	//2d array of all weights for neighors of this node, for bi-cubic interp
 	public void buildNeighborWtVals() {
 		neighborUMatWts = new float[neighborMapCoords.length][];		
 		for(int row=0;row<neighborUMatWts.length;++row) {
@@ -1441,6 +1524,9 @@ class SOMMapNodeExample extends StraffSOMExample{
 	@Override
 	public void finalizeBuild() {	}
 	
+	@Override
+	protected HashSet<Tuple<Integer, Integer>> getSetOfAllJpgJpData() {		return null;}//getSetOfAllJpgJpData
+	
 	//som map node-specific label building
 	@Override
 	public void buildLabelIndiv() {	}
@@ -1458,15 +1544,12 @@ class SOMMapNodeExample extends StraffSOMExample{
 			Integer destIDX;
 			for (Integer jp : allJPs) {
 				destIDX = jpJpgMon.getJpToFtrIDX(jp);
-				Float lb = minsAra[destIDX], 
-						diff = diffsAra[destIDX];
+				Float lb = minsAra[destIDX], diff = diffsAra[destIDX];
 				float val = 0.0f;
 				if (diff==0) {//same min and max
 					if (lb > 0) {	val = 1.0f;}//only a single value same min and max-> set feature value to 1.0
 					else {val= 0.0f;}
-				} else {
-					val = (ftrMap.get(destIDX)-lb)/diff;
-				}
+				} else {				val = (ftrMap.get(destIDX)-lb)/diff;				}
 				stdFtrMap.put(destIDX,val);
 				setMapOfJpWts(jp, val, stdFtrMapTypeKey);
 			}//for each jp
@@ -1476,58 +1559,141 @@ class SOMMapNodeExample extends StraffSOMExample{
 		buildMapOfJPsToRank();		
 	}//buildStdFtrsMap_MapNode
 	
-	//this adds every training example to a particular map node based on distance
-	public void addBMUExample(StraffSOMExample straffSOMExample){addBMUExample(straffSOMExample._distToBMU,straffSOMExample);}		
-	public void addBMUExample(double dist, StraffSOMExample straffSOMExample){		
-		ArrayList<StraffSOMExample> tmpList = examplesBMU.get(dist);
-		if(tmpList == null) {tmpList = new ArrayList<StraffSOMExample>();}
-		tmpList.add(straffSOMExample);		
-		examplesBMU.put(dist, tmpList);		
-		numMappedTrEx = examplesBMU.size();
-		setRad( 2*numMappedTrEx);// PApplet.sqrt(numMappedTEx) + 1;
-		//TODO : this label is minimally descriptive. 
-		//Ideal situation would be to build map node lable by having vote of all nodes that are closest to this node
-		label = examplesBMU.firstEntry().getValue().get(0).getLabel();
-		logExSize = (float) Math.log(examplesBMU.size() + 1);
-	}//addBMUExample
-		
-	//# of training examples that mapped to this node
-	public int getNumExamples() {return examplesBMU.size();}
+	public void clearBMUExs(ExDataType _type) {
+		switch (_type) { //trainEx, prospectEx, prodEx
+			case ProspectTraining 	: {trainEx.init(); 		return;}//case 0 is training data
+			case ProspectTesting 	: {prospectEx.init(); 	return;}//case 1 is test data
+			case Product 			: {prodEx.init(); 		return;}//case 4 is product data		
+			case MapNode			: {return;}
+			case MouseOver			: {return;}
+			default					: {return;}
+		}
+	}//addToBMUs
 	
-	public boolean hasMappings(){return numMappedTrEx != 0;}
+	//add passed example to appropriate bmu construct depending on what type of example is passed (training, testing, product)
+	public void addExToBMUs(StraffSOMExample straffSOMExample) {
+		switch (straffSOMExample.type) {
+			case ProspectTraining 	: {trainEx.addExample(straffSOMExample._sqDistToBMU,straffSOMExample); 		return;}//case 0 is training data
+			case ProspectTesting 	: {prospectEx.addExample(straffSOMExample._sqDistToBMU,straffSOMExample); 	return;}//case 1 is test data
+			case Product 			: {prodEx.addExample(straffSOMExample._sqDistToBMU,straffSOMExample); 		return;}//case 4 is product data		
+			case MapNode			: {System.out.println("Attempting to map unmappable example as map node : "+ straffSOMExample.toString());return;}
+			case MouseOver			: {System.out.println("Attempting to map unmappable example as mouse node : "+ straffSOMExample.toString());return;}
+			default					: {System.out.println("Attempting to map unmappable example in unhandled manner : "+ straffSOMExample.toString());return;}
+		}
+	}//addToBMUs 
+	
+	//add passed example to appropriate bmu construct depending on what type of example is passed (training, testing, product)
+	public void addExToBMUs(double dist, StraffSOMExample straffSOMExample) {
+		switch (straffSOMExample.type) {
+			case ProspectTraining 	: {trainEx.addExample(dist,straffSOMExample); 		return;}//case 0 is training data
+			case ProspectTesting 	: {prospectEx.addExample(dist,straffSOMExample); 	return;}//case 1 is test data
+			case Product 			: {prodEx.addExample(dist,straffSOMExample); 		return;}//case 4 is product data		
+			case MapNode			: {return;}
+			case MouseOver			: {return;}
+			default					: {return;}
+		}
+	}//addToBMUs 
+	
+	//finalize all calculations for examples using this node as a bmu - this calculates quantities based on totals derived, used for visualizations
+	//MUST BE CALLED after adding all examples but before any visualizations will work
+	public void finalizeAllBmus(ExDataType _type) {
+		switch (_type) { //trainEx, prospectEx, prodEx
+			case ProspectTraining 	: {trainEx.finalize();		return;}//case 0 is training data
+			case ProspectTesting 	: {prospectEx.finalize(); 	return;}//case 1 is test data
+			case Product 			: {prodEx.finalize(); 		return;}//case 4 is product data		
+			case MapNode			: {return;}
+			case MouseOver			: {return;}
+			default					: {return;}
+		}
+	}
+	
+	//get # of requested type of examples mapping to this node
+	public int getNumExamples(ExDataType _type) {
+		switch (_type) { //trainEx, prospectEx, prodEx
+			case ProspectTraining 	: {return trainEx.getNumExamples();}//case 0 is training data
+			case ProspectTesting 	: {return prospectEx.getNumExamples();}//case 1 is test data
+			case Product 			: {return prodEx.getNumExamples();}//case 4 is product data		
+			case MapNode			: {return 0;}
+			case MouseOver			: {return 0;}
+			default					: {return -1;}
+		}
+	}
+	
+	//return string array of descriptions for the requested kind of examples mapped to this node
+	public String[] getAllExampleDescs(ExDataType _type) {
+		switch (_type) { //trainEx, prospectEx, prodEx
+			case ProspectTraining 	: {return trainEx.getAllExampleDescs();}//case 0 is training data
+			case ProspectTesting 	: {return prospectEx.getAllExampleDescs();}//case 1 is test data
+			case Product 			: {return prodEx.getAllExampleDescs();}//case 4 is product data		
+			case MapNode			: {return new String[0];}
+			case MouseOver			: {return new String[0];}
+			default					: {return new String[0];}
+		}		
+	}
+	
+	public void drawMePopLbl(SOM_StraffordMain p, ExDataType _type) {
+		switch (_type) { //trainEx, prospectEx, prodEx
+			case ProspectTraining 	: {trainEx.drawMapNodeWithLabel(p);return;}//case 0 is training data
+			case ProspectTesting 	: {prospectEx.drawMapNodeWithLabel(p); return;}//case 1 is test data
+			case Product 			: {prodEx.drawMapNodeWithLabel(p); return;}//case 4 is product data		
+			case MapNode			: {return;}
+			case MouseOver			: {return;}
+			default					: {return;}
+		}
+	}
+	public void drawMePopNoLbl(SOM_StraffordMain p, ExDataType _type) {
+		switch (_type) { //trainEx, prospectEx, prodEx
+		case ProspectTraining 	: {trainEx.drawMapNodeNoLabel(p);return;}//case 0 is training data
+		case ProspectTesting 	: {prospectEx.drawMapNodeNoLabel(p); return;}//case 1 is test data
+		case Product 			: {prodEx.drawMapNodeNoLabel(p); return;}//case 4 is product data		
+		case MapNode			: {return;}
+		case MouseOver			: {return;}
+		default					: {return;}
+		}		
+	}
+	
+	//label is based on training
 	@Override
 	public dataClass getLabel(){
-		if(numMappedTrEx == 0){
+		if(trainEx.getNumExamples() == 0){
 			mapData.dispMessage("SOMMapNodeExample","getLabel","Mapnode :"+mapNodeCoord.toString()+" has no mapped BMU examples.");
 			return null;
 		}
 		return label;}
-	public int getExmplBMUSize() {return  examplesBMU.size();}
-	public float getLogExmplBMUSize() {return logExSize * 3.0f;}
+
 	
 	public void drawMeSmallWt(SOM_StraffordMain p, int jpIDX){
 		p.pushMatrix();p.pushStyle();
 		Float wt = this.stdFtrMap.get(jpIDX);
 		if (wt==null) {wt=0.0f;}
-		//show(myPointf P, float rad, int det, int[] fclr, int[] sclr, int tclr, String txt, boolean useBKGBox) 
 		p.show(mapLoc, 2, 2, nodeClrs, new String[] {this.OID+":",String.format("%.4f", wt)}); 
 		p.popStyle();p.popMatrix();		
 	}
 	
 	public void drawMeSmall(SOM_StraffordMain p){
 		p.pushMatrix();p.pushStyle();
-		//show(myPointf P, float rad, int det, int[] fclr, int[] sclr, int tclr, String txt, boolean useBKGBox) 
 		p.show(mapLoc, 2, 2, nodeClrs, new String[] {this.OID}); 
 		p.popStyle();p.popMatrix();		
 	}		
+
+	public void drawMeWithWt(SOM_StraffordMain p, float wt, String[] disp){
+		p.pushMatrix();p.pushStyle();	
+		p.show(mapLoc, wt, (int)wt+1, nodeClrs,  disp); 
+		p.popStyle();p.popMatrix();		
+	}//drawMeWithWt
 	
 	//draw a box around this node of uMatD color
-	public void drawMeUMatDist(SOM_StraffordMain p){
+	public void drawMeUMatDist(SOM_StraffordMain p){drawMeClrRect(p,uMatClr, 255);}
+	public void drawMeSegClr(SOM_StraffordMain p){drawMeClrRect(p,segClr, segClr[3]);}
+	
+	//clr is 3 vals
+	private void drawMeClrRect(SOM_StraffordMain p, int[] fclr, int alpha) {
 		p.pushMatrix();p.pushStyle();
-		p.setFill(uMatClr, 255);
-		p.rect(uMatBoxDims);		
+		p.setFill(fclr, alpha);
+		p.noStroke();
+		p.rect(dispBoxDims);		
 		p.popStyle();p.popMatrix();	
-	}//drawMeUMatDist
+	}//drawMeClrRect
 
 	@Override
 	public void drawMeLblMap(SOM_StraffordMain p){
@@ -1536,6 +1702,7 @@ class SOMMapNodeExample extends StraffSOMExample{
 		p.showNoBox(mapLoc, getRad(), 5, label.clrVal,label.clrVal, SOM_StraffordMain.gui_FaintGray, label.label);
 		p.popStyle();p.popMatrix();		
 	}//drawLabel
+	
 	
 	public String toString(){
 		String res = "Node Loc : " + mapNodeCoord.toString()+"\t" + super.toString();
@@ -1570,7 +1737,7 @@ abstract class baseDataPtVis{
 	}//ctor	
 	
 	protected void setRad(float _rad){
-		rad = ((float)(Math.log(2.0f*(_rad+1))));
+		rad = _rad;//((float)(Math.log(2.0f*(_rad+1))));
 		minRad = minRad > rad ? rad : minRad;
 		maxRad = maxRad < rad ? rad : maxRad;
 		//drawDet = ((int)(Math.log(2.0f*(rad+1)))+1);
@@ -1614,17 +1781,17 @@ abstract class baseDataPtVis{
 		p.popStyle();p.popMatrix();		
 	}//drawMeMapClr
 	
-	public final void drawMeWithWt(SOM_StraffordMain p, float wt, String[] disp){
-		p.pushMatrix();p.pushStyle();	
-		p.show(mapLoc, wt, (int)wt+1, nodeClrs,  disp); 
-		p.popStyle();p.popMatrix();		
-	}//drawMeWithWt
-	
-	public final void drawMeWithWtNoLbl(SOM_StraffordMain p, float wt){
-		p.pushMatrix();p.pushStyle();	
-		p.show(mapLoc, wt, (int)wt+1, nodeClrs); 
-		p.popStyle();p.popMatrix();		
-	}//drawMeWithWt
+//	public final void drawMeWithWt(SOM_StraffordMain p, float wt, String[] disp){
+//		p.pushMatrix();p.pushStyle();	
+//		p.show(mapLoc, wt, (int)wt+1, nodeClrs,  disp); 
+//		p.popStyle();p.popMatrix();		
+//	}//drawMeWithWt
+//	
+//	public final void drawMeWithWtNoLbl(SOM_StraffordMain p, float wt){
+//		p.pushMatrix();p.pushStyle();	
+//		p.show(mapLoc, wt, (int)wt+1, nodeClrs); 
+//		p.popStyle();p.popMatrix();		
+//	}//drawMeWithWt
 	
 	public abstract void drawMeLblMap(SOM_StraffordMain p);
 	
@@ -1641,7 +1808,7 @@ abstract class baseDataPtVis{
  * @author john
  */
 enum ExDataType {
-	ProspectTraining(0),ProspectTesting(1),MapNode(2), MouseOver(3),Product(4);
+	ProspectTraining(0),ProspectTesting(1),Product(2),MapNode(3), MouseOver(4);
 	private int value; 
 	private static Map<Integer, ExDataType> map = new HashMap<Integer, ExDataType>(); 
 	static { for (ExDataType enumV : ExDataType.values()) { map.put(enumV.value, enumV);}}
