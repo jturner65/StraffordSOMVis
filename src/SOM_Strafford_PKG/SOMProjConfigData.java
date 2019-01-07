@@ -20,7 +20,7 @@ public class SOMProjConfigData {
 	////////////////////////////////
 	//debug info - default map to load - TODO move this to (or build this from) a default exp config file file
 	//whether to use larger or smaller map
-	private final boolean _useBiggerMap = true;
+	private final boolean _useBiggerMap = false;//set to true to use larger map
 	//data format used in map training StraffSOM_2018_12_27_12_33_DebugRun
 	private int _DBG_dataFrmt = 1;
 	//map topology for debug
