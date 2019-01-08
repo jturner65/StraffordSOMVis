@@ -59,7 +59,7 @@ public class SOMMapManager {
 			isMTCapableIDX				= 1,
 			mapDataLoadedIDX			= 2,			//som map data is cleanly loaded
 			loaderRtnIDX				= 3,			//dataloader has finished - wait on this to draw map
-			mapSetSmFtrZeroIDX  		= 4,			//map small vector's features to 0, otherwise only compare non-zero features
+			mapExclProdZeroFtrIDX  		= 4,			//if true, exclude u
 			
 			//raw data loading/processing state : 
 			prospectDataLoadedIDX		= 5,			//raw prospect data has been loaded but not yet processed
@@ -452,28 +452,28 @@ public class SOMMapManager {
 	//return true if loader is done and if data is successfully loaded
 	public boolean isMapDrawable(){return getFlag(loaderRtnIDX) && getFlag(mapDataLoadedIDX);}
 
-	//passing variance for chi sq dist
-	private double calcPtChiDist(float[] bigFtrs, float[] smFtrs, float[] dataVar){
-		return Math.sqrt(calcSqPtChiDist(bigFtrs, smFtrs,dataVar));
-	}//calcPtDist
-	
-	private double calcPtDist(float[] bigFtrs, float[] smFtrs){
-		return Math.sqrt(calcSqPtDist(bigFtrs, smFtrs));
-	}//calcPtDist
-	//passing variance for chi sq dist
-	private float calcSqPtChiDist(float[] bigFtrs, float[] smFtrs, float[] dataVar){
-		float res = 0, diff;
-		if(getFlag(mapSetSmFtrZeroIDX)){	for(int i=(bigFtrs.length-1); i>= smFtrs.length;--i){res += bigFtrs[i] * bigFtrs[i];}}		
-		for(int i =0; i<smFtrs.length; ++i){			diff = bigFtrs[i] - smFtrs[i];res +=  (diff * diff)/dataVar[i];}			
-		return res;	
-	}//calcPtDist
-	
-	private float calcSqPtDist(float[] bigFtrs, float[] smFtrs){
-		float res = 0, diff;
-		if(getFlag(mapSetSmFtrZeroIDX)){	for(int i=(bigFtrs.length-1); i>= smFtrs.length;--i){res += bigFtrs[i] * bigFtrs[i];}}		
-		for(int i =0; i<smFtrs.length; ++i){			diff = bigFtrs[i] - smFtrs[i];res += diff * diff;}			
-		return res;	
-	}//calcPtDist
+//	//passing variance for chi sq dist
+//	private double calcPtChiDist(float[] bigFtrs, float[] smFtrs, float[] dataVar){
+//		return Math.sqrt(calcSqPtChiDist(bigFtrs, smFtrs,dataVar));
+//	}//calcPtDist
+//	
+//	private double calcPtDist(float[] bigFtrs, float[] smFtrs){
+//		return Math.sqrt(calcSqPtDist(bigFtrs, smFtrs));
+//	}//calcPtDist
+//	//passing variance for chi sq dist
+//	private float calcSqPtChiDist(float[] bigFtrs, float[] smFtrs, float[] dataVar){
+//		float res = 0, diff;
+//		if(getFlag(mapSetSmFtrZeroIDX)){	for(int i=(bigFtrs.length-1); i>= smFtrs.length;--i){res += bigFtrs[i] * bigFtrs[i];}}		
+//		for(int i =0; i<smFtrs.length; ++i){			diff = bigFtrs[i] - smFtrs[i];res +=  (diff * diff)/dataVar[i];}			
+//		return res;	
+//	}//calcPtDist
+//	
+//	private float calcSqPtDist(float[] bigFtrs, float[] smFtrs){
+//		float res = 0, diff;
+//		if(getFlag(mapSetSmFtrZeroIDX)){	for(int i=(bigFtrs.length-1); i>= smFtrs.length;--i){res += bigFtrs[i] * bigFtrs[i];}}		
+//		for(int i =0; i<smFtrs.length; ++i){			diff = bigFtrs[i] - smFtrs[i];res += diff * diff;}			
+//		return res;	
+//	}//calcPtDist
 
 	
 	public boolean isToroidal(){return projConfigData.isToroidal();}
@@ -764,24 +764,38 @@ public class SOMMapManager {
 	public void setProductBMUs() {
 		dispMessage("SOMMapManager","setProductBMUs","Start Mapping products to best matching units.");
 		boolean canMultiThread=isMTCapable();//this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
-		if(canMultiThread) {//mapExampleDataToBMUs(SOMMapManager _mapMgr, int _stProdIDX, int _endProdIDX, boolean _useChiSqDist, StraffSOMExample[] _exs, int _thdIDX, String _taskStr) 
+		if(canMultiThread) {
 			List<Future<Boolean>> prdcttMapperFtrs = new ArrayList<Future<Boolean>>();
-			List<mapExampleDataToBMUs> prdcttMappers = new ArrayList<mapExampleDataToBMUs>();
+			List<mapProductDataToBMUs> prdcttMappers = new ArrayList<mapProductDataToBMUs>();
 			int numForEachThrd = ((int)((productData.length-1)/(1.0f*numUsableThreads))) + 1;
 			//use this many for every thread but last one
 			int stIDX = 0;
-			int endIDX = numForEachThrd;		
+			int endIDX = numForEachThrd;				
 			for (int i=0; i<(numUsableThreads-1);++i) {				
-				prdcttMappers.add(new mapExampleDataToBMUs(this,stIDX, endIDX, useChiSqDist, productData, i, "Product"));
+				prdcttMappers.add(new mapProductDataToBMUs(this,stIDX, endIDX, productData, i, useChiSqDist));
 				stIDX = endIDX;
 				endIDX += numForEachThrd;
 			}
 			//last one probably won't end at endIDX, so use length
-			prdcttMappers.add(new mapExampleDataToBMUs(this,stIDX, productData.length, useChiSqDist, productData, numUsableThreads-1,"Product"));
+			prdcttMappers.add(new mapProductDataToBMUs(this,stIDX, productData.length, productData, numUsableThreads-1, useChiSqDist));
 			try {prdcttMapperFtrs = th_exec.invokeAll(prdcttMappers);for(Future<Boolean> f: prdcttMapperFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }		
 		} else {//for every product find closest map node
-			if (useChiSqDist) {			for (int i=0;i<productData.length;++i) {	productData[i].findBMUFromNodes_ChiSq(MapNodes, curMapFtrType);		}}
-			else {						for (int i=0;i<productData.length;++i) {	productData[i].findBMUFromNodes(MapNodes, curMapFtrType);		}}
+			TreeMap<Double, ArrayList<SOMMapNode>> mapNodes;
+			if (useChiSqDist) {	
+				for (int i=0;i<productData.length;++i) {
+					mapNodes = productData[i].findBMUFromNodes_ChiSq_Excl(MapNodes, curMapFtrType); 
+					productData[i].setMapNodesStruct(ProductExample.SharedFtrsIDX, mapNodes);
+					mapNodes = productData[i].findBMUFromNodes_ChiSq(MapNodes, curMapFtrType); 
+					productData[i].setMapNodesStruct(ProductExample.AllFtrsIDX, mapNodes);
+				}
+			} else {				
+				for (int i=0;i<productData.length;++i) {
+					mapNodes = productData[i].findBMUFromNodes_Excl(MapNodes,  curMapFtrType); 
+					productData[i].setMapNodesStruct(ProductExample.SharedFtrsIDX, mapNodes);
+					mapNodes = productData[i].findBMUFromNodes(MapNodes,  curMapFtrType); 
+					productData[i].setMapNodesStruct(ProductExample.AllFtrsIDX, mapNodes);
+				}
+			}	
 		}
 		//go through every product and attach prod to bmu - needs to be done synchronously because don't want to concurrently modify bmus from 2 different prods
 		dispMessage("SOMMapManager","setProductBMUs","Finished finding bmus for all product data. Start adding product data to appropriate bmu's list.");
@@ -789,6 +803,7 @@ public class SOMMapManager {
 		
 		dispMessage("SOMMapManager","setProductBMUs","Finished Mapping products to best matching units.");
 	}//setProductBMUs
+
 	
 	//once map is built, find bmus on map for each test data example
 	public void setTestBMUs() {
@@ -796,18 +811,18 @@ public class SOMMapManager {
 		boolean canMultiThread=isMTCapable();//this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
 		if(canMultiThread) {
 			List<Future<Boolean>> testMapperFtrs = new ArrayList<Future<Boolean>>();
-			List<mapExampleDataToBMUs> testMappers = new ArrayList<mapExampleDataToBMUs>();
+			List<mapTestDataToBMUs> testMappers = new ArrayList<mapTestDataToBMUs>();
 			int numForEachThrd = ((int)((testData.length-1)/(1.0f*numUsableThreads))) + 1;
 			//use this many for every thread but last one
 			int stIDX = 0;
 			int endIDX = numForEachThrd;		
 			for (int i=0; i<(numUsableThreads-1);++i) {				
-				testMappers.add(new mapExampleDataToBMUs(this,stIDX, endIDX, useChiSqDist, testData, i, "Test Data"));
+				testMappers.add(new mapTestDataToBMUs(this,stIDX, endIDX,  testData, i, useChiSqDist));
 				stIDX = endIDX;
 				endIDX += numForEachThrd;
 			}
 			//last one probably won't end at endIDX, so use length
-			testMappers.add(new mapExampleDataToBMUs(this,stIDX, testData.length, useChiSqDist, testData, numUsableThreads-1, "Test Data"));
+			testMappers.add(new mapTestDataToBMUs(this,stIDX, testData.length, testData, numUsableThreads-1, useChiSqDist));
 			try {testMapperFtrs = th_exec.invokeAll(testMappers);for(Future<Boolean> f: testMapperFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }		
 		} else {//for every product find closest map node
 			if (useChiSqDist) {			for (int i=0;i<testData.length;++i) {	testData[i].findBMUFromNodes_ChiSq(MapNodes, curMapFtrType);		}}			
@@ -845,6 +860,16 @@ public class SOMMapManager {
 		case useUnmoddedDat : {return "unModFtrs";}
 		case useScaledDat : {return "stdFtrs";}
 		case useNormedDat : {return "normFtrs";}
+		default : {return null;}		//unknown data frmt type
+		}
+	}//getDataTypeNameFromInt
+	
+	public String getDataDescFromCurFtrType()  {return getDataDescFromInt(curMapFtrType);}
+	public String  getDataDescFromInt(int dataFrmt) {
+		switch(dataFrmt) {
+		case useUnmoddedDat : {return "Unmodified";}
+		case useScaledDat : {return "Standardized (across all examples per feature)";}
+		case useNormedDat : {return "Normalized (across all features per example)";}
 		default : {return null;}		//unknown data frmt type
 		}
 	}//getDataTypeNameFromInt
@@ -969,12 +994,6 @@ public class SOMMapManager {
 		
 	public String getProdJpByIdxStr(int idx) {return jpJpgrpMon.getProdJpByIdxStr(idx);}	
 	public String getProdJpGrpByIdxStr(int idx) {return jpJpgrpMon.getProdJpGrpByIdxStr(idx);}
-//		
-//	public int getJpIdxByStr(String dat) {return jpJpgrpMon.getJpIdxByStr(dat);}	
-//	public int getJpGrpIdxByStr(String dat) {return jpJpgrpMon.getJpGrpIdxByStr(dat);}
-//		
-//	public int getProdJpIdxByStr(String dat) {return jpJpgrpMon.getProdJpIdxByStr(dat);}	
-//	public int getProdJpGrpIdxByStr(String dat) {return jpJpgrpMon.getProdJpGrpIdxByStr(dat);}
 		
 	//this will return the appropriate jpgrp for the given jpIDX (ftr idx)
 	public int getUI_JPGrpFromJP(int jpIdx, int curVal) {		return jpJpgrpMon.getUI_JPGrpFromJP(jpIdx, curVal);}
@@ -1034,8 +1053,7 @@ public class SOMMapManager {
 						}
 						continue;}
 					ex.addObj(obj, idx);
-				}//for every event
-				
+				}//for every event				
 			} else {
 				for (BaseRawData obj : events) {
 					ProspectExample ex = tmpProspectMap.get(obj.OID);
@@ -1154,11 +1172,9 @@ public class SOMMapManager {
 				ProspectExample ex = tmpProspectMap.get(OID);
 				if (ex.isTrainableRecord()) {				prospectMap.put(OID, ex);			}
 			}			
-		}		
-	
+		}			
 		//finalize each prospect record, aggregate data-driven static vals, rebuild ftr vectors - doing this over since we are only using non-bad record prospects
 		finishSOMExampleBuild();
-		
 		dispMessage("SOMMapManager","procRawLoadedData","Raw Records Unique OIDs presented : " + tmpProspectMap.size()+" | Records found with trainable " + (eventsOnly ? " events " : "") + " info : " + prospectMap.size());
 		//setAllFlags(new int[] {prospectDataLoadedIDX, optDataLoadedIDX, orderDataLoadedIDX}, false);
 		setFlag(rawPrspctEvDataProcedIDX, true);
@@ -1323,8 +1339,7 @@ public class SOMMapManager {
 		}
 		if(datAra[numVals-1] != 0) {	res +=""+String.format(fmtStr, datAra[numVals-1])+"]";} else {	res +="0]";	}
 		return res;
-	}
-	
+	}	
 	//provides a list of indexes 0->len-1 that are Durstenfeld shuffled
 	private int[] shuffleAraIDXs(int len) {
 		int[] res = new int[len];
@@ -1366,6 +1381,8 @@ public class SOMMapManager {
 		return _list;
 	}//shuffleStrList	
 	
+	/////////////////////////////////////////
+	//drawing and graphics methods - these must check if win and/or pa exist, or else except win or pa as passed arguments, to manage when this code is executed without UI
 	public int[] getRndClr() {
 		if (win==null) {return new int[] {255,255,255,255};}
 		return win.pa.getRndClr2();
@@ -1379,18 +1396,24 @@ public class SOMMapManager {
 	//if connected to UI, draw data - only called from window
 	public void drawTrainData(SOM_StraffordMain pa) {
 		pa.pushMatrix();pa.pushStyle();
-		for(int i=dispTrainDataFrame;i<trainData.length-numDispTrainDataFrames;i+=numDispTrainDataFrames){		trainData[i].drawMeMap(pa);	}
-		for(int i=(trainData.length-numDispTrainDataFrames);i<trainData.length;++i){		trainData[i].drawMeMap(pa);	}				//always draw these (small count < numDispDataFrames
-		dispTrainDataFrame = (dispTrainDataFrame + 1) % numDispTrainDataFrames;
+		if (trainData.length < numDispTrainDataFrames) {	for(int i=0;i<trainData.length;++i){		trainData[i].drawMeMap(pa);	}	} 
+		else {
+			for(int i=dispTrainDataFrame;i<trainData.length-numDispTrainDataFrames;i+=numDispTrainDataFrames){		trainData[i].drawMeMap(pa);	}
+			for(int i=(trainData.length-numDispTrainDataFrames);i<trainData.length;++i){		trainData[i].drawMeMap(pa);	}				//always draw these (small count < numDispDataFrames
+			dispTrainDataFrame = (dispTrainDataFrame + 1) % numDispTrainDataFrames;
+		}
 		pa.popStyle();pa.popMatrix();
 	}//drawTrainData
 	private static int dispTestDataFrame = 0, numDispTestDataFrames = 20;
 	//if connected to UI, draw data - only called from window
 	public void drawTestData(SOM_StraffordMain pa) {
 		pa.pushMatrix();pa.pushStyle();
-		for(int i=dispTestDataFrame;i<testData.length-numDispTestDataFrames;i+=numDispTestDataFrames){		testData[i].drawMeMap(pa);	}
-		for(int i=(testData.length-numDispTestDataFrames);i<testData.length;++i){		testData[i].drawMeMap(pa);	}				//always draw these (small count < numDispDataFrames
-		dispTestDataFrame = (dispTestDataFrame + 1) % numDispTestDataFrames;
+		if (testData.length < numDispTestDataFrames) {	for(int i=0;i<testData.length;++i){		testData[i].drawMeMap(pa);	}	} 
+		else {
+			for(int i=dispTestDataFrame;i<testData.length-numDispTestDataFrames;i+=numDispTestDataFrames){		testData[i].drawMeMap(pa);	}
+			for(int i=(testData.length-numDispTestDataFrames);i<testData.length;++i){		testData[i].drawMeMap(pa);	}				//always draw these (small count < numDispDataFrames
+			dispTestDataFrame = (dispTestDataFrame + 1) % numDispTestDataFrames;
+		}
 		pa.popStyle();pa.popMatrix();
 	}//drawTrainData
 	
@@ -1411,16 +1434,21 @@ public class SOMMapManager {
 	public void drawProductNodes(SOM_StraffordMain pa, int prodJpIDX, boolean showJPorJPG) {
 		pa.pushMatrix();pa.pushStyle();
 		ArrayList<ProductExample> prodsToShow = (showJPorJPG ? productsByJp.get(jpJpgrpMon.getProdJpByIdx(prodJpIDX)) :  productsByJpg.get(jpJpgrpMon.getProdJpGrpByIdx(prodJpIDX)));
-		for(ProductExample ex : prodsToShow) {
-			ex.drawMeLinkedToBMU(pa, 5.0f,ex.OID);
-		}		
+		for(ProductExample ex : prodsToShow) {			ex.drawMeLinkedToBMU(pa, 5.0f,ex.OID);		}		
 		pa.popStyle();pa.popMatrix();
 	}//drawProductNodes	
 	
+	private static int dispProdDataFrame = 0, numDispProdDataFrames = 20;
 	//show all products
 	public void drawAllProductNodes(SOM_StraffordMain pa) {
 		pa.pushMatrix();pa.pushStyle();
-		for(ProductExample ex : productData) {ex.drawMeLinkedToBMU(pa, 5.0f,ex.OID);}		
+		if (productData.length-numDispProdDataFrames <=  0 ) {	for(int i=0;i<productData.length;++i){		productData[i].drawMeMap(pa);	}} 
+		else {
+			for(int i=dispProdDataFrame;i<productData.length-numDispProdDataFrames;i+=numDispProdDataFrames){		productData[i].drawMeMap(pa);	}
+			for(int i=(productData.length-numDispProdDataFrames);i<productData.length;++i){		productData[i].drawMeMap(pa);	}				//always draw these (small count < numDispDataFrames
+			dispProdDataFrame = (dispProdDataFrame + 1) % numDispProdDataFrames;
+		}
+		//for(ProductExample ex : productData) {ex.drawMeLinkedToBMU(pa, 5.0f,ex.OID);}		
 		pa.popStyle();pa.popMatrix();
 	}//drawProductNodes
 	
@@ -1434,8 +1462,7 @@ public class SOMMapManager {
 		pa.pushMatrix();pa.pushStyle();
 		ftrCalcObj.drawSingleFtr(pa, ht, width,jpJpgrpMon.getJpByIdx(curJPIdx));
 		pa.popStyle();pa.popMatrix();
-	}//drawAnalysisOneJp
-	
+	}//drawAnalysisOneJp	
 	
 	public void drawAllNodesWted(SOM_StraffordMain pa, int curJPIdx) {//, int[] dpFillClr, int[] dpStkClr) {
 		pa.pushMatrix();pa.pushStyle();
@@ -1482,6 +1509,32 @@ public class SOMMapManager {
 		for(SOMMapNode node : nodes){				node.drawMePopNoLbl(pa, _type);}
 		pa.popStyle();pa.popMatrix();		
 	}	
+	
+	private static int dispProdJPDataFrame = 0, curProdJPIdx = -1, curProdTimer = 0;
+	//display the region of the map expected to be impacted by the products serving the passed jp 
+	public void drawProductRegion(SOM_StraffordMain pa, int prodJpIDX, double maxDist) {
+		pa.pushMatrix();pa.pushStyle();
+		ArrayList<ProductExample> prodsToShow = productsByJp.get(jpJpgrpMon.getProdJpByIdx(prodJpIDX));
+		if(curProdJPIdx != prodJpIDX) {
+			curProdJPIdx = prodJpIDX;
+			dispProdJPDataFrame = 0;
+			curProdTimer = 0;
+		}
+		int distType = (getFlag(mapExclProdZeroFtrIDX) ? ProductExample.SharedFtrsIDX : ProductExample.AllFtrsIDX);
+		ProductExample ex = prodsToShow.get(dispProdJPDataFrame);
+		ex.drawMeLinkedToBMU(pa, 5.0f,ex.OID);		
+		ex.drawProdMapExtent(pa, distType, prodsToShow.size(), maxDist);
+		++curProdTimer;
+		if(curProdTimer > 30) {
+			curProdTimer = 0;
+			dispProdJPDataFrame = (dispProdJPDataFrame + 1) % prodsToShow.size();
+		}
+		pa.popStyle();pa.popMatrix();	
+	}
+	
+	// end drawing routines
+	//////////////////////////////////////////////////////
+	
 	
 	public DispSOMMapExample buildTmpDataExampleFtrs(myPointf ptrLoc, TreeMap<Integer, Float> ftrs, float sens) {return new DispSOMMapExample(this, ptrLoc, ftrs, sens);}
 	public DispSOMMapExample buildTmpDataExampleDists(myPointf ptrLoc, float dist, float sens) {return new DispSOMMapExample(this, ptrLoc, dist, sens);}
@@ -1604,7 +1657,7 @@ public class SOMMapManager {
 				break;}
 			case mapDataLoadedIDX	: {break;}		
 			case loaderRtnIDX : {break;}
-			case mapSetSmFtrZeroIDX : {break;}
+			case mapExclProdZeroFtrIDX : {break;}
 			case prospectDataLoadedIDX: {break;}		//raw prospect data has been loaded but not yet processed
 			case optDataLoadedIDX: {break;}				//raw opt data has been loaded but not processed
 			case orderDataLoadedIDX: {break;}			//raw order data loaded not proced

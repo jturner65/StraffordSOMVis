@@ -503,37 +503,85 @@ class straffBMULoader implements Callable<Boolean>{
 
 //this class will find the bmus for the passed dataset - the passed reference is to 
 //the entire dataset, each instance of this callable will process a subset of this dataset
-class mapExampleDataToBMUs implements Callable<Boolean>{
+class mapTestDataToBMUs implements Callable<Boolean>{
 	SOMMapManager mapMgr;
 	int stIdx, endIdx, curMapFtrType, thdIDX;
-	boolean useChiSqDist;
+	//calculate the exclusionary feature distance(only measure distance from map via features that the node has non-zero values in)
+	private boolean useChiSqDist;
+	
 	int ftrTypeUsedToTrain;
 	StraffSOMExample[] exs;
-	String taskStr;
+	String ftrTypeDesc;
 
-	public mapExampleDataToBMUs(SOMMapManager _mapMgr, int _stProdIDX, int _endProdIDX, boolean _useChiSqDist, StraffSOMExample[] _exs, int _thdIDX, String _taskStr) {
+	public mapTestDataToBMUs(SOMMapManager _mapMgr, int _stProdIDX, int _endProdIDX, StraffSOMExample[] _exs, int _thdIDX, boolean _useChiSqDist) {
 		mapMgr = _mapMgr;
 		stIdx = _stProdIDX;
 		endIdx = _endProdIDX;
-		useChiSqDist =_useChiSqDist;
 		thdIDX= _thdIDX;
 		exs=_exs;
 		curMapFtrType = mapMgr.getCurrMapDataFrmt();
-		taskStr = _taskStr;
+		ftrTypeDesc = mapMgr.getDataDescFromCurFtrType();
+		useChiSqDist = _useChiSqDist;		
 	}	
 	@Override
 	public Boolean call() throws Exception {
 		//for every example find closest map node
-		mapMgr.dispMessage("mapTestDataToBMUs", "Run Thread : " +thdIDX, "Starting " + taskStr + " mapping");
-		if (useChiSqDist) {
-			for (int i=stIdx;i<endIdx;++i) {	exs[i].findBMUFromNodes_ChiSq(mapMgr.MapNodes, curMapFtrType); }					
-		} else {
-			for (int i=stIdx;i<endIdx;++i) {	exs[i].findBMUFromNodes(mapMgr.MapNodes,  curMapFtrType);}				
-		}
-		mapMgr.dispMessage("mapTestDataToBMUs", "Run Thread : " +thdIDX, "Finished " + taskStr + " mapping");
+		//the function call at the end is ignored by product examples
+		mapMgr.dispMessage("mapTestDataToBMUs", "Run Thread : " +thdIDX, "Starting Test Data to BMU mapping using " + ftrTypeDesc + " Features and including all features in distance.");
+		if (useChiSqDist) {		for (int i=stIdx;i<endIdx;++i) {exs[i].findBMUFromNodes_ChiSq_Excl(mapMgr.MapNodes, curMapFtrType);}} 
+		else {					for (int i=stIdx;i<endIdx;++i) {exs[i].findBMUFromNodes_Excl(mapMgr.MapNodes,  curMapFtrType); }}		
+		mapMgr.dispMessage("mapTestDataToBMUs", "Run Thread : " +thdIDX, "Finished Test Data to BMU mapping");
+		
 		return true;
 	}		
 }//mapTestToBMUs	
+
+class mapProductDataToBMUs implements Callable<Boolean>{
+	SOMMapManager mapMgr;
+	int stIdx, endIdx, curMapFtrType, thdIDX;
+	//calculate the exclusionary feature distance(only measure distance from map via features that the node has non-zero values in)
+	private boolean useChiSqDist;
+	
+	int ftrTypeUsedToTrain;
+	ProductExample[] exs;
+	String ftrTypeDesc;
+
+	public mapProductDataToBMUs(SOMMapManager _mapMgr, int _stProdIDX, int _endProdIDX, ProductExample[] _exs, int _thdIDX, boolean _useChiSqDist) {
+		mapMgr = _mapMgr;
+		stIdx = _stProdIDX;
+		endIdx = _endProdIDX;
+		thdIDX= _thdIDX;
+		exs=_exs;
+		curMapFtrType = mapMgr.getCurrMapDataFrmt();
+		ftrTypeDesc = mapMgr.getDataDescFromCurFtrType();
+		useChiSqDist = _useChiSqDist;
+	}	
+	@Override
+	public Boolean call() throws Exception {
+		//for every example find closest map node
+		//the function call at the end is ignored by product examples
+		mapMgr.dispMessage("mapTestDataToBMUs", "Run Thread : " +thdIDX, "Starting Product data to BMU mapping using " + ftrTypeDesc + " Features and both including and excluding unshared features in distance.");
+		TreeMap<Double, ArrayList<SOMMapNode>> mapNodes;
+		if (useChiSqDist) {	
+			for (int i=stIdx;i<endIdx;++i) {
+				mapNodes = exs[i].findBMUFromNodes_ChiSq_Excl(mapMgr.MapNodes, curMapFtrType); 
+				exs[i].setMapNodesStruct(ProductExample.SharedFtrsIDX, mapNodes);
+				mapNodes = exs[i].findBMUFromNodes_ChiSq(mapMgr.MapNodes, curMapFtrType); 
+				exs[i].setMapNodesStruct(ProductExample.AllFtrsIDX, mapNodes);  
+			}
+		} else {							
+			for (int i=stIdx;i<endIdx;++i) {
+				mapNodes = exs[i].findBMUFromNodes_Excl(mapMgr.MapNodes,  curMapFtrType); 
+				exs[i].setMapNodesStruct(ProductExample.SharedFtrsIDX, mapNodes);
+				mapNodes = exs[i].findBMUFromNodes(mapMgr.MapNodes,  curMapFtrType); 
+				exs[i].setMapNodesStruct(ProductExample.AllFtrsIDX, mapNodes);
+			}
+		}					
+		mapMgr.dispMessage("mapTestDataToBMUs", "Run Thread : " +thdIDX, "Finished Product data to BMU mapping");
+		
+		return true;
+	}		
+}//mapTestToBMUs
 	
 //this will build a single image of the map based on ftr data
 class straffMapVisImgBuilder implements Callable<Boolean>{

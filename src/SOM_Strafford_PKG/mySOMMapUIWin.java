@@ -12,34 +12,35 @@ import processing.core.PImage;
 public class mySOMMapUIWin extends myDispWindow {
 	
 	public SOMMapManager mapMgr;
-	
+	//idxs of boolean values/flags
 	public static final int 
 		buildSOMExe 			= 0,			//command to initiate SOM-building
 		resetMapDefsIDX			= 1,			//reset default UI values for map
 		mapDataLoadedIDX		= 2,			//whether map has been loaded or not	
 		mapUseChiSqDistIDX		= 3,			//whether to use chi-squared (weighted by variance) distance for features or regular euclidean dist
-		mapSetSmFtrZeroIDX		= 4,			//whether or not distances between two datapoints assume that absent features in smaller-length datapoints are 0, or to ignore the values in the larger datapoints
+		mapExclProdZeroFtrIDX	= 4,			//whether or not distances between two datapoints assume that absent features in source data point should be zero or ignored when comparing to map node ftrs
 		mapDrawPrdctNodesIDX 	= 5,
+		mapDrawCurProdZoneIDX 	= 6,			//show currently selected prod jps' products and influence zones
 		//display/interaction
-		mapDrawTrainDatIDX		= 6,			//draw training examples
-		mapDrawTestDatIDX 		= 7,			//draw testing examples - data held out and not used to train the map 
-		mapDrawNodeLblIDX		= 8,			//draw labels for nodes
-		mapDrawWtMapNodesIDX	= 9,			//draw map nodes with non-0 (present) wt vals
-		mapDrawPopMapNodesIDX   = 10,			//draw map nodes that are bmus for training examples
-		mapDrawAllMapNodesIDX	= 11,			//draw all map nodes, even empty
-		mapDrawAnalysisVisIDX	= 12,			//whether or not to draw feature calc analysis graphs
-		mapDrawUMatrixIDX		= 13,			//draw visualization of u matrix - distance between nodes
-		mapDrawSegImgIDX		= 14,			//draw the image of the interpolated segments
-		mapDrawSegMembersIDX	= 15,			//draw segments around regions of maps - visualizes clusters with different colors
+		mapDrawTrainDatIDX		= 7,			//draw training examples
+		mapDrawTestDatIDX 		= 8,			//draw testing examples - data held out and not used to train the map 
+		mapDrawNodeLblIDX		= 9,			//draw labels for nodes
+		mapDrawWtMapNodesIDX	= 10,			//draw map nodes with non-0 (present) wt vals
+		mapDrawPopMapNodesIDX   = 11,			//draw map nodes that are bmus for training examples
+		mapDrawAllMapNodesIDX	= 12,			//draw all map nodes, even empty
+		mapDrawAnalysisVisIDX	= 13,			//whether or not to draw feature calc analysis graphs
+		mapDrawUMatrixIDX		= 14,			//draw visualization of u matrix - distance between nodes
+		mapDrawSegImgIDX		= 15,			//draw the image of the interpolated segments
+		mapDrawSegMembersIDX	= 16,			//draw segments around regions of maps - visualizes clusters with different colors
 		
-		showSelRegionIDX		= 16,			//TODO highlight a specific region of the map, either all nodes above a certain threshold for a chosen jp or jpgroup
-		showSelJPIDX			= 17, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
+		showSelRegionIDX		= 17,			//TODO highlight a specific region of the map, either all nodes above a certain threshold for a chosen jp or jpgroup
+		showSelJPIDX			= 18, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
 		//train/test data managemen
-		somTrainDataLoadedIDX	= 18,			//whether data used to build map has been loaded yet
-		saveLocClrImgIDX		= 19,			//
-		useOnlyEvntsToTrainIDX  = 20;			//only use records that have event jpgs/jps to train, otherwise use records that also have jpgs/jps only specified in prospect db
+		somTrainDataLoadedIDX	= 19,			//whether data used to build map has been loaded yet
+		saveLocClrImgIDX		= 20,			//
+		useOnlyEvntsToTrainIDX  = 21;			//only use records that have event jpgs/jps to train, otherwise use records that also have jpgs/jps only specified in prospect db
 	
-	public static final int numPrivFlags = 21;
+	public static final int numPrivFlags = 22;
 	
 	//SOM map list options
 	public String[] 
@@ -78,9 +79,10 @@ public class mySOMMapUIWin extends myDispWindow {
 		uiMapNodeBMUTypeToDispIDX 	= 20,			//type of examples mapping to a particular node to display in visualization
 		uiNodeWtDispThreshIDX 		= 21,			//threshold for display of map nodes on individual weight maps
 		uiNodeInSegThreshIDX		= 22,			//threshold of u-matrix weight for nodes to belong to same segment
-		uiMseRegionSensIDX			= 23;			//senstivity threshold for mouse-over, to determine membership to a particular jp (amount a query on the map per feature needs to be to be considered part of the JP that feature represents)		
+		uiProdZoneDistThreshIDX		= 23,			//max distance a from a product that a map node should be considered to be covered by that product
+		uiMseRegionSensIDX			= 24;			//senstivity threshold for mouse-over, to determine membership to a particular jp (amount a query on the map per feature needs to be to be considered part of the JP that feature represents)		
 	
-	public final int numGUIObjs = 24;	
+	public final int numGUIObjs = 25;	
 	
 	private double[] uiVals;				//raw values from ui components
 	//source datapoints to be used to build files to send to SOM_MAP
@@ -93,7 +95,8 @@ public class mySOMMapUIWin extends myDispWindow {
 	private int rawDataSource;
 	//type of examples using each map node as a bmu to display
 	private ExDataType mapNodeDispType;
-	
+	//max sq_distance to display map nodes as under influence/influencing certain products
+	private double prodZoneDistThresh;
 	//////////////////////////////
 	//map drawing 	draw/interaction variables
 	public int[] dpFillClr, dpStkClr;
@@ -114,6 +117,8 @@ public class mySOMMapUIWin extends myDispWindow {
 	
 	//which map is currently being shown
 	private int curMapImgIDX;
+	//which product is being shown by single-product display visualizations, as index in list of jps of products
+	private int curProdToShowIDX;
 	//scaling value - use this to decrease the image size and increase the scaling so it is rendered the same size
 	public static final float mapScaleVal = 10.0f;
 	
@@ -139,21 +144,21 @@ public class mySOMMapUIWin extends myDispWindow {
 	public void initAllPrivBtns(){
 		truePrivFlagNames = new String[]{								//needs to be in order of flags
 				"Train W/Recs W/Event Data", "Building SOM", "Resetting Def Vals", 
-				"Using ChiSq for Ftr Distance", "Unshared Ftrs are 0",	"Hide Train Data", "Hide Test Data",
-				"Hide Node Lbls","Hide Map Nodes (by Wt)","Hide Map Nodes (by Pop)", "Hide Map Nodes", "Hide Products",
+				"Using ChiSq for Ftr Distance", "Dist ignores Product 0-ftrs",	"Hide Train Data", "Hide Test Data",
+				"Hide Node Lbls","Hide Map Nodes (by Wt)","Hide Map Nodes (by Pop)", "Hide Map Nodes", "Hide Products","Hide Cur Prod Zone",
 				"Hide U Mtrx Dists (Bi-Cubic)", "Hide Clusters (U-Dist)", "Hide Cluster Image", "Hide Calc Analysis"
 		};
 		falsePrivFlagNames = new String[]{			//needs to be in order of flags
 				"Train W/All Recs","Build New Map ","Reset Def Vals",
-				"Not Using ChiSq Distance", "Ignoring Unshared Ftrs","Show Train Data","Show Test Data",
-				"Show Node Lbls","Show Map Nodes (by Wt)","Show Map Nodes (by Pop)","Show Map Nodes", "Show Products",
+				"Not Using ChiSq Distance", "Dist measures all ftrs","Show Train Data","Show Test Data",
+				"Show Node Lbls","Show Map Nodes (by Wt)","Show Map Nodes (by Pop)","Show Map Nodes", "Show Products","Show Cur Prod Zone",
 				"Show U Mtrx Dists (Bi-Cubic)", "Show Clusters (U-Dist)", "Show Cluster Image", "Show Calc Analysis"
 		};
 		privModFlgIdxs = new int[]{
 				useOnlyEvntsToTrainIDX, buildSOMExe, resetMapDefsIDX, 
-				mapUseChiSqDistIDX,mapSetSmFtrZeroIDX,mapDrawTrainDatIDX,mapDrawTestDatIDX,
+				mapUseChiSqDistIDX,mapExclProdZeroFtrIDX,mapDrawTrainDatIDX,mapDrawTestDatIDX,
 				mapDrawNodeLblIDX,
-				mapDrawWtMapNodesIDX,mapDrawPopMapNodesIDX,mapDrawAllMapNodesIDX, mapDrawPrdctNodesIDX,
+				mapDrawWtMapNodesIDX,mapDrawPopMapNodesIDX,mapDrawAllMapNodesIDX, mapDrawPrdctNodesIDX,mapDrawCurProdZoneIDX,
 				mapDrawUMatrixIDX,mapDrawSegMembersIDX,mapDrawSegImgIDX,mapDrawAnalysisVisIDX};
 		numClickBools = privModFlgIdxs.length;	
 		//maybe have call for 		initPrivBtnRects(0);	
@@ -178,12 +183,13 @@ public class mySOMMapUIWin extends myDispWindow {
 		setPrivFlags(mapDrawWtMapNodesIDX,false);
 		setPrivFlags(mapUseChiSqDistIDX,false);
 		setPrivFlags(useOnlyEvntsToTrainIDX, true);
+		setPrivFlags(mapExclProdZeroFtrIDX, true);
 		mapMgr.setCurrentDataFormat((int)(this.guiObjs[uiTrainDataFrmtIDX].getVal()));
 		//dataFrmtToUseToTrain = (int)(this.guiObjs[uiTrainDataFrmtIDX].getVal());
 		mapNodeWtDispThresh = (float)(this.guiObjs[uiNodeWtDispThreshIDX].getVal());
 		rawDataSource = (int)(this.guiObjs[uiRawDataSourceIDX].getVal());
 		mapNodeDispType = ExDataType.getVal((int)(this.guiObjs[uiMapNodeBMUTypeToDispIDX].getVal()));
-
+		prodZoneDistThresh = this.guiObjs[uiProdZoneDistThreshIDX].getVal();
 		//moved from mapMgr ctor, to remove dependence on papplet in that object
 		dpFillClr = pa.getClr(SOM_StraffordMain.gui_White);
 		dpStkClr = pa.getClr(SOM_StraffordMain.gui_Blue);	
@@ -230,8 +236,8 @@ public class mySOMMapUIWin extends myDispWindow {
 				//turn off scaled ftrs if this is set
 				mapMgr.setUseChiSqDist(val);
 				break;}							
-			case mapSetSmFtrZeroIDX		: {//whether or not distances between two datapoints assume that absent features in smaller-length datapoints are 0, or to ignore the values in the larger datapoints
-				mapMgr.setFlag(mapMgr.mapSetSmFtrZeroIDX, val);
+			case mapExclProdZeroFtrIDX		: {//whether or not distances between two datapoints assume that absent features in smaller-length datapoints are 0, or to ignore the values in the larger datapoints
+				mapMgr.setFlag(mapMgr.mapExclProdZeroFtrIDX, val);
 				break;}							
 			case mapDrawTrainDatIDX		: {//draw training examples
 				break;}							
@@ -359,6 +365,7 @@ public class mySOMMapUIWin extends myDispWindow {
 			{0, SOMMapManager.nodeBMUMapTypes.length, 1.0},		//uiMapNodeBMUTypeToDispIDX
 			{0.0, 1.0, .01},			//uiMapNodeWtDispThreshIDX
 			{0.0, 1.0, .001},			//uiNodeInSegThreshIDX//threshold of u-matrix weight for nodes to belong to same segment
+			{0.0, 10, .1},				//uiProdZoneDistThreshIDX
 			{0.0, 1.0, .1},				//uiMseRegionSensIDX
 	
 		};					
@@ -386,6 +393,7 @@ public class mySOMMapUIWin extends myDispWindow {
 			0,		//uiMapNodeBMUTypeToDispIDX 
 			.04f,	//uiMapNodeWtDispThreshIDX
 			SOMMapManager.getNodeInSegThresh(),	//uiNodeInSegThreshIDX//threshold of u-matrix weight for nodes to belong to same segment
+			0.1,	//uiProdZoneDistThreshIDX
 			0,		//uiMseRegionSensIDX
 		};								//starting value
 		uiVals = new double[numGUIObjs];//raw values
@@ -414,6 +422,7 @@ public class mySOMMapUIWin extends myDispWindow {
 				"Ex Type For Node BMU",		////uiMapNodeBMUTypeToDispIDX
 				"Map Node Disp Wt Thresh",//uiMapNodeWtDispThreshIDX
 				"Node in Seg UDist Thresh",//uiNodeInSegThreshIDX//threshold of u-matrix weight for nodes to belong to same segment
+				"Prod Max Sq Dist From Map Node",//uiProdZoneDistThreshIDX
 				"Mouse Over JP Sensitivity"	//uiMseRegionSensIDX
 				
 		};			//name/label of component	
@@ -443,6 +452,7 @@ public class mySOMMapUIWin extends myDispWindow {
 			{true, true, true},			//uiMapNodeBMUTypeToDispIDX
 			{false, false, true}, 		//uiMapNodeWtDispThreshIDX
 			{false, false, true}, 		//uiNodeInSegThreshIDX//threshold of u-matrix weight for nodes to belong to same segment
+			{false, false, true}, 		//uiProdZoneDistThreshIDX
 			{false, false, true},		//uiMapRegionSensIDX
 		};						//per-object  list of boolean flags
 		
@@ -497,18 +507,10 @@ public class mySOMMapUIWin extends myDispWindow {
 			case uiMapRadCoolIDX	: {return uiMapRadClList[validx % uiMapRadClList.length]; }
 			case uiMapLrnCoolIDX	: {return uiMapLrnClList[validx % uiMapLrnClList.length]; }	
 			case uiMapNodeBMUTypeToDispIDX : {return SOMMapManager.nodeBMUMapTypes[validx %  SOMMapManager.nodeBMUMapTypes.length];}
-			case uiJPGToDispIDX		: {
-				return mapMgr.getJpGrpByIdxStr(validx); 
-			}	
-			case uiJPToDispIDX		: {
-				return mapMgr.getJpByIdxStr(validx); 
-			}	
-			case uiProdJpgToDispIDX		: {
-				return mapMgr.getProdJpGrpByIdxStr(validx); 
-			}	
-			case uiProdJpToDispIDX		: {
-				return mapMgr.getProdJpByIdxStr(validx); 
-			}	
+			case uiJPGToDispIDX		: {			return mapMgr.getJpGrpByIdxStr(validx); 		}	
+			case uiJPToDispIDX		: {			return mapMgr.getJpByIdxStr(validx); 		}	
+			case uiProdJpgToDispIDX		: {		return mapMgr.getProdJpGrpByIdxStr(validx); 	}	
+			case uiProdJpToDispIDX		: {		return mapMgr.getProdJpByIdxStr(validx); 	}	
 		}
 		return "";
 	}//getUIListValStr
@@ -531,7 +533,7 @@ public class mySOMMapUIWin extends myDispWindow {
 			case uiMapNodeBMUTypeToDispIDX : {return getIDXofStringInArray(uiMapDrawExToBmuTypeList, dat);}
 		}
 		return -1;
-	}
+	}//getIdxFromListString
 	
 	public void setUI_JPListMaxVals(int jpGrpLen, int jpLen) {
 		//refresh max size of guiobj - heavy handed, these values won't change often, and this is called -every draw frame-.
@@ -540,6 +542,7 @@ public class mySOMMapUIWin extends myDispWindow {
 	}//setUI_JPListMaxVals
 	
 	private boolean settingJPGFromJp = false, settingJPFromJPG = false;
+	private boolean settingProdJPGFromJp = false, settingProdJPFromJPG = false;
 	@Override
 	protected void setUIWinVals(int UIidx) {
 		double val = guiObjs[UIidx].getVal();
@@ -567,6 +570,18 @@ public class mySOMMapUIWin extends myDispWindow {
 			case uiMapRadEndIDX	    : {
 				if(val >= guiObjs[uiMapRadStIDX].getVal()-guiMinMaxModVals[UIidx][2]) { guiObjs[UIidx].setVal(guiObjs[uiMapRadStIDX].getVal()-guiMinMaxModVals[UIidx][2]);}
 				break;}
+			case uiJPGToDispIDX : {//highlight display of different region of SOM map corresponding to group of JPs (jpg)
+				//mapMgr.dispMessage("\nSOM WIN","setUIWinVals::uiJPGToDispIDX", "Click : settingJPGFromJp : " + settingJPGFromJp);
+				if(!settingJPGFromJp) {
+					int curJPVal = (int)guiObjs[uiJPToDispIDX].getVal();
+					int jpToSet = mapMgr.getUI_FirstJPFromJPG((int)val, curJPVal);
+					//mapMgr.dispMessage("SOM WIN","setUIWinVals:uiJPGToDispIDX", "Attempt to modify uiJPToDispIDX : curJPVal : "  +curJPVal + " | jpToSet : " + jpToSet);
+					settingJPFromJPG = true;
+					guiObjs[uiJPToDispIDX].setVal(jpToSet);	
+					setUIWinVals(uiJPToDispIDX);
+					settingJPFromJPG = false;
+				}
+				break;}
 			case uiJPToDispIDX : {//highlight display of different region of SOM map corresponding to selected JP				
 				curMapImgIDX = (int)val;
 				//mapMgr.dispMessage("\nSOM WIN","setUIWinVals::uiJPToDispIDX", "Click : settingJPFromJPG : " + settingJPFromJPG);
@@ -581,18 +596,30 @@ public class mySOMMapUIWin extends myDispWindow {
 				}
 				//mapMgr.dispMessage("mySOMMapUIWin","setUIWinVals","uiJPToDispIDX : Setting UI JP Map to display to be idx :" + curMapImgIDX + " Corresponding to JP : " + mapMgr.getJpByIdxStr(curMapImgIDX) );					
 				break;}
-			case uiJPGToDispIDX : {//highlight display of different region of SOM map corresponding to group of JPs (jpg)
-				//mapMgr.dispMessage("\nSOM WIN","setUIWinVals::uiJPGToDispIDX", "Click : settingJPGFromJp : " + settingJPGFromJp);
-				if(!settingJPGFromJp) {
-					int curJPVal = (int)guiObjs[uiJPToDispIDX].getVal();
+			
+			case uiProdJpgToDispIDX		: {
+				if(!settingProdJPGFromJp) {
+					int curJPVal = (int)guiObjs[uiProdJpToDispIDX].getVal();
 					int jpToSet = mapMgr.getUI_FirstJPFromJPG((int)val, curJPVal);
 					//mapMgr.dispMessage("SOM WIN","setUIWinVals:uiJPGToDispIDX", "Attempt to modify uiJPToDispIDX : curJPVal : "  +curJPVal + " | jpToSet : " + jpToSet);
-					settingJPFromJPG = true;
-					guiObjs[uiJPToDispIDX].setVal(jpToSet);	
-					setUIWinVals(uiJPToDispIDX);
-					settingJPFromJPG = false;
+					settingProdJPFromJPG = true;
+					guiObjs[uiProdJpToDispIDX].setVal(jpToSet);	
+					setUIWinVals(uiProdJpToDispIDX);
+					settingProdJPFromJPG = false;
 				}
-				break;}
+				break;}			
+			case uiProdJpToDispIDX		: {
+				curProdToShowIDX = (int)val;
+				if(!settingProdJPFromJPG) {
+					int curJPGVal = (int)guiObjs[uiProdJpgToDispIDX].getVal();
+					int jpgToSet = mapMgr.getUI_JPGrpFromJP(curMapImgIDX, curJPGVal);
+					//mapMgr.dispMessage("SOM WIN","setUIWinVals::uiJPToDispIDX", "Attempt to modify uiJPGToDispIDX : cur JPG val : "+ curJPGVal + " | jpgToSet : " + jpgToSet);					
+					settingProdJPGFromJp = true;
+					guiObjs[uiProdJpgToDispIDX].setVal(jpgToSet);
+					setUIWinVals(uiProdJpgToDispIDX);
+					settingProdJPGFromJp = false;
+				}
+				break;}	
 			case uiTrainDataFrmtIDX : {//format of training data
 				mapMgr.setCurrentDataFormat((int)(this.guiObjs[uiTrainDataFrmtIDX].getVal()));
 				break;}
@@ -613,6 +640,10 @@ public class mySOMMapUIWin extends myDispWindow {
 			case uiNodeInSegThreshIDX :{		//used to determine threshold of value for setting membership in a segment/cluster
 				SOMMapManager.setNodeInSegThresh((float)(this.guiObjs[uiNodeInSegThreshIDX].getVal()));
 				mapMgr.buildSegmentsOnMap();
+				break;}
+			case uiProdZoneDistThreshIDX : {//max distance for a node to be considered a part of a product's "region" of influence		
+				prodZoneDistThresh = this.guiObjs[uiProdZoneDistThreshIDX].getVal();
+			
 				break;}
 			case uiMseRegionSensIDX : {
 				break;}
@@ -741,8 +772,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		pa.popStyle();pa.popMatrix();
 		
 		pa.pushMatrix();pa.pushStyle();
-			pa.translate(SOM_mapDims[0],SOM_mapDims[1],0);
-			
+			pa.translate(SOM_mapDims[0],SOM_mapDims[1],0);			
 			//mapDrawNodeLblIDX
 			if(getPrivFlags(mapDrawTrainDatIDX)){		mapMgr.drawTrainData(pa);}	
 			if(getPrivFlags(mapDrawTestDatIDX)) {			mapMgr.drawTestData(pa);}
@@ -751,20 +781,21 @@ public class mySOMMapUIWin extends myDispWindow {
 				if(getPrivFlags(mapDrawPopMapNodesIDX)) {	mapMgr.drawExMapNodes(pa, mapNodeDispType);}
 			} else {
 				if(getPrivFlags(mapDrawAllMapNodesIDX)){	mapMgr.drawAllNodesNoLbl(pa);		} 		
-				if(getPrivFlags(mapDrawPopMapNodesIDX)) {	mapMgr.drawExMapNodesNoLbl(pa, mapNodeDispType);}
-				
+				if(getPrivFlags(mapDrawPopMapNodesIDX)) {	mapMgr.drawExMapNodesNoLbl(pa, mapNodeDispType);}				
 			}
 			//draw nodes
 			if (curImgNum > -1) {
-				if ((!getPrivFlags(mapDrawAnalysisVisIDX)) && (mseOvrData != null)){	drawMseLocJPs();}//draw jps for specific location
-				//draw map nodes, either with or without empty nodes
+				if ((!getPrivFlags(mapDrawAnalysisVisIDX)) && (mseOvrData != null)){	drawMseLocJPs();}//draw mouse-over info if not showing calc analysis
+				
 				if(getPrivFlags(mapDrawPrdctNodesIDX)){		mapMgr.drawProductNodes(pa, curMapImgIDX, true);}
 				if(getPrivFlags(mapDrawWtMapNodesIDX)){		mapMgr.drawNodesWithWt(pa, mapNodeWtDispThresh, curMapImgIDX);} 
 			} else {//draw all products				
 				if ((!getPrivFlags(mapDrawAnalysisVisIDX)) && (mseOvrData != null)){	drawMseLocWts();}
 				if(getPrivFlags(mapDrawPrdctNodesIDX)){		mapMgr.drawAllProductNodes(pa);}
 			}
-			//if(getPrivFlags(mapDrawUMatrixIDX)) {		mapMgr.drawUMatrixVals(pa);}
+			
+			if (getPrivFlags( mapDrawCurProdZoneIDX)){		mapMgr.drawProductRegion(pa,curProdToShowIDX,prodZoneDistThresh);}
+			//if(getPrivFlags(mapDrawUMatrixIDX)) {		mapMgr.drawUMatrixVals(pa);}//shows U Matrix as large blocks around nodes
 			if(getPrivFlags(mapDrawSegMembersIDX)) {		mapMgr.drawSegments(pa);}
 			pa.lights();
 		pa.popStyle();pa.popMatrix();		
