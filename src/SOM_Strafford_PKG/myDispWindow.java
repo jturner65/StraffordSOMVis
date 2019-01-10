@@ -131,9 +131,10 @@ public abstract class myDispWindow {
 	
 	//these ints hold the index of which custom functions or debug functions should be launched.  
 	//these are set when the sidebar menu is clicked and these processes are requested, and they are set to -1 when these processes are launched.  this is so the buttons can be turned on before the process starts
-	protected int curCustFunc = -1, curCustDbg = -1;
+	protected int[] curCustBtn = new int[] {-1,-1,-1};// curCustFunc = -1, curCustDbg = -1;
+	protected int curCustBtnType = -1;//type/row of current button selected
 	//this is set to true when curCustXXX vals are set to != -1; this is used as a 1-frame buffer to allow the UI to turn on the source buttons of these functions
-	private boolean custClickSetThisFrame = false, custFuncDbgLaunched = false;
+	private boolean custClickSetThisFrame = false, custFuncDoLaunch = false;
 	
 	public myDispWindow(SOM_StraffordMain _p, String _n, int _flagIdx, int[] fc,  int[] sc, float[] rd, float[] rdClosed, String _winTxt, boolean _canDrawTraj) {
 		pa=_p;
@@ -1108,19 +1109,6 @@ public abstract class myDispWindow {
 	
 	//setup the launch of UI-driven custom functions or debugging capabilities, which will execute next frame
 	
-	//UI controlled auxiliary functionality
-	public final void clickFunction(int btnNum) {		curCustFunc = btnNum; custClickSetThisFrame = true;}
-	//UI controlled debug functionality
-	public final void clickDebug(int btnNum) {curCustDbg = btnNum;custClickSetThisFrame = true;}
-	
-	//check if either custom function or debugging has been launched and process if so
-	public final void checkCustMenuUIObjs() {
-		if (custClickSetThisFrame) { custClickSetThisFrame = false;custFuncDbgLaunched=false;return;}	
-		if (custFuncDbgLaunched) {return;}//has been launched don't relaunch
-		if(curCustFunc != -1) {launchCustFunc();custFuncDbgLaunched=true;	return;	}		
-		if(curCustDbg != -1) {	launchDebug();	custFuncDbgLaunched=true;	return;	}		
-	}//checkCustMenuUIObjs
-	
 	//set colors of the trajectory for this window
 	public void setTrajColors(int _tfc, int _tsc){trajFillClrCnst = _tfc;trajStrkClrCnst = _tsc;initTmpTrajStuff(getFlags(trajPointsAreFlat));}
 	//get key used to access arrays in traj array
@@ -1185,15 +1173,31 @@ public abstract class myDispWindow {
 	//updates values in UI with programatic changes 
 	protected boolean setWinToUIVals(int UIidx, double val){return val == guiObjs[UIidx].setVal(val);}
 
-	//UI controlled debug functionality
-	protected abstract void launchDebug();
-	protected void clearDBGBtnState(boolean isSlow){if (curCustDbg==-1) {return;}pa.clearDBGBtnSt(curCustDbg,isSlow); curCustDbg=-1;}
-	//UI controlled auxiliary functionality
-	protected abstract void launchCustFunc();
-	protected void clearFuncBtnState(boolean isSlow) {if (curCustFunc==-1) {return;}pa.clearFuncBtnSt(curCustFunc,isSlow);curCustFunc=-1;}	
 	
-	//return relevant name information for files and directories to be used to build screenshots/saved files
+	//UI controlled auxiliary/debug functionality	
+	public final void clickSideMenuBtn(int _typeIDX, int btnNum) {	curCustBtnType = _typeIDX; curCustBtn[_typeIDX] = btnNum; custClickSetThisFrame = true;}
 	
+	//check if either custom function or debugging has been launched and process if so, skip otherwise.latched by a frame so that button can be turned on
+	public final void checkCustMenuUIObjs() {
+		if (custClickSetThisFrame) { custClickSetThisFrame = false;custFuncDoLaunch=true;return;}	//was set last frame and processed, so clear all flags
+		if (!custFuncDoLaunch) {return;}//has been launched don't relaunch
+		launchMenuBtnHndlr();
+		custFuncDoLaunch=false;
+	}//checkCustMenuUIObjs
+
+	//type is row of buttons (1st idx in curCustBtn array) 2nd idx is btn
+	protected abstract void launchMenuBtnHndlr() ;
+	
+	//call from custFunc/custDbg functions being launched in threads
+	//these are launched in threads to allow UI to respond to user input
+	public void resetButtonState() {resetButtonState(true);}
+	public void resetButtonState(boolean isSlowProc) {
+		if (curCustBtn[curCustBtnType] == -1) {return;}
+		pa.clearBtnState(curCustBtnType,curCustBtn[curCustBtnType], isSlowProc);
+		curCustBtn[curCustBtnType] = -1;
+	}//resetButtonState
+	
+	//return relevant name information for files and directories to be used to build screenshots/saved files	
 	protected abstract String[] getSaveFileDirNamesPriv();
 	
 	protected abstract void initDrwnTrajIndiv();
@@ -1309,30 +1313,34 @@ class mySideBarMenu extends myDispWindow{
 
 	public static final String[] guiBtnRowNames = new String[]{ 
 			//"Window",
-			"Window-specific Functions","DEBUG","File"};
+			"Window-specific Functions","Window-specific Functions 2","DEBUG","File"};
 
 	public static final int 
 			//btnShowWinIdx = 0, 				//which window to show
-			btnAuxFuncIdx = 0,			//aux functionality
-			btnDBGSelCmpIdx = 1,			//debug
-			btnFileCmdIdx = 2;				//load/save files
+			btnAuxFunc1Idx = 0,			//aux functionality 1
+			btnAuxFunc2Idx = 1,			//aux functionality 2
+			btnDBGSelCmpIdx = 2,			//debug
+			btnFileCmdIdx = 3;				//load/save files
 	//names for each row of buttons - idx 1 is name of row
 	public final String[][] guiBtnNames = new String[][]{
 		//new String[]{pa.winTitles[1], pa.winTitles[2]},							//display specific windows - multi-select/ always on if sel
-		new String[]{"Func 1","Func 2","Func 3","Func 4","Func 5"},			//per-window user functions - momentary
+		new String[]{"Func 1","Func 2","Func 3"},						//per-window user functions - momentary
+		new String[]{"Func 1","Func 2","Func 3","Func 4"},						//per-window user functions - momentary
 		new String[]{"Dbg 1","Dbg 2","Dbg 3","Dbg 4","Dbg 5"},						//DEBUG - momentary
 		new String[]{"Load Txt File","Save Txt File"}							//load an existing score, save an existing score - momentary		
 	};
 	//default names, to return to if not specified by user
 	public final String[][] defaultUIBtnNames = new String[][]{
 		//new String[]{pa.winTitles[1], pa.winTitles[2]},							//display specific windows - multi-select/ always on if sel
-		new String[]{"Func 1","Func 2","Func 3","Func 4","Func 5"},			//per-window user functions - momentary
+		new String[]{"Func 1","Func 2","Func 3"},					//per-window user functions - momentary
+		new String[]{"Func 1","Func 2","Func 3","Func 4"},			//per-window user functions - momentary
 		new String[]{"Dbg 1","Dbg 2","Dbg 3","Dbg 4","Dbg 5"},						//DEBUG - momentary
 		new String[]{"Load Txt File","Save Txt File"}							//load an existing score, save an existing score - momentary		
 	};
 	//whether buttons are momentary or not (on only while being clicked)
 	public boolean[][] guiBtnInst = new boolean[][]{
 		//new boolean[]{false,false},         						//display specific windows - multi-select/ always on if sel
+		new boolean[]{false,false,false,false,false},                   //functionality - momentary
 		new boolean[]{false,false,false,false,false},                   //functionality - momentary
 		new boolean[]{false,false,false,false,false},                   		//debug - momentary
 		new boolean[]{true,true},			              			//load an existing score, save an existing score - momentary	
@@ -1341,6 +1349,7 @@ class mySideBarMenu extends myDispWindow{
 	public boolean[][] guiBtnWaitForProc = new boolean[][]{
 		//new boolean[]{false,false},         						//display specific windows - multi-select/ always on if sel
 		new boolean[]{false,false,false,false,false},                   //functionality - momentary
+		new boolean[]{false,false,false,false,false},                   //functionality - momentary
 		new boolean[]{false,false,false,false,false},                   		//debug - momentary
 		new boolean[]{false,false},			              			//load an existing score, save an existing score - momentary	
 	};			
@@ -1348,6 +1357,7 @@ class mySideBarMenu extends myDispWindow{
 	//whether buttons are disabled(-1), enabled but not clicked/on (0), or enabled and on/clicked(1)
 	public int[][] guiBtnSt = new int[][]{
 		//new int[]{1,0},                    					//display specific windows - multi-select/ always on if sel
+		new int[]{0,0,0,0,0},                   					//debug - momentary
 		new int[]{0,0,0,0,0},                   					//debug - momentary
 		new int[]{0,0,0,0,0},                   					//debug - momentary
 		new int[]{0,0}			              					//load an existing score, save an existing score - momentary	
@@ -1387,7 +1397,7 @@ class mySideBarMenu extends myDispWindow{
 	protected void snapMouseLocs(int oldMouseX, int oldMouseY, int[] newMouseLoc){}//not a snap-to window
 		
 	//call this from each new window to set function names, if specified, when window gets focus
-	public void setBtnNames(int rowIdx, String[] btnNames) {
+	public void setAllBtnNames(int rowIdx, String[] btnNames) {
 		String[] replAra = ((null==btnNames) || (btnNames.length != guiBtnNames[rowIdx].length)) ? defaultUIBtnNames[rowIdx] : btnNames;
 		for(int i=0;i<guiBtnNames[rowIdx].length;++i) {guiBtnNames[rowIdx][i]=replAra[i];}
 	}//setFunctionButtonNames
@@ -1484,9 +1494,10 @@ class mySideBarMenu extends myDispWindow{
 		setWaitForProc(row,col);
 		switch(row){
 			//case btnShowWinIdx 		: {pa.handleShowWin(col, val);break;}
-			case btnAuxFuncIdx 		: {pa.handleFuncSelCmp(col, val);break;}
-			case btnDBGSelCmpIdx  	: {pa.handleDBGSelCmp(col, val);break;}
-			case btnFileCmdIdx 		: {pa.handleFileCmd(col, val);break;}
+			case btnAuxFunc1Idx 		: //{pa.handleMenuBtnSelCmp(btnAuxFunc1Idx,col, val);break;}
+			case btnAuxFunc2Idx 		: //{pa.handleMenuBtnSelCmp(btnAuxFunc2Idx,col, val);break;}
+			case btnDBGSelCmpIdx  		: {pa.handleMenuBtnSelCmp(row, col, val);break;}//{pa.handleMenuBtnSelCmp(btnDBGSelCmpIdx,col, val);break;}
+			case btnFileCmdIdx 			: {pa.handleFileCmd(col, val);break;}
 		}				
 	}	
 
@@ -1615,10 +1626,13 @@ class mySideBarMenu extends myDispWindow{
 	@Override
 	public void drawCustMenuObjs(){}	
 	@Override
-	protected void launchDebug() {	}
-	@Override
-	protected void launchCustFunc() {	}
-
+	protected void launchMenuBtnHndlr() {
+		switch(curCustBtnType) {
+		case mySideBarMenu.btnAuxFunc1Idx : {break;}//row 1 of menu side bar buttons
+		case mySideBarMenu.btnAuxFunc2Idx : {break;}//row 2 of menu side bar buttons
+		case mySideBarMenu.btnDBGSelCmpIdx : {break;}//row 3 of menu side bar buttons (debug)			
+		}		
+	}
 	//no custom camera handling for menu , float rx, float ry, float dz are all now member variables of every window
 	@Override
 	protected void setCameraIndiv(float[] camVals){}

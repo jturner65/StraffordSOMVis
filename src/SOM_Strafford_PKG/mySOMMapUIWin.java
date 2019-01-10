@@ -37,10 +37,10 @@ public class mySOMMapUIWin extends myDispWindow {
 		showSelJPIDX			= 18, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
 		//train/test data managemen
 		somTrainDataLoadedIDX	= 19,			//whether data used to build map has been loaded yet
-		saveLocClrImgIDX		= 20,			//
-		useOnlyEvntsToTrainIDX  = 21;			//only use records that have event jpgs/jps to train, otherwise use records that also have jpgs/jps only specified in prospect db
+		saveLocClrImgIDX		= 20;			//
+		//useOnlyEvntsToTrainIDX  = 21;			//only use records that have event jpgs/jps to train, otherwise use records that also have jpgs/jps only specified in prospect db
 	
-	public static final int numPrivFlags = 22;
+	public static final int numPrivFlags = 21;
 	
 	//SOM map list options
 	public String[] 
@@ -126,9 +126,19 @@ public class mySOMMapUIWin extends myDispWindow {
 		
 	/////////
 	//custom debug/function ui button names -empty will do nothing
-	public String[] menuDbgBtnNames = new String[] {"Disp JPs","Disp Calc","Disp Ftrs","Disp Raw Data","Dbg 5"};//must have literals for every button or this is ignored by UI - buttons correspond to guiBtnNames list in mySideBarMenu 
-	public String[] menuFuncBtnNames = new String[] {"Ld/proc ---", "Ld Train CSV", "Bld SOMDat", "Ld & Mk Map", "PreBuilt Map"};//must have literals for every button or ignored
-	private String[] menuLdRawFuncBtnNames = new String[] {"Ld/proc CSV", "Ld/proc SQL"};
+	public String[][] menuBtnNames = new String[][] {	//each must have literals for every button defined in side bar menu, or ignored
+		{"Load All Raw ---", "Load Raw Prod ---","Func 3"},	//row 1
+		{"Ld Proc'ed Data", "Build SOM Data", "Ld & Make Map", "Ld Prebuilt Map"},	//row 1
+		{"Disp JPs","Disp Calc","Disp Ftrs","Disp Raw Data","Dbg 5"}	
+	};
+//	public String[] menuDbgBtnNames = new String[] {"Disp JPs","Disp Calc","Disp Ftrs","Disp Raw Data","Dbg 5"};//must have literals for every button or this is ignored by UI - buttons correspond to guiBtnNames list in mySideBarMenu 
+//	public String[] menuFunc1BtnNames = new String[] {"Ld Raw ---", "Ld Train CSV", "Bld SOMDat", "Ld & Mk Map", "Prebuilt Map"};//must have literals for every button or ignored
+//	public String[] menuFunc1BtnNames = new String[] {"Ld Raw ---", "Ld Train CSV", "Bld SOMDat", "Ld & Mk Map", "Prebuilt Map"};//must have literals for every button or ignored
+	
+	
+	
+	//used to switch button name for 1st button to reflect whether performing csv-based load of raw data or sql query
+	private String[] menuLdRawFuncBtnNames = new String[] {"CSV", "SQL"};
 	private int loadRawBtnIDX = 0;
 	
 	public mySOMMapUIWin(SOM_StraffordMain _p, String _n, int _flagIdx, int[] fc, int[] sc, float[] rd, float[] rdClosed, String _winTxt, boolean _canDrawTraj) {
@@ -143,19 +153,22 @@ public class mySOMMapUIWin extends myDispWindow {
 	//initialize all private-flag based UI buttons here - called by base class
 	public void initAllPrivBtns(){
 		truePrivFlagNames = new String[]{								//needs to be in order of flags
-				"Train W/Recs W/Event Data", "Building SOM", "Resetting Def Vals", 
+				//"Train W/Recs W/Event Data", 
+				"Building SOM", "Resetting Def Vals", 
 				"Using ChiSq for Ftr Distance", "Dist ignores Product 0-ftrs",	"Hide Train Data", "Hide Test Data",
 				"Hide Node Lbls","Hide Map Nodes (by Wt)","Hide Map Nodes (by Pop)", "Hide Map Nodes", "Hide Products","Hide Cur Prod Zone",
 				"Hide U Mtrx Dists (Bi-Cubic)", "Hide Clusters (U-Dist)", "Hide Cluster Image", "Hide Calc Analysis"
 		};
 		falsePrivFlagNames = new String[]{			//needs to be in order of flags
-				"Train W/All Recs","Build New Map ","Reset Def Vals",
+				//"Train W/All Recs",
+				"Build New Map ","Reset Def Vals",
 				"Not Using ChiSq Distance", "Dist measures all ftrs","Show Train Data","Show Test Data",
 				"Show Node Lbls","Show Map Nodes (by Wt)","Show Map Nodes (by Pop)","Show Map Nodes", "Show Products","Show Cur Prod Zone",
 				"Show U Mtrx Dists (Bi-Cubic)", "Show Clusters (U-Dist)", "Show Cluster Image", "Show Calc Analysis"
 		};
 		privModFlgIdxs = new int[]{
-				useOnlyEvntsToTrainIDX, buildSOMExe, resetMapDefsIDX, 
+				//useOnlyEvntsToTrainIDX, 
+				buildSOMExe, resetMapDefsIDX, 
 				mapUseChiSqDistIDX,mapExclProdZeroFtrIDX,mapDrawTrainDatIDX,mapDrawTestDatIDX,
 				mapDrawNodeLblIDX,
 				mapDrawWtMapNodesIDX,mapDrawPopMapNodesIDX,mapDrawAllMapNodesIDX, mapDrawPrdctNodesIDX,mapDrawCurProdZoneIDX,
@@ -182,7 +195,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		setPrivFlags(mapDrawTrainDatIDX,false);
 		setPrivFlags(mapDrawWtMapNodesIDX,false);
 		setPrivFlags(mapUseChiSqDistIDX,false);
-		setPrivFlags(useOnlyEvntsToTrainIDX, true);
+		//setPrivFlags(useOnlyEvntsToTrainIDX, true);
 		setPrivFlags(mapExclProdZeroFtrIDX, true);
 		mapMgr.setCurrentDataFormat((int)(this.guiObjs[uiTrainDataFrmtIDX].getVal()));
 		//dataFrmtToUseToTrain = (int)(this.guiObjs[uiTrainDataFrmtIDX].getVal());
@@ -191,6 +204,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		mapNodeDispType = ExDataType.getVal((int)(this.guiObjs[uiMapNodeBMUTypeToDispIDX].getVal()));
 		prodZoneDistThresh = this.guiObjs[uiProdZoneDistThreshIDX].getVal();
 		//moved from mapMgr ctor, to remove dependence on papplet in that object
+		pa.setAllMenuBtnNames(menuBtnNames);	
 		dpFillClr = pa.getClr(SOM_StraffordMain.gui_White);
 		dpStkClr = pa.getClr(SOM_StraffordMain.gui_Blue);	
 		initMapAras(1, 1);
@@ -289,7 +303,7 @@ public class mySOMMapUIWin extends myDispWindow {
 			case showSelJPIDX		 : {//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
 				break;}
 			case saveLocClrImgIDX : {break;}//save image
-			case useOnlyEvntsToTrainIDX : {break;}//whether or not to limit training data set to only records that have specified jpgroups/jps from events, or to also use recs that only have specifications in prospect records
+			//case useOnlyEvntsToTrainIDX : {break;}//whether or not to limit training data set to only records that have specified jpgroups/jps from events, or to also use recs that only have specifications in prospect records
 		}
 	}//setFlag		
 	
@@ -626,9 +640,7 @@ public class mySOMMapUIWin extends myDispWindow {
 			case uiRawDataSourceIDX  : {//source of raw data
 				rawDataSource = (int)(this.guiObjs[uiRawDataSourceIDX].getVal());
 				//change button display
-				menuFuncBtnNames[loadRawBtnIDX]=menuLdRawFuncBtnNames[(rawDataSource % menuLdRawFuncBtnNames.length) ];
-				pa.setMenuFuncBtnNames(menuFuncBtnNames);		
-
+				setCustMenuBtnNames();
 				mapMgr.dispMessage("mySOMMapUIWin","setUIWinVals","uiRawDataSourceIDX : rawDataSource : " + rawDataSource);
 				break;}			
 			case uiMapNodeBMUTypeToDispIDX : {//type of examples being mapped to each map node to display
@@ -649,6 +661,16 @@ public class mySOMMapUIWin extends myDispWindow {
 				break;}
 		}
 	}//setUIWinVals
+	//modify menu buttons to display whether using CSV or SQL to access raw data
+	private void setCustMenuBtnNames() {
+		String rplStr = menuLdRawFuncBtnNames[(rawDataSource % menuLdRawFuncBtnNames.length)], baseStr;
+		for(int i=0;i<menuBtnNames[mySideBarMenu.btnAuxFunc1Idx].length-1;++i) {
+			baseStr = (String) menuBtnNames[mySideBarMenu.btnAuxFunc1Idx][i].subSequence(0, menuBtnNames[mySideBarMenu.btnAuxFunc1Idx][i].length()-3);
+			menuBtnNames[mySideBarMenu.btnAuxFunc1Idx][i] = baseStr + rplStr;
+		}
+		//menuBtnNames[mySideBarMenu.btnAuxFunc1Idx][loadRawBtnIDX]=menuLdRawFuncBtnNames[(rawDataSource % menuLdRawFuncBtnNames.length) ];
+		pa.setAllMenuBtnNames(menuBtnNames);	
+	}
 	
 	//get x and y locations relative to upper corner of map
 	public float getSOMRelX (float x){return (x - SOM_mapDims[0]);}
@@ -914,95 +936,94 @@ public class mySOMMapUIWin extends myDispWindow {
 		//for(int i=0;i<uiAbbrevList.length;++i) {fileString += uiAbbrevList[i]+"_"+ (uiVals[i] > 1 ? ((int)uiVals[i]) : uiVals[i] < .0001 ? String.format("%6.3e", uiVals[i]) : String.format("%3.3f", uiVals[i]))+"_";}
 		return new String[]{dirString,fileString};	
 	}
-
-	//call from custFunc/custDbg functions being launched in threads
-	//these are launched in threads to allow UI to respond to user input
-	public void resetButtonState(int _type) {
-		switch(_type) {
-		case 0 : {			clearFuncBtnState( true); return;}
-		case 1 : {			clearDBGBtnState(true);  return;}
-		}
-	}//resetButtonState
 	
-	//custom functions launched by UI input
-	//if launching threads for custom functions, need to remove clearFuncBtnState call in function below and call clearFuncBtnState (with slow proc==true) when thread ends
-	//thread launch allows for btn display state to change - necessary for processes that take a while
-	private void custFunc0(){
-		//load data from raw local csvs of db download
-		mapMgr.loadAllRawData((rawDataSource==0), getPrivFlags(useOnlyEvntsToTrainIDX));
-		resetButtonState(0);
-	}	
-	private void custFunc1(){
-		//load data from preprocessed local csv files
-		mapMgr.loadAllPreProccedData(getPrivFlags(useOnlyEvntsToTrainIDX));
-		resetButtonState(0);
-	}		
-	private void custFunc2(){	
-		mapMgr.buildAndSaveTrainingData((float)(.01*this.guiObjs[uiTrainDatPartIDX].getVal()));//pass fraction of data to use for training
-		resetButtonState(0);
-	}			
-	private void custFunc3(){			
-		//combine func1 and func2 with launching map
-		mapMgr.dbgLoadCSVBuildDataTrainMap(getPrivFlags(useOnlyEvntsToTrainIDX), (float)(.01*this.guiObjs[uiTrainDatPartIDX].getVal()));
-		this.setPrivFlags(buildSOMExe, true);
-		resetButtonState(0);
-	}			
-	private void custFunc4(){	
-		//load a pre-built map and render it - map needs to coincide with the data currently in memory
-		mapMgr.dbgBuildExistingMap();
-		//resetButtonState(0);		//called in thread that performs load		
-	}	
-	
+	//if launching threads for custom functions or debug, need to remove resetButtonState call in function below and call resetButtonState (with slow proc==true) when thread ends
 	@Override
-	protected void launchCustFunc() {
-		mapMgr.dispMessage("mySOMMapUIWin","clickFunction","click cust function in "+name+" : btn : " + curCustFunc);
-		switch(curCustFunc){
-			case 0 : {	custFunc0();	break;}
-			case 1 : {	custFunc1();	break;}
-			case 2 : {	custFunc2();	break;}
-			case 3 : {	custFunc3();	break;}
-			case 4 : {	custFunc4();	break;}
-			default : {break;}
-		}	
-	}		//only for display windows
+	protected void launchMenuBtnHndlr() {
+		int btn = curCustBtn[curCustBtnType];
+		switch(curCustBtnType) {
+		case mySideBarMenu.btnAuxFunc1Idx : {
+			mapMgr.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Click Functions 1 in "+name+" : btn : " + btn);
+			switch(btn){
+				case 0 : {	
+					//load all data from raw local csvs or sql from db
+					mapMgr.loadAllRawData((rawDataSource==0));//, getPrivFlags(useOnlyEvntsToTrainIDX));
+					break;}
+				case 1 : {	
+					//load product data from raw local csvs or sql from db
+					mapMgr.loadRawProductData((rawDataSource==0));
+					resetButtonState();
+					break;}
+				case 2 : {	
+					//
+					resetButtonState();
+					break;}
+				default : {
+					mapMgr.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Unknown Functions 1 btn : "+btn);
+					break;}
+			}	
+			break;}//row 1 of menu side bar buttons
+		case mySideBarMenu.btnAuxFunc2Idx : {
+			mapMgr.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Click Functions 2 in "+name+" : btn : " + btn);
+			switch(btn){
+				case 0 : {	
+					mapMgr.loadAllPreProccedData();//getPrivFlags(useOnlyEvntsToTrainIDX));
+					resetButtonState();
+					break;}
+				case 1 : {	
+					mapMgr.buildAndSaveTrainingData((float)(.01*this.guiObjs[uiTrainDatPartIDX].getVal()));//pass fraction of data to use for training
+					resetButtonState();
+					break;}
+				case 2 : {	
+					//mapMgr.dbgLoadCSVBuildDataTrainMap(getPrivFlags(useOnlyEvntsToTrainIDX), (float)(.01*this.guiObjs[uiTrainDatPartIDX].getVal()));
+					mapMgr.dbgLoadCSVBuildDataTrainMap((float)(.01*this.guiObjs[uiTrainDatPartIDX].getVal()));
+					this.setPrivFlags(buildSOMExe, true);
+					break;}
+				case 3 : {	
+					mapMgr.dbgBuildExistingMap();
+					break;}
+				default : {
+					mapMgr.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Unknown Functions 2 btn : "+btn);
+					break;}	
+			}
+			break;}//row 2 of menu side bar buttons
+		case mySideBarMenu.btnDBGSelCmpIdx : {
+			mapMgr.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Click Debug in "+name+" : btn : " + btn);
+			switch(btn){
+				case 0 : {	
+					mapMgr.dbgShowUniqueJPsSeen();
+					resetButtonState();
+					break;}//verify priority queue functionality
+				case 1 : {	
+					mapMgr.dbgShowCalcEqs();
+					resetButtonState();
+					break;}//verify FEL pq integrity
+				case 2 : {	
+					mapMgr.dbgShowAllFtrVecs();
+					resetButtonState();
+					break;}
+				case 3 : {	
+					mapMgr.dbgShowAllRawData();
+					resetButtonState();
+					break;}
+				case 4 : {	
+					
+					resetButtonState();
+					break;}
+				default : {
+					mapMgr.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Unknown Debug btn : "+btn);
+					break;}
+			}				
+			break;}//row 3 of menu side bar buttons (debug)			
+		}		
+	}//launchMenuBtnHndlr
+	
+		
 	
 	private void toggleDbgBtn(int idx, boolean val) {
 		setPrivFlags(idx, !getPrivFlags(idx));
 	}
 	
-	//debug function
-	//if launching threads for debugging, need to remove clearDBGState call in function below and call clearDBGState when thread ends
-	private void dbgFunc0() {	
-		mapMgr.dbgShowUniqueJPsSeen();
-	}	
-	private void dbgFunc1(){
-		mapMgr.dbgShowCalcEqs();
-	}	
-	private void dbgFunc2(){
-		mapMgr.dbgShowAllFtrVecs();
-	}	
-	private void dbgFunc3(){	
-		mapMgr.dbgShowAllRawData();
-	}	
-	private void dbgFunc4(){	
-	}	
-	private void dbgFunc5(){	
-	}	
-
-	@Override
-	protected void launchDebug(){
-		mapMgr.dispMessage("mySOMMapUIWin","clickDebug","click debug in "+name+" : btn : " + curCustDbg);
-		switch(curCustDbg){
-			case 0 : {	dbgFunc0();	break;}//verify priority queue functionality
-			case 1 : {	dbgFunc1();	break;}//verify FEL pq integrity
-			case 2 : {	dbgFunc2();	break;}
-			case 3 : {	dbgFunc3();	break;}
-			case 4 : {	dbgFunc4();	break;}
-			case 5 : {	dbgFunc5();	break;}
-			default : {break;}
-		}		
-		resetButtonState(1);
-	}//clickDebug
 	//handle mouseover 
 	@Override
 	protected boolean hndlMouseMoveIndiv(int mouseX, int mouseY, myPoint mseClckInWorld){
@@ -1069,9 +1090,8 @@ public class mySOMMapUIWin extends myDispWindow {
 	protected void closeMe() {}
 	@Override
 	protected void showMe() {
-		pa.setMenuDbgBtnNames(menuDbgBtnNames);
-		menuFuncBtnNames[loadRawBtnIDX]=menuLdRawFuncBtnNames[(rawDataSource % menuLdRawFuncBtnNames.length) ];
-		pa.setMenuFuncBtnNames(menuFuncBtnNames);		
+		//pa.setMenuDbgBtnNames(menuDbgBtnNames);	
+		setCustMenuBtnNames();
 	}
 	@Override
 	public String toString(){

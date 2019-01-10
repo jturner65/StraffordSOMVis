@@ -677,8 +677,7 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		buildNghbrhdMapNodes_ChiSq( _ftrtype);	
 		return mapNodes;
 	}//findBMUFromNodes_ChiSq		
-
-	
+		
 	public dataClass getLabel(){return label;}	
 	public final void buildLabel() {
 		label = new dataClass(OID,"lbl:"+OID,"unitialized Description", null);
@@ -1154,7 +1153,7 @@ class ProspectExample extends StraffSOMExample{
 class ProductExample extends StraffSOMExample{
 //	//column names for csv output of this SOM example
 	private static final String csvColDescrPrfx = "ID,NumJPs";
-	private static int IDcount = 0;	//incrementer so that all examples have unique ID among products	
+	//private static int IDcount = 0;	//incrementer so that all examples have unique ID among products	
 	protected TcTagTrainData trainPrdctData;		
 	//this array holds float reps of "sumtorial" of idx vals, used as denominators of ftr vectors so that 
 	//arrays of jps of size idx will use this value as denominator, and (idx - jp idx)/denominator as weight value for ftr vec 
@@ -1174,7 +1173,8 @@ class ProductExample extends StraffSOMExample{
 	
 		
 	public ProductExample(SOMMapManager _map, TcTagData data) {
-		super(_map,ExDataType.Product,IDprfx + "_" +  String.format("%06d", IDcount++));
+		//super(_map,ExDataType.Product,IDprfx + "_" +  String.format("%06d", IDcount++));
+		super(_map,ExDataType.Product,data.OID);
 		trainPrdctData = new TcTagTrainData(data);	
 		initBMUMaps();		
 	}//ctor
@@ -1344,7 +1344,7 @@ class DispSOMMapExample extends StraffSOMExample{
 
 	//need to support all ftr types from map - what type of ftrs are these?
 	public DispSOMMapExample(SOMMapManager _map, myPointf ptrLoc, TreeMap<Integer, Float> _ftrs, float _thresh) {
-		super(_map, ExDataType.MouseOver,"MseEx_"+ptrLoc.toStrBrf());//(" + String.format("%.4f",this.x) + ", " + String.format("%.4f",this.y) + ", " + String.format("%.4f",this.z)+")
+		super(_map, ExDataType.MouseOver,"Mse_"+ptrLoc.toStrBrf());//(" + String.format("%.4f",this.x) + ", " + String.format("%.4f",this.y) + ", " + String.format("%.4f",this.z)+")
 		//type of features used for currently trained map
 		mapType = mapMgr.getCurrMapDataFrmt();
 		
@@ -1387,9 +1387,9 @@ class DispSOMMapExample extends StraffSOMExample{
 		mseLabelAra = _mseLblDat.toArray(new String[1]);
 		mseLabelDims = new float[] {10, -10.0f,longestLine*6.0f, mseLabelAra.length*10.0f + 15.0f};
 	}//ctor	
-	//need to support all ftr types from map - what type of ftrs are these?
+	//need to support all ftr types from map
 	public DispSOMMapExample(SOMMapManager _map, myPointf ptrLoc, float distData, float _thresh) {
-		super(_map, ExDataType.MouseOver,"MseEx_"+ptrLoc.toStrBrf());//(" + String.format("%.4f",this.x) + ", " + String.format("%.4f",this.y) + ", " + String.format("%.4f",this.z)+")
+		super(_map, ExDataType.MouseOver,"Mse_"+ptrLoc.toStrBrf());//(" + String.format("%.4f",this.x) + ", " + String.format("%.4f",this.y) + ", " + String.format("%.4f",this.z)+")
 		//type of features used for currently trained map
 		mapType = mapMgr.getCurrMapDataFrmt();
 		
@@ -1540,7 +1540,7 @@ class SOMMapNode extends StraffSOMExample{
 	
 	//feature type denotes what kind of features the tkns being sent represent - 0 is unmodded, 1 is standardized across all data for each feature, 2 is normalized across all features for single data point
 	public SOMMapNode(SOMMapManager _map, Tuple<Integer,Integer> _mapNode, float[] _ftrs) {
-		super(_map, ExDataType.MapNode,"MapNode_"+_mapNode.x+"_"+_mapNode.y);
+		super(_map, ExDataType.MapNode,"Node_"+_mapNode.x+"_"+_mapNode.y);
 		//ftrTypeMapBuilt = _ftrType;
 		if(_ftrs.length != 0){	setFtrsFromFloatAra(_ftrs);	}
 		//allJPs = buildJPsFromFtrAra(_ftrs, ftrThresh);
@@ -1549,7 +1549,7 @@ class SOMMapNode extends StraffSOMExample{
 	
 	//feature type denotes what kind of features the tkns being sent represent
 	public SOMMapNode(SOMMapManager _map,Tuple<Integer,Integer> _mapNode, String[] _strftrs) {
-		super(_map, ExDataType.MapNode, "MapNode_"+_mapNode.x+"_"+_mapNode.y);
+		super(_map, ExDataType.MapNode, "Node_"+_mapNode.x+"_"+_mapNode.y);
 		//ftrTypeMapBuilt = _ftrType;
 		if(_strftrs.length != 0){	setFtrsFromStrAra(_strftrs);	}
 		initMapNode( _mapNode);

@@ -451,30 +451,6 @@ public class SOMMapManager {
 	
 	//return true if loader is done and if data is successfully loaded
 	public boolean isMapDrawable(){return getFlag(loaderRtnIDX) && getFlag(mapDataLoadedIDX);}
-
-//	//passing variance for chi sq dist
-//	private double calcPtChiDist(float[] bigFtrs, float[] smFtrs, float[] dataVar){
-//		return Math.sqrt(calcSqPtChiDist(bigFtrs, smFtrs,dataVar));
-//	}//calcPtDist
-//	
-//	private double calcPtDist(float[] bigFtrs, float[] smFtrs){
-//		return Math.sqrt(calcSqPtDist(bigFtrs, smFtrs));
-//	}//calcPtDist
-//	//passing variance for chi sq dist
-//	private float calcSqPtChiDist(float[] bigFtrs, float[] smFtrs, float[] dataVar){
-//		float res = 0, diff;
-//		if(getFlag(mapSetSmFtrZeroIDX)){	for(int i=(bigFtrs.length-1); i>= smFtrs.length;--i){res += bigFtrs[i] * bigFtrs[i];}}		
-//		for(int i =0; i<smFtrs.length; ++i){			diff = bigFtrs[i] - smFtrs[i];res +=  (diff * diff)/dataVar[i];}			
-//		return res;	
-//	}//calcPtDist
-//	
-//	private float calcSqPtDist(float[] bigFtrs, float[] smFtrs){
-//		float res = 0, diff;
-//		if(getFlag(mapSetSmFtrZeroIDX)){	for(int i=(bigFtrs.length-1); i>= smFtrs.length;--i){res += bigFtrs[i] * bigFtrs[i];}}		
-//		for(int i =0; i<smFtrs.length; ++i){			diff = bigFtrs[i] - smFtrs[i];res += diff * diff;}			
-//		return res;	
-//	}//calcPtDist
-
 	
 	public boolean isToroidal(){return projConfigData.isToroidal();}
 
@@ -521,10 +497,52 @@ public class SOMMapManager {
 		}		
 	}//addProductToProductMaps
 	
+	
+	public void loadRawProductData(boolean fromCSVFiles) {
+		dispMessage("SOMMapManager","loadRawProductData","Start loading and processing raw product only data");
+		if(!fromCSVFiles) {
+			dispMessage("SOMMapManager","loadRawProductData","WARNING : SQL-based raw data queries not yet implemented.  Use CSV-based raw data to build training data set instead");
+			return;
+		}
+		//no need to make multi-threaded - this will only ever process in a single thread anyway
+		//first load all existing data, then overwrite existing data with new product data
+		loadAllPreProccedData();	
+		if((prospectMap.size() == 0) || (productMap.size()==0)){
+			dispMessage("SOMMapManager","loadRawProductData","Unable to process only raw product data into preprocessed format - prospect data must exist before hand.");
+			return;		
+		}
+		
+		//now load raw product data either via csv or sql
+		String[] loadRawDatStrs = projConfigData.getRawDataLoadInfo(fromCSVFiles,straffDataFileNames[tcTagsIDX]);
+		boolean[] flags = new boolean[] {fromCSVFiles,straffRawDatUsesJSON[tcTagsIDX], straffRawDatDebugLoad[tcTagsIDX]};
+		loadRawDataVals(loadRawDatStrs, flags,tcTagsIDX);
+		//now process raw products
+		resetProductMap();
+		procRawProductData(rawDataArrays.get(straffDataFileNames[tcTagsIDX]));		
+		dispMessage("SOMMapManager","loadRawProductData","Begin initial finalize of product map to aggregate all JPs");		
+		//finalize build for all products - aggregates all jps seen in product
+		for (ProductExample ex : productMap.values()){		ex.finalizeBuild();		}		
+		dispMessage("SOMMapManager","loadRawProductData","End initial finalize of product map");		
+		//must rebuild this because we might not have same jp's
+		dispMessage("SOMMapManager","loadRawProductData","Begin setJPDataFromExampleData from prospect map");
+		//we need the jp-jpg counts and relationships dictated by the data by here.
+		setJPDataFromExampleData(prospectMap);
+		dispMessage("SOMMapManager","loadRawProductData","End setJPDataFromExampleData from prospect map; calling finishSOMExampleBuild");
+		//finalize - recalc all processed data in case new products have different JP's present
+		finishSOMExampleBuild();	
+		
+		//resave all data
+		setFlag(rawPrspctEvDataProcedIDX, true);
+		setFlag(rawProducDataProcedIDX, true);
+		saveAllData();		
+		dispMessage("SOMMapManager","loadRawProductData","Finished loading raw product data, processing and saving preprocessed for products data only");
+	}//only load the product/TC-tagging data, process it and then save it to files
+	
+	
 	//fromCSVFiles : whether loading data from csv files or from SQL calls
 	//eventsOnly : only use examples with event data to train
 	//append : whether to append to existing data values or to load new data
-	public void loadAllRawData(boolean fromCSVFiles, boolean eventsOnly) {
+	public void loadAllRawData(boolean fromCSVFiles) {
 		dispMessage("SOMMapManager","loadAllRawData","Start loading and processing raw data");
 		//TODO remove this when SQL support is implemented
 		if(!fromCSVFiles) {
@@ -550,7 +568,7 @@ public class SOMMapManager {
 		}
 		//process loaded data
 		//dbgLoadedData(tcTagsIDX);
-		procRawLoadedData(eventsOnly);	
+		procRawLoadedData();	
 		dispMessage("SOMMapManager","loadAllRawData","Finished loading raw data, processing and saving preprocessed data");
 	}//loadAllRawData
 	
@@ -581,25 +599,26 @@ public class SOMMapManager {
 	private String getRawDataDesiredDirName() {
 		return "default" + File.separator;
 	}
-	public void loadAllPreProccedData(boolean eventsOnly) {
+	//load all preprocessed data from default data location
+	public void loadAllPreProccedData() {
 		//		boolean singleThread=numUsableThreads<=1;//this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
 		dispMessage("SOMMapManager","loadAllPreProccedData","Begin loading preprocced data");
 		//load monitor first
 		loadMonitorJpJpgrp();
-		loadAllPropsectMapData(eventsOnly);
+		loadAllPropsectMapData();
 		loadAllProductMapData();
 		finishSOMExampleBuild();		
 		dispMessage("SOMMapManager","loadAllPreProccedData","Finished loading preprocced data");
 	}
 	
 	//load prospect mapped training data into StraffSOMExamples from disk
-	private void loadAllPropsectMapData(boolean eventsOnly) {
+	private void loadAllPropsectMapData() {
 		//perform in multiple threads if possible
-		dispMessage("SOMMapManager","loadAllPropsectMapData","Loading all prospect map data " + (eventsOnly ? "that only have event-based training info" : "that have any training info (including only prospect jpg/jp specification)"));
+		dispMessage("SOMMapManager","loadAllPropsectMapData","Loading all prospect map data that only have event-based training info");//" + (eventsOnly ? "that only have event-based training info" : "that have any training info (including only prospect jpg/jp specification)"));
 		//clear out current prospect data
 		resetProspectMap();
 		String desSubDir = getRawDataDesiredDirName();
-		String[] loadSrcFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(desSubDir, eventsOnly, "prospectMapSrcData");
+		String[] loadSrcFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(desSubDir, true, "prospectMapSrcData");
 		
 		String fmtFile = loadSrcFNamePrefixAra[0]+"_format.csv";
 		String[] loadRes = loadFileIntoStringAra(fmtFile, "Format file loaded", "Format File Failed to load");
@@ -663,9 +682,9 @@ public class SOMMapManager {
 	}//saveAllProductMapData
 	
 	//write all prospect map data to a csv to be able to be reloaded to build training data from, so we don't have to re-read database every time
-	private void saveAllProspectMapData(boolean eventsOnly) {
+	private void saveAllProspectMapData() {
 		dispMessage("SOMMapManager","saveAllProspectMapData","Saving all prospect map data : " + prospectMap.size() + " examples to save.");
-		String[] saveDestFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(eventsOnly, "prospectMapSrcData");
+		String[] saveDestFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(true, "prospectMapSrcData");
 		ArrayList<ArrayList<String>> csvRes = new ArrayList<ArrayList<String>>();
 		ArrayList<String> csvResTmp = new ArrayList<String>();		
 		int counter = 0;
@@ -951,9 +970,9 @@ public class SOMMapManager {
 
 	
 	//load preproc csv and build training and testing partitions
-	public void dbgLoadCSVBuildDataTrainMap(boolean useOnlyEvents, float trainTestPartition) {
+	public void dbgLoadCSVBuildDataTrainMap(float trainTestPartition) {
 		dispMessage("SOMMapManager","dbgLoadCSVBuildDataTrainMap","Start Loading all CSV Build Data to train map.");
-		loadAllPreProccedData(useOnlyEvents);
+		loadAllPreProccedData();
 		//build SOM data
 		buildTestTrainFromProspectMap(trainTestPartition, true);	
 		dispMessage("SOMMapManager","dbgLoadCSVBuildDataTrainMap","Saving data to training file : Starting to save training/testing data partitions ");
@@ -977,7 +996,7 @@ public class SOMMapManager {
 	//load the data used to build a map - NOTE this may break if different data is used to build the map than the current data
 	public void dbgBuildExistingMap() {
 		//load data into preproc
-		loadAllPreProccedData(true);
+		loadAllPreProccedData();
 		//set project test/train partitions based on preset data values
 		projConfigData.setTrainTestPartitionDBG();
 		//build data partitions - use partition size set via constants in debug
@@ -1116,7 +1135,7 @@ public class SOMMapManager {
 	}//scaleUnfrmttedFtrData
 		
 	//this will go through all the prospects, opts, and events and build a map of prospectExample keyed by prospect OID and holding all the known data
-	private void procRawLoadedData(boolean eventsOnly) {
+	private void procRawLoadedData() {
 		resetProspectMap();
 		
 		dispMessage("SOMMapManager","procRawLoadedData","Start Processing all loaded data");
@@ -1162,29 +1181,29 @@ public class SOMMapManager {
 		//save all data here,clear rawDataArrays, reset raw data array flags
 		//build actual prospect map only from prospectExamples that hold trainable information
 		//need to have every entered prospect example finalized before this - the finalization process is necessary to determine if an example is good or not
-		if(eventsOnly) {//only records with events will be used to train
+		//if(eventsOnly) {//only records with events will be used to train
 			for (String OID : tmpProspectMap.keySet()) {
 				ProspectExample ex = tmpProspectMap.get(OID);
 				if (ex.isTrainableRecordEvent()) {			prospectMap.put(OID, ex);		} 
 			}
-		} else {//any jpgs/jps present will be used to train
-			for (String OID : tmpProspectMap.keySet()) {
-				ProspectExample ex = tmpProspectMap.get(OID);
-				if (ex.isTrainableRecord()) {				prospectMap.put(OID, ex);			}
-			}			
-		}			
+//		} else {//any jpgs/jps present will be used to train
+//			for (String OID : tmpProspectMap.keySet()) {
+//				ProspectExample ex = tmpProspectMap.get(OID);
+//				if (ex.isTrainableRecord()) {				prospectMap.put(OID, ex);			}
+//			}			
+//		}			
 		//finalize each prospect record, aggregate data-driven static vals, rebuild ftr vectors - doing this over since we are only using non-bad record prospects
 		finishSOMExampleBuild();
-		dispMessage("SOMMapManager","procRawLoadedData","Raw Records Unique OIDs presented : " + tmpProspectMap.size()+" | Records found with trainable " + (eventsOnly ? " events " : "") + " info : " + prospectMap.size());
+		dispMessage("SOMMapManager","procRawLoadedData","Raw Records Unique OIDs presented : " + tmpProspectMap.size()+" | Records found with trainable events info : " + prospectMap.size());
 		//setAllFlags(new int[] {prospectDataLoadedIDX, optDataLoadedIDX, orderDataLoadedIDX}, false);
 		setFlag(rawPrspctEvDataProcedIDX, true);
 		setFlag(rawProducDataProcedIDX, true);
-		saveAllData(eventsOnly);
+		saveAllData();
 		dispMessage("SOMMapManager","procRawLoadedData","Finished processing all loaded data");
 	}//procRawLoadedData
 	
-	private void saveAllData(boolean eventsOnly) {
-		saveAllProspectMapData(eventsOnly);
+	private void saveAllData() {
+		saveAllProspectMapData();
 		saveAllProductMapData();		
 		saveMonitorJpJpgrp();		
 	}
@@ -1525,7 +1544,7 @@ public class SOMMapManager {
 		ex.drawMeLinkedToBMU(pa, 5.0f,ex.OID);		
 		ex.drawProdMapExtent(pa, distType, prodsToShow.size(), maxDist);
 		++curProdTimer;
-		if(curProdTimer > 30) {
+		if(curProdTimer > 10) {
 			curProdTimer = 0;
 			dispProdJPDataFrame = (dispProdJPDataFrame + 1) % prodsToShow.size();
 		}
@@ -1615,8 +1634,8 @@ public class SOMMapManager {
 		if (win != null) {		win.setUIValues(mapDat);	}
 	}//setUIValsFromLoad
 	
-	public void resetButtonState(int _type) {
-		if (win != null) {	win.resetButtonState(_type);}
+	public void resetButtonState() {
+		if (win != null) {	win.resetButtonState();}
 	}
 
 	public void setMapNumCols(int _x){

@@ -39,7 +39,7 @@ public class SOMDataLoader implements Runnable {
 			mapMgr.setFlag(SOMMapManager.loaderRtnIDX,false);
 			mapMgr.dispMessage("DataLoader","run","Data loader Failed : Required files not all loaded or file IO error ");
 		}
-		mapMgr.resetButtonState(0);
+		mapMgr.resetButtonState();
 	}//run
 	
 	//load results from map processing - fnames needs to be modified to handle this

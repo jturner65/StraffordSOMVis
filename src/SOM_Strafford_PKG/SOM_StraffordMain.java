@@ -310,46 +310,64 @@ public class SOM_StraffordMain extends PApplet {
 		}
 	}//handleShowWin
 	
-	//call menu from instance of dispwindow to update primary custom function button names with window-relevant entries
-	public void setMenuFuncBtnNames(String[] btnNames) {
-		((mySideBarMenu)dispWinFrames[dispMenuIDX]).setBtnNames(((mySideBarMenu)dispWinFrames[dispMenuIDX]).btnAuxFuncIdx,btnNames);
-	}
 	
+	//clear menu side bar buttons when window-specific processing is finished
 	//isSlowProc means original calling process lasted longer than mouse click release and so button state should be forced to be off
-	private void clearBtnState(int row, int col, boolean isSlowProc) {
-		((mySideBarMenu)dispWinFrames[dispMenuIDX]).guiBtnWaitForProc[row][col] = false;
-		if(isSlowProc) {((mySideBarMenu)dispWinFrames[dispMenuIDX]).guiBtnSt[row][col] = 0;}		
-	}
+	public void clearBtnState(int _type, int col, boolean isSlowProc) {
+		int row = _type;
+		mySideBarMenu win = (mySideBarMenu)dispWinFrames[dispMenuIDX];
+		win.guiBtnWaitForProc[row][col] = false;
+		if(isSlowProc) {win.guiBtnSt[row][col] = 0;}		
+	}//clearBtnState 
 	
 	//turn off specific function button that might have been kept on during processing - btn must be in range of size of guiBtnSt[mySideBarMenu.btnAuxFuncIdx]
 	//isSlowProc means function this was waiting on is a slow process and escaped the click release in the window (i.e. if isSlowProc then we must force button to be off)
-	public void clearFuncBtnSt(int btn, boolean isSlowProc) {clearBtnState(mySideBarMenu.btnAuxFuncIdx,btn, isSlowProc);}
+	//public void clearFuncBtnSt(int btn, boolean isSlowProc) {clearBtnState(mySideBarMenu.btnAuxFuncIdx,btn, isSlowProc);}
 
-	public void handleFuncSelCmp(int btn, int val){handleFuncSelCmp(btn, val, true);}					//display specific windows - multi-select/ always on if sel
-	public void handleFuncSelCmp(int btn, int val, boolean callFlags){
+	public void handleMenuBtnSelCmp(int _type, int btn, int val){handleMenuBtnSelCmp(_type, btn, val, true);}					//display specific windows - multi-select/ always on if sel
+	public void handleMenuBtnSelCmp(int _type, int btn, int val, boolean callFlags){
 		if(!callFlags){
-			setMenuBtnState(mySideBarMenu.btnAuxFuncIdx,btn, val);
+			setMenuBtnState(_type,btn, val);
 		} else {
-			dispWinFrames[curFocusWin].clickFunction(btn) ;
+			dispWinFrames[curFocusWin].clickSideMenuBtn(_type, btn);
 		}
 	}//handleAddDelSelCmp	
+
+//	public void handleFuncSelCmp(int btn, int val){handleFuncSelCmp(btn, val, true);}					//display specific windows - multi-select/ always on if sel
+//	public void handleFuncSelCmp(int btn, int val, boolean callFlags){
+//		if(!callFlags){
+//			setMenuBtnState(mySideBarMenu.btnAuxFuncIdx,btn, val);
+//		} else {
+//			dispWinFrames[curFocusWin].clickFunction(btn) ;
+//		}
+//	}//handleAddDelSelCmp	
+
 	
-	//call menu from instance of dispwindow to update primary debug button names with window-relevant entries
-	public void setMenuDbgBtnNames(String[] btnNames) {
-		((mySideBarMenu)dispWinFrames[dispMenuIDX]).setBtnNames(((mySideBarMenu)dispWinFrames[dispMenuIDX]).btnDBGSelCmpIdx,btnNames);
+	public void setAllMenuBtnNames(String[][] btnNames) {
+		for(int _type = 0;_type<btnNames.length;++_type) {((mySideBarMenu)dispWinFrames[dispMenuIDX]).setAllBtnNames(_type,btnNames[_type]);}
 	}
-	//turn off specific debug button that might have been kept on during processing - btn must be in range of size of guiBtnSt[mySideBarMenu.btnDBGSelCmpIdx]
-	//isSlowProc means function this was waiting on is a slow process and escaped the click release in the window (i.e. if isSlowProc then we must force button to be off)
-	public void clearDBGBtnSt(int btn, boolean isSlowProc)  {clearBtnState(mySideBarMenu.btnDBGSelCmpIdx,btn, isSlowProc);}
-	//process to delete an existing component
-	public void handleDBGSelCmp(int btn, int val){handleDBGSelCmp(btn, val, true);}					//display specific windows - multi-select/ always on if sel
-	public void handleDBGSelCmp(int btn, int val, boolean callFlags){
-		if(!callFlags){
-			setMenuBtnState(mySideBarMenu.btnDBGSelCmpIdx,btn, val);
-		} else {
-			dispWinFrames[curFocusWin].clickDebug(btn) ;
-		}
-	}//handleAddDelSelCmp	
+	
+//	//call menu from instance of dispwindow to update primary debug button names with window-relevant entries
+//	public void setMenuDbgBtnNames(String[] btnNames) {
+//		((mySideBarMenu)dispWinFrames[dispMenuIDX]).setBtnNames(mySideBarMenu.btnDBGSelCmpIdx,btnNames);
+//	}
+//	//call menu from instance of dispwindow to update primary custom function button names with window-relevant entries
+//	public void setMenuFuncBtnNames(String[] btnNames) {
+//		((mySideBarMenu)dispWinFrames[dispMenuIDX]).setBtnNames(mySideBarMenu.btnAuxFuncIdx,btnNames);
+//	}
+
+//	//turn off specific debug button that might have been kept on during processing - btn must be in range of size of guiBtnSt[mySideBarMenu.btnDBGSelCmpIdx]
+//	//isSlowProc means function this was waiting on is a slow process and escaped the click release in the window (i.e. if isSlowProc then we must force button to be off)
+//	public void clearDBGBtnSt(int btn, boolean isSlowProc)  {clearBtnState(mySideBarMenu.btnDBGSelCmpIdx, btn, isSlowProc);}
+//	//process to delete an existing component
+//	public void handleDBGSelCmp(int btn, int val){handleDBGSelCmp(btn, val, true);}					//display specific windows - multi-select/ always on if sel
+//	public void handleDBGSelCmp(int btn, int val, boolean callFlags){
+//		if(!callFlags){
+//			setMenuBtnState(mySideBarMenu.btnDBGSelCmpIdx,btn, val);
+//		} else {
+//			dispWinFrames[curFocusWin].clickDebug(btn) ;
+//		}
+//	}//handleAddDelSelCmp	
 	
 	//process to handle file io	- TODO	
 	public void handleFileCmd(int btn, int val){handleFileCmd(btn, val, true);}					//display specific windows - multi-select/ always on if sel
