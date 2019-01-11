@@ -37,13 +37,20 @@ public class StraffWeightCalc {
 	private static int numBnds = 4;	
 	
 	public MonitorJpJpgrp jpJpgMon;
-
+	
+	private int[] stFlags;						//state flags - bits in array holding relevant process/state info
+	public static final int
+			debugIDX 					= 0,
+			ftrCalcCompleteIDX			= 1,	//ftr weight calc has been completed for all loaded examples.
+			calcAnalysisCompleteIDX		= 2;	//analysis of calc results completed for this object
+	public static final int numFlags = 3;	
 	
 	public StraffWeightCalc(SOMMapManager _map, String _fileName, MonitorJpJpgrp _jpJpgMon) {
 		map = _map;
 		Calendar nowCal = map.getInstancedNow();
 		now = nowCal.getTime();
 		jpJpgMon = _jpJpgMon;
+		initFlags();
 		loadConfigAndSetVars( _fileName);
 	}//ctor
 	
@@ -81,12 +88,7 @@ public class StraffWeightCalc {
 			addIndivJpEq(configDatList[i].trim().split(","));		
 		}
 	}//loadConfigAndSetVars	
-	
-	//this will reset all analysis components of feature vectors.  this is so that new feature calculations won't aggregate stats with old ones
-	public void resetAllCalcObjs() {
-		for ( JPWeightEquation eq : eqs.values()	) {	eq.resetAnalysis();		}
-	}//resetAllCalcObjs
-	
+
 	public Float[] getMinBndsAra() {return bndsAra[0];}
 	public Float[] getDiffsBndsAra() {return bndsAra[3];}
 	
@@ -162,9 +164,25 @@ public class StraffWeightCalc {
 	//////////////////////////////////////////////////
 	// reporting functions
 	
-	//after all features are calculated, run this first to finalize reporting statistics on eq performance
-	public void finalizeCalcAnalysis() {for(JPWeightEquation jpEq:eqs.values()) {jpEq.calcStats.aggregateCalcVals(jpJpgMon.getJpToFtrIDX(jpEq.jp));}}
+	//this will reset all analysis components of feature vectors.  this is so that new feature calculations won't aggregate stats with old ones
+	public void resetAllCalcObjs() {
+		for ( JPWeightEquation eq : eqs.values()	) {	eq.resetAnalysis();		}
+		setFlag(ftrCalcCompleteIDX, false);
+	}//resetAllCalcObjs
 	
+	//called when all current prospect examples have been calculated
+	public void finishFtrCalcs() {	setFlag(ftrCalcCompleteIDX, true); 	}
+	public boolean isFinishedFtrCalcs() {return getFlag(ftrCalcCompleteIDX);}
+	public boolean calcAnalysisShouldBeDone() {return getFlag(ftrCalcCompleteIDX) && ! getFlag(calcAnalysisCompleteIDX);}//only perform analysis once on same set of collected ftr calc data
+	public boolean calcAnalysisIsReady() {return getFlag(ftrCalcCompleteIDX) && getFlag(calcAnalysisCompleteIDX);}		//ftr calc is done, and calc anaylsis has been done on these feature calcs
+	//after all features are calculated, run this first to finalize reporting statistics on eq performance
+	public void finalizeCalcAnalysis() {
+		if (calcAnalysisShouldBeDone()) {
+			//for(JPWeightEquation jpEq:eqs.values()) {jpEq.calcStats.aggregateCalcVals(jpJpgMon.getJpToFtrIDX(jpEq.jp));}
+			for(JPWeightEquation jpEq:eqs.values()) {jpEq.calcStats.aggregateCalcVals();}
+			setFlag(calcAnalysisCompleteIDX, true);
+		}
+	}
 	//retrieve a list of all eq performance data per ftr
 	public ArrayList<String> getCalcAnalysisRes(){
 		ArrayList<String> res = new ArrayList<String>();
@@ -188,11 +206,27 @@ public class StraffWeightCalc {
 	public void drawSingleFtr(SOM_StraffordMain p, int ht, int width, Integer jp) {
 		p.pushMatrix();p.pushStyle();		
 		//draw detailed analysis
-		JPWeightEquation jpEq = eqs.get(jp);
-		jpEq.drawIndivFtrVec(p, ht, width);
+		eqs.get(jp).drawIndivFtrVec(p, ht, width);
 		p.popStyle();p.popMatrix();			
 	}//drawSingleFtr
 	
+	
+	private void initFlags(){stFlags = new int[1 + numFlags/32]; for(int i = 0; i<numFlags; ++i){setFlag(i,false);}}
+	public void setAllFlags(int[] idxs, boolean val) {for (int idx : idxs) {setFlag(idx, val);}}
+	public void setFlag(int idx, boolean val){
+		int flIDX = idx/32, mask = 1<<(idx%32);
+		stFlags[flIDX] = (val ?  stFlags[flIDX] | mask : stFlags[flIDX] & ~mask);
+		switch (idx) {//special actions for each flag
+			case debugIDX : {break;}	
+			case ftrCalcCompleteIDX 		: {							//whether or not this object has finished calculating ftrs for all loaded examples
+				if(!val) {setFlag(calcAnalysisCompleteIDX, false);}		//setting this to false means have yet to calculate ftrs, so all calc analysis data should be ignored
+				break;}					
+			case calcAnalysisCompleteIDX	: { 					//whether or not this object has finished the analysis aggregation of all eqs on ftrs calced				
+				break;}			
+		}
+	}//setFlag		
+	public boolean getFlag(int idx){int bitLoc = 1<<(idx%32);return (stFlags[idx/32] & bitLoc) == bitLoc;}		
+
 	
 	//display calc equations for each JP id
 	@Override
@@ -315,8 +349,7 @@ class JPWeightEquation {
 	//calculate a particular example's weight value for this object's jp
 	public float calcVal(ProspectExample ex, jpOccurrenceData orderJpOccurrences, jpOccurrenceData linkJpOccurrences, jpOccurrenceData optJpOccurrences) {	
 		boolean hasData = false;
-		//float [] vals = new float[numEqs];			//all individual values calculated - this is so we can easily aggregate analysis results to calc object
-			//this jp was used set in prospect record : scale propsect contribution by update date of record - assumes accurate at time of update
+			//this means jp was used set in prospect record : scale propsect contribution by update date of record - assumes accurate at time of update
 		if (ex.prs_JP == jp) {		hasData = true;				calcStats.setWSVal(prspctCoeffIDX, scaleCalc(prspctCoeffIDX, 1, ex.prs_LUDate));		}//calcStats.workSpace[prspctCoeffIDX] = scaleCalc(prspctCoeffIDX, 1, ex.prs_LUDate);		}
 			//handle order occurrences for this jp.   aggregate every order occurrence, with decay on importance based on date
 		if (orderJpOccurrences != null) {	hasData = true;		calcStats.setWSVal(orderCoeffIDX, aggregateOccs(orderJpOccurrences, orderCoeffIDX));}//calcStats.workSpace[orderCoeffIDX] = aggregateOccs(orderJpOccurrences, orderCoeffIDX);}
@@ -353,19 +386,35 @@ class JPWeightEquation {
 
 //this class will hold analysis information for calculations to more clearly understand the results of the current calc object
 class calcAnalysis{
-		//per JPWeightEquation analysis of data
+	//per JPWeightEquation analysis of data
 		//corresponding eq - get all pertinent info from this object
 	private JPWeightEquation eq;	
 		//totals seen across all examples per individual calc components(prospect, opt, order, link, etc);sum of sq value, for variance/std calc
 	private float[] vals, valSq;
-		//%'s of total seen for each calc - each val divided by total val; mean and variance aggregates
-	private float[] ratios, means, stdVals, meansOpts, stdValsOpts;
+	
+	//calculated statistics 
+	private float[][] analysisCalcStats;
+	//calculated totals of statistic values, to get appropriate ratios
+	private float[] ttlCalcStats_Vis;
+	private static final int
+		ratioIDX = 0,
+		meanIDX = 1,
+		meanOptIDX = 2,
+		stdIDX = 3,
+		stdOptIDX = 4;
+	private static final int numCalcStats = 5;
+	//titles of each stat-of-interest disp bar
+	private static final String[] calcStatTitles = new String[] {"Ratios", "Means", "Means w/Opts", "Stds","Stds w/Opts"};
+	//descriptive text under each detail display bar
+	private String[][] calcStatDispDetail;
+	//perStat perCalcEqType Descriptive string of value being represented in bar
+	private String[][] analysisCalcValStrs;
+	//description for legend
+	private String[] legendDatStrAra;
 		//workspace used by calc object to hold values - all individual values calculated - this is so we can easily aggregate analysis results to calc object	
 	private float[] workSpace;
 		//total seen across all individual calcs, across all examples; mean value sent per non-opt, sqVal for std calc; stdVal of totals
-	private float ttlVal, ttlSqVal, ttlMeansVec_vis, ttlStdsVec_vis, ttlMeansOptVec_vis, ttlStdsOptVec_vis;
-		//analysis vals : mean and std including opt outs, and without counting them, fraction of opt outs in # total records
-	private float ttlMeanWithOpt, ttlMeanNoOpt, ttlStdWithOpt, ttlStdNoOpt, ratioOptOut = 1.0f;	
+	private float ttlVal, ttlSqVal;//, ttlMeansVec_vis, ttlStdsVec_vis, ttlMeansOptVec_vis, ttlStdsOptVec_vis;
 		//number of eqs processed - increment on total
 	private int numExamplesWithJP = 0;
 	private int numExamplesNoOptOut = 0;
@@ -387,26 +436,17 @@ class calcAnalysis{
 		eqTypeCount = new int[eq.numEqs];
 		valSq = new float[vals.length];
 		workSpace = new float[vals.length];
+		legendDatStrAra = new String[vals.length];
 		numExamplesWithJP = 0;
 		numExamplesNoOptOut = 0;
 		ttlVal=0.0f;
 		ttlSqVal=0.0f;
-		ratios = new float[vals.length];
-		means = new float[vals.length];
-		stdVals = new float[vals.length];
-		meansOpts = new float[vals.length];
-		stdValsOpts = new float[vals.length];
-		ttlMeansVec_vis = 0;
-		ttlStdsVec_vis = 0;
-		ttlMeansOptVec_vis = 0;
-		ttlStdsOptVec_vis = 0;
-		ttlMeanWithOpt=0.0f;
-		ttlMeanNoOpt=0.0f;
-		ttlStdWithOpt=0.0f;
-		ttlStdNoOpt=0.0f;
-		
+		//per stat type; per calc val type
+		analysisCalcStats = new float[numCalcStats][];
+		calcStatDispDetail = new String[numCalcStats][];
+		ttlCalcStats_Vis = new float[numCalcStats];
+		for(int i=0; i<numCalcStats;++i) {		analysisCalcStats[i] = new float[vals.length];}			
 		analysisRes = new ArrayList<String>();
-		ratioOptOut = 1.0f;	
 	}//reset()
 	
 	public void setWSVal(int idx, float val) {
@@ -432,42 +472,49 @@ class calcAnalysis{
 		ttlSqVal += res*res;
 		return res;		
 	}//addCalcsToVals	
-	
+
 	//aggregate collected values and calculate all relevant statistics
-	public void aggregateCalcVals(int ftrIdx) {
-		ratios = new float[vals.length];
-		means = new float[vals.length];
-		stdVals = new float[vals.length];
-		meansOpts = new float[vals.length];
-		stdValsOpts = new float[vals.length];
-		ttlMeansVec_vis = 0;
-		ttlStdsVec_vis = 0;
-		ttlMeansOptVec_vis = 0;
-		ttlStdsOptVec_vis = 0;
+	public void aggregateCalcVals() {
+		//per stat type; per calc val type
+		analysisCalcStats = new float[numCalcStats][];
+		analysisCalcValStrs = new String[numCalcStats][];
+		calcStatDispDetail = new String[numCalcStats][];
+		ttlCalcStats_Vis = new float[numCalcStats];
+		legendDatStrAra = new String[vals.length];
+		for(int i=0; i<numCalcStats;++i) {		analysisCalcStats[i] = new float[vals.length];analysisCalcValStrs[i] = new String[vals.length];}			
 		analysisRes = new ArrayList<String>();
-		ratioOptOut = 1.0f;	
+		
 		String perCompMuStd = "";
 		if(ttlVal == 0.0f) {return;}
 		for (int i=0;i<vals.length;++i) {
-			ratios[i] = vals[i]/ttlVal;
-			means[i] = vals[i]/numExamplesNoOptOut;
-			ttlMeansVec_vis += means[i];
-			meansOpts[i] = vals[i]/numExamplesWithJP;
-			ttlMeansOptVec_vis +=meansOpts[i];
-			stdVals[i] = (float) Math.sqrt((valSq[i]/numExamplesNoOptOut) - (means[i]*means[i]));
-			ttlStdsVec_vis += stdVals[i];
-			stdValsOpts[i] = (float) Math.sqrt((valSq[i]/numExamplesWithJP) - (meansOpts[i]*meansOpts[i]));
-			ttlStdsOptVec_vis += stdValsOpts[i];
-			
-			perCompMuStd += "|Mu:"+String.format("%.5f",means[i])+"|Std:"+String.format("%.5f",stdVals[i]);
+			analysisCalcStats[ratioIDX][i] = vals[i]/ttlVal;
+			analysisCalcStats[meanIDX][i] = vals[i]/numExamplesNoOptOut;
+			analysisCalcStats[meanOptIDX][i] = vals[i]/numExamplesWithJP;		//counting opt-out records
+			analysisCalcStats[stdIDX][i] = (float) Math.sqrt((valSq[i]/numExamplesNoOptOut) - (analysisCalcStats[meanIDX][i]*analysisCalcStats[meanIDX][i]));//E[X^2] - E[X]^2
+			analysisCalcStats[stdOptIDX][i] = (float) Math.sqrt((valSq[i]/numExamplesWithJP) - (analysisCalcStats[meanOptIDX][i]*analysisCalcStats[meanOptIDX][i]));		
+			perCompMuStd += "|Mu:"+String.format("%.5f",analysisCalcStats[meanIDX][i])+"|Std:"+String.format("%.5f",analysisCalcStats[stdIDX][i]);			
+			legendDatStrAra[i] = eq.calcNames[i] + " : "+ eqTypeCount[i]+" exmpls.";			
 		}
-		ratioOptOut = 1 - (1.0f*numExamplesNoOptOut)/numExamplesWithJP;			//ratio of all examples that have opted out with 0 ttl contribution to jp in ftr
-		ttlMeanNoOpt = ttlVal/numExamplesNoOptOut;
-		ttlMeanWithOpt = ttlVal/numExamplesWithJP;
-		ttlStdNoOpt = (float) Math.sqrt((ttlSqVal/numExamplesNoOptOut)  - (ttlMeanNoOpt * ttlMeanNoOpt));
-		ttlStdWithOpt = (float) Math.sqrt((ttlSqVal/numExamplesWithJP)  - (ttlMeanWithOpt * ttlMeanWithOpt));
+		for (int i=0;i<analysisCalcStats.length;++i) {
+			ttlCalcStats_Vis[i]=0.0f;
+			for (int j=0;j<analysisCalcStats[j].length;++j) {		
+				ttlCalcStats_Vis[i] += analysisCalcStats[i][j];		
+				analysisCalcValStrs[i][j] = String.format("%.5f", analysisCalcStats[i][j]);
+			}
+		}
 		
-		analysisRes.add("FTR : "+String.format("%03d", ftrIdx)+"|JP : "+String.format("%03d", eq.jp)+"|% opt:"+String.format("%.5f",ratioOptOut)
+		float ratioOptOut = 1 - (1.0f*numExamplesNoOptOut)/numExamplesWithJP;			//ratio of all examples that have opted out with 0 ttl contribution to jp in ftr
+		float ttlMeanNoOpt = ttlVal/numExamplesNoOptOut;
+		float ttlMeanWithOpt = ttlVal/numExamplesWithJP;
+		float ttlStdNoOpt = (float) Math.sqrt((ttlSqVal/numExamplesNoOptOut)  - (ttlMeanNoOpt * ttlMeanNoOpt));
+		float ttlStdWithOpt = (float) Math.sqrt((ttlSqVal/numExamplesWithJP)  - (ttlMeanWithOpt * ttlMeanWithOpt));
+		calcStatDispDetail[ratioIDX] = new String[] {String.format("Ratio of Opts To Ttl : %.5f",ratioOptOut), String.format("# of examples : %05d",numExamplesWithJP),String.format("# of ex w/o Opt out : %05d",numExamplesNoOptOut)};
+		calcStatDispDetail[meanIDX] = new String[] {String.format("Mean : %.5f",ttlMeanNoOpt)};
+		calcStatDispDetail[meanOptIDX] = new String[] {String.format("Mean w/opts : %.5f", ttlMeanWithOpt)};
+		calcStatDispDetail[stdIDX] = new String[] {String.format("Stds : %.5f",ttlStdNoOpt)};
+		calcStatDispDetail[stdOptIDX] = new String[] {String.format("Std w/opts : %.5f",ttlStdWithOpt)};		
+		
+		analysisRes.add("FTR : "+String.format("%03d", eq.jpIdx)+"|JP : "+String.format("%03d", eq.jp)+"|% opt:"+String.format("%.5f",ratioOptOut)
 					+"|MU : " + String.format("%.5f",ttlMeanNoOpt)+"|Std : " + String.format("%.5f",ttlStdNoOpt) 
 					+"|MU w/opt : " +String.format("%.5f",ttlMeanWithOpt)+"|Std w/opt : " +String.format("%.5f",ttlStdWithOpt));
 		analysisRes.add(perCompMuStd);
@@ -478,12 +525,18 @@ class calcAnalysis{
 	//height - the height of the bar.  start each vertical bar at upper left corner, put text beneath bar
 	public void drawFtrVec(SOM_StraffordMain p, int height, int width, boolean selected){
 		p.pushMatrix();p.pushStyle();
-		if (selected) {
-			p.setColorValFill(p.gui_White, 255);
-			p.rect(0.0f, 0.0f, width, height);
-		} else {
-			drawSpecifcFtrVec(p,height,width, ratios, 1.0f);
+		float rCompHeight, rYSt = 0.0f;
+		for(int i =0;i<analysisCalcStats[ratioIDX].length;++i) {
+			p.setColorValFill(p.gui_LightRed+i, 255);
+			rCompHeight = height * analysisCalcStats[ratioIDX][i];
+			p.rect(0.0f, rYSt, width, rCompHeight);
+			rYSt+=rCompHeight;
 		}
+		if (selected) {
+			p.setColorValFill(p.gui_White, 100);
+			p.rect(-1.0f, -1.0f, width+2, height+2);
+		} 
+
 		p.translate(0.0f, height+txtYOff, 0.0f);
 		p.translate(0.0f, dispIDX*txtYOff, 0.0f);
 		p.showOffsetText2D(0.0f, p.gui_White, ""+eq.jp);
@@ -493,26 +546,51 @@ class calcAnalysis{
 	//this will display a vertical bar corresponding to the performance of the analyzed calculation.
 	//each component of calc object will have a different color
 	//height - the height of the bar.  start each vertical bar at upper left corner, put text beneath bar
-	private void drawSpecifcFtrVec(SOM_StraffordMain p, int height, int width, float[] vals, float denom){
+	private void drawSpecifcFtrVec(SOM_StraffordMain p, int height, int width, float[] vals, String[] dispStrAra, float denom){
 		p.pushMatrix();p.pushStyle();
 		float rCompHeight, rYSt = 0.0f, htMult = height/denom;
 		for(int i =0;i<vals.length;++i) {
-			p.setColorValFill(p.gui_LightRed+i, 255);
-			rCompHeight = htMult * vals[i];
-			p.rect(0.0f, rYSt, width, rCompHeight);
-			rYSt+=rCompHeight;
+			if (vals[i] > 0.0f) {
+				p.setColorValFill(p.gui_LightRed+i, 255);
+				rCompHeight = htMult * vals[i];
+				p.rect(0.0f, rYSt, width, rCompHeight);
+				drawMidBoxText(p,10.0f, rYSt+(rCompHeight/2.0f)+5,dispStrAra[i]);
+				rYSt+=rCompHeight;
+			}
 		}
-		//rect is corner mode
 		p.popStyle();p.popMatrix();		
 	}//drawFtrVec	
-
 	
 	//draw vertical bar describing per-comp values with
-	private void drawSpecificFtrVecWithText(SOM_StraffordMain p, int height, int width, float[] vals, float denom, String valTtl, String[] valDesc ) {
+	private void drawDetailFtrVec(SOM_StraffordMain p, int height, int width, float[] vals, float denom, String valTtl, String[] dispStrAra, String[] valDesc) {
 		p.pushMatrix();p.pushStyle();
+		p.translate(0.0f, txtYOff, 0.0f);
 		p.showOffsetText2D(0.0f, p.gui_White, valTtl);//p.drawText(valTtl, 0, 0, 0, p.gui_White);
 		p.translate(0.0f, txtYOff, 0.0f);
-		drawSpecifcFtrVec(p,height,width, vals, denom);
+		p.pushMatrix();p.pushStyle();
+		float rCompHeight, rYSt = 0.0f, htMult = height/denom;
+		for(int i =0;i<vals.length;++i) {
+			if (vals[i] > 0.0f) {
+				p.setColorValFill(p.gui_LightRed+i, 255);
+				rCompHeight = htMult * vals[i];
+				p.rect(0.0f, rYSt, width, rCompHeight);
+				rYSt+=rCompHeight;
+			}
+		}
+		rCompHeight = 0.0f;
+		rYSt = 0.0f;
+		//make sure text for small boxes isn't overwritten by next box
+		for(int i =0;i<vals.length;++i) {
+			if (vals[i] > 0.0f) {
+				rCompHeight = htMult * vals[i];
+				drawMidBoxText(p, 10.0f, rYSt+(rCompHeight/2.0f)+5,dispStrAra[i]);
+				rYSt+=rCompHeight;
+			}
+		}
+		
+		p.popStyle();p.popMatrix();		
+		
+		
 		p.translate(0.0f, height+txtYOff, 0.0f);
 		for(String s : valDesc) {
 			p.showOffsetText2D(0.0f, p.gui_White, s);//p.drawText(s, 0, 0, 0, p.gui_White);
@@ -522,29 +600,14 @@ class calcAnalysis{
 		p.popStyle();p.popMatrix();		
 	}//drawSpecificFtrVecWithText
 	
-	private void drawSpecificLegendVecWithText(SOM_StraffordMain p, int height, int width, float[] vals, float denom) {
+	//draw specified descriptive text within box bounds defined by xDisp and yDisp
+	private void drawMidBoxText(SOM_StraffordMain p, float xDisp, float yDisp, String txt) {
 		p.pushMatrix();p.pushStyle();
-		p.translate(0.0f, txtYOff, 0.0f);
-		p.showOffsetText2D(0.0f, p.gui_White, "Legend");//p.drawText(valTtl, 0, 0, 0, p.gui_White);
-		p.translate(0.0f, txtYOff, 0.0f);
-		p.pushMatrix();p.pushStyle();
-		float rCompHeight, rYSt = 0.0f, htMult = height/denom;
-		for(int i =0;i<vals.length;++i) {
-			p.setColorValFill(p.gui_LightRed+i, 255);
-			rCompHeight = htMult * vals[i];
-			p.rect(0.0f, rYSt, width, rCompHeight);
-			p.pushMatrix();p.pushStyle();
-			p.translate(10.0f, rYSt+(rCompHeight/2.0f), 0.0f);
-			p.showOffsetText2D(0.0f, p.gui_Black, eq.calcNames[i] + " : "+ eqTypeCount[i]+" exmpls.");//p.drawText(s, 0, 0, 0, p.gui_White);
-			p.popStyle();p.popMatrix();
-			rYSt+=rCompHeight;
-		}
-		//rect is corner mode
-		p.popStyle();p.popMatrix();		
+		p.translate(xDisp, yDisp, 0.0f);
+		p.showOffsetText2D(0.0f, p.gui_Black, txt);//eq.calcNames[i] + " : "+ eqTypeCount[i]+" exmpls." + width);//p.drawText(s, 0, 0, 0, p.gui_White);
+		p.popStyle();p.popMatrix();
+	}//drawMidBoxText
 
-		//move down and print out relevant text
-		p.popStyle();p.popMatrix();		
-	}//drawSpecificFtrVecWithText	calcNames : String[]
 	
 	//draw a single ftr vector as a wide bar; include text for descriptions
 	//width is per bar
@@ -553,17 +616,12 @@ class calcAnalysis{
 		//title here?
 		p.showOffsetText2D(0.0f, p.gui_White, "Calc Values for ftr idx : " +eq.jpIdx + " jp "+eq.jp + " : " + eq.jpName);//p.drawText("Calc Values for ftr idx : " +eq.jpIdx + " jp "+eq.jp, 0, 0, 0, p.gui_White);
 		p.translate(0.0f, txtYOff, 0.0f);
-		drawSpecificFtrVecWithText(p,height,width, ratios, 1.0f, "Ratios", new String[] {String.format("Ratio of Opts To Ttl : %.5f",ratioOptOut), String.format("# of examples : %05d",numExamplesWithJP),String.format("# of ex w/o Opt out : %05d",numExamplesNoOptOut)});
-		p.translate(width*1.5f, 0.0f, 0.0f);
-		drawSpecificFtrVecWithText(p,height,width, means, ttlMeansVec_vis, "Means", new String[] {String.format("Mean : %.5f",ttlMeanNoOpt)});
-		p.translate(width*1.5f, 0.0f, 0.0f);
-		drawSpecificFtrVecWithText(p,height,width, meansOpts, ttlMeansOptVec_vis,"Means w/Opts", new String[] {String.format("Mean w/opts : %.5f",ttlMeanWithOpt)});
-		p.translate(width*1.5f, 0.0f, 0.0f);
-		drawSpecificFtrVecWithText(p,height,width, stdVals, ttlStdsVec_vis,"Stds", new String[] {String.format("Stds : %.5f",ttlStdNoOpt)});
-		p.translate(width*1.5f, 0.0f, 0.0f);
-		drawSpecificFtrVecWithText(p,height,width, stdValsOpts, ttlStdsOptVec_vis,"Stds w/Opts", new String[] {String.format("Std w/opts : %.5f",ttlStdWithOpt)});
-		p.translate(width*1.5f, 0.0f, 0.0f);
-		drawSpecificLegendVecWithText(p,height,width, legendSizes, 1.0f);
+		for(int i=0;i<analysisCalcStats.length;++i) {
+			drawDetailFtrVec(p,height,width, analysisCalcStats[i], ttlCalcStats_Vis[i], calcStatTitles[i], analysisCalcValStrs[i], calcStatDispDetail[i]);
+			p.translate(width*1.5f, 0.0f, 0.0f);
+		}	
+		drawDetailFtrVec(p,height,width, legendSizes, 1.0f, "Legend", legendDatStrAra, new String[] {});
+		//drawLegend(p,height,width, legendSizes, 1.0f);
 		p.popStyle();p.popMatrix();		
 	}//drawIndivFtrVec
 

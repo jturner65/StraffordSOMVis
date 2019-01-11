@@ -16,31 +16,32 @@ public class mySOMMapUIWin extends myDispWindow {
 	public static final int 
 		buildSOMExe 			= 0,			//command to initiate SOM-building
 		resetMapDefsIDX			= 1,			//reset default UI values for map
-		mapDataLoadedIDX		= 2,			//whether map has been loaded or not	
-		mapUseChiSqDistIDX		= 3,			//whether to use chi-squared (weighted by variance) distance for features or regular euclidean dist
-		mapExclProdZeroFtrIDX	= 4,			//whether or not distances between two datapoints assume that absent features in source data point should be zero or ignored when comparing to map node ftrs
-		mapDrawPrdctNodesIDX 	= 5,
-		mapDrawCurProdZoneIDX 	= 6,			//show currently selected prod jps' products and influence zones
+		examplesCalcedIDX		= 2,			//whether examples have been loaded and ftrs have been calculated or not
+		mapDataLoadedIDX		= 3,			//whether map has been loaded or not	
+		mapUseChiSqDistIDX		= 4,			//whether to use chi-squared (weighted by variance) distance for features or regular euclidean dist
+		mapExclProdZeroFtrIDX	= 5,			//whether or not distances between two datapoints assume that absent features in source data point should be zero or ignored when comparing to map node ftrs
+		mapDrawPrdctNodesIDX 	= 6,
+		mapDrawCurProdZoneIDX 	= 7,			//show currently selected prod jps' products and influence zones
 		//display/interaction
-		mapDrawTrainDatIDX		= 7,			//draw training examples
-		mapDrawTestDatIDX 		= 8,			//draw testing examples - data held out and not used to train the map 
-		mapDrawNodeLblIDX		= 9,			//draw labels for nodes
-		mapDrawWtMapNodesIDX	= 10,			//draw map nodes with non-0 (present) wt vals
-		mapDrawPopMapNodesIDX   = 11,			//draw map nodes that are bmus for training examples
-		mapDrawAllMapNodesIDX	= 12,			//draw all map nodes, even empty
-		mapDrawAnalysisVisIDX	= 13,			//whether or not to draw feature calc analysis graphs
-		mapDrawUMatrixIDX		= 14,			//draw visualization of u matrix - distance between nodes
-		mapDrawSegImgIDX		= 15,			//draw the image of the interpolated segments
-		mapDrawSegMembersIDX	= 16,			//draw segments around regions of maps - visualizes clusters with different colors
+		mapDrawTrainDatIDX		= 8,			//draw training examples
+		mapDrawTestDatIDX 		= 9,			//draw testing examples - data held out and not used to train the map 
+		mapDrawNodeLblIDX		= 10,			//draw labels for nodes
+		mapDrawWtMapNodesIDX	= 11,			//draw map nodes with non-0 (present) wt vals
+		mapDrawPopMapNodesIDX   = 12,			//draw map nodes that are bmus for training examples
+		mapDrawAllMapNodesIDX	= 13,			//draw all map nodes, even empty
+		mapDrawAnalysisVisIDX	= 14,			//whether or not to draw feature calc analysis graphs
+		mapDrawUMatrixIDX		= 15,			//draw visualization of u matrix - distance between nodes
+		mapDrawSegImgIDX		= 16,			//draw the image of the interpolated segments
+		mapDrawSegMembersIDX	= 17,			//draw segments around regions of maps - visualizes clusters with different colors
 		
-		showSelRegionIDX		= 17,			//TODO highlight a specific region of the map, either all nodes above a certain threshold for a chosen jp or jpgroup
-		showSelJPIDX			= 18, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
+		showSelRegionIDX		= 18,			//TODO highlight a specific region of the map, either all nodes above a certain threshold for a chosen jp or jpgroup
+		showSelJPIDX			= 19, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
 		//train/test data managemen
-		somTrainDataLoadedIDX	= 19,			//whether data used to build map has been loaded yet
-		saveLocClrImgIDX		= 20;			//
+		somTrainDataLoadedIDX	= 20,			//whether data used to build map has been loaded yet
+		saveLocClrImgIDX		= 21;			//
 		//useOnlyEvntsToTrainIDX  = 21;			//only use records that have event jpgs/jps to train, otherwise use records that also have jpgs/jps only specified in prospect db
 	
-	public static final int numPrivFlags = 21;
+	public static final int numPrivFlags = 22;
 	
 	//SOM map list options
 	public String[] 
@@ -190,6 +191,11 @@ public class mySOMMapUIWin extends myDispWindow {
 		//only set for visualization
 		mapMgr.win=this;
 		
+		analysisHt = (int) (SOM_mapDims[3]*.45f);
+		//for single jp detail display
+		analysisPerJPWidth = (int) (SOM_mapDims[2]*.1f);
+
+		
 		//init specific sim flags
 		initPrivFlags(numPrivFlags);			
 		setPrivFlags(mapDrawTrainDatIDX,false);
@@ -283,11 +289,8 @@ public class mySOMMapUIWin extends myDispWindow {
 			case mapDrawAnalysisVisIDX: {//whether or not to draw feature calc analysis graphs  
 				if (val) {//if setting to true then aggregate data
 					mapMgr.processCalcAnalysis();		
-					analysisHt = (int) (SOM_mapDims[3]*.45f);
 					//per jp bar width ~= total width / # of jps
 					analysisAllJPBarWidth = (int) (rectDim[2]/(1.0f+mapMgr.numFtrs));
-					//for single jp detail display
-					analysisPerJPWidth = (int) (SOM_mapDims[2]*.1f);
 				}
 				break;}
 			case mapDrawUMatrixIDX :{//whether to show the UMatrix (distance between nodes) representation of the map - overrides per-ftr display
@@ -407,7 +410,7 @@ public class mySOMMapUIWin extends myDispWindow {
 			0,		//uiMapNodeBMUTypeToDispIDX 
 			.04f,	//uiMapNodeWtDispThreshIDX
 			SOMMapManager.getNodeInSegThresh(),	//uiNodeInSegThreshIDX//threshold of u-matrix weight for nodes to belong to same segment
-			0.1,	//uiProdZoneDistThreshIDX
+			0.3,	//uiProdZoneDistThreshIDX
 			0,		//uiMseRegionSensIDX
 		};								//starting value
 		uiVals = new double[numGUIObjs];//raw values
@@ -757,8 +760,9 @@ public class mySOMMapUIWin extends myDispWindow {
 	protected void stopMe() {}	
 	@Override
 	protected void drawMe(float animTimeMod) {
+		setPrivFlags(examplesCalcedIDX, mapMgr.isFtrCalcDone());
 		setPrivFlags(mapDataLoadedIDX,mapMgr.isMapDrawable());
-		if(getPrivFlags(mapDataLoadedIDX)){ drawMap();}	
+		drawMap();	
 		if(getPrivFlags(buildSOMExe)){buildNewSOMMap();}
 	}
 	
@@ -826,7 +830,7 @@ public class mySOMMapUIWin extends myDispWindow {
 	private void drawMap(){		
 		//draw map rectangle
 		pa.pushMatrix();pa.pushStyle();
-		if (getPrivFlags(mapDrawAnalysisVisIDX)) {	
+		if ((getPrivFlags(mapDrawAnalysisVisIDX)) && getPrivFlags(examplesCalcedIDX)) {	
 			pa.pushMatrix();pa.pushStyle();	
 			pa.translate((SOM_mapDims[0]+SOM_mapDims[2])*calcScale + 20,SOM_mapDims[1]*calcScale + 10,0.0f);
 			//pa.setFill(new int[] {0,255,0}, 255);
@@ -840,9 +844,9 @@ public class mySOMMapUIWin extends myDispWindow {
 //			pa.rect(0,0,analysisAllJPBarWidth*mapMgr.numFtrs,analysisHt);
 			mapMgr.drawAnalysisAllJps(pa, analysisHt, analysisAllJPBarWidth, curMapImgIDX);
 			pa.popStyle();pa.popMatrix();
-			pa.scale(calcScale);				
+			pa.scale(calcScale);				//scale here so that if we are drawing calc analysis, ftr map image will be shrunk
 		}		
-		drawMapRectangle();		
+		if(getPrivFlags(mapDataLoadedIDX)){drawMapRectangle();}	
 		pa.popStyle();pa.popMatrix();
 	}//drawMap()	
 	

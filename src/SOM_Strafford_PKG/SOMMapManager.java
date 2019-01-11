@@ -69,15 +69,14 @@ public class SOMMapManager {
 			tcTagsDataLoadedIDX			= 9,			//raw tc taggings data loaded not proced
 			jpDataLoadedIDX				= 10,			//raw jp data loaded not proced
 			jpgDataLoadedIDX			= 11,			//raw jpg data loaded not proced
-			calcAnalsysSavedIDX			= 12,			//whether calc analysis data from feature vector construction has been aggregated and saved - set false when ftrs are calced, set true when user selects calc anaysis to be performed,
-			rawPrspctEvDataProcedIDX	= 13,			//all raw prospect/event data has been loaded and processed into StraffSOMExamples (prospect)
-			rawProducDataProcedIDX		= 14,			//all raw product data (from tc_taggings) has been loaded and processed into StraffSOMExamples (product)
+			rawPrspctEvDataProcedIDX	= 12,			//all raw prospect/event data has been loaded and processed into StraffSOMExamples (prospect)
+			rawProducDataProcedIDX		= 13,			//all raw product data (from tc_taggings) has been loaded and processed into StraffSOMExamples (product)
 			//training data saved state : 
-			denseTrainDataSavedIDX 		= 15,			//all current prospect data has been saved as a training data file for SOM (.lrn format) - strafford doesn't use dense training data
-			sparseTrainDataSavedIDX		= 16,			//sparse data format using .svm file descriptions (basically a map with a key:value pair of ftr index : ftr value
-			testDataSavedIDX			= 17;			//save test data in sparse format csv
+			denseTrainDataSavedIDX 		= 14,			//all current prospect data has been saved as a training data file for SOM (.lrn format) - strafford doesn't use dense training data
+			sparseTrainDataSavedIDX		= 15,			//sparse data format using .svm file descriptions (basically a map with a key:value pair of ftr index : ftr value
+			testDataSavedIDX			= 16;			//save test data in sparse format csv
 		
-	public static final int numFlags = 18;	
+	public static final int numFlags = 17;	
 	
 	//////////////////////////////
 	//data in files created by SOM_MAP separated by spaces
@@ -427,7 +426,7 @@ public class SOMMapManager {
 	}//initdata
 
 	
-	public void clearBMUNodesWithExs(ExDataType _type) {								nodesWithEx.get(_type).clear();}
+	public void clearBMUNodesWithExs(ExDataType _type) {							nodesWithEx.get(_type).clear();}
 	public void clearBMUNodesWithNoExs(ExDataType _type) {							nodesWithNoEx.get(_type).clear();}
 	public void addExToNodesWithExs(SOMMapNode node, ExDataType _type) {			nodesWithEx.get(_type).add(node);}	
 	public void addExToNodesWithNoExs(SOMMapNode node, ExDataType _type) {			nodesWithNoEx.get(_type).add(node);}	
@@ -451,6 +450,7 @@ public class SOMMapManager {
 	
 	//return true if loader is done and if data is successfully loaded
 	public boolean isMapDrawable(){return getFlag(loaderRtnIDX) && getFlag(mapDataLoadedIDX);}
+	public boolean isFtrCalcDone() {return (ftrCalcObj != null) && ftrCalcObj.calcAnalysisIsReady();}
 	
 	public boolean isToroidal(){return projConfigData.isToroidal();}
 
@@ -479,7 +479,7 @@ public class SOMMapManager {
 		setAllTrainDatSaveFlags(false);
 	}//resetProspectMap
 	
-	public void addProductToProductMaps(ProductExample ex) {
+	public void addProductToJPProductMaps(ProductExample ex) {
 		//add to jp and jpg trees
 		HashSet<Integer> jpgs = new HashSet<Integer>();
 		for (Integer jp : ex.allJPs) {
@@ -495,8 +495,7 @@ public class SOMMapManager {
 			exList.add(ex);
 			productsByJpg.put(jpg, exList);	
 		}		
-	}//addProductToProductMaps
-	
+	}//addProductToProductMaps	
 	
 	public void loadRawProductData(boolean fromCSVFiles) {
 		dispMessage("SOMMapManager","loadRawProductData","Start loading and processing raw product only data");
@@ -742,41 +741,42 @@ public class SOMMapManager {
 	
 	//finish building the prospect map - finalize each prospect example and then perform calculation to derive weight vector
 	private void finishSOMExampleBuild() {
+		dispMessage("SOMMapManager","finishSOMExampleBuild","Start calculating all feature vectors for prospects and products");
+		dispMessage("SOMMapManager","finishSOMExampleBuild","Begin Finalize of prospect and product map.");
 		//finalize builds each example's occurence structures, which describe the jp-jpg relationships found in the example
 		for (ProspectExample ex : prospectMap.values()) {			ex.finalizeBuild();		}		
 		//finalize build for all products - aggregates all jps seen in product
 		for (ProductExample ex : productMap.values()){		ex.finalizeBuild();		}	
+		dispMessage("SOMMapManager","finishSOMExampleBuild","End Finalize of prospect and product map.");
 		
 		dispMessage("SOMMapManager","finishSOMExampleBuild","Begin setJPDataFromExampleData");
 		//we need the jp-jpg counts and relationships dictated by the data by here.
 		setJPDataFromExampleData(prospectMap);
-		dispMessage("SOMMapManager","finishSOMExampleBuild","End setJPDataFromExampleData");// | Start processHoldOutOptRecs");		
-		//reset calc analysis objects
+		dispMessage("SOMMapManager","finishSOMExampleBuild","End setJPDataFromExampleData");	
+		//reset calc analysis objects before building feature vectors to enable new analytic info to be aggregated
 		ftrCalcObj.resetAllCalcObjs();
 		dispMessage("SOMMapManager","finishSOMExampleBuild","Begin buildFeatureVector prospects");
 		for (ProspectExample ex : prospectMap.values()) {			ex.buildFeatureVector();	}
-		//set calc analysis state flag to be false
-		setFlag(calcAnalsysSavedIDX, false);
+		//set state as finished
+		ftrCalcObj.finishFtrCalcs();
 		dispMessage("SOMMapManager","finishSOMExampleBuild","End buildFeatureVector prospects");
 		
 		dispMessage("SOMMapManager","finishSOMExampleBuild","Begin buildFeatureVector products");
-		for (ProductExample ex : productMap.values()) {		ex.buildFeatureVector();  addProductToProductMaps(ex);	}
-		dispMessage("SOMMapManager","finishSOMExampleBuild","End buildFeatureVector products");	
-		
-		//dbgDispProductWtSpans()
-	
+		for (ProductExample ex : productMap.values()) {		ex.buildFeatureVector();  addProductToJPProductMaps(ex);	}
+		dispMessage("SOMMapManager","finishSOMExampleBuild","End buildFeatureVector products");			
+		//dbgDispProductWtSpans()	
 		//now get mins and diffs from calc object
 		diffsVals = ftrCalcObj.getDiffsBndsAra();
 		minsVals = ftrCalcObj.getMinBndsAra();
 		for (ProspectExample ex : prospectMap.values()) {			ex.buildPostFeatureVectorStructs();		}//this builds std ftr vector for prospects, once diffs and mins are set - not necessary for products, buildFeatureVector for products builds std ftr vec
 		setFlag(rawPrspctEvDataProcedIDX, true);	
 		
-		dispMessage("SOMMapManager","finishSOMExampleBuild","Finished calculating prospect feature vectors");
+		dispMessage("SOMMapManager","finishSOMExampleBuild","Finished calculating all feature vectors for prospects and products and calculating mins and diffs.");
 	}//finishSOMExampleBuild
 	
 	//called to process analysis data
 	public void processCalcAnalysis() {
-		if ((ftrCalcObj != null) && (!getFlag(calcAnalsysSavedIDX))) {ftrCalcObj.finalizeCalcAnalysis();setFlag(calcAnalsysSavedIDX, true);		}
+		if (ftrCalcObj != null) {ftrCalcObj.finalizeCalcAnalysis();}//check if false to not reperform analysis if not needed.  be sure to set calcAnalsysSavedIDX to false if any calc vals change
 	}
 	
 	//once map is built, find bmus on map for each product
@@ -1191,7 +1191,8 @@ public class SOMMapManager {
 //				ProspectExample ex = tmpProspectMap.get(OID);
 //				if (ex.isTrainableRecord()) {				prospectMap.put(OID, ex);			}
 //			}			
-//		}			
+//		}	
+			
 		//finalize each prospect record, aggregate data-driven static vals, rebuild ftr vectors - doing this over since we are only using non-bad record prospects
 		finishSOMExampleBuild();
 		dispMessage("SOMMapManager","procRawLoadedData","Raw Records Unique OIDs presented : " + tmpProspectMap.size()+" | Records found with trainable events info : " + prospectMap.size());
@@ -1690,8 +1691,6 @@ public class SOMMapManager {
 				break;}				//all prospect examples saved as training data
 			case testDataSavedIDX : {
 				if (val) {dispMessage("SOMMapManager","setFlag","All "+ this.numTestData + " saved to " + projConfigData.getSOMMapTestFileName() + " using "+(projConfigData.useSparseTestingData ? "Sparse ": "Dense ") + "data format");}
-				break;		}
-			case calcAnalsysSavedIDX : { 
 				break;		}
 			
 		}

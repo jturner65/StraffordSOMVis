@@ -6,25 +6,23 @@ import java.util.regex.Pattern;
 
 
 /**
- * NOTE : Nothing in this file is thread safe - do not allow for opportunities for concurrent modification 
- * of any instanced object in this file.
+ * NOTE : None of the ADT's  in this file is thread safe so do not allow for opportunities for concurrent modification 
+ * of any instanced object in this file. This decision was made for speed concerns - 
+ * concurrency-protected objects have high overhead that proved greater than any gains in 10 execution threads.
  * 
- * This class will hold the relevant data acquired from the db to build a datapoint used by the SOM
+ * Objects of this class will hold the relevant data acquired from the db to build a datapoint used by the SOM
  * It will take raw data and build the appropriate feature vector, using the appropriate calculation 
  * to weight the various jpgroups/jps appropriately.  The ID of this construct should be such that it 
  * can be uniquely qualified/indexed by it and will either be the ID of a particular prospect in the 
  * prospect database or some other unique identifier if this is representing, say, a target product
  * 
  * @author john
- *
  */
 public abstract class StraffSOMExample extends baseDataPtVis{	
 	protected static MonitorJpJpgrp jpJpgMon;
 	//corresponds to OID in prospect database - primary key of all this data is OID in prospects
 	public final String OID;	
 	
-	//prefix to use for product example IDs
-	protected static final String IDprfx = "TC_Tag";	
 	//use a map to hold only sparse data frmt
 	protected TreeMap<Integer, Float> ftrMap, stdFtrMap, normFtrMap;
 	
@@ -41,13 +39,15 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	//idx's in feature vector that have non-zero values
 	public ArrayList<Integer> allJPFtrIDXs;
 	
-	//use a map per feature type : unmodified, normalized, standardized, of a map to hold the features sorted by weight as key, value is array of jps at that weight -submap needs to be instanced in descending key order
-	private TreeMap<String, TreeMap<Float, ArrayList<Integer>>> mapOfTopWtJps;	
-	//a map per feature type : unmodified, normalized, standardized, of a map of jps and their relative "rank" in this particular example, as determined by the weight calc
-	private TreeMap<String, TreeMap<Integer,Integer>> mapOfJpsVsWtRank;
+	//these objects are for reporting on individual examples.  They are built when features, keyed by ftr type, and are 
+	//use a map per feature type : unmodified, normalized, standardized,to hold the features sorted by weight as key, value is array of jps at that weight -submap needs to be instanced in descending key order
+	private TreeMap<Float, ArrayList<Integer>>[] mapOfTopWtJps;	
+	//a map per feature type : unmodified, normalized, standardized,  of jps and their relative "rank" in this particular example, as determined by the weight calc
+	private TreeMap<Integer,Integer>[] mapOfJpsVsWtRank;
 	//keys for above maps
-	public static final String[] jpMapTypeKeys = new String[] {"ftrMap", "stdFtrMap", "normFtrMap"};
 	public static final int ftrMapTypeKey = 0, stdFtrMapTypeKey = 1, normFtrMapTypeKey = 2;	
+	//public static final String[] jpMapTypeKeys = new String[] {"ftrMap", "stdFtrMap", "normFtrMap"};
+	public static final Integer[] jpMapTypeKeys = new Integer[] {ftrMapTypeKey, stdFtrMapTypeKey, normFtrMapTypeKey};
 	
 	/////////////////////////////
 	// from old DataPoint data
@@ -78,13 +78,15 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		allJPs = new HashSet<Integer> ();
 		
 		//this map is a map of maps in descending order - called by calc object as well as buildNormFtrData
-		mapOfTopWtJps = new TreeMap<String, TreeMap<Float, ArrayList<Integer>>>();//(new Comparator<Float>() { @Override public int compare(Float o1, Float o2) {   return o2.compareTo(o1);}}); 
-		mapOfJpsVsWtRank = new TreeMap<String, TreeMap<Integer,Integer>>();
-		for(String ftrType : jpMapTypeKeys) {//type of features
-			TreeMap<Float, ArrayList<Integer>> tmpFltMap = new TreeMap<Float, ArrayList<Integer>>(new Comparator<Float>() { @Override public int compare(Float o1, Float o2) {   return o2.compareTo(o1);}});//descending key order
-			TreeMap<Integer,Integer> tmpIntMap = new TreeMap<Integer,Integer>();
-			mapOfTopWtJps.put(ftrType, tmpFltMap);
-			mapOfJpsVsWtRank.put(ftrType, tmpIntMap);
+		mapOfTopWtJps = new TreeMap[jpMapTypeKeys.length];//(new Comparator<Float>() { @Override public int compare(Float o1, Float o2) {   return o2.compareTo(o1);}}); 
+		mapOfJpsVsWtRank = new TreeMap[jpMapTypeKeys.length];
+		TreeMap<Float, ArrayList<Integer>> tmpFltMap;
+		TreeMap<Integer,Integer> tmpIntMap;
+		for(Integer ftrType : jpMapTypeKeys) {//type of features
+			tmpFltMap = new TreeMap<Float, ArrayList<Integer>>(new Comparator<Float>() { @Override public int compare(Float o1, Float o2) {   return o2.compareTo(o1);}});//descending key order
+			tmpIntMap = new TreeMap<Integer,Integer>();
+			mapOfTopWtJps[ftrType] = tmpFltMap;
+			mapOfJpsVsWtRank[ftrType] = tmpIntMap;
 		}
 	}//ctor
 
@@ -162,24 +164,24 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	//This will give a map of all present JPs for this example and the rank of that jp.  null entries mean no rank
 	//mapOfTopWtJps must be built for all types of weights by here
 	public void buildMapOfJPsToRank() {
-		for (String mapToGet : jpMapTypeKeys) {//for each type
+		for (Integer mapToGet : jpMapTypeKeys) {//for each type
 			Integer rank = 0;
-			TreeMap<Float, ArrayList<Integer>> mapOfAras = mapOfTopWtJps.get(mapToGet);
+			TreeMap<Float, ArrayList<Integer>> mapOfAras = mapOfTopWtJps[mapToGet];
 			if (mapOfAras == null) {mapMgr.dispMessage("StraffSOMExample", "buildMapOfJPsToRank", "For OID : "+ OID + " mapOfTopWtJps entry " +mapToGet + " does not exist yet.  Method called before all features are calculated.");return;}
-			TreeMap<Integer,Integer> mapOfRanks = mapOfJpsVsWtRank.get(mapToGet);
+			TreeMap<Integer,Integer> mapOfRanks = mapOfJpsVsWtRank[mapToGet];
 			for (Float wtVal : mapOfAras.keySet()) {
 				ArrayList<Integer> jpsAtRank = mapOfAras.get(wtVal);
 				for (Integer jp : jpsAtRank) {	mapOfRanks.put(jp, rank);}
 				++rank;
 			}
-			mapOfJpsVsWtRank.put(mapToGet, mapOfRanks);//probably not necessary		
+			mapOfJpsVsWtRank[mapToGet] = mapOfRanks;//probably not necessary since already initialized (will never be empty or deleted)		
 		}		
 	}//buildMapOfJPsToRank
 	
 	//return the rank of the passed jp
 	protected Integer getJPRankForMap(int mapToGetIDX, int jp) {
-		String mapToGet = jpMapTypeKeys[mapToGetIDX];
-		TreeMap<Integer,Integer> mapOfRanks = mapOfJpsVsWtRank.get(mapToGet);
+		Integer mapToGet = jpMapTypeKeys[mapToGetIDX];
+		TreeMap<Integer,Integer> mapOfRanks = mapOfJpsVsWtRank[mapToGet];
 		Integer rank = mapOfRanks.get(jp);
 		if (rank==null) {rank = mapMgr.numFtrs;}
 		return rank;
@@ -387,10 +389,10 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		this.mapLoc.set(totalLoc);
 	}//setExactMapLoc
 	
-	//call from calc or from objects that manage norm/std ftrs - build structure registering weight of jps in ftr vector mapToGet in descending strength
+	//call from calc or from objects that manage/modify norm/std ftrs - build structure registering weight of jps in ftr vector mapToGet in descending strength
 	protected void setMapOfJpWts(int jp, float wt, int mapToGetIDX) {
-		String mapToGet = jpMapTypeKeys[mapToGetIDX];
-		TreeMap<Float, ArrayList<Integer>> map = mapOfTopWtJps.get(mapToGet);
+		Integer mapToGet = jpMapTypeKeys[mapToGetIDX];
+		TreeMap<Float, ArrayList<Integer>> map = mapOfTopWtJps[mapToGet];
 		//shouldn't be null - means using inappropriate key
 		if(map == null) {mapMgr.dispMessage("StraffSOMExample","setMapOfJpWts","Using inappropriate key to access mapOfTopJps : " + mapToGet + " No submap exists with this key."); return;}		 
 		ArrayList<Integer> jpIdxsAtWt = map.get(wt);
@@ -1146,21 +1148,20 @@ class ProspectExample extends StraffSOMExample{
  * this class implements a product example, to be used to query the SOM and to illuminate relevant regions on the map.  
  * The product can be specified by a single jp, or by the span of jps' related to a particular jpg, or even to multiple
  * Unlike prospect examples, which are inferred to have 0 values in features that are not explicitly populated, 
- * product examples might not be considered strictly exclusionary (in other words, non-populated features aren't necessarily considered to hold 0's)
- * This is an important distinction for the SOM since if all 
+ * product examples might not be considered strictly exclusionary (in other words, non-populated features aren't used for distance calcs)
+ * This is an important distinction for the SOM-from this we will learn about folks whose interest overlap into multiple jp regions.
  * @author john
  */
 class ProductExample extends StraffSOMExample{
 //	//column names for csv output of this SOM example
 	private static final String csvColDescrPrfx = "ID,NumJPs";
-	//private static int IDcount = 0;	//incrementer so that all examples have unique ID among products	
 	protected TcTagTrainData trainPrdctData;		
 	//this array holds float reps of "sumtorial" of idx vals, used as denominators of ftr vectors so that 
 	//arrays of jps of size idx will use this value as denominator, and (idx - jp idx)/denominator as weight value for ftr vec 
 	private static float[] ordrWtAraPerSize;
 	//this is a vector of all seen mins and maxs for wts for every product. Only used for debugging display of spans of values
 	private static TreeMap<Integer, Float> wtMins, wtMaxs, wtDists;		
-	//two maps of distances to each map node for each product, excluding unshared features and including unshared features
+	//two maps of distances to each map node for each product, including unshared features and excluding unshared features in distance calc
 	private TreeMap<Double,ArrayList<SOMMapNode>>[] allMapNodesDists;	
 	//two kinds of maps to bmus available - all ftrs looks at all feature values for distances, 
 	//while shared only measures distances where this example's wts are non-zero
@@ -1170,7 +1171,6 @@ class ProductExample extends StraffSOMExample{
 	private static int numFtrCompVals = 2;
 	//color to illustrate map (around bmu) region corresponding to this product - use distance as alpha value
 	private int[] prodClr;
-	
 		
 	public ProductExample(SOMMapManager _map, TcTagData data) {
 		//super(_map,ExDataType.Product,IDprfx + "_" +  String.format("%06d", IDcount++));
@@ -1212,10 +1212,9 @@ class ProductExample extends StraffSOMExample{
 		String[] res = new String[wtMins.size()+1];
 		int i=0;
 		res[i++] = "idx |\tMin|\tMax|\tDist";
-		for(Integer idx : wtMins.keySet()) {			
-			res[i++]=""+ idx + "\t" + String.format("%6.4f",wtMins.get(idx)) + "\t" + String.format("%6.4f",wtMaxs.get(idx)) + "\t" + String.format("%6.4f",wtDists.get(idx));}
+		for(Integer idx : wtMins.keySet()) {res[i++]=""+ idx + "\t" + String.format("%6.4f",wtMins.get(idx)) + "\t" + String.format("%6.4f",wtMaxs.get(idx)) + "\t" + String.format("%6.4f",wtDists.get(idx));}
 		return res;
-	}
+	}//getMinMaxDists
 
 	@Override
 	public void finalizeBuild() {		allJPs = trainPrdctData.getAllJpsInData();	}
@@ -1279,11 +1278,70 @@ class ProductExample extends StraffSOMExample{
 		//float mult = 255.0f/(numProds);//with multiple products maybe scale each product individually by total #?
 		for (Double dist : subMap.keySet()) {
 			ArrayList<SOMMapNode> nodeList = subMap.get(dist);
-			prodClr[3]=(int) ((1-dist/_maxDist)*255);
+			prodClr[3]=(int) ((1-(dist/_maxDist))*255);
 			for (SOMMapNode n : nodeList) {			n.drawMeProdBoxClr(p, prodClr);		}
 		}
 		p.popStyle();p.popMatrix();		
 	}//drawProdMapExtent
+	
+	//convert distances to confidences so that for [_maxDist <= _dist <= 0] :
+	//this returns [0 <= conf <= _maxDist*_maxDistScale]; _maxDistScale should be 100/_maxDist to give ranges from 0->100
+	private double distToConf(double _dist, double _maxDist, double _maxDistScale) { return (_maxDist - _dist)*_maxDistScale;	}
+	
+	//build a map keyed by example nodes of passed type that are mapped to map nodes near this product, value is a tuple holding :
+	//x : this product's distance to map node ; y : each example's distance to map node
+	//based on their bmu mappings, to map nodes within _maxDist threshold of this node
+	private TreeMap<StraffSOMExample, Tuple<Double,Double>> getExamplesNearThisProd(NavigableMap<Double, ArrayList<SOMMapNode>> subMap, ExDataType type, double _maxDist) {
+		TreeMap<StraffSOMExample, Tuple<Double,Double>> nodesNearProd = new TreeMap<StraffSOMExample, Tuple<Double,Double>>();
+		TreeMap<StraffSOMExample, Double> tmpMapOfNodes;
+		Double conf, _maxDistScale = 100.0/_maxDist;
+		for (Double dist : subMap.keySet()) {							//get all map nodes of certain distance from this node; - this dist is distance from this node to map node
+			ArrayList<SOMMapNode> nodeList = subMap.get(dist);
+			conf = distToConf(dist, _maxDist, _maxDistScale);			//derive confidence as inverse of distance - very close nodes we are very confident in - 0->100 for dist : maxDist -> 0
+			for (SOMMapNode n : nodeList) {								//for each map node get all examples of ExDataType that consider that map node BMU
+				tmpMapOfNodes = n.getAllExsAndDist(type);
+				for(StraffSOMExample exN : tmpMapOfNodes.keySet()) {
+					Tuple<Double,Double> confInMap = nodesNearProd.get(exN);
+					if((confInMap == null) || (confInMap.x < conf)){nodesNearProd.put(exN, new Tuple<Double,Double>(conf,tmpMapOfNodes.get(exN)));}	//verify node hasn't been added before, or if it has, it wasn't less confident.  if not either than add this node with current confidence
+				}			
+			}
+		}
+		return nodesNearProd;
+	}//getExamplesNearThisProd	
+	
+	//types to conduct similarity mapping
+	private static ExDataType[] prospectTypes = new ExDataType[] {ExDataType.ProspectTraining, ExDataType.ProspectTesting};
+	//get confidence and nodes w/confidence values 
+	public TreeMap<Tuple<Double,Double>, ArrayList<StraffSOMExample>> getAllExamplesNearThisProd(int distType,double _maxDist) {
+		NavigableMap<Double, ArrayList<SOMMapNode>> subMap = allMapNodesDists[distType].headMap(_maxDist, true);		
+		TreeMap<Tuple<Double,Double>, ArrayList<StraffSOMExample>> allNodesAndConfs = new TreeMap<Tuple<Double,Double>, ArrayList<StraffSOMExample>>();
+		TreeMap<StraffSOMExample, Tuple<Double,Double>> tmpMapOfNodes;
+		for(ExDataType _type : prospectTypes) {
+			tmpMapOfNodes = getExamplesNearThisProd(subMap, _type,_maxDist);
+			for(StraffSOMExample exN : tmpMapOfNodes.keySet()) {
+				Tuple<Double,Double> confInMap = tmpMapOfNodes.get(exN);
+				ArrayList<StraffSOMExample> lstNodes = allNodesAndConfs.get(confInMap);
+				//if(lstNodes == null) {lstNodes = new ArrayList<StraffSOMExample>(); allNodesAndConfs.put(dist, lstNodes);}
+				lstNodes.add(exN);
+			}			
+		}//per type
+		return allNodesAndConfs;		
+	}//getExListNearThisProd
+	
+	//get string array representation of this single product
+	public String[] getAllExsStrAra(int distType,double _maxDist) {
+		ArrayList<String> resAra = new ArrayList<String>();
+		String ttlStr = "Product ID : " + this.OID + " JPs covered : ";
+		for (Integer JP : allJPs) {	ttlStr += "" + JP + ", ";	}		
+		resAra.add(ttlStr);
+		//TreeMap<Double, ArrayList<StraffSOMExample>> allNodesAndConfs = getAllExamplesNearThisProd(distType, _maxDist);
+		
+//		for(Double conf : allNodesAndConfs.keySet()) {		
+//			ArrayList<StraffSOMExample> lstNodes = allNodesAndConfs.get(conf);
+//			for(StraffSOMExample exN : lstNodes) {		resAra.add("" + exN.OID + "," + String.format("%.6f", conf));	}//for all nodes
+//		}		
+		return resAra.toArray(new String[0]);	
+	}//getBestExsStrAra
 	
 	
 	//take loaded data and convert to output data
@@ -1448,6 +1506,7 @@ class SOMMapNodeBMUExamples{
 	private SOMMapNode node;
 	//map of examples that consider node to be their bmu; keyed by euclidian distance
 	private TreeMap<Double,ArrayList<StraffSOMExample>> examplesBMU;
+
 	//size of examplesBMU
 	private int numMappedEx;
 	//log size of examplesBMU +1, used for visualization radius
@@ -1504,6 +1563,17 @@ class SOMMapNodeBMUExamples{
 		p.show(node.mapLoc, logExSize, nodeSphrDet, node.nodeClrs); 		
 		p.popStyle();p.popMatrix();		
 	}
+	
+	//return a listing of all examples and their distance from this BMU
+	public TreeMap<StraffSOMExample, Double> getExsAndDist(){
+		TreeMap<StraffSOMExample, Double> res = new TreeMap<StraffSOMExample, Double>();
+		for(double dist : examplesBMU.keySet() ) {
+			ArrayList<StraffSOMExample> tmpList = examplesBMU.get(dist);
+			if(tmpList == null) {continue;}//should never happen			
+			for (StraffSOMExample ex : tmpList) {res.put(ex, dist);}
+		}
+		return res;
+	}//getExsAndDist()
 	
 	//return all example OIDs in array of CSV form, with key being distance and columns holding all examples that distance away
 	public String[] getAllExampleDescs() {
@@ -1777,7 +1847,20 @@ class SOMMapNode extends StraffSOMExample{
 			case MouseOver			: {return 0;}
 			default					: {return -1;}
 		}
-	}
+	}	
+	
+	//get a map of all examples of specified type near this bmu and the distances for the example
+	public TreeMap<StraffSOMExample, Double> getAllExsAndDist(ExDataType _type){
+		switch (_type) { //trainEx, prospectEx, prodEx
+			case ProspectTraining 	: {return trainEx.getExsAndDist();}//case 0 is training data
+			case ProspectTesting 	: {return prospectEx.getExsAndDist();}//case 1 is test data
+			case Product 			: {return prodEx.getExsAndDist();}//case 4 is product data		
+			case MapNode			: {return null;}
+			case MouseOver			: {return null;}
+		default					: {return null;}	
+		}
+	}//getAllExsAndDist
+
 	
 	//return string array of descriptions for the requested kind of examples mapped to this node
 	public String[] getAllExampleDescs(ExDataType _type) {
@@ -1801,6 +1884,7 @@ class SOMMapNode extends StraffSOMExample{
 			default					: {return;}
 		}
 	}
+	
 	public void drawMePopNoLbl(SOM_StraffordMain p, ExDataType _type) {
 		switch (_type) { //trainEx, prospectEx, prodEx
 		case ProspectTraining 	: {trainEx.drawMapNodeNoLabel(p);return;}//case 0 is training data
@@ -1956,7 +2040,7 @@ abstract class baseDataPtVis{
  * @author john
  */
 enum ExDataType {
-	ProspectTraining(0),ProspectTesting(1),Product(2),MapNode(3), MouseOver(4);
+	ProspectTraining(0),ProspectTesting(1),Product(2), MapNode(3), MouseOver(4);
 	private int value; 
 	private static Map<Integer, ExDataType> map = new HashMap<Integer, ExDataType>(); 
 	static { for (ExDataType enumV : ExDataType.values()) { map.put(enumV.value, enumV);}}
