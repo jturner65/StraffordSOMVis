@@ -12,7 +12,6 @@ public class SOMProjConfigData {
 	//ref to SOM_MapDat SOM executiond descriptor object
 	public SOM_MapDat SOMExeDat;	
 	
-	
 	//this is redundant TODO merge the use of this with SOMFileNamesAra
 	private String[] fnames; 
 	private static final int numFiles = 5;		
@@ -23,12 +22,6 @@ public class SOMProjConfigData {
 	private final boolean _useBiggerMap = true;//set to true to use larger map
 	//data format used in map training StraffSOM_2018_12_27_12_33_DebugRun
 	private int _DBG_dataFrmt = 1;
-	//map topology for debug
-//	private String _DBG_PreBuiltMapConfig = "_x20_y20_k2";	
-	//date/time of debug pre-made map
-//	private String _DBG_Map_fileNow = "12_27_12_33";
-	//date/time used in folder for debug of pre-made map
-//	private String _DBG_Map_fldrNow = "2018_"+_DBG_Map_fileNow+"_DebugRun";
 	//map topology for debug
 	private String _DBG_PreBuiltMapConfig = (_useBiggerMap ? "_x40_y40_k2" : "_x20_y20_k2");	
 	//date/time of debug pre-made map
@@ -60,7 +53,9 @@ public class SOMProjConfigData {
 	//os used by project - this is passed from map
 	private final String OSUsed;
 	//calcFileWeights is file holding config for calc object - get from config file
-	private static final String calcWtFileName = "WeightEqConfig.csv";
+	private static final String calcWtFileName = "WeightEqConfig.txt";
+	//requested products file name
+	private static final String reqProdConfigFileName = "ProductsToMap.txt";
 	//source directory for reading all source csv files, writing intermediate outputs, executing SOM_MAP and writing results
 	private String straffBasefDir;
 	//name of som executable
@@ -72,6 +67,8 @@ public class SOMProjConfigData {
 	private final String SOM_Map_EXECSTR;
 
 	// file IO/location constructs - TODO should these be loaded from config file?
+	//subdir for prospect suggestions for each product ID
+	private static final String straffProdSuggestSubDir = "PerProdSuggestions" + File.separator;
 	//subdir to put preproc data files
 	private static final String straffPreProcSubDir = "PreprocData" + File.separator;
 	//subdir to hold source csv files
@@ -97,13 +94,12 @@ public class SOMProjConfigData {
 		outputSffxSetIDX	= 6;				//output suffix has been set to match current experimental parameters
 	private static final int numFlags = 7;		
 	
-	public static final String[] SOMResExtAra = new String[]{".wts",".fwts",".bm",".umx"};			//extensions for different SOM output file types
+	public static final String[] SOMResExtAra = new String[]{".wts", ".bm",".umx"};			//extensions for different SOM output file types
 	//idxs of different kinds of SOM output files
 	public static final int
 		wtsIDX = 0,
-		fwtsIDX = 1,
-		bmuIDX = 2,
-		umtxIDX = 3;	
+		bmuIDX = 1,
+		umtxIDX = 2;	
 	//all flags corresponding to file names required to run SOM
 	private int[] reqFileNameFlags = new int[]{trainDatFNameIDX, somResFPrfxIDX, diffsFNameIDX, minsFNameIDX, csvSavFNameIDX};
 	private String[] reqFileNames = new String[]{"trainDatFNameIDX", "somResFPrfxIDX", "diffsFNameIDX", "minsFNameIDX", "csvSavFNameIDX"};
@@ -262,7 +258,6 @@ public class SOMProjConfigData {
 		try {straffSOMDataWriteFutures = th_exec.invokeAll(straffSOMDataWrite);for(Future<Boolean> f: straffSOMDataWriteFutures) { f.get(); }} catch (Exception e) { e.printStackTrace(); }		
 		
 	}//launchTestTrainSaveThrds	
-	//
 	
 	//build a date with each component separated by token
 	private String[] getDateTimeString(Calendar now){return getDateTimeString(false,".", now);}
@@ -297,6 +292,7 @@ public class SOMProjConfigData {
 		mapMgr.dispMessage("SOMProjConfigData","setSOM_ExpFileNames","Finished setting file names and example counts");
 	}//setSOM_ExpFileNames
 	
+	//file names used specifically for SOM data
 	private void setSOM_ExpFileNames(String fileNow, String nowDir){
 		String[] tmp = {"Out_"+SOMProjName+"_Smp_"+expNumSmpls,
 						"Train_"+SOMProjName+"_Smp_"+expNumTrain+"_of_"+expNumSmpls+"_typ_" +dataType + "_Dt_"+fileNow+".lrn",
@@ -315,9 +311,15 @@ public class SOMProjConfigData {
 			SOMFileNamesAra[i] = nowDir + tmp[i];
 			mapMgr.dispMessage("SOMProjConfigData","setSOM_ExpFileNames","Built Dir : " + SOMFileNamesAra[i]);
 		}				
-	}//setSOM_ExpFileNames
+	}//setSOM_ExpFileNames	
 	
+	//get 
+	//return subdirectory to use to write results for product with passed OID
+	public String getPerProdOutSubDirName(String fullBaseDir,  String OID) {return getDirNameAndBuild(fullBaseDir, OID+File.separator);}
+	public String getFullProdOutMapperBaseDir(String sfx) {return getDirNameAndBuild(straffProdSuggestSubDir + "PerProdMaps_"+sfx+"_"+dateTimeStrAra[0]+File.separator);}
+	//these file names are specified above but may be modified/set via a config file in future
 	public String getFullCalcInfoFileName(){ return getDirNameAndBuild(straffCalcInfoSubDir) + calcWtFileName;}
+	public String getFullProdOutMapperInfoFileName(){ return getDirNameAndBuild(straffProdSuggestSubDir) + reqProdConfigFileName;}
 	//file name to save record of bad events
 	public String getBadEventFName(String dataFileName) { return straffBasefDir + dataFileName +"_bad_OIDs.csv";	}
 	
@@ -384,8 +386,19 @@ public class SOMProjConfigData {
 		return buildProccedDataCSVFNames(subDir, eventsOnly,_desSuffix);
 	}//buildPrspctDataCSVFNames
 	
+	//return the directory to the most recent prospect data as specified in config file (under project directory/
+	//TODO replace this with info from global project config data 
+	private String getRawDataDesiredDirName() {	return "default" + File.separator;	}
+	
+	//look in default directory for pre-processed data
+	//TODO enable this to be set by a config file entry
+	public String[] buildDefaultProccedDataCSVFileNames(boolean eventsOnly, String _desSuffix) {
+		String subDir = getRawDataDesiredDirName();
+		return buildProccedDataCSVFNames(subDir, eventsOnly,_desSuffix);
+	}
+	
 	//build the file names for the csv files used to save intermediate data from db that has been partially preprocessed
-	public String[] buildProccedDataCSVFNames(String subDir, boolean eventsOnly, String _desSuffix) {
+	private String[] buildProccedDataCSVFNames(String subDir, boolean eventsOnly, String _desSuffix) {
 		//build root preproc data dir if doesn't exist
 		String rootDestDir = getDirNameAndBuild(straffPreProcSubDir);
 		//build subdir based on date, if doesn't exist

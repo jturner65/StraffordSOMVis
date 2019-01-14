@@ -1313,7 +1313,7 @@ class mySideBarMenu extends myDispWindow{
 
 	public static final String[] guiBtnRowNames = new String[]{ 
 			//"Window",
-			"Window-specific Functions","Window-specific Functions 2","DEBUG","File"};
+			"Raw Data/Ftr Processing","Post Proc Load And Map Config/Exec","DEBUG","File"};
 
 	public static final int 
 			//btnShowWinIdx = 0, 				//which window to show

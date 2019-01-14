@@ -14,34 +14,34 @@ public class mySOMMapUIWin extends myDispWindow {
 	public SOMMapManager mapMgr;
 	//idxs of boolean values/flags
 	public static final int 
-		buildSOMExe 			= 0,			//command to initiate SOM-building
-		resetMapDefsIDX			= 1,			//reset default UI values for map
-		examplesCalcedIDX		= 2,			//whether examples have been loaded and ftrs have been calculated or not
-		mapDataLoadedIDX		= 3,			//whether map has been loaded or not	
-		mapUseChiSqDistIDX		= 4,			//whether to use chi-squared (weighted by variance) distance for features or regular euclidean dist
-		mapExclProdZeroFtrIDX	= 5,			//whether or not distances between two datapoints assume that absent features in source data point should be zero or ignored when comparing to map node ftrs
-		mapDrawPrdctNodesIDX 	= 6,
-		mapDrawCurProdZoneIDX 	= 7,			//show currently selected prod jps' products and influence zones
+		buildSOMExe 				= 0,			//command to initiate SOM-building
+		resetMapDefsIDX				= 1,			//reset default UI values for map
+		examplesCalcedIDX			= 2,			//whether examples have been loaded and ftrs have been calculated or not
+		mapDataLoadedIDX			= 3,			//whether map has been loaded or not	
+		mapUseChiSqDistIDX			= 4,			//whether to use chi-squared (weighted by variance) distance for features or regular euclidean dist
+		mapExclProdZeroFtrIDX		= 5,			//whether or not distances between two datapoints assume that absent features in source data point should be zero or ignored when comparing to map node ftrs
+		mapDrawPrdctNodesIDX 		= 6,
+		mapDrawCurProdZoneIDX	 	= 7,			//show currently selected prod jps' products and influence zones
 		//display/interaction
-		mapDrawTrainDatIDX		= 8,			//draw training examples
-		mapDrawTestDatIDX 		= 9,			//draw testing examples - data held out and not used to train the map 
-		mapDrawNodeLblIDX		= 10,			//draw labels for nodes
-		mapDrawWtMapNodesIDX	= 11,			//draw map nodes with non-0 (present) wt vals
-		mapDrawPopMapNodesIDX   = 12,			//draw map nodes that are bmus for training examples
-		mapDrawAllMapNodesIDX	= 13,			//draw all map nodes, even empty
-		mapDrawAnalysisVisIDX	= 14,			//whether or not to draw feature calc analysis graphs
-		mapDrawUMatrixIDX		= 15,			//draw visualization of u matrix - distance between nodes
-		mapDrawSegImgIDX		= 16,			//draw the image of the interpolated segments
-		mapDrawSegMembersIDX	= 17,			//draw segments around regions of maps - visualizes clusters with different colors
+		mapDrawTrainDatIDX			= 8,			//draw training examples
+		mapDrawTestDatIDX 			= 9,			//draw testing examples - data held out and not used to train the map 
+		mapDrawNodeLblIDX			= 10,			//draw labels for nodes
+		mapDrawWtMapNodesIDX		= 11,			//draw map nodes with non-0 (present) wt vals
+		mapDrawPopMapNodesIDX	   = 12,			//draw map nodes that are bmus for training examples
+		mapDrawAllMapNodesIDX		= 13,			//draw all map nodes, even empty
+		mapDrawAnalysisVisIDX		= 14,			//whether or not to draw feature calc analysis graphs
+		mapDrawUMatrixIDX			= 15,			//draw visualization of u matrix - distance between nodes
+		mapDrawSegImgIDX			= 16,			//draw the image of the interpolated segments
+		mapDrawSegMembersIDX		= 17,			//draw segments around regions of maps - visualizes clusters with different colors
 		
-		showSelRegionIDX		= 18,			//TODO highlight a specific region of the map, either all nodes above a certain threshold for a chosen jp or jpgroup
-		showSelJPIDX			= 19, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
+		showSelRegionIDX			= 18,			//TODO highlight a specific region of the map, either all nodes above a certain threshold for a chosen jp or jpgroup
+		showSelJPIDX				= 19, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
 		//train/test data managemen
-		somTrainDataLoadedIDX	= 20,			//whether data used to build map has been loaded yet
-		saveLocClrImgIDX		= 21;			//
-		//useOnlyEvntsToTrainIDX  = 21;			//only use records that have event jpgs/jps to train, otherwise use records that also have jpgs/jps only specified in prospect db
+		somTrainDataLoadedIDX		= 20,			//whether data used to build map has been loaded yet
+		saveLocClrImgIDX			= 21,			//
+		saveProdMapsOfPrspctsIDX	= 22;			//this will save all the product data for the currently selected prod JP
 	
-	public static final int numPrivFlags = 22;
+	public static final int numPrivFlags = 23;
 	
 	//SOM map list options
 	public String[] 
@@ -128,16 +128,11 @@ public class mySOMMapUIWin extends myDispWindow {
 	/////////
 	//custom debug/function ui button names -empty will do nothing
 	public String[][] menuBtnNames = new String[][] {	//each must have literals for every button defined in side bar menu, or ignored
-		{"Load All Raw ---", "Load Raw Prod ---","Func 3"},	//row 1
+		{"Load All Raw ---", "Load Raw Prod ---","Recalc Features"},	//row 1
 		{"Ld Proc'ed Data", "Build SOM Data", "Ld & Make Map", "Ld Prebuilt Map"},	//row 1
 		{"Disp JPs","Disp Calc","Disp Ftrs","Disp Raw Data","Dbg 5"}	
 	};
-//	public String[] menuDbgBtnNames = new String[] {"Disp JPs","Disp Calc","Disp Ftrs","Disp Raw Data","Dbg 5"};//must have literals for every button or this is ignored by UI - buttons correspond to guiBtnNames list in mySideBarMenu 
-//	public String[] menuFunc1BtnNames = new String[] {"Ld Raw ---", "Ld Train CSV", "Bld SOMDat", "Ld & Mk Map", "Prebuilt Map"};//must have literals for every button or ignored
-//	public String[] menuFunc1BtnNames = new String[] {"Ld Raw ---", "Ld Train CSV", "Bld SOMDat", "Ld & Mk Map", "Prebuilt Map"};//must have literals for every button or ignored
-	
-	
-	
+
 	//used to switch button name for 1st button to reflect whether performing csv-based load of raw data or sql query
 	private String[] menuLdRawFuncBtnNames = new String[] {"CSV", "SQL"};
 	private int loadRawBtnIDX = 0;
@@ -155,17 +150,17 @@ public class mySOMMapUIWin extends myDispWindow {
 	public void initAllPrivBtns(){
 		truePrivFlagNames = new String[]{								//needs to be in order of flags
 				//"Train W/Recs W/Event Data", 
-				"Building SOM", "Resetting Def Vals", 
-				"Using ChiSq for Ftr Distance", "Dist ignores Product 0-ftrs",	"Hide Train Data", "Hide Test Data",
+				"Building SOM", "Resetting Default UI Vals", 
+				"Using ChiSq for Ftr Distance", "Product Dist ignores 0-ftrs",	"Hide Train Data", "Hide Test Data",
 				"Hide Node Lbls","Hide Map Nodes (by Wt)","Hide Map Nodes (by Pop)", "Hide Map Nodes", "Hide Products","Hide Cur Prod Zone",
-				"Hide U Mtrx Dists (Bi-Cubic)", "Hide Clusters (U-Dist)", "Hide Cluster Image", "Hide Calc Analysis"
+				"Hide U Mtrx Dists (Bi-Cubic)", "Hide Clusters (U-Dist)", "Hide Cluster Image", "Hide Calc Analysis", "Saving Prospect Mappings for Products listed in config file"
 		};
 		falsePrivFlagNames = new String[]{			//needs to be in order of flags
 				//"Train W/All Recs",
-				"Build New Map ","Reset Def Vals",
-				"Not Using ChiSq Distance", "Dist measures all ftrs","Show Train Data","Show Test Data",
+				"Build New Map ","Reset Default UI Vals",
+				"Not Using ChiSq Distance", "Product Dist measures all ftrs","Show Train Data","Show Test Data",
 				"Show Node Lbls","Show Map Nodes (by Wt)","Show Map Nodes (by Pop)","Show Map Nodes", "Show Products","Show Cur Prod Zone",
-				"Show U Mtrx Dists (Bi-Cubic)", "Show Clusters (U-Dist)", "Show Cluster Image", "Show Calc Analysis"
+				"Show U Mtrx Dists (Bi-Cubic)", "Show Clusters (U-Dist)", "Show Cluster Image", "Show Calc Analysis", "Save Prospect Mappings for Products listed in config file"
 		};
 		privModFlgIdxs = new int[]{
 				//useOnlyEvntsToTrainIDX, 
@@ -173,7 +168,7 @@ public class mySOMMapUIWin extends myDispWindow {
 				mapUseChiSqDistIDX,mapExclProdZeroFtrIDX,mapDrawTrainDatIDX,mapDrawTestDatIDX,
 				mapDrawNodeLblIDX,
 				mapDrawWtMapNodesIDX,mapDrawPopMapNodesIDX,mapDrawAllMapNodesIDX, mapDrawPrdctNodesIDX,mapDrawCurProdZoneIDX,
-				mapDrawUMatrixIDX,mapDrawSegMembersIDX,mapDrawSegImgIDX,mapDrawAnalysisVisIDX};
+				mapDrawUMatrixIDX,mapDrawSegMembersIDX,mapDrawSegImgIDX,mapDrawAnalysisVisIDX, saveProdMapsOfPrspctsIDX};
 		numClickBools = privModFlgIdxs.length;	
 		//maybe have call for 		initPrivBtnRects(0);	
 		initPrivBtnRects(0,numClickBools);
@@ -305,8 +300,8 @@ public class mySOMMapUIWin extends myDispWindow {
 				break;}
 			case showSelJPIDX		 : {//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
 				break;}
-			case saveLocClrImgIDX : {break;}//save image
-			//case useOnlyEvntsToTrainIDX : {break;}//whether or not to limit training data set to only records that have specified jpgroups/jps from events, or to also use recs that only have specifications in prospect records
+			case saveLocClrImgIDX : {break;}		//save image
+			case saveProdMapsOfPrspctsIDX : {break;}		//save all product to prospect mappings given currently selected product jp and dist thresh
 		}
 	}//setFlag		
 	
@@ -355,22 +350,21 @@ public class mySOMMapUIWin extends myDispWindow {
 	
 	//initialize structure to hold modifiable menu regions
 	@Override
-	protected void setupGUIObjsAras(){	
-		//mapMgr.dispMessage("mySOMMapUIWin","setupGUIObjsAras","setupGUIObjsAras in :"+ name);
-//		if(numInstrs < 0){numInstrs = 0;}
+	protected void setupGUIObjsAras(){		
+		
 		guiMinMaxModVals = new double [][]{  
-			{0.0, 1.0, 1},				//uiRawDataSourceIDX
-			{0.0, 2.0, 1.0},			//uiTrainDataFrmtIDX
+			{0.0, uiRawDataSourceList.length-1, 1},				//uiRawDataSourceIDX
+			{0.0, uiMapTrainFtrTypeList.length-1, 1.0},			//uiTrainDataFrmtIDX
 			{1.0, 100.0, 1.0},			//uiTrainDatPartIDX
 			{1.0, 120.0, 10},			//uiMapRowsIDX 	 		
 			{1.0, 120.0, 10},			//uiMapColsIDX	 		
 			{1.0, 200.0, 10},			//uiMapEpochsIDX		
-			{0.0, 1.0, 1},				//uiMapShapeIDX	 		
-			{0.0, 1.0, 1},				//uiMapBndsIDX	 		
-			{0.0, 2.0, .05},			//uiMapKTypIDX	 		
-			{0.0, 1.0, 1},				//uiMapNHdFuncIDX		
-			{0.0, 1.0, 1},				//uiMapRadCoolIDX		
-			{0.0, 1.0, 1},				//uiMapLrnCoolIDX		
+			{0.0, uiMapShapeList.length-1, 1},				//uiMapShapeIDX	 		
+			{0.0, uiMapBndsList.length-1, 1},				//uiMapBndsIDX	 		
+			{0.0, uiMapKTypList.length-1, .05},				//uiMapKTypIDX	 		
+			{0.0, uiMapNHoodList.length-1, 1},				//uiMapNHdFuncIDX		
+			{0.0, uiMapRadClList.length-1, 1},				//uiMapRadCoolIDX		
+			{0.0, uiMapLrnClList.length-1, 1},				//uiMapLrnCoolIDX		
 			{0.001, 1.0, 0.001},		//uiMapLrnStIDX	 		
 			{0.001, 1.0, 0.001},		//uiMapLrnEndIDX		
 			{2.0, 300.0, 1.0},			//uiMapRadStIDX	 	# nodes	
@@ -379,7 +373,7 @@ public class mySOMMapUIWin extends myDispWindow {
 			{0.0, 260, 1.0},			//uiJPToDispIDX//which JP to display on map - idx into list of jps
 			{0.0, 100, 1.0},			//uiProdJpgToDispIDX//which products to display by jpg
 			{0.0, 260, 1.0},			//uiProdJpToDispIDX//which product jp to display
-			{0, SOMMapManager.nodeBMUMapTypes.length, 1.0},		//uiMapNodeBMUTypeToDispIDX
+			{0, uiMapDrawExToBmuTypeList.length-1, 1.0},		//uiMapNodeBMUTypeToDispIDX
 			{0.0, 1.0, .01},			//uiMapNodeWtDispThreshIDX
 			{0.0, 1.0, .001},			//uiNodeInSegThreshIDX//threshold of u-matrix weight for nodes to belong to same segment
 			{0.0, 10, .1},				//uiProdZoneDistThreshIDX
@@ -478,7 +472,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		if(numGUIObjs > 0){
 			buildGUIObjs(guiObjNames,guiStVals,guiMinMaxModVals,guiBoolVals,new double[]{xOff,yOff});			//builds a horizontal list of UI comps
 		}
-	}
+	}//setupGUIObjsAras
 	
 	//update UI values from passed SOM_MAPDat object's current state
 	public void setUIValues(SOM_MapDat mapDat) {
@@ -657,8 +651,7 @@ public class mySOMMapUIWin extends myDispWindow {
 				mapMgr.buildSegmentsOnMap();
 				break;}
 			case uiProdZoneDistThreshIDX : {//max distance for a node to be considered a part of a product's "region" of influence		
-				prodZoneDistThresh = this.guiObjs[uiProdZoneDistThreshIDX].getVal();
-			
+				prodZoneDistThresh = this.guiObjs[uiProdZoneDistThreshIDX].getVal();			
 				break;}
 			case uiMseRegionSensIDX : {
 				break;}
@@ -673,6 +666,13 @@ public class mySOMMapUIWin extends myDispWindow {
 		}
 		//menuBtnNames[mySideBarMenu.btnAuxFunc1Idx][loadRawBtnIDX]=menuLdRawFuncBtnNames[(rawDataSource % menuLdRawFuncBtnNames.length) ];
 		pa.setAllMenuBtnNames(menuBtnNames);	
+	}
+	
+	//save prospects covered by currenlty selected prodJP on ui
+	private void saveAllProspectsForCurJP() {
+		mapMgr.saveProductToProspectsMappings(prodZoneDistThresh);
+		//mapMgr.saveProspectsForProdJP(curProdToShowIDX, prodZoneDistThresh);
+		setPrivFlags(saveProdMapsOfPrspctsIDX, false);
 	}
 	
 	//get x and y locations relative to upper corner of map
@@ -713,18 +713,16 @@ public class mySOMMapUIWin extends myDispWindow {
 		return dp;
 	}//getDataPointAtLoc	
 	
-	//make color based on ftr value at particular index
-	//jpIDX is index in feature vector we are querying
-	//call this if map is trained on unmodified data
-	private int getDataClrFromFtrVecUnModded(TreeMap<Integer, Float> ftrMap, Integer jpIDX) {		
-		Float ftrVal = ftrMap.get(jpIDX);
-		int ftr = 0;
-		if(ftrVal != null) {
-			ftr = mapMgr.scaleUnfrmttedFtrData(ftrVal, jpIDX); 
-		}
-		int clrVal = ((ftr & 0xff) << 16) + ((ftr & 0xff) << 8) + (ftr & 0xff);
-		return clrVal;
-	}//getDataClrFromFtrVec
+//	//make color based on ftr value at particular index
+//	//jpIDX is index in feature vector we are querying
+//	//call this if map is trained on unmodified data
+//	private int getDataClrFromFtrVecUnModded(TreeMap<Integer, Float> ftrMap, Integer jpIDX) {		
+//		Float ftrVal = ftrMap.get(jpIDX);
+//		int ftr = 0;
+//		if(ftrVal != null) {			ftr = mapMgr.scaleUnfrmttedFtrData(ftrVal, jpIDX); 		}
+//		int clrVal = ((ftr & 0xff) << 16) + ((ftr & 0xff) << 8) + (ftr & 0xff);
+//		return clrVal;
+//	}//getDataClrFromFtrVec
 	
 	//val is 0->256
 	private int getDataClrFromFloat(Float val) {
@@ -763,9 +761,9 @@ public class mySOMMapUIWin extends myDispWindow {
 		setPrivFlags(examplesCalcedIDX, mapMgr.isFtrCalcDone());
 		setPrivFlags(mapDataLoadedIDX,mapMgr.isMapDrawable());
 		drawMap();	
+		if(getPrivFlags(saveProdMapsOfPrspctsIDX)) {saveAllProspectsForCurJP();}
 		if(getPrivFlags(buildSOMExe)){buildNewSOMMap();}
 	}
-	
 	private void drawMseLocWts() {
 		pa.pushMatrix();pa.pushStyle();
 			pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
@@ -830,21 +828,25 @@ public class mySOMMapUIWin extends myDispWindow {
 	private void drawMap(){		
 		//draw map rectangle
 		pa.pushMatrix();pa.pushStyle();
-		if ((getPrivFlags(mapDrawAnalysisVisIDX)) && getPrivFlags(examplesCalcedIDX)) {	
-			pa.pushMatrix();pa.pushStyle();	
-			pa.translate((SOM_mapDims[0]+SOM_mapDims[2])*calcScale + 20,SOM_mapDims[1]*calcScale + 10,0.0f);
-			//pa.setFill(new int[] {0,255,0}, 255);
-//			pa.rect(0,0,analysisPerJPWidth,analysisHt);
-			mapMgr.drawAnalysisOneJp(pa,analysisHt, analysisPerJPWidth,curMapImgIDX);	
-			pa.popStyle();pa.popMatrix();
-			
-			pa.pushMatrix();pa.pushStyle();
-			pa.translate(rectDim[0]+5,(SOM_mapDims[1]+SOM_mapDims[3])*calcScale + 10,0.0f);
-//			pa.setFill(new int[] {255,0,0}, 255);
-//			pa.rect(0,0,analysisAllJPBarWidth*mapMgr.numFtrs,analysisHt);
-			mapMgr.drawAnalysisAllJps(pa, analysisHt, analysisAllJPBarWidth, curMapImgIDX);
-			pa.popStyle();pa.popMatrix();
-			pa.scale(calcScale);				//scale here so that if we are drawing calc analysis, ftr map image will be shrunk
+		if (getPrivFlags(mapDrawAnalysisVisIDX)){
+			if (getPrivFlags(examplesCalcedIDX)){	
+				pa.pushMatrix();pa.pushStyle();	
+				pa.translate((SOM_mapDims[0]+SOM_mapDims[2])*calcScale + 20,SOM_mapDims[1]*calcScale + 10,0.0f);
+				//pa.setFill(new int[] {0,255,0}, 255);
+	//			pa.rect(0,0,analysisPerJPWidth,analysisHt);
+				mapMgr.drawAnalysisOneJp(pa,analysisHt, analysisPerJPWidth,curMapImgIDX);	
+				pa.popStyle();pa.popMatrix();
+				
+				pa.pushMatrix();pa.pushStyle();
+				pa.translate(rectDim[0]+5,(SOM_mapDims[1]+SOM_mapDims[3])*calcScale + 10,0.0f);
+	//			pa.setFill(new int[] {255,0,0}, 255);
+	//			pa.rect(0,0,analysisAllJPBarWidth*mapMgr.numFtrs,analysisHt);
+				mapMgr.drawAnalysisAllJps(pa, analysisHt, analysisAllJPBarWidth, curMapImgIDX);
+				pa.popStyle();pa.popMatrix();
+				pa.scale(calcScale);				//scale here so that if we are drawing calc analysis, ftr map image will be shrunk
+			} else {
+				setPrivFlags(mapDrawAnalysisVisIDX, false);
+			}
 		}		
 		if(getPrivFlags(mapDataLoadedIDX)){drawMapRectangle();}	
 		pa.popStyle();pa.popMatrix();
@@ -959,7 +961,8 @@ public class mySOMMapUIWin extends myDispWindow {
 					resetButtonState();
 					break;}
 				case 2 : {	
-					//
+					//recalculate currently loaded/processed data.  will reload/rebuild calc object from file, so if data is changed in format file, this will handle that.
+					mapMgr.calcFtrsDiffsMinsAndSave();
 					resetButtonState();
 					break;}
 				default : {

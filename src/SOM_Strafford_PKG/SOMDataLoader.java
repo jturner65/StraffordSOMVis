@@ -51,8 +51,6 @@ public class SOMDataLoader implements Runnable {
 		boolean success = loadSOMWts();	
 		//set u-matrix fo all map nodes
 		success = loadSOM_nodeDists();
-		//get training and testing data partitions that were used to train the map - TODO
-		mapMgr.assignTrainTestData();
 		//load mins and diffs of data used to train map
 		success = loadDiffsMins();		
 		//load SOM's best matching units for training data - must be after map wts and training data has been loaded
@@ -427,39 +425,6 @@ public class SOMDataLoader implements Runnable {
 		return (oldXaSq < newXaSq ? oldXaSq : newXaSq ) + (oldYaSq < newYaSq ? oldYaSq : newYaSq);
 	}//
 	
-	//load the units that have the best performance per feature for each feature.  This can be safely ignored
-	//this is built off a file that is generated from SOM code (extension .fwts); the code to build this file is not part of vanilla som code, but was added
-	private boolean loadSOM_ftrBMUs(){
-		String ftrBMUFname =  projConfigData.getSOMResFName(projConfigData.fwtsIDX);
-		if(ftrBMUFname.length() < 1){return false;}
-		String [] strs= mapMgr.loadFileIntoStringAra(ftrBMUFname, "Loaded features with bmu data file : "+ftrBMUFname, "Error reading feature bmu file : "+ftrBMUFname);
-		if((strs==null) || (strs.length == 0)){
-			mapMgr.dispMessage("DataLoader","loadSOM_ftrBMUs","Ftr-based BMU File not found.  The code generating this file is not a part of vanilla SOM, but rather was added to the SOM code by John. This error (and the missing data) can be safely ignored.");			
-			return false;}
-		String[] tkns;
-		SOMFeature tmp;
-		ArrayList<SOMFeature> tmpAra = new ArrayList<SOMFeature>();
-		for (int i=0;i<strs.length;++i){//load in data 
-			if(i < 2){
-				tkns = strs[i].replace('%', ' ').trim().split(mapMgr.SOM_FileToken);
-				if(i==0){
-					if(!checkMapDim(tkns,"Feature Best Matching Units file " + getFName(ftrBMUFname))){return false;}
-				} else {	
-					int tNumTFtr = Integer.parseInt(tkns[0]);
-					if(tNumTFtr != mapMgr.numFtrs) { 
-						mapMgr.dispMessage("DataLoader","loadSOM_ftrBMUs","!!Best Matching Units file " + getFName(ftrBMUFname) + " # of training examples : " + tNumTFtr +" does not match # of training examples in training data " + mapMgr.numFtrs+". Loading aborted." ); 
-						return false;}
-				}
-				continue;
-			} 
-			tkns = strs[i].split(":");
-			tmp = new SOMFeature(mapMgr,tkns[0].trim(),Integer.parseInt(tkns[0].trim()),tkns[1].trim().split(mapMgr.SOM_FileToken));
-			tmpAra.add(tmp);
-		}
-		mapMgr.featuresBMUs = tmpAra.toArray(new SOMFeature[0]);		
-		mapMgr.dispMessage("DataLoader","loadSOM_ftrBMUs","Finished Loading SOM per-feature BMU list from file : " + getFName(ftrBMUFname));
-		return true;
-	}//loadSOM_ftrBMUs	
 	
 }//dataLoader
 
@@ -740,7 +705,7 @@ class straffCSVDataLoader implements Callable<Boolean>{
 			int pos = str.indexOf(',');
 			String oid = str.substring(0, pos);
 			ProspectExample ex = new ProspectExample(mapMgr, oid, str);
-			ProspectExample oldEx = mapMgr.prospectMap.put(ex.OID, ex);	
+			ProspectExample oldEx = mapMgr.putInProspectMap(ex);//mapMgr.prospectMap.put(ex.OID, ex);	
 			if(oldEx != null) {mapMgr.dispMessage("straffCSVDataLoader", "call thd : " + thdIDX, "ERROR : "+thdIDX+" : Attempt to add duplicate record to prospectMap w/OID : " + oid);	}
 		}		
 		return true;

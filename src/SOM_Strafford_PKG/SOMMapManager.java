@@ -14,16 +14,29 @@ public class SOMMapManager {
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	//map descriptions
 	
-	//all nodes of som map, keyed by node location
+	//all nodes of som map, keyed by node location as tuple of row/col coordinates
 	public TreeMap<Tuple<Integer,Integer>, SOMMapNode> MapNodes;
-	//keyed by field used in lrn file (float rep of individual record, 
-	public TreeMap<String, dataClass> TrainDataLabels;	
+	//map of prospectExamples built from database data, keyed by prospect OID
+	private ConcurrentSkipListMap<String, ProspectExample> prospectMap;	
+	//map of prospectExamples built from database data, keyed by prospect OID - 
+	//TODO these examples are loaded and then applied against an existing map to find products for them
+	private ConcurrentSkipListMap<String, ProspectExample> validationMap;	
+	//map of products build from TC_Taggings entries, keyed by tag ID (synthesized upon creation)
+	private ConcurrentSkipListMap<String, ProductExample> productMap;	
 	//data set to be training data, etc
-	public ProspectExample[] trainData, inputData, testData;
+	public ProspectExample[] inputData, trainData, testData;
+	
+	//structure to map specified products to the SOM and find prospects with varying levels of confidence
+	public StraffProdMapOutputBuilder prodMapper;
+	
+	//manage all jps and jpgs seen in project
+	public MonitorJpJpgrp jpJpgrpMon;	
+	//calc object to be used to derive feature vector for each prospect
+	public StraffWeightCalc ftrCalcObj;
 	//data for products to be measured on map
-	public ProductExample[] productData;
+	private ProductExample[] productData;
 	//maps of product arrays, with key for each map being either jpg or jp
-	public TreeMap<Integer, ArrayList<ProductExample>> productsByJpg, productsByJp;
+	private TreeMap<Integer, ArrayList<ProductExample>> productsByJpg, productsByJp;
 	//array of per jp treemaps of nodes keyed by jp weight
 	public TreeMap<Float,ArrayList<SOMMapNode>>[] PerJPHiWtMapNodes;
 	//array of map clusters
@@ -45,9 +58,6 @@ public class SOMMapManager {
 	//corresponds to these values : ProspectTraining(0),ProspectTesting(1),Product(2)
 	public static final String[] nodeBMUMapTypes = new String[] {"Training", "Testing", "Products"};
 	
-	//features used to train map - these constructs are intended to hold the sorted list of weight ratios for each feature on all map nodes.  this can be very big (as big as the weights structure) so only load if necessary
-	public SOMFeature[] featuresBMUs;
-	//public dataDesc dataHdr;			//describes data, set in weights read used in csv save file
 	public int numFtrs;
 	public int numInputData, numTrainData, numTestData;
 	
@@ -113,18 +123,7 @@ public class SOMMapManager {
 	public List<StraffordDataLoader> straffDataLoaders;
 	////////////////////
 	
-	////////////////////
-	// training data constructions	
-	//map of prospectExamples built from database data, keyed by prospect OID
-	public ConcurrentSkipListMap<String, ProspectExample> prospectMap;	
-	//map of products build from TC_Taggings entries, keyed by tag ID (synthesized upon creation)
-	private ConcurrentSkipListMap<String, ProductExample> productMap;	
-	
-	//manage all jps and jpgs seen in project
-	public MonitorJpJpgrp jpJpgrpMon;	
-	//calc object to be used to derive feature vector for each prospect
-	public StraffWeightCalc ftrCalcObj;
-	
+		
 	//data type to use to train map
 	public static final int useUnmoddedDat = 0, useScaledDat = 1, useNormedDat = 2;
 	public static final String[] uiMapTrainFtrTypeList = new String[] {"Unmodified","Standardized (0->1 per ftr)","Normalized (vector mag==1)"};
@@ -233,11 +232,6 @@ public class SOMMapManager {
 			PerJPHiWtMapNodes[jpIDX].put(ftrVal, nodeList);
 		}		
 	}//setMapNodeFtrStr
-	
-	public boolean mapCanBeTrained(int kVal) {
-		//eventually enable training map on existing files - save all file names, enable file names to be loaded and map built directly
-		return ((kVal <= 1) && (getFlag(denseTrainDataSavedIDX)) || ((kVal == 2) && getFlag(sparseTrainDataSavedIDX)));
-	}
 	
 	//build the callable strafford data loaders list
 	private void buildStraffDataLoaders() {
@@ -348,9 +342,7 @@ public class SOMMapManager {
 		execStr[0] = wkDirStr + cmdStr;
 		//for(int i =2; i<cmdExecStr.length;++i){execStr[i-1] = cmdExecStr[i]; argsStr +=cmdExecStr[i]+" | ";}
 		for(int i = 0; i<cmdExecStr.length;++i){execStr[i+1] = cmdExecStr[i]; argsStr +=cmdExecStr[i]+" | ";}
-		//if(showDebug){
-			dispMessage("SOMMapManager","_buildNewMap","\nwkDir : "+ wkDirStr + "\ncmdStr : " + cmdStr + "\nargs : "+argsStr);
-		//	}
+		dispMessage("SOMMapManager","_buildNewMap","\nwkDir : "+ wkDirStr + "\ncmdStr : " + cmdStr + "\nargs : "+argsStr);
 		
 		//monitor in multiple threads, either msgs or errors
 		List<Future<Boolean>> procMsgMgrsFtrs = new ArrayList<Future<Boolean>>();
@@ -384,26 +376,7 @@ public class SOMMapManager {
 		return success;
 	}//_buildNewMap
 	
-	//load training and testing data from map results, if needing to be reloaded
-	//when this method is done, trainData, testData and numTrainData and numTestData must be populated correctly
-	public void assignTrainTestData() {
-		//TODO need to build trainData and testData from data aggregation/loading structure - this method needs to be rewritten
-		//this is only important if map is built without using built in structure to convert saved preprocced data to svn/lrn data
-		dispMessage("SOMMapManager","assignTrainTestData","assignTrainTestData :TODO :Need to set train and test data from saved file if not saved already");
-		
-		
-//		trainData = new dataPoint[tmpTrainAra.length];
-//		testData = new dataPoint[tmpTestAra.length];
-//		numTrainData = trainData.length;
-//		numTestData = testData.length;
-//		System.arraycopy(tmpTrainAra, 0, trainData, 0, numTrainData);
-//		System.arraycopy(tmpTestAra, 0, testData, 0, numTestData);
-//		dispMessage("SOMMapManager","DataLoader : Finished assigning Training and Testing data from raw data -> added " + numTrainData + " training examples and " +numTestData + " testing examples");
-		int numDataVals = 0;//TODO get the # of features from training data objects
-		//dataBounds = new Float[2][numDataVals];
-		//todo build data bounds
-	}//assignTrainTestData
-	
+
 	//initialize the SOM-facing data structures - these are used to train/consume a map.
 	public void initData(){
 		dispMessage("SOMMapManager","initData","Init Called");
@@ -416,15 +389,13 @@ public class SOMMapManager {
 		for (ExDataType _type : ExDataType.values()) {
 			nodesWithEx.put(_type, new HashSet<SOMMapNode>());
 			nodesWithNoEx.put(_type, new HashSet<SOMMapNode>());		
-		}		
-		
+		}
 		numTrainData = 0;
 		numFtrs = 0;
 		numInputData = 0;
 		projConfigData.setCurDataDir();
 		dispMessage("SOMMapManager","initData","Init Finished");
 	}//initdata
-
 	
 	public void clearBMUNodesWithExs(ExDataType _type) {							nodesWithEx.get(_type).clear();}
 	public void clearBMUNodesWithNoExs(ExDataType _type) {							nodesWithNoEx.get(_type).clear();}
@@ -448,12 +419,6 @@ public class SOMMapManager {
 		for(SOMMapNode node : withMap){		node.finalizeAllBmus(_type);	}
 	}
 	
-	//return true if loader is done and if data is successfully loaded
-	public boolean isMapDrawable(){return getFlag(loaderRtnIDX) && getFlag(mapDataLoadedIDX);}
-	public boolean isFtrCalcDone() {return (ftrCalcObj != null) && ftrCalcObj.calcAnalysisIsReady();}
-	
-	public boolean isToroidal(){return projConfigData.isToroidal();}
-
 	//set all training/testing data save flags to val
 	private void setAllTrainDatSaveFlags(boolean val) {
 		setFlag(denseTrainDataSavedIDX, val);
@@ -462,13 +427,14 @@ public class SOMMapManager {
 	}
 	
 	//clear out existing prospect map
-	public void resetProspectMap() {
+	private void resetProspectMap() {
 		prospectMap = new ConcurrentSkipListMap<String, ProspectExample>();
 		setFlag(rawPrspctEvDataProcedIDX, false);
 		setAllTrainDatSaveFlags(false);
 	}//resetProspectMap
-	//clear out existing prospect map
-	public void resetProductMap() {
+	
+	//clear out existing product map
+	private void resetProductMap() {
 		productMap = new ConcurrentSkipListMap<String, ProductExample>();
 		productsByJpg = new TreeMap<Integer, ArrayList<ProductExample>>();
 		productsByJp = new TreeMap<Integer, ArrayList<ProductExample>>();
@@ -479,6 +445,7 @@ public class SOMMapManager {
 		setAllTrainDatSaveFlags(false);
 	}//resetProspectMap
 	
+	//add constructed product example to maps holding products keyed by their constituent jps and jpgs
 	public void addProductToJPProductMaps(ProductExample ex) {
 		//add to jp and jpg trees
 		HashSet<Integer> jpgs = new HashSet<Integer>();
@@ -487,14 +454,14 @@ public class SOMMapManager {
 			if(exList==null) {exList = new ArrayList<ProductExample>();}
 			exList.add(ex);
 			productsByJp.put(jp, exList);	
-			jpgs.add( jpJpgrpMon.getJpgFromJp(jp));
+			jpgs.add( jpJpgrpMon.getJpgFromJp(jp));	//record jp groups this product covers
 		}
 		for (Integer jpg : jpgs) {
 			ArrayList<ProductExample> exList = productsByJpg.get(jpg);
 			if(exList==null) {exList = new ArrayList<ProductExample>();}
 			exList.add(ex);
 			productsByJpg.put(jpg, exList);	
-		}		
+		}
 	}//addProductToProductMaps	
 	
 	public void loadRawProductData(boolean fromCSVFiles) {
@@ -518,7 +485,10 @@ public class SOMMapManager {
 		//now process raw products
 		resetProductMap();
 		procRawProductData(rawDataArrays.get(straffDataFileNames[tcTagsIDX]));		
-		dispMessage("SOMMapManager","loadRawProductData","Begin initial finalize of product map to aggregate all JPs");		
+		
+		dispMessage("SOMMapManager","loadRawProductData","Begin initial finalize of product map to aggregate all JP found in updated products");		
+		//finalize builds each example's occurence structures, which describe the jp-jpg relationships found in the example
+		for (ProspectExample ex : prospectMap.values()) {			ex.finalizeBuild();		}		
 		//finalize build for all products - aggregates all jps seen in product
 		for (ProductExample ex : productMap.values()){		ex.finalizeBuild();		}		
 		dispMessage("SOMMapManager","loadRawProductData","End initial finalize of product map");		
@@ -527,13 +497,8 @@ public class SOMMapManager {
 		//we need the jp-jpg counts and relationships dictated by the data by here.
 		setJPDataFromExampleData(prospectMap);
 		dispMessage("SOMMapManager","loadRawProductData","End setJPDataFromExampleData from prospect map; calling finishSOMExampleBuild");
-		//finalize - recalc all processed data in case new products have different JP's present
-		finishSOMExampleBuild();	
-		
-		//resave all data
-		setFlag(rawPrspctEvDataProcedIDX, true);
-		setFlag(rawProducDataProcedIDX, true);
-		saveAllData();		
+		//finalize - recalc all processed data in case new products have different JP's present, set flags and save to file
+		calcFtrsDiffsMinsAndSave();
 		dispMessage("SOMMapManager","loadRawProductData","Finished loading raw product data, processing and saving preprocessed for products data only");
 	}//only load the product/TC-tagging data, process it and then save it to files
 	
@@ -571,11 +536,6 @@ public class SOMMapManager {
 		dispMessage("SOMMapManager","loadAllRawData","Finished loading raw data, processing and saving preprocessed data");
 	}//loadAllRawData
 	
-	private void dbgLoadedData(int idx) {
-		ArrayList<BaseRawData> recs = rawDataArrays.get(straffDataFileNames[idx]);
-		for  (BaseRawData rec : recs) {if(rec.rawJpMapOfArrays.size() > 1) {dispMessage("SOMMapManager","dbgLoadedData",straffDataFileNames[idx] + " : " + rec.toString());}}			
-	}
-	
 	//will instantiate specific loader class object and load the data specified by idx, either from csv file or from an sql call described by csvFile
 	private void loadRawDataVals(String[] loadRawDatStrs, boolean[] flags, int idx){//boolean _isFileLoader, String _fileNameAndPath
 		//single threaded implementation
@@ -593,11 +553,7 @@ public class SOMMapManager {
 		setFlag(straffObjFlagIDXs[idx], true);			//set flag corresponding to this type of data to be loaded
 	}//loadRawDataVals	
 	
-	//return the fully qualified directory to the most recent prospect data as specified in config file
-	//TODO replace this with info from global project config data 
-	private String getRawDataDesiredDirName() {
-		return "default" + File.separator;
-	}
+
 	//load all preprocessed data from default data location
 	public void loadAllPreProccedData() {
 		//		boolean singleThread=numUsableThreads<=1;//this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
@@ -606,7 +562,9 @@ public class SOMMapManager {
 		loadMonitorJpJpgrp();
 		loadAllPropsectMapData();
 		loadAllProductMapData();
-		finishSOMExampleBuild();		
+		finishSOMExampleBuild();
+		setFlag(rawPrspctEvDataProcedIDX, true);
+		setFlag(rawProducDataProcedIDX, true);
 		dispMessage("SOMMapManager","loadAllPreProccedData","Finished loading preprocced data");
 	}
 	
@@ -616,8 +574,9 @@ public class SOMMapManager {
 		dispMessage("SOMMapManager","loadAllPropsectMapData","Loading all prospect map data that only have event-based training info");//" + (eventsOnly ? "that only have event-based training info" : "that have any training info (including only prospect jpg/jp specification)"));
 		//clear out current prospect data
 		resetProspectMap();
-		String desSubDir = getRawDataDesiredDirName();
-		String[] loadSrcFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(desSubDir, true, "prospectMapSrcData");
+//		String desSubDir = getRawDataDesiredDirName();
+//		String[] loadSrcFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(desSubDir, true, "prospectMapSrcData");
+		String[] loadSrcFNamePrefixAra = projConfigData.buildDefaultProccedDataCSVFileNames(true, "prospectMapSrcData");
 		
 		String fmtFile = loadSrcFNamePrefixAra[0]+"_format.csv";
 		String[] loadRes = loadFileIntoStringAra(fmtFile, "Format file loaded", "Format File Failed to load");
@@ -656,8 +615,9 @@ public class SOMMapManager {
 		dispMessage("SOMMapManager","loadAllProductMapData","Loading all product map data");
 		//clear out current product data
 		resetProductMap();
-		String desSubDir = getRawDataDesiredDirName();
-		String[] loadSrcFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(desSubDir, false, "productMapSrcData");
+//		String desSubDir = getRawDataDesiredDirName();
+//		String[] loadSrcFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(desSubDir, false, "productMapSrcData");
+		String[] loadSrcFNamePrefixAra = projConfigData.buildDefaultProccedDataCSVFileNames(false, "productMapSrcData");
 		String dataFile =  loadSrcFNamePrefixAra[0]+".csv";
 		String[] csvLoadRes = loadFileIntoStringAra(dataFile, "Product Data file loaded", "Product Data File Failed to load");
 		//ignore first entry - header
@@ -674,110 +634,145 @@ public class SOMMapManager {
 	//load MonitorJpJpgrp
 	private void loadMonitorJpJpgrp() {
 		dispMessage("SOMMapManager","loadMonitorJpJpgrp","Loading MonitorJpJpgrp data");
-		String desSubDir = getRawDataDesiredDirName();
-		String[] loadSrcFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(desSubDir, false, "MonitorJpJpgrpData");
+//		String desSubDir = getRawDataDesiredDirName();
+//		String[] loadSrcFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(desSubDir, false, "MonitorJpJpgrpData");
+		String[] loadSrcFNamePrefixAra = projConfigData.buildDefaultProccedDataCSVFileNames(false, "MonitorJpJpgrpData");
 		jpJpgrpMon.loadAllData(loadSrcFNamePrefixAra[0]+".csv");
 		dispMessage("SOMMapManager","loadMonitorJpJpgrp","Finished loading MonitorJpJpgrp data");
 	}//saveAllProductMapData
 	
+	//this will load the product IDs to query on map for prospects from the location specified in the config
+	//map these ids to loaded products and then 
+	//prodZoneDistThresh is distance threshold to determine outermost map region to be mapped to a specific product
+	public void saveProductToProspectsMappings(double prodZoneDistThresh) {
+		if (!getFlag(mapDataLoadedIDX)) {	dispMessage("SOMMapManager","mapProductsToProspects","No Mapped data has been loaded or processed; aborting");		return;}
+		if ((productMap == null) || (productMap.size() == 0)) {dispMessage("SOMMapManager","mapProductsToProspects","No products have been loaded or processed; aborting");		return;}
+		dispMessage("SOMMapManager","mapProductsToProspects","Starting load of product to prospecting mapping configuration and building product output mapper");	
+		//get file name of product mapper configuration file
+		String prodMapFileName = projConfigData.getFullProdOutMapperInfoFileName();
+		int prodDistType = getDistType();
+		//builds the output mapper and loads the product IDs to map from config file
+		prodMapper = new StraffProdMapOutputBuilder(this, prodMapFileName,th_exec, prodDistType, prodZoneDistThresh);
+		dispMessage("SOMMapManager","mapProductsToProspects","Finished load of product to prospecting mapping configuration and building product output mapper | Begin Saving prod-to-prospect mappings to files");	
+		//by here all prods to map have been specified. prodMapBuilder will determine whether multithreaded or single threaded; 
+		prodMapper.saveAllSpecifiedProdMappings();		
+		dispMessage("SOMMapManager","mapProductsToProspects","Finished Saving prod-to-prospect mappings to files");	
+	}//mapProductsToProspects
+		
+	
 	//write all prospect map data to a csv to be able to be reloaded to build training data from, so we don't have to re-read database every time
-	private void saveAllProspectMapData() {
-		dispMessage("SOMMapManager","saveAllProspectMapData","Saving all prospect map data : " + prospectMap.size() + " examples to save.");
-		String[] saveDestFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(true, "prospectMapSrcData");
-		ArrayList<ArrayList<String>> csvRes = new ArrayList<ArrayList<String>>();
-		ArrayList<String> csvResTmp = new ArrayList<String>();		
-		int counter = 0;
-		ProspectExample ex1 = prospectMap.get(prospectMap.firstKey());
-		String hdrStr = ex1.getRawDescColNamesForCSV();
-		csvResTmp.add( hdrStr);
-		int nameCounter = 0;
-		for (ProspectExample ex : prospectMap.values()) {			
-			csvResTmp.add(ex.getRawDescrForCSV());
-			++counter;
-			if(counter % preProcDatPartSz ==0) {
-				dispMessage("SOMMapManager","saveAllProspectMapData","Done Building String Array : " +(nameCounter++));
-				counter = 0;
-				csvRes.add(csvResTmp); 
-				csvResTmp = new ArrayList<String>();
-				csvResTmp.add( hdrStr);
+	private boolean saveAllProspectMapData() {
+		if ((null != prospectMap) && (prospectMap.size() > 0)) {
+			dispMessage("SOMMapManager","saveAllProspectMapData","Saving all prospect map data : " + prospectMap.size() + " examples to save.");
+			String[] saveDestFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(true, "prospectMapSrcData");
+			ArrayList<ArrayList<String>> csvRes = new ArrayList<ArrayList<String>>();
+			ArrayList<String> csvResTmp = new ArrayList<String>();		
+			int counter = 0;
+			ProspectExample ex1 = prospectMap.get(prospectMap.firstKey());
+			String hdrStr = ex1.getRawDescColNamesForCSV();
+			csvResTmp.add( hdrStr);
+			int nameCounter = 0;
+			for (ProspectExample ex : prospectMap.values()) {			
+				csvResTmp.add(ex.getRawDescrForCSV());
+				++counter;
+				if(counter % preProcDatPartSz ==0) {
+					dispMessage("SOMMapManager","saveAllProspectMapData","Done Building String Array : " +(nameCounter++));
+					counter = 0;
+					csvRes.add(csvResTmp); 
+					csvResTmp = new ArrayList<String>();
+					csvResTmp.add( hdrStr);
+				}
 			}
-		}
-		csvRes.add(csvResTmp);
-		//save array of arrays of strings, partitioned and named so that no file is too large
-		nameCounter = 0;
-		for (ArrayList<String> csvResSubAra : csvRes) {		
-			dispMessage("SOMMapManager","saveAllProspectMapData","Saving Pre-procced Prospect data String array : " +nameCounter);
-			saveStrings(saveDestFNamePrefixAra[0]+"_"+nameCounter+".csv", csvResSubAra);
-			++nameCounter;
-		}
-		//save the data in a format file
-		String[] data = new String[] {"Number of file partitions for " + saveDestFNamePrefixAra[1] +" data : "+ nameCounter + "\n"};
-		saveStrings(saveDestFNamePrefixAra[0]+"_format.csv", data);		
-		dispMessage("SOMMapManager","saveAllProspectMapData","Finished saving all prospect map data");
+			csvRes.add(csvResTmp);
+			//save array of arrays of strings, partitioned and named so that no file is too large
+			nameCounter = 0;
+			for (ArrayList<String> csvResSubAra : csvRes) {		
+				dispMessage("SOMMapManager","saveAllProspectMapData","Saving Pre-procced Prospect data String array : " +nameCounter);
+				saveStrings(saveDestFNamePrefixAra[0]+"_"+nameCounter+".csv", csvResSubAra);
+				++nameCounter;
+			}
+			//save the data in a format file
+			String[] data = new String[] {"Number of file partitions for " + saveDestFNamePrefixAra[1] +" data : "+ nameCounter + "\n"};
+			saveStrings(saveDestFNamePrefixAra[0]+"_format.csv", data);		
+			dispMessage("SOMMapManager","saveAllProspectMapData","Finished saving all prospect map data");
+			return true;
+		} else {dispMessage("SOMMapManager","saveAllProspectMapData","No prospect example data to save. Aborting"); return false;}
 	}//saveAllProspectMapData	
 
-	private void saveAllProductMapData() {
-		dispMessage("SOMMapManager","saveAllProductMapData","Saving all product map data : " + productMap.size() + " examples to save.");
-		String[] saveDestFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(false, "productMapSrcData");
-		ArrayList<String> csvResTmp = new ArrayList<String>();		
-		ProductExample ex1 = productMap.get(productMap.firstKey());
-		String hdrStr = ex1.getRawDescColNamesForCSV();
-		csvResTmp.add( hdrStr);	
-		for (ProductExample ex : productMap.values()) {			
-			csvResTmp.add(ex.getRawDescrForCSV());
-		}
-		saveStrings(saveDestFNamePrefixAra[0]+".csv", csvResTmp);		
-		dispMessage("SOMMapManager","saveAllProductMapData","Finished saving all product map data");
+	private boolean saveAllProductMapData() {
+		if ((null != productMap) && (productMap.size() > 0)) {
+			dispMessage("SOMMapManager","saveAllProductMapData","Saving all product map data : " + productMap.size() + " examples to save.");
+			String[] saveDestFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(false, "productMapSrcData");
+			ArrayList<String> csvResTmp = new ArrayList<String>();		
+			ProductExample ex1 = productMap.get(productMap.firstKey());
+			String hdrStr = ex1.getRawDescColNamesForCSV();
+			csvResTmp.add( hdrStr);	
+			for (ProductExample ex : productMap.values()) {			
+				csvResTmp.add(ex.getRawDescrForCSV());
+			}
+			saveStrings(saveDestFNamePrefixAra[0]+".csv", csvResTmp);		
+			dispMessage("SOMMapManager","saveAllProductMapData","Finished saving all product map data");
+			return true;
+		} else {dispMessage("SOMMapManager","saveAllProductMapData","No product example data to save. Aborting"); return false;}
 	}//saveAllProductMapData
 	
 	//save MonitorJpJpgrp
 	private void saveMonitorJpJpgrp() {
 		dispMessage("SOMMapManager","saveMonitorJpJpgrp","Saving MonitorJpJpgrp data");
 		String[] saveDestFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(false, "MonitorJpJpgrpData");
-
 		jpJpgrpMon.saveAllData(saveDestFNamePrefixAra[0]+".csv");
 		dispMessage("SOMMapManager","saveMonitorJpJpgrp","Finished saving MonitorJpJpgrp data");
 	}//saveMonitorJpJpgrp
-	
+		
+	//build the calculation object, recalculate the features and calc and save the mins and diffs
+	public void calcFtrsDiffsMinsAndSave() {
+		dispMessage("SOMMapManager","rebuildCalcObj","Start loading calc object, calculating all feature vectors for prospects and products, calculating mins and diffs, and saving all results.");
+		finishSOMExampleBuild();
+		dispMessage("SOMMapManager","rebuildCalcObj","Finished loading calc object, calculating all feature vectors for prospects and products & calculating mins and diffs | Start saving all results.");
+		setFlag(rawPrspctEvDataProcedIDX, true);
+		setFlag(rawProducDataProcedIDX, true);
+		boolean prspctSuccess = saveAllProspectMapData();
+		boolean prodSuccess = saveAllProductMapData();		
+		if (prspctSuccess || prodSuccess) { saveMonitorJpJpgrp();}
+		dispMessage("SOMMapManager","rebuildCalcObj","Finished loading calc object, calculating all feature vectors for prospects and products, calculating mins and diffs, and saving all results.");
+	}//calcFtrsDiffsMinsAndSave()
+
 	//finish building the prospect map - finalize each prospect example and then perform calculation to derive weight vector
 	private void finishSOMExampleBuild() {
-		dispMessage("SOMMapManager","finishSOMExampleBuild","Start calculating all feature vectors for prospects and products");
-		dispMessage("SOMMapManager","finishSOMExampleBuild","Begin Finalize of prospect and product map.");
-		//finalize builds each example's occurence structures, which describe the jp-jpg relationships found in the example
-		for (ProspectExample ex : prospectMap.values()) {			ex.finalizeBuild();		}		
-		//finalize build for all products - aggregates all jps seen in product
-		for (ProductExample ex : productMap.values()){		ex.finalizeBuild();		}	
-		dispMessage("SOMMapManager","finishSOMExampleBuild","End Finalize of prospect and product map.");
-		
-		dispMessage("SOMMapManager","finishSOMExampleBuild","Begin setJPDataFromExampleData");
-		//we need the jp-jpg counts and relationships dictated by the data by here.
-		setJPDataFromExampleData(prospectMap);
-		dispMessage("SOMMapManager","finishSOMExampleBuild","End setJPDataFromExampleData");	
-		//reset calc analysis objects before building feature vectors to enable new analytic info to be aggregated
-		ftrCalcObj.resetAllCalcObjs();
-		dispMessage("SOMMapManager","finishSOMExampleBuild","Begin buildFeatureVector prospects");
-		for (ProspectExample ex : prospectMap.values()) {			ex.buildFeatureVector();	}
-		//set state as finished
-		ftrCalcObj.finishFtrCalcs();
-		dispMessage("SOMMapManager","finishSOMExampleBuild","End buildFeatureVector prospects");
-		
-		dispMessage("SOMMapManager","finishSOMExampleBuild","Begin buildFeatureVector products");
-		for (ProductExample ex : productMap.values()) {		ex.buildFeatureVector();  addProductToJPProductMaps(ex);	}
-		dispMessage("SOMMapManager","finishSOMExampleBuild","End buildFeatureVector products");			
-		//dbgDispProductWtSpans()	
-		//now get mins and diffs from calc object
-		diffsVals = ftrCalcObj.getDiffsBndsAra();
-		minsVals = ftrCalcObj.getMinBndsAra();
-		for (ProspectExample ex : prospectMap.values()) {			ex.buildPostFeatureVectorStructs();		}//this builds std ftr vector for prospects, once diffs and mins are set - not necessary for products, buildFeatureVector for products builds std ftr vec
-		setFlag(rawPrspctEvDataProcedIDX, true);	
-		
-		dispMessage("SOMMapManager","finishSOMExampleBuild","Finished calculating all feature vectors for prospects and products and calculating mins and diffs.");
+		if((prospectMap.size() != 0) || (productMap.size() != 0)) {
+			setFlag(mapDataLoadedIDX,false);//current map, if there is one, is now out of date, do not use
+			dispMessage("SOMMapManager","finishSOMExampleBuild","Begin Finalize of prospect and product map.");
+			//finalize builds each example's occurence structures, which describe the jp-jpg relationships found in the example
+			for (ProspectExample ex : prospectMap.values()) {			ex.finalizeBuild();		}		
+			//finalize build for all products - aggregates all jps seen in product
+			for (ProductExample ex : productMap.values()){		ex.finalizeBuild();		}	
+			dispMessage("SOMMapManager","finishSOMExampleBuild","End Finalize of prospect and product map | Begin setJPDataFromExampleData");
+			//we need the jp-jpg counts and relationships dictated by the data by here.
+			setJPDataFromExampleData(prospectMap);
+			dispMessage("SOMMapManager","finishSOMExampleBuild","End setJPDataFromExampleData | Begin buildFeatureVector prospects");	
+			//reset calc analysis objects before building feature vectors to enable new analytic info to be aggregated
+			ftrCalcObj.resetAllCalcObjs();
+			for (ProspectExample ex : prospectMap.values()) {			ex.buildFeatureVector();	}
+			//set state as finished
+			ftrCalcObj.finishFtrCalcs();
+			dispMessage("SOMMapManager","finishSOMExampleBuild","End buildFeatureVector prospects | Begin buildFeatureVector products");
+			productsByJpg = new TreeMap<Integer, ArrayList<ProductExample>>();
+			productsByJp = new TreeMap<Integer, ArrayList<ProductExample>>();
+			for (ProductExample ex : productMap.values()) {		ex.buildFeatureVector();  addProductToJPProductMaps(ex);	}
+			dispMessage("SOMMapManager","finishSOMExampleBuild","End buildFeatureVector products | Begin calculating diffs and mins");			
+			//dbgDispProductWtSpans()	
+			//now get mins and diffs from calc object
+			diffsVals = ftrCalcObj.getDiffsBndsAra();
+			minsVals = ftrCalcObj.getMinBndsAra();
+			dispMessage("SOMMapManager","finishSOMExampleBuild","End calculating diffs and mins | Begin building post-feature calc structs in prospects (i.e. std ftrs) dependent on diffs and mins");			
+			for (ProspectExample ex : prospectMap.values()) {			ex.buildPostFeatureVectorStructs();		}//this builds std ftr vector for prospects, once diffs and mins are set - not necessary for products, buildFeatureVector for products builds std ftr vec
+			dispMessage("SOMMapManager","finishSOMExampleBuild","End building post-feature calc structs in prospects (i.e. std ftrs)");			
+				
+		} else {		dispMessage("SOMMapManager","finishSOMExampleBuild","No prospects or products loaded to calculate.");	}
 	}//finishSOMExampleBuild
 	
 	//called to process analysis data
-	public void processCalcAnalysis() {
-		if (ftrCalcObj != null) {ftrCalcObj.finalizeCalcAnalysis();}//check if false to not reperform analysis if not needed.  be sure to set calcAnalsysSavedIDX to false if any calc vals change
-	}
+	public void processCalcAnalysis() {	if (ftrCalcObj != null) {ftrCalcObj.finalizeCalcAnalysis();}}
 	
 	//once map is built, find bmus on map for each product
 	public void setProductBMUs() {
@@ -904,7 +899,7 @@ public class SOMMapManager {
 		}		
 	}//getDataFrmtTypeFromName
 	
-	//using the passed map, build the testing and training data partitions
+	//using the passed map, build the testing and training data partitions and save them to files
 	private void buildTestTrainFromProspectMap(float trainTestPartition, boolean isNotDebugData) {
 		dispMessage("SOMMapManager","buildTestTrainFromInput","Building Training and Testing Partitions.");
 		//set partition size in project config
@@ -912,20 +907,19 @@ public class SOMMapManager {
 		//set inputdata array to be all prospect map examples
 		inputData = prospectMap.values().toArray(new ProspectExample[0]);
 		
-		//shuffleProspects(ProspectExample[] _list, long seed) -- performed in place
+		//shuffleProspects(ProspectExample[] _list, long seed) -- performed in place - use same key so is reproducible training, always has same shuffled order
 		inputData = shuffleProspects(inputData, 12345L);
 		
 		numTrainData = (int) (inputData.length * trainTestPartition);			
 		numTestData = inputData.length - numTrainData;
-		//TODO shuffle data order
 		
-		//trainData, inputData, testData;
+		//build train and test partitions
 		trainData = new ProspectExample[numTrainData];	
 		dispMessage("SOMMapManager","buildTestTrainFromInput","# of training examples : " + numTrainData + " inputData size : " + inputData.length);
-		//numTrainData and numTestData 
 		for (int i=0;i<trainData.length;++i) {trainData[i]=inputData[i];trainData[i].setIsTrainingDataIDX(true, i);}
 		testData = new ProspectExample[numTestData];
 		for (int i=0;i<testData.length;++i) {testData[i]=inputData[i+numTrainData];testData[i].setIsTrainingDataIDX(false, i);}
+		//build array of produt examples based on product map
 		productData = productMap.values().toArray(new ProductExample[0]);
 		//dbg disp
 		//for(ProductExample prdEx : productData) {dispMessage("SOMMapManager","buildTestTrainFromInput",prdEx.toString());}
@@ -933,7 +927,7 @@ public class SOMMapManager {
 		if (isNotDebugData) {//will save results to new directory
 			projConfigData.buildDateTimeStrAraAndDType(getDataTypeNameFromCurFtrType());
 			projConfigData.setSOM_ExpFileNames(inputData.length, numTrainData, numTestData);
-			projConfigData.launchTestTrainSaveThrds(th_exec, curMapFtrType);	
+			projConfigData.launchTestTrainSaveThrds(th_exec, curMapFtrType);				//save testing and training data
 		} else {		//will load results from previously run experiment
 			projConfigData.setSOM_UseDBGMap();		
 		}		
@@ -1005,46 +999,17 @@ public class SOMMapManager {
 		th_exec.execute(new SOMDataLoader(this,projConfigData));//fire and forget load task to load		
 	}//dbgBuildExistingMap
 		
-	public boolean getUseChiSqDist() {return useChiSqDist;}
-	public void setUseChiSqDist(boolean _useChiSq) {useChiSqDist=_useChiSq;}
-	
-	public String getJpByIdxStr(int idx) {return jpJpgrpMon.getJpByIdxStr(idx);}	
-	public String getJpGrpByIdxStr(int idx) {return jpJpgrpMon.getJpGrpByIdxStr(idx);}
-		
-	public String getProdJpByIdxStr(int idx) {return jpJpgrpMon.getProdJpByIdxStr(idx);}	
-	public String getProdJpGrpByIdxStr(int idx) {return jpJpgrpMon.getProdJpGrpByIdxStr(idx);}
-		
-	//this will return the appropriate jpgrp for the given jpIDX (ftr idx)
-	public int getUI_JPGrpFromJP(int jpIdx, int curVal) {		return jpJpgrpMon.getUI_JPGrpFromJP(jpIdx, curVal);}
-	//this will return the first(lowest) jp for a particular jpgrp
-	public int getUI_FirstJPFromJPG(int jpgIdx, int curVal) {	return jpJpgrpMon.getUI_FirstJPFromJPG(jpgIdx, curVal);}	
-	//return appropriately pathed file name for map image of specified JP idx
-	public String getSOMLocClrImgForJPFName(int jpIDX) {return projConfigData.getSOMLocClrImgForJPFName(jpIDX);	}
-	
-	//project config manages this information now
-	public Calendar getInstancedNow() { return projConfigData.getInstancedNow();}
-
-	//set current map ftr type, and update ui if necessary
-	public void setCurrentDataFormat(int _frmt) {	curMapFtrType = _frmt; }//setCurrentDataFormat
-	public int getCurrMapDataFrmt() {	return curMapFtrType;}
-	//set flag that SOM file loader is finished to false
-	public void setLoaderRtnFalse() {setFlag(loaderRtnIDX, false);}
-	
-	public static float getNodeInSegThresh() {return nodeInSegDistThresh;}
-	public static void setNodeInSegThresh(float _val) {nodeInSegDistThresh=_val;}	
-	
 	//this will set the current jp->jpg data maps based on passed prospect data map
 	//When acquiring new data, this must be performed after all data is loaded, but before
 	//the prospect data is finalized and actual map is built due to the data finalization 
 	//requiring a knowledge of the entire dataset to build weights appropriately
 	private void setJPDataFromExampleData(ConcurrentSkipListMap<String, ProspectExample> map) {
 		//object to manage all jps and jpgroups seen in project
-		jpJpgrpMon.setJPDataFromExampleData(map, productMap);
-		
+		jpJpgrpMon.setJPDataFromExampleData(map, productMap);		
 		numFtrs = jpJpgrpMon.getNumFtrs();
 		//rebuild calc object since feature terrain might have changed 
 		String calcFullFileName = projConfigData.getFullCalcInfoFileName(); 
-		
+		//make/remake calc object - reads from calcFullFileName data file
 		ftrCalcObj = new StraffWeightCalc(this, calcFullFileName, jpJpgrpMon);
 	}//setJPDataFromProspectData	
 
@@ -1164,51 +1129,40 @@ public class SOMMapManager {
 		//to free up memory before we build feature weight vectors
 		rawDataArrays = null;//new ConcurrentSkipListMap<String, ArrayList<BaseRawData>>();		//finalize builds each example's occurence structures, which describe the jp-jpg relationships found in the example
 		
-		dispMessage("SOMMapManager","procRawLoadedData","Begin initial finalize of tmp prospect map to aggregate all JPs and determine records that are valid training examples");		
+		dispMessage("SOMMapManager","procRawLoadedData","Begin initial finalize of temp prospect map to aggregate all JPs and determine which records are valid training examples");		
 		//finalize each potential prospect and product - this will aggregate all the jp's that are seen, as well as finding all records that are bad due to having a 0 ftr vector
 		for (ProspectExample ex : tmpProspectMap.values()) {			ex.finalizeBuild();		}		
-		dispMessage("SOMMapManager","procRawLoadedData","End initial finalize of tmp prospect map");		
+		dispMessage("SOMMapManager","procRawLoadedData","End initial finalize of temp prospect map");		
 		dispMessage("SOMMapManager","procRawLoadedData","Begin initial finalize of product map to aggregate all JPs");		
 		//finalize build for all products - aggregates all jps seen in product
 		for (ProductExample ex : productMap.values()){		ex.finalizeBuild();		}		
 		dispMessage("SOMMapManager","procRawLoadedData","End initial finalize of product map");		
 		//must rebuild this because we might not have same jp's
-		dispMessage("SOMMapManager","procRawLoadedData","Begin setJPDataFromExampleData from tmp prospect map");
+		dispMessage("SOMMapManager","procRawLoadedData","Begin setJPDataFromExampleData from temp prospect map");
 		//we need the jp-jpg counts and relationships dictated by the data by here.
 		setJPDataFromExampleData(tmpProspectMap);
-		dispMessage("SOMMapManager","procRawLoadedData","End setJPDataFromExampleData from tmp prospect map");
+		dispMessage("SOMMapManager","procRawLoadedData","End setJPDataFromExampleData from temp prospect map");
 		
-		//save all data here,clear rawDataArrays, reset raw data array flags
 		//build actual prospect map only from prospectExamples that hold trainable information
-		//need to have every entered prospect example finalized before this - the finalization process is necessary to determine if an example is good or not
+		//need to have every entered prospect example finalized before this - the finalization process is necessary to determine if an example is to be used as a training example or not
 		//if(eventsOnly) {//only records with events will be used to train
-			for (String OID : tmpProspectMap.keySet()) {
-				ProspectExample ex = tmpProspectMap.get(OID);
-				if (ex.isTrainableRecordEvent()) {			prospectMap.put(OID, ex);		} 
-			}
+		for (String OID : tmpProspectMap.keySet()) {
+			ProspectExample ex = tmpProspectMap.get(OID);
+			if (ex.isTrainableRecordEvent()) {			prospectMap.put(OID, ex);		} 
+		}
 //		} else {//any jpgs/jps present will be used to train
 //			for (String OID : tmpProspectMap.keySet()) {
 //				ProspectExample ex = tmpProspectMap.get(OID);
 //				if (ex.isTrainableRecord()) {				prospectMap.put(OID, ex);			}
 //			}			
 //		}	
-			
-		//finalize each prospect record, aggregate data-driven static vals, rebuild ftr vectors - doing this over since we are only using non-bad record prospects
-		finishSOMExampleBuild();
 		dispMessage("SOMMapManager","procRawLoadedData","Raw Records Unique OIDs presented : " + tmpProspectMap.size()+" | Records found with trainable events info : " + prospectMap.size());
-		//setAllFlags(new int[] {prospectDataLoadedIDX, optDataLoadedIDX, orderDataLoadedIDX}, false);
-		setFlag(rawPrspctEvDataProcedIDX, true);
-		setFlag(rawProducDataProcedIDX, true);
-		saveAllData();
+			
+		//finalize - recalc all processed data in case new products have different JP's present, set flags and save to file
+		calcFtrsDiffsMinsAndSave();
 		dispMessage("SOMMapManager","procRawLoadedData","Finished processing all loaded data");
 	}//procRawLoadedData
-	
-	private void saveAllData() {
-		saveAllProspectMapData();
-		saveAllProductMapData();		
-		saveMonitorJpJpgrp();		
-	}
-	
+
 	//return interpolated feature vector on map at location given by x,y, where x,y is float location of map using mapnodes as integral locations
 	public TreeMap<Integer, Float> getInterpFtrs(float x, float y){
 		float xInterp = (x+mapNodeCols) %1, yInterp = (y+mapNodeRows) %1;
@@ -1337,6 +1291,12 @@ public class SOMMapManager {
 		if (null == ftrCalcObj) {	dispMessage("SOMMapManager","dbgShowCalcEqs","No calc object made to display.");return;	}
 		dispMessage("SOMMapManager","dbgShowCalcEqs","Weight Calculation Equations : \n"+ftrCalcObj.toString());		
 	}
+	
+	private void dbgLoadedData(int idx) {
+		ArrayList<BaseRawData> recs = rawDataArrays.get(straffDataFileNames[idx]);
+		for  (BaseRawData rec : recs) {if(rec.rawJpMapOfArrays.size() > 1) {dispMessage("SOMMapManager","dbgLoadedData",straffDataFileNames[idx] + " : " + rec.toString());}}			
+	}
+	
 	
 	//display all currently calculated feature vectors
 	public void dbgShowAllFtrVecs() {
@@ -1529,7 +1489,7 @@ public class SOMMapManager {
 		for(SOMMapNode node : nodes){				node.drawMePopNoLbl(pa, _type);}
 		pa.popStyle();pa.popMatrix();		
 	}	
-	
+	private int getDistType() {return (getFlag(mapExclProdZeroFtrIDX) ? ProductExample.SharedFtrsIDX : ProductExample.AllFtrsIDX);}
 	private static int dispProdJPDataFrame = 0, curProdJPIdx = -1, curProdTimer = 0;
 	//display the region of the map expected to be impacted by the products serving the passed jp 
 	public void drawProductRegion(SOM_StraffordMain pa, int prodJpIDX, double maxDist) {
@@ -1540,7 +1500,7 @@ public class SOMMapManager {
 			dispProdJPDataFrame = 0;
 			curProdTimer = 0;
 		}
-		int distType = (getFlag(mapExclProdZeroFtrIDX) ? ProductExample.SharedFtrsIDX : ProductExample.AllFtrsIDX);
+		int distType = getDistType();
 		ProductExample ex = prodsToShow.get(dispProdJPDataFrame);
 		ex.drawMeLinkedToBMU(pa, 5.0f,ex.OID);		
 		ex.drawProdMapExtent(pa, distType, prodsToShow.size(), maxDist);
@@ -1696,7 +1656,47 @@ public class SOMMapManager {
 		}
 	}//setFlag		
 	public boolean getFlag(int idx){int bitLoc = 1<<(idx%32);return (stFlags[idx/32] & bitLoc) == bitLoc;}		
-	//convenience funcs to check for whether mt capable, and to return # of usable threads (total host threads minus some reserved for processing)
+	//getter/setter/convenience funcs
+	public boolean mapCanBeTrained(int kVal) {
+		//eventually enable training map on existing files - save all file names, enable file names to be loaded and map built directly
+		return ((kVal <= 1) && (getFlag(denseTrainDataSavedIDX)) || ((kVal == 2) && getFlag(sparseTrainDataSavedIDX)));
+	}	
+	//return true if loader is done and if data is successfully loaded
+	public boolean isMapDrawable(){return getFlag(loaderRtnIDX) && getFlag(mapDataLoadedIDX);}
+	public boolean isFtrCalcDone() {return (ftrCalcObj != null) && ftrCalcObj.calcAnalysisIsReady();}	
+	public boolean isToroidal(){return projConfigData.isToroidal();}
+	//add prospect to prospect map
+	public ProspectExample putInProspectMap(ProspectExample ex) {	return prospectMap.put(ex.OID, ex);}	
+
+	public ProductExample getProductByID(String prodOID) {	return productMap.get(prodOID);		}
+	public boolean getUseChiSqDist() {return useChiSqDist;}
+	public void setUseChiSqDist(boolean _useChiSq) {useChiSqDist=_useChiSq;}
+	
+	public String getJpByIdxStr(int idx) {return jpJpgrpMon.getJpByIdxStr(idx);}	
+	public String getJpGrpByIdxStr(int idx) {return jpJpgrpMon.getJpGrpByIdxStr(idx);}
+		
+	public String getProdJpByIdxStr(int idx) {return jpJpgrpMon.getProdJpByIdxStr(idx);}	
+	public String getProdJpGrpByIdxStr(int idx) {return jpJpgrpMon.getProdJpGrpByIdxStr(idx);}
+		
+	//this will return the appropriate jpgrp for the given jpIDX (ftr idx)
+	public int getUI_JPGrpFromJP(int jpIdx, int curVal) {		return jpJpgrpMon.getUI_JPGrpFromJP(jpIdx, curVal);}
+	//this will return the first(lowest) jp for a particular jpgrp
+	public int getUI_FirstJPFromJPG(int jpgIdx, int curVal) {	return jpJpgrpMon.getUI_FirstJPFromJPG(jpgIdx, curVal);}	
+	//return appropriately pathed file name for map image of specified JP idx
+	public String getSOMLocClrImgForJPFName(int jpIDX) {return projConfigData.getSOMLocClrImgForJPFName(jpIDX);	}
+	
+	//project config manages this information now
+	public Calendar getInstancedNow() { return projConfigData.getInstancedNow();}
+
+	//set current map ftr type, and update ui if necessary
+	public void setCurrentDataFormat(int _frmt) {	curMapFtrType = _frmt; }//setCurrentDataFormat
+	public int getCurrMapDataFrmt() {	return curMapFtrType;}
+	//set flag that SOM file loader is finished to false
+	public void setLoaderRtnFalse() {setFlag(loaderRtnIDX, false);}
+	
+	public static float getNodeInSegThresh() {return nodeInSegDistThresh;}
+	public static void setNodeInSegThresh(float _val) {nodeInSegDistThresh=_val;}	
+	//getter/setter/convenience funcs to check for whether mt capable, and to return # of usable threads (total host threads minus some reserved for processing)
 	public boolean isMTCapable() {return getFlag(isMTCapableIDX);}
 	public int getNumUsableThreads() {return numUsableThreads;}
 	public ExecutorService getTh_Exec() {return th_exec;}
@@ -1712,33 +1712,6 @@ public class SOMMapManager {
 		return res;	
 	}	
 }//SOMMapManager
-
-
-
-/////////////////////////////////////////////////////////////////////
-//class holding data about a som feature
-class SOMFeature{
-	public SOMMapManager map;			//owning map
-	public int fIdx;
-	public String name;
-	public TreeMap<Float,SOMMapNode> sortedBMUs;		//best units for this particular feature, based on weight ratio (this is not actual weight of feature in node)
-
-	public SOMFeature(SOMMapManager _map, String _name, int _fIdx, String[] _tkns){//_tkns is in order idx%3==0 : wt ration, idx%3==1 : y coord, idx%3==2 : x coord
-		map=_map;fIdx=_fIdx;name=_name;
-		setBMUWts(_tkns);
-	}
-	
-	public void setBMUWts(String[] _tkns){
-		if(_tkns == null){map.dispMessage("SOMFeature","setBMUWts","Feature wts not found for feature : " + name + " idx : "+ fIdx);return;}
-		sortedBMUs = new TreeMap<Float,SOMMapNode>();
-	}
-	
-	public String toString(){
-		String res = "Feature Name : "+name;
-		return res;
-	}
-
-}//SOMFeature
 
 //class description for a data point - used to distinguish different jp-jpg members - class membership is determined by comparing the label
 //TODO change this to some other structure, or other comparison mechanism?  allow for subset membership check?

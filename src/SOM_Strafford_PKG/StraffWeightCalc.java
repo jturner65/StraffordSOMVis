@@ -13,7 +13,7 @@ import java.util.Map.Entry;
 public class StraffWeightCalc {
 	public static final String fileComment = "#";
 	public String fileName;
-	public SOMMapManager map;
+	public SOMMapManager mapMgr;
 	public final Date now;
 	//arrays are for idxs of various eq components (mult, offset, decay) in the format file for 
 	//each component contributor (prospect, order, opt, link), in order.  0-idx is jp name or "default"
@@ -45,9 +45,9 @@ public class StraffWeightCalc {
 			calcAnalysisCompleteIDX		= 2;	//analysis of calc results completed for this object
 	public static final int numFlags = 3;	
 	
-	public StraffWeightCalc(SOMMapManager _map, String _fileName, MonitorJpJpgrp _jpJpgMon) {
-		map = _map;
-		Calendar nowCal = map.getInstancedNow();
+	public StraffWeightCalc(SOMMapManager _mapMgr, String _fileName, MonitorJpJpgrp _jpJpgMon) {
+		mapMgr = _mapMgr;
+		Calendar nowCal = mapMgr.getInstancedNow();
 		now = nowCal.getTime();
 		jpJpgMon = _jpJpgMon;
 		initFlags();
@@ -56,7 +56,7 @@ public class StraffWeightCalc {
 	
 	private void loadConfigAndSetVars(String _fileName) {
 		fileName = _fileName;
-		String[] configDatList = map.loadFileIntoStringAra(fileName, "Weight Calc File Loaded", "Weight Calc File Not Loaded Due To Error");
+		String[] configDatList = mapMgr.loadFileIntoStringAra(fileName, "Weight Calc File Loaded", "Weight Calc File Not Loaded Due To Error");
 		eqs = new TreeMap<Integer, JPWeightEquation> ();
 		//initialize bnds
 		initBnds();
@@ -70,7 +70,7 @@ public class StraffWeightCalc {
 				strVals = configDatList[idx].trim().split(",");
 				if (strVals[0].toLowerCase().contains("default")) {
 					foundDflt = true;
-				} else {System.out.println("StraffWeightCalc::loadConfigAndSetVars : Error! First non comment record in config file "+ fileName + " is not default weight map.  Exiting calc unbuilt.");return;}
+				} else {mapMgr.dispMessage("StraffWeightCalc","loadConfigAndSetVars", "Error! First non comment record in config file "+ fileName + " is not default weight map.  Exiting calc unbuilt.");return;}
 			}		
 		}//while		
 		//string record has jp in col 0, 3 mult values 1-3, 3 offset values 4-6 and 3 decay values 7-9.
@@ -148,7 +148,7 @@ public class StraffWeightCalc {
 			destIDX = jpJpgMon.getJpToFtrIDX(jp);
 			if (destIDX==null) {continue;}//ignore unknown/unmapped jps
 			optOcc =  optOccs.get(jp);
-			if ((optOcc != null )&& (ex.getOptAllOccObj() != null)) {	map.dispMessage("StraffWeightCalc","calcFeatureVector","Multiple opt refs for prospect : " + ex.OID + " | This should not happen - opt events will be overly-weighted.");	}
+			if ((optOcc != null )&& (ex.getOptAllOccObj() != null)) {	mapMgr.dispMessage("StraffWeightCalc","calcFeatureVector","Multiple opt refs for prospect : " + ex.OID + " | This should not happen - opt events will be overly-weighted.");	}
 			float val = eqs.get(jp).calcVal(ex,orderOccs.get(jp),linkOccs.get(jp),optOcc);
 			if ((isZeroMagExample) && (val != 0)) {isZeroMagExample = false;}
 			res.put(destIDX,val);
@@ -543,72 +543,45 @@ class calcAnalysis{
 		p.popStyle();p.popMatrix();	
 	}//drawFtrVec
 	
-	//this will display a vertical bar corresponding to the performance of the analyzed calculation.
-	//each component of calc object will have a different color
-	//height - the height of the bar.  start each vertical bar at upper left corner, put text beneath bar
-	private void drawSpecifcFtrVec(SOM_StraffordMain p, int height, int width, float[] vals, String[] dispStrAra, float denom){
-		p.pushMatrix();p.pushStyle();
-		float rCompHeight, rYSt = 0.0f, htMult = height/denom;
-		for(int i =0;i<vals.length;++i) {
-			if (vals[i] > 0.0f) {
-				p.setColorValFill(p.gui_LightRed+i, 255);
-				rCompHeight = htMult * vals[i];
-				p.rect(0.0f, rYSt, width, rCompHeight);
-				drawMidBoxText(p,10.0f, rYSt+(rCompHeight/2.0f)+5,dispStrAra[i]);
-				rYSt+=rCompHeight;
-			}
-		}
-		p.popStyle();p.popMatrix();		
-	}//drawFtrVec	
-	
 	//draw vertical bar describing per-comp values with
 	private void drawDetailFtrVec(SOM_StraffordMain p, int height, int width, float[] vals, float denom, String valTtl, String[] dispStrAra, String[] valDesc) {
 		p.pushMatrix();p.pushStyle();
-		p.translate(0.0f, txtYOff, 0.0f);
-		p.showOffsetText2D(0.0f, p.gui_White, valTtl);//p.drawText(valTtl, 0, 0, 0, p.gui_White);
-		p.translate(0.0f, txtYOff, 0.0f);
-		p.pushMatrix();p.pushStyle();
-		float rCompHeight, rYSt = 0.0f, htMult = height/denom;
-		for(int i =0;i<vals.length;++i) {
-			if (vals[i] > 0.0f) {
-				p.setColorValFill(p.gui_LightRed+i, 255);
-				rCompHeight = htMult * vals[i];
-				p.rect(0.0f, rYSt, width, rCompHeight);
-				rYSt+=rCompHeight;
-			}
-		}
-		rCompHeight = 0.0f;
-		rYSt = 0.0f;
-		//make sure text for small boxes isn't overwritten by next box
-		for(int i =0;i<vals.length;++i) {
-			if (vals[i] > 0.0f) {
-				rCompHeight = htMult * vals[i];
-				drawMidBoxText(p, 10.0f, rYSt+(rCompHeight/2.0f)+5,dispStrAra[i]);
-				rYSt+=rCompHeight;
-			}
-		}
-		
-		p.popStyle();p.popMatrix();		
-		
-		
-		p.translate(0.0f, height+txtYOff, 0.0f);
-		for(String s : valDesc) {
-			p.showOffsetText2D(0.0f, p.gui_White, s);//p.drawText(s, 0, 0, 0, p.gui_White);
 			p.translate(0.0f, txtYOff, 0.0f);
-		}
-		//move down and print out relevant text
+			p.showOffsetText2D(0.0f, p.gui_White, valTtl);
+			p.translate(0.0f, txtYOff, 0.0f);
+			p.pushMatrix();p.pushStyle();
+				float rCompHeight, rYSt = 0.0f, htMult = height/denom;
+				for(int i =0;i<vals.length;++i) {
+					if (vals[i] > 0.0f) {
+						p.setColorValFill(p.gui_LightRed+i, 255);
+						rCompHeight = htMult * vals[i];
+						p.rect(0.0f, rYSt, width, rCompHeight);
+						rYSt+=rCompHeight;
+					}
+				}
+				rCompHeight = 0.0f;
+				rYSt = 0.0f;
+				//make sure text for small boxes isn't overwritten by next box
+				for(int i =0;i<vals.length;++i) {
+					if (vals[i] > 0.0f) {
+						rCompHeight = htMult * vals[i];
+						p.pushMatrix();p.pushStyle();
+						p.translate(10.0f, rYSt+(rCompHeight/2.0f)+5, 0.0f);
+						p.showOffsetText2D(0.0f, p.gui_Black, dispStrAra[i]);
+						p.popStyle();p.popMatrix();
+						rYSt+=rCompHeight;
+					}
+				}		
+			p.popStyle();p.popMatrix();				
+			p.translate(0.0f, height+txtYOff, 0.0f);
+			for(String s : valDesc) {
+				p.showOffsetText2D(0.0f, p.gui_White, s);
+				p.translate(0.0f, txtYOff, 0.0f);
+			}
+			//move down and print out relevant text
 		p.popStyle();p.popMatrix();		
 	}//drawSpecificFtrVecWithText
-	
-	//draw specified descriptive text within box bounds defined by xDisp and yDisp
-	private void drawMidBoxText(SOM_StraffordMain p, float xDisp, float yDisp, String txt) {
-		p.pushMatrix();p.pushStyle();
-		p.translate(xDisp, yDisp, 0.0f);
-		p.showOffsetText2D(0.0f, p.gui_Black, txt);//eq.calcNames[i] + " : "+ eqTypeCount[i]+" exmpls." + width);//p.drawText(s, 0, 0, 0, p.gui_White);
-		p.popStyle();p.popMatrix();
-	}//drawMidBoxText
 
-	
 	//draw a single ftr vector as a wide bar; include text for descriptions
 	//width is per bar
 	public void drawIndivFtrVec(SOM_StraffordMain p, int height, int width){

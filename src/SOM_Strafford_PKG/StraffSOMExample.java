@@ -21,19 +21,15 @@ import java.util.regex.Pattern;
 public abstract class StraffSOMExample extends baseDataPtVis{	
 	protected static MonitorJpJpgrp jpJpgMon;
 	//corresponds to OID in prospect database - primary key of all this data is OID in prospects
-	public final String OID;	
-	
+	public final String OID;		
 	//use a map to hold only sparse data frmt
-	protected TreeMap<Integer, Float> ftrMap, stdFtrMap, normFtrMap;
-	
+	protected TreeMap<Integer, Float> ftrMap, stdFtrMap, normFtrMap;	
 	//designate whether feature vector built or not
 	protected boolean ftrsBuilt, stdFtrsBuilt, normFtrsBuilt;
 	///if all feature values == 0 then this is a useless example for training. only set upon feature vector calc
-	protected boolean isBadTrainExample;
-	
+	protected boolean isBadTrainExample;	
 	//magnitude of this feature vector
-	public float ftrVecMag;
-	
+	public float ftrVecMag;	
 	//all jps seen in all occurrence structures - NOT IDX IN FEATURE VECTOR!
 	public HashSet<Integer> allJPs;
 	//idx's in feature vector that have non-zero values
@@ -59,8 +55,6 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	//to hold 9 node neighborhood surrounding bmu - using array of nodes because nodes can be equidistant form multiple nodes
 	//TODO set a list of these nodes for each SOMMapNodeExample upon their construction? will this speed up anything?
 	private TreeMap<Double, ArrayList<SOMMapNode>> mapNodeNghbrs;
-	//display label describing this example TODO this needs refinement for strafford-specific data
-	protected dataClass label;
 	
 	public StraffSOMExample(SOMMapManager _map, ExDataType _type, String _id) {
 		super(_map,_type);
@@ -679,18 +673,7 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		buildNghbrhdMapNodes_ChiSq( _ftrtype);	
 		return mapNodes;
 	}//findBMUFromNodes_ChiSq		
-		
-	public dataClass getLabel(){return label;}	
-	public final void buildLabel() {
-		label = new dataClass(OID,"lbl:"+OID,"unitialized Description", null);
-		label.clrVal = new int[] {255,0,0,255};
-		//class-specific customization of label
-		buildLabelIndiv();	
-	}//buildLabel() 
 
-	//implement this for all inheriting classes - use already-known data to build label for example
-	public abstract void buildLabelIndiv();
-	
 	private String _toCSVString(TreeMap<Integer, Float> ftrs) {
 		String res = ""+OID+",";
 		for(int i=0;i<mapMgr.numFtrs;++i){
@@ -792,7 +775,7 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	}
 	@Override
 	public String toString(){
-		String res = "Example OID# : "+OID+ (  "" != OID ? " Dense format lrnID : " + OID + "\t" : "" ) + (null == label ?  "Unknown DataClass\t" : "DataClass : " + label.toString() +"\t");
+		String res = "Example OID# : "+OID ;
 		if(null!=mapLoc){res+="Location on SOM map : " + mapLoc.toStrBrf();}
 		if (mapMgr.numFtrs > 0) {
 			res += "\nUnscaled Features (" +mapMgr.numFtrs+ " ) :";
@@ -1122,15 +1105,6 @@ class ProspectExample extends StraffSOMExample{
 		return res;		
 	}
 
-	//for display only
-	@Override
-	public void buildLabelIndiv() {	}
-	@Override
-	public void drawMeLblMap(SOM_StraffordMain p) {
-		p.pushMatrix();p.pushStyle();
-		//draw point of radius rad at maploc with label	
-		p.showNoBox(mapLoc, getRad(), 5, label.clrVal,label.clrVal, SOM_StraffordMain.gui_FaintGray, label.label);
-		p.popStyle();p.popMatrix();			}
 	
 	@Override
 	public String toString() {	
@@ -1143,6 +1117,7 @@ class ProspectExample extends StraffSOMExample{
 	}
 
 }//class prospectExample
+
 
 /**
  * this class implements a product example, to be used to query the SOM and to illuminate relevant regions on the map.  
@@ -1169,6 +1144,10 @@ class ProductExample extends StraffSOMExample{
 		AllFtrsIDX = 0,				//looks at all features in this node for distance calculations
 		SharedFtrsIDX = 1;			//looks only at non-zero features in this node for distance calculations
 	private static int numFtrCompVals = 2;
+	
+	//types to conduct similarity mapping
+	private static ExDataType[] prospectTypes = new ExDataType[] {ExDataType.ProspectTraining, ExDataType.ProspectTesting};
+
 	//color to illustrate map (around bmu) region corresponding to this product - use distance as alpha value
 	private int[] prodClr;
 		
@@ -1262,14 +1241,7 @@ class ProductExample extends StraffSOMExample{
 		wtMaxs.put(idx,(val>getVal) ? val : getVal);	
 		wtDists.put(idx, wtMaxs.get(idx)- wtMins.get(idx));		
 	}//setFtrMinMax
-	
-	@Override
-	public void drawMeLblMap(SOM_StraffordMain p){
-		p.pushMatrix();p.pushStyle();
-		//draw point of radius rad at maploc with label	
-		p.showNoBox(mapLoc, getRad(), 5, label.clrVal,label.clrVal, SOM_StraffordMain.gui_FaintGray, label.label);
-		p.popStyle();p.popMatrix();		
-	}//drawLabel
+
 	
 	//draw all map nodes this product exerts influence on, with color alpha reflecting inverse distance, above threshold value set when nodesToDraw map was built
 	public void drawProdMapExtent(SOM_StraffordMain p, int distType, int numProds, double _maxDist) {
@@ -1285,64 +1257,85 @@ class ProductExample extends StraffSOMExample{
 	}//drawProdMapExtent
 	
 	//convert distances to confidences so that for [_maxDist <= _dist <= 0] :
-	//this returns [0 <= conf <= _maxDist*_maxDistScale]; _maxDistScale should be 100/_maxDist to give ranges from 0->100
-	private double distToConf(double _dist, double _maxDist, double _maxDistScale) { return (_maxDist - _dist)*_maxDistScale;	}
+	//this returns [0 <= conf <= _maxDist*_maxDistScale]; gives 0->1 as confidence
+	private static double distToConf(double _dist, double _maxDist, double _maxDistScale) { return (_maxDist - _dist)*_maxDistScale;	}
 	
-	//build a map keyed by example nodes of passed type that are mapped to map nodes near this product, value is a tuple holding :
+	//build a map keyed by distance to each map node of arrays of maps of arrays of that mapnode's examples, each array keyed by their distance:
+	//Outer map is keyed by distance from prod to map node, value is array (1 per map node @ dist) of maps keyed by distance from example to map node, value is array of all examples at that distance)
 	//x : this product's distance to map node ; y : each example's distance to map node
 	//based on their bmu mappings, to map nodes within _maxDist threshold of this node
-	private TreeMap<StraffSOMExample, Tuple<Double,Double>> getExamplesNearThisProd(NavigableMap<Double, ArrayList<SOMMapNode>> subMap, ExDataType type, double _maxDist) {
-		TreeMap<StraffSOMExample, Tuple<Double,Double>> nodesNearProd = new TreeMap<StraffSOMExample, Tuple<Double,Double>>();
-		TreeMap<StraffSOMExample, Double> tmpMapOfNodes;
-		Double conf, _maxDistScale = 100.0/_maxDist;
-		for (Double dist : subMap.keySet()) {							//get all map nodes of certain distance from this node; - this dist is distance from this node to map node
-			ArrayList<SOMMapNode> nodeList = subMap.get(dist);
-			conf = distToConf(dist, _maxDist, _maxDistScale);			//derive confidence as inverse of distance - very close nodes we are very confident in - 0->100 for dist : maxDist -> 0
-			for (SOMMapNode n : nodeList) {								//for each map node get all examples of ExDataType that consider that map node BMU
-				tmpMapOfNodes = n.getAllExsAndDist(type);
-				for(StraffSOMExample exN : tmpMapOfNodes.keySet()) {
-					Tuple<Double,Double> confInMap = nodesNearProd.get(exN);
-					if((confInMap == null) || (confInMap.x < conf)){nodesNearProd.put(exN, new Tuple<Double,Double>(conf,tmpMapOfNodes.get(exN)));}	//verify node hasn't been added before, or if it has, it wasn't less confident.  if not either than add this node with current confidence
-				}			
-			}
+	//subMap holds all map nodes within _maxDist of this node
+	private TreeMap<Double, TreeMap<Double, ArrayList<StraffSOMExample>>> getExamplesNearThisProd(NavigableMap<Double, ArrayList<SOMMapNode>> subMap, ExDataType type) {
+		TreeMap<Double, TreeMap<Double, ArrayList<StraffSOMExample>>> nodesNearProd = new TreeMap<Double, TreeMap<Double, ArrayList<StraffSOMExample>>>();
+		HashMap<StraffSOMExample, Double> tmpMapOfNodes;
+		for (Double dist : subMap.keySet()) {								//get all map nodes of certain distance from this node; - this dist is distance from this node to map node
+			ArrayList<SOMMapNode> nodeList = subMap.get(dist);				//all ara of all map nodes of specified distance from this product node
+			TreeMap<Double, ArrayList<StraffSOMExample>> tmpMapOfArrays = nodesNearProd.get(dist);			
+			if (tmpMapOfArrays==null) {tmpMapOfArrays = new TreeMap<Double, ArrayList<StraffSOMExample>>();}				
+			for (SOMMapNode n : nodeList) {									//for each map node get all examples of ExDataType that consider that map node BMU
+				tmpMapOfNodes = n.getAllExsAndDist(type);					//each prospect example and it's distance from the bmu map node				
+				for(StraffSOMExample exN : tmpMapOfNodes.keySet()) {		//for each example that treats map node as bmu
+					Double distFromBMU = tmpMapOfNodes.get(exN);
+					ArrayList<StraffSOMExample> exsAtDistFromMapNode = tmpMapOfArrays.get(distFromBMU);
+					if (exsAtDistFromMapNode==null) {exsAtDistFromMapNode = new ArrayList<StraffSOMExample>();}
+					exsAtDistFromMapNode.add(exN);
+					tmpMapOfArrays.put(distFromBMU,exsAtDistFromMapNode);
+				}//for each node at this map node
+			}//for each map node at distance dist			
+			nodesNearProd.put(dist, tmpMapOfArrays);
 		}
 		return nodesNearProd;
 	}//getExamplesNearThisProd	
 	
-	//types to conduct similarity mapping
-	private static ExDataType[] prospectTypes = new ExDataType[] {ExDataType.ProspectTraining, ExDataType.ProspectTesting};
-	//get confidence and nodes w/confidence values 
-	public TreeMap<Tuple<Double,Double>, ArrayList<StraffSOMExample>> getAllExamplesNearThisProd(int distType,double _maxDist) {
+	//returns a map of dists from this product as keys and values as maps of distance of examples from their bmus as keys and example itself as value
+	public TreeMap<Double, TreeMap<Double, ArrayList<StraffSOMExample>>> getAllExamplesNearThisProd(int distType, double _maxDist) {
 		NavigableMap<Double, ArrayList<SOMMapNode>> subMap = allMapNodesDists[distType].headMap(_maxDist, true);		
-		TreeMap<Tuple<Double,Double>, ArrayList<StraffSOMExample>> allNodesAndConfs = new TreeMap<Tuple<Double,Double>, ArrayList<StraffSOMExample>>();
-		TreeMap<StraffSOMExample, Tuple<Double,Double>> tmpMapOfNodes;
+		TreeMap<Double, TreeMap<Double, ArrayList<StraffSOMExample>>> allNodesAndDists = new TreeMap<Double, TreeMap<Double, ArrayList<StraffSOMExample>>>();		
+		TreeMap<Double, ArrayList<StraffSOMExample>> srcMapNodeAra, destMapNodeAra;
+		ArrayList<StraffSOMExample> srcExAra, destExAra;
 		for(ExDataType _type : prospectTypes) {
-			tmpMapOfNodes = getExamplesNearThisProd(subMap, _type,_maxDist);
-			for(StraffSOMExample exN : tmpMapOfNodes.keySet()) {
-				Tuple<Double,Double> confInMap = tmpMapOfNodes.get(exN);
-				ArrayList<StraffSOMExample> lstNodes = allNodesAndConfs.get(confInMap);
-				//if(lstNodes == null) {lstNodes = new ArrayList<StraffSOMExample>(); allNodesAndConfs.put(dist, lstNodes);}
-				lstNodes.add(exN);
-			}			
+			TreeMap<Double, TreeMap<Double, ArrayList<StraffSOMExample>>> tmpMapOfAllNodes = getExamplesNearThisProd(subMap, _type);
+			for (Double dist1 : tmpMapOfAllNodes.keySet()) {//this is dist from product to map node source of these examples
+				srcMapNodeAra = tmpMapOfAllNodes.get(dist1);				
+				destMapNodeAra = allNodesAndDists.get(dist1);
+				if(destMapNodeAra==null) {destMapNodeAra = new TreeMap<Double, ArrayList<StraffSOMExample>>();}
+				for (Double dist2 : srcMapNodeAra.keySet()) {
+					srcExAra = srcMapNodeAra.get(dist2);
+					destExAra = destMapNodeAra.get(dist2);
+					if(destExAra==null) {destExAra = new ArrayList<StraffSOMExample>(); }
+					destExAra.addAll(srcExAra);
+					destMapNodeAra.put(dist2, destExAra);
+				}
+				allNodesAndDists.put(dist1, destMapNodeAra);
+			}		
 		}//per type
-		return allNodesAndConfs;		
+		return allNodesAndDists;		
 	}//getExListNearThisProd
 	
-	//get string array representation of this single product
+	//get string array representation of this single product - built on demand
 	public String[] getAllExsStrAra(int distType,double _maxDist) {
 		ArrayList<String> resAra = new ArrayList<String>();
+		TreeMap<Double, ArrayList<StraffSOMExample>> exmplsAtDist;		
 		String ttlStr = "Product ID : " + this.OID + " JPs covered : ";
-		for (Integer JP : allJPs) {	ttlStr += "" + JP + ", ";	}		
+		for (Integer jp : allJPs) {	ttlStr += "" + jp + " : " + jpJpgMon.getJPNameFromJP(jp) + ", ";	}		
 		resAra.add(ttlStr);
-		//TreeMap<Double, ArrayList<StraffSOMExample>> allNodesAndConfs = getAllExamplesNearThisProd(distType, _maxDist);
-		
-//		for(Double conf : allNodesAndConfs.keySet()) {		
-//			ArrayList<StraffSOMExample> lstNodes = allNodesAndConfs.get(conf);
-//			for(StraffSOMExample exN : lstNodes) {		resAra.add("" + exN.OID + "," + String.format("%.6f", conf));	}//for all nodes
-//		}		
+		resAra.add("OID,Confidence at Map Node,Error at Map Node");
+		TreeMap<Double, TreeMap<Double, ArrayList<StraffSOMExample>>> allNodesAndConfs = getAllExamplesNearThisProd(distType, _maxDist);
+		double _maxDistScale = 1.0/_maxDist;
+		String confStr, dist2BMUStr;
+		for(Double dist : allNodesAndConfs.keySet()) { 
+			exmplsAtDist = allNodesAndConfs.get(dist);
+			confStr = String.format("%.6f",distToConf(dist, _maxDist, _maxDistScale));
+			for(Double dist2BMU : exmplsAtDist.keySet()){		
+				ArrayList<StraffSOMExample> exsAtDistFromBMU = exmplsAtDist.get(dist2BMU);
+				dist2BMUStr = String.format("%.6f",dist2BMU);
+				for (StraffSOMExample exN : exsAtDistFromBMU) {				
+					resAra.add("" + exN.OID + "," + confStr + ", "+dist2BMUStr);	
+				}//for all examples at bmu
+			}//for all bmus at certain distance
+		}//for all distances/all bmus
 		return resAra.toArray(new String[0]);	
-	}//getBestExsStrAra
-	
+	}//getBestExsStrAra	
 	
 	//take loaded data and convert to output data
 	@Override
@@ -1377,13 +1370,10 @@ class ProductExample extends StraffSOMExample{
 		for (Integer IDX : ftrMap.keySet()) {stdFtrMap.put(IDX,ftrMap.get(IDX));}//since features are all weighted to sum to 1, can expect ftrmap == strdizedmap
 		stdFtrsBuilt = true;
 	}//buildStdFtrsMap
-	
-	@Override
-	public void buildLabelIndiv() {}
-	
+
 	@Override
 	public String toString(){
-		String res = "Example OID# : "+OID + (null == label ?  " Unknown DataClass\t" : " DataClass : " + label.toString() +"\t");
+		String res = "Example OID# : "+OID;
 		if(null!=mapLoc){res+="Location on SOM map : " + mapLoc.toStrBrf();}
 		if (mapMgr.numFtrs > 0) {			res += "\n\tFeature Val(s) : " + dispFtrMapVals(ftrMap);		} 
 		else {								res += "No Features for this product example";		}
@@ -1470,8 +1460,6 @@ class DispSOMMapExample extends StraffSOMExample{
 	@Override
 	protected HashSet<Tuple<Integer, Integer>> getSetOfAllJpgJpData() {	return null;}//getSetOfAllJpgJpData
 	@Override
-	public void buildLabelIndiv() {}//should be sufficient with base class version, for now
-	@Override
 	protected void buildFeaturesMap() { }	
 	@Override
 	public String getRawDescrForCSV() {	return "Should not save DispSOMMapExample to CSV";}
@@ -1480,16 +1468,15 @@ class DispSOMMapExample extends StraffSOMExample{
 
 	@Override
 	public void finalizeBuild() {}
-	@Override
+
 	public void drawMeLblMap(SOM_StraffordMain p){
 		p.pushMatrix();p.pushStyle();
 		//draw point of radius rad at maploc with label	
 		//p.showBox(mapLoc, rad, 5, clrVal,clrVal, SOM_StraffordMain.gui_LightGreen, mseLabelDat);
 		//(myPointf P, float rad, int det, int[] clrs, String[] txtAra, float[] rectDims)
-		p.showBox(mapLoc, 5, 5,nodeClrs,mseLabelAra, mseLabelDims);
+		p.showBox(mapLoc, 5, 5,nodeClrs, mseLabelAra, mseLabelDims);
 		p.popStyle();p.popMatrix();		
-	}//drawLabel
-	
+	}//drawLabel	
 
 	@Override
 	protected void buildStdFtrsMap() {	
@@ -1565,8 +1552,8 @@ class SOMMapNodeBMUExamples{
 	}
 	
 	//return a listing of all examples and their distance from this BMU
-	public TreeMap<StraffSOMExample, Double> getExsAndDist(){
-		TreeMap<StraffSOMExample, Double> res = new TreeMap<StraffSOMExample, Double>();
+	public HashMap<StraffSOMExample, Double> getExsAndDist(){
+		HashMap<StraffSOMExample, Double> res = new HashMap<StraffSOMExample, Double>();
 		for(double dist : examplesBMU.keySet() ) {
 			ArrayList<StraffSOMExample> tmpList = examplesBMU.get(dist);
 			if(tmpList == null) {continue;}//should never happen			
@@ -1757,9 +1744,6 @@ class SOMMapNode extends StraffSOMExample{
 	public void finalizeBuild() {	}
 	@Override
 	protected HashSet<Tuple<Integer, Integer>> getSetOfAllJpgJpData() {		return null;}//getSetOfAllJpgJpData	
-	//som map node-specific label building
-	@Override
-	public void buildLabelIndiv() {	}
 	//this should not be used - should build stdFtrsmap based on ranges of each ftr value in trained map
 	@Override
 	protected void buildStdFtrsMap() {
@@ -1850,7 +1834,7 @@ class SOMMapNode extends StraffSOMExample{
 	}	
 	
 	//get a map of all examples of specified type near this bmu and the distances for the example
-	public TreeMap<StraffSOMExample, Double> getAllExsAndDist(ExDataType _type){
+	public HashMap<StraffSOMExample, Double> getAllExsAndDist(ExDataType _type){
 		switch (_type) { //trainEx, prospectEx, prodEx
 			case ProspectTraining 	: {return trainEx.getExsAndDist();}//case 0 is training data
 			case ProspectTesting 	: {return prospectEx.getExsAndDist();}//case 1 is test data
@@ -1896,16 +1880,6 @@ class SOMMapNode extends StraffSOMExample{
 		}		
 	}
 	
-	//label is based on training
-	@Override
-	public dataClass getLabel(){
-		if(trainEx.getNumExamples() == 0){
-			mapMgr.dispMessage("SOMMapNodeExample","getLabel","Mapnode :"+mapNodeCoord.toString()+" has no mapped BMU examples.");
-			return null;
-		}
-		return label;}
-
-	
 	public void drawMeSmallWt(SOM_StraffordMain p, int jpIDX){
 		p.pushMatrix();p.pushStyle();
 		Float wt = this.stdFtrMap.get(jpIDX);
@@ -1938,15 +1912,6 @@ class SOMMapNode extends StraffSOMExample{
 		p.rect(dispBoxDims);		
 		p.popStyle();p.popMatrix();	
 	}//drawMeClrRect
-
-	@Override
-	public void drawMeLblMap(SOM_StraffordMain p){
-		p.pushMatrix();p.pushStyle();
-		//draw point of radius rad at maploc with label	
-		p.showNoBox(mapLoc, getRad(), 5, label.clrVal,label.clrVal, SOM_StraffordMain.gui_FaintGray, label.label);
-		p.popStyle();p.popMatrix();		
-	}//drawLabel
-	
 	
 	public String toString(){
 		String res = "Node Loc : " + mapNodeCoord.toString()+"\t" + super.toString();
@@ -2024,8 +1989,6 @@ abstract class baseDataPtVis{
 		p.show(mapLoc, rad,drawDet, clr, clr);
 		p.popStyle();p.popMatrix();		
 	}//drawMeMapClr
-	
-	public abstract void drawMeLblMap(SOM_StraffordMain p);
 	
 	public void drawMeRanked(SOM_StraffordMain p, String lbl, int[] clr, float rad, int rank){
 		p.pushMatrix();p.pushStyle();
