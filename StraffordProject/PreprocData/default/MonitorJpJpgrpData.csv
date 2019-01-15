@@ -1,5 +1,5 @@
 Num Jps=,228,Num  JpGrps=,47,Num ProdJPs=,213, Num Prod JPGrps=,47
-Jp,JpIDX,Jp Name,Jpgrp,JpgrpIDX,Jpgrp Name,JpSeen,JpEvSeen,JpPrspctSeen
+Jp,JpIDX,Jp Name,Jpgrp,JpgrpIDX,Jpgrp Name,# JpSeen, # JpEvSeen, # JpPrspctSeen
 50,0,Federal,27,21,All-Tax,12164,12084,0
 54,1,Property / Excise,27,21,All-Tax,4248,4218,0
 56,2,Sales/Use,27,21,All-Tax,11120,11001,0
@@ -229,216 +229,216 @@ Jp,JpIDX,Jp Name,Jpgrp,JpgrpIDX,Jpgrp Name,JpSeen,JpEvSeen,JpPrspctSeen
 476,226,Patent-Prosecution-Design,36,26,Intellectual Property Law - Patents,1234,1224,0
 477,227,Patent-Prosecution-International,36,26,Intellectual Property Law - Patents,347,344,0
 ---------,-----------,product-specific,values,---------,-----------
-50,0,Federal,21
-54,1,Property / Excise,21
-56,2,Sales/Use,21
-58,3,State Income,21
-63,4,Law Firm Management,12
-66,5,Antitrust,0
-67,6,Banking,1
-68,7,Bankruptcy,2
-69,8,Class Action,3
-76,9,Copyrights,10
-78,10,Corporate Governance,7
-79,11,Corp Law,7
-85,12,Employment,4
-87,13,Energy,36
-90,14,Environmental/Natural Resources,5
-91,15,ERISA,6
-96,16,General Counsel,22
-97,17,Healthcare,8
-104,18,Insurance,9
-108,19,Intellectual Property,10
-110,20,International Law,11
-111,21,International Trade,11
-117,22,Litigation,14
-121,23,Mergers Acquisitions & Divestitures,25
-122,24,Municipal Law/Eminent Domain,15
-123,25,Patents,26
-126,26,Products Liability,38
-129,27,Real Estate/Real Property/Land Use,16
-130,28,Securities,17
-138,29,Tax Law,18
-143,30,Trademarks,10
-145,31,White Collar Crime,7
-157,32,Accounting-Accounting/Audit/Assurance,20
-186,33,Acct-Tax,20
-190,34,Accounting-Valuation Services,20
-198,35,Corporate Finance,17
-205,36,Real Estate Finance,16
-208,37,Private Equity,17
-209,38,Contracts-Government,23
-210,39,Accounting-Employee Benefit Plan,20
-211,40,Ethics,29
-214,41,Insurance Litigation,9
-215,42,Accounting-Compilation & Review,20
-216,43,Accounting-Non-Profit,20
-217,44,Personal Tax Law,43
-220,45,Accounting-Individual Tax,20
-221,46,IP Litigation,10
-222,47,Contracts,23
-224,48,Employment Litigation,4
-225,49,Patent Litigation,26
-226,50,Healthcare Litigation,8
-227,51,Securities Litigation,17
-229,52,Environmental Litigation,5
-232,53,ERISA Litigation,6
-233,54,Banking Litigation,1
-234,55,Bankruptcy Litigation,2
-235,56,Copyrights Litigation,10
-236,57,Trademarks Litigation,10
-237,58,Antitrust Litigation,0
-238,59,Corp Finance Litigation,17
-240,60,Corporate Litigation,7
-241,61,International Litigation,11
-242,62,Tax Law-Litigation,18
-243,63,Family Law,28
-244,64,Tax Law-Non-Profit,18
-246,65,M&A Litigation,25
-247,66,Accounting-Accounting Only,20
-248,67,Accounting-Audit/Assurance Only,20
-250,68,Energy-Finance,36
-252,69,Elder Law,30
-253,70,M&A Finance,25
-255,71,Estate Planning,31
-256,72,Tax Law-Real Property,18
-257,73,Entertainment/Sports/Media,10
-259,74,Science/Technology,10
-260,75,Lawyering Skills,32
-261,76,Bankruptcy-Real Property,2
-262,77,Estate Planning-Trusts & Estates,31
-263,78,Estate Planning-Wills & Probate,31
-265,79,Construction Law,33
-266,80,Appellate Practice,34
-267,81,Criminal Law,35
-269,82,Personal Injury,37
-276,83,ERISA-Executive Compensation,6
-277,84,ERISA-Employee Benefits,6
-278,85,Estate Planning-Tax,31
-279,86,Professional Liability,39
-280,87,Medical Malpractice,40
-281,88,Workers Compensation,41
-282,89,Acct Tax-Federal Tax,42
-283,90,LoanDoc-Commercial Finance,46
-284,91,Banking Regulatory,1
-285,92,Bankruptcy Consumer,2
-286,93,Corp Law Business Entities,7
-287,94,Corp Law Operational,7
-288,95,Emp-Wage Hour,4
-289,96,Employ Associates,4
-290,97,Emp-Labor/Unions,4
-291,98,Healthcare Business,8
-292,99,Healthcare Compliance,8
-293,100,Insurance Coverage,9
-294,101,Insurance Associates,9
-295,102,Tax Law-Partnership,18
-296,103,Construction Litigation,33
-297,104,Emp-Lit-Wage Hour,4
-299,105,Municipal Litigation,15
-303,106,Health Business M&A,8
-312,107,Health Business Antitrust,8
-315,108,Enrolled Agents-Ethics-Programs,45
-319,109,Enrolled Agents-General-Programs,45
-326,110,Banking Lit-Consumer-Finance,1
-327,111,Banking Lit-Regulatory,1
-328,112,Banking Lit-Instruments,1
-329,113,Bankruptcy-Asset-Sales,2
-330,114,Bankruptcy-Finance,2
-331,115,Bankruptcy-Lender,2
-332,116,Bankruptcy-Reorganization,2
-333,117,Bankruptcy-Asset-Recovery,2
-335,118,Tax Prep-Pass-Through,44
-336,119,Tax Prep-Indiv-Tax,44
-339,120,Tax Prep-Trusts-Estates,44
-340,121,Tax Prep-Other,44
-341,122,Corp Tax,21
-358,123,Antitrust Horizontal,0
-359,124,Antitrust Vertical,0
-360,125,LoanDoc-Mezzanine-SecondLien,46
-361,126,LoanDoc-Syndicated Loans,46
-362,127,LoanDoc-TermsTrends,46
-363,128,LoanDoc-UCC,46
-364,129,Class Action-Pre-Certification,3
-365,130,Class Action-Settlements,3
-366,131,Class Action-TrialStrategies,3
-367,132,Class Action-Substantive-Finance,3
-368,133,Class Action-Substantive-Privacy,3
-369,134,Class Action-Substantive-Products,3
-370,135,Construction Contracts,33
-371,136,Construction Insurance Risk Mitigation,33
-373,137,Energy-Fracking,36
-374,138,Energy-Oil-and-Gas,36
-375,139,Energy-Renewable-Finance,36
-376,140,Energy-Renewable-Tax,36
-377,141,Energy-Renewable-Contracts,36
-378,142,Environmental CERCLA,5
-379,143,M&A-Front End Contracts,25
-380,144,M&A-Structuring Deals,25
-381,145,Environmental Transactional,5
-382,146,Contracts-Technology,23
-383,147,Contracts-Supply/Distribution,23
-384,148,Contracts-Gen/Commercial,23
-387,149,Insurance-Bad-Faith,9
-389,150,ERISA-Health,6
-390,151,ERISA-Retirement Plans,6
-391,152,Patent-Prosecution,26
-392,153,Patent-Post-Grant,26
-393,154,Patent-Transactions-Licensing,26
-394,155,International-FCPA,11
-395,156,RP Transactions-Leasing,16
-396,157,RP Transactions-Sales,16
-397,158,RP Transactions-Proj-Dev,16
-398,159,RP Finance-Lending,16
-399,160,RP Finance-Leasing,16
-400,161,RP Fin-Restructuring,16
-401,162,RP Finance-Tax,16
-402,163,Tax Law-Corporate,18
-403,164,Tax Law-Foreign,18
-404,165,Tax Law-M&A,18
-407,166,Tax Law-Invest-Vehicles,18
-408,167,Personal Injury-Medicare,37
-409,168,Emp-Comp-Discrimination-Retaliation,4
-410,169,Emp-Comp-Competition/Trade Secrets,4
-411,170,Emp-Comp-Privacy,4
-412,171,Employment Agreements,4
-413,172,Emp-Lit-Discrimination-Retaliation,4
-414,173,Emp-Lit-Competition/Trade Secrets,4
-416,174,Emp-Lit-Procedural,4
-418,175,Employment HR,4
-420,176,Litigation-Discovery,14
-421,177,Litigation-Damages,14
-422,178,Litigation-Jurisdiction,14
-423,179,Litigation-Depositions,14
-424,180,Litigation-Trial-Techniques,14
-425,181,Litigation-Substantive,14
-426,182,Tax Prep-Foreign Individual,44
-427,183,Foreign Business,21
-433,184,Personal Injury-Trial-Strategies,37
-434,185,Tax Law-Trusts-and-Estates,18
-435,186,Tax Prep-Pass-Through-Planning,44
-436,187,Tax Prep-Pass-Through-Forms,44
-437,188,Tax Prep-Pass-Through-S-Corp,44
-438,189,Personal Injury-Substantive,37
-439,190,Trademarks-Contracts,10
-440,191,Trademarks-Internet,10
-441,192,Trademarks-Prosecution,10
-442,193,Trademarks-Enforcement,10
-443,194,Trademarks-International,10
-444,195,Municipal Regulation,15
-445,196,Municipal Finance-Admin,15
-462,197,Corporate Audit/Investigations,7
-463,198,Corporate Data Governance,7
-464,199,Corporate D&O Issues,7
-465,200,Corporate Legal Dept Policy,7
-466,201,Corporate Risk Mgt,7
-467,202,Corporate LLC/Partnerships,7
-468,203,Health Business Employment,8
-469,204,Health Business Physician Groups,8
-470,205,Health Business Telemedicine,8
-471,206,Health Business Clinical Integration,8
-472,207,Health Business Managed Care,8
-473,208,Health Business Non-Hospital,8
-474,209,Patent-Prosecution-Biotech-Chemical-Pharma,26
-475,210,Patent-Prosecution-Computer/Electronic,26
-476,211,Patent-Prosecution-Design,26
-477,212,Patent-Prosecution-International,26
+50,0,Federal,27,21,All-Tax,80
+54,1,Property / Excise,27,21,All-Tax,30
+56,2,Sales/Use,27,21,All-Tax,119
+58,3,State Income,27,21,All-Tax,105
+63,4,Law Firm Management,15,12,Law Firm Management,9
+66,5,Antitrust,1,0,Antitrust,96
+67,6,Banking,2,1,Banking,65
+68,7,Bankruptcy,3,2,Bankruptcy,110
+69,8,Class Action,4,3,Class Action,133
+76,9,Copyrights,13,10,Intellectual Property Law - Other,31
+78,10,Corporate Governance,9,7,Corporate Law,27
+79,11,Corp Law,9,7,Corporate Law,135
+85,12,Employment,6,4,Employment,240
+87,13,Energy,51,36,Energy,96
+90,14,Environmental/Natural Resources,7,5,Environmental,159
+91,15,ERISA,8,6,ERISA,124
+96,16,General Counsel,29,22,General Counsel,54
+97,17,Healthcare,10,8,Healthcare,220
+104,18,Insurance,12,9,Insurance,126
+108,19,Intellectual Property,13,10,Intellectual Property Law - Other,164
+110,20,International Law,14,11,International Law,115
+111,21,International Trade,14,11,International Law,33
+117,22,Litigation,17,14,Litigation,148
+121,23,Mergers Acquisitions & Divestitures,35,25,Mergers & Acquisitions,104
+122,24,Municipal Law/Eminent Domain,18,15,Municipal Law,54
+123,25,Patents,36,26,Intellectual Property Law - Patents,174
+126,26,Products Liability,53,38,Product Liability,34
+129,27,Real Estate/Real Property/Land Use,19,16,Real Property,234
+130,28,Securities,20,17,Corporate Finance,55
+138,29,Tax Law,21,18,Tax Law,152
+143,30,Trademarks,13,10,Intellectual Property Law - Other,64
+145,31,White Collar Crime,9,7,Corporate Law,2
+157,32,Accounting-Accounting/Audit/Assurance,26,20,All-Accounting,36
+186,33,Acct-Tax,26,20,All-Accounting,72
+190,34,Accounting-Valuation Services,26,20,All-Accounting,27
+198,35,Corporate Finance,20,17,Corporate Finance,156
+205,36,Real Estate Finance,19,16,Real Property,24
+208,37,Private Equity,20,17,Corporate Finance,65
+209,38,Contracts-Government,32,23,Contracts & Franchise Law,17
+210,39,Accounting-Employee Benefit Plan,26,20,All-Accounting,59
+211,40,Ethics,39,29,Ethics,45
+214,41,Insurance Litigation,12,9,Insurance,85
+215,42,Accounting-Compilation & Review,26,20,All-Accounting,7
+216,43,Accounting-Non-Profit,26,20,All-Accounting,115
+217,44,Personal Tax Law,58,43,Personal Tax,2
+220,45,Accounting-Individual Tax,26,20,All-Accounting,3
+221,46,IP Litigation,13,10,Intellectual Property Law - Other,7
+222,47,Contracts,32,23,Contracts & Franchise Law,110
+224,48,Employment Litigation,6,4,Employment,56
+225,49,Patent Litigation,36,26,Intellectual Property Law - Patents,69
+226,50,Healthcare Litigation,10,8,Healthcare,19
+227,51,Securities Litigation,20,17,Corporate Finance,3
+229,52,Environmental Litigation,7,5,Environmental,47
+232,53,ERISA Litigation,8,6,ERISA,44
+233,54,Banking Litigation,2,1,Banking,34
+234,55,Bankruptcy Litigation,3,2,Bankruptcy,13
+235,56,Copyrights Litigation,13,10,Intellectual Property Law - Other,1
+236,57,Trademarks Litigation,13,10,Intellectual Property Law - Other,17
+237,58,Antitrust Litigation,1,0,Antitrust,9
+238,59,Corp Finance Litigation,20,17,Corporate Finance,1
+240,60,Corporate Litigation,9,7,Corporate Law,2
+241,61,International Litigation,14,11,International Law,1
+242,62,Tax Law-Litigation,21,18,Tax Law,3
+243,63,Family Law,38,28,Family Law,101
+244,64,Tax Law-Non-Profit,21,18,Tax Law,5
+246,65,M&A Litigation,35,25,Mergers & Acquisitions,5
+247,66,Accounting-Accounting Only,26,20,All-Accounting,7
+248,67,Accounting-Audit/Assurance Only,26,20,All-Accounting,41
+250,68,Energy-Finance,51,36,Energy,11
+252,69,Elder Law,41,30,Elder Law,59
+253,70,M&A Finance,35,25,Mergers & Acquisitions,1
+255,71,Estate Planning,42,31,Estate Planning,153
+256,72,Tax Law-Real Property,21,18,Tax Law,12
+257,73,Entertainment/Sports/Media,13,10,Intellectual Property Law - Other,1
+259,74,Science/Technology,13,10,Intellectual Property Law - Other,6
+260,75,Lawyering Skills,47,32,Lawyering Skills,3
+261,76,Bankruptcy-Real Property,3,2,Bankruptcy,8
+262,77,Estate Planning-Trusts & Estates,42,31,Estate Planning,114
+263,78,Estate Planning-Wills & Probate,42,31,Estate Planning,10
+265,79,Construction Law,48,33,Construction Law,43
+266,80,Appellate Practice,49,34,Appellate Practice,26
+267,81,Criminal Law,50,35,Criminal Law,5
+269,82,Personal Injury,52,37,Personal Injury,89
+276,83,ERISA-Executive Compensation,8,6,ERISA,50
+277,84,ERISA-Employee Benefits,8,6,ERISA,20
+278,85,Estate Planning-Tax,42,31,Estate Planning,66
+279,86,Professional Liability,54,39,Professional Liability,9
+280,87,Medical Malpractice,55,40,Medical Malpractice,21
+281,88,Workers Compensation,56,41,Workers Compensation,15
+282,89,Acct Tax-Federal Tax,57,42,Accounting/Tax,2
+283,90,LoanDoc-Commercial Finance,61,46,Loan Doc,105
+284,91,Banking Regulatory,2,1,Banking,32
+285,92,Bankruptcy Consumer,3,2,Bankruptcy,7
+286,93,Corp Law Business Entities,9,7,Corporate Law,21
+287,94,Corp Law Operational,9,7,Corporate Law,11
+288,95,Emp-Wage Hour,6,4,Employment,27
+289,96,Employ Associates,6,4,Employment,2
+290,97,Emp-Labor/Unions,6,4,Employment,11
+291,98,Healthcare Business,10,8,Healthcare,165
+292,99,Healthcare Compliance,10,8,Healthcare,171
+293,100,Insurance Coverage,12,9,Insurance,135
+294,101,Insurance Associates,12,9,Insurance,2
+295,102,Tax Law-Partnership,21,18,Tax Law,88
+296,103,Construction Litigation,48,33,Construction Law,22
+297,104,Emp-Lit-Wage Hour,6,4,Employment,43
+299,105,Municipal Litigation,18,15,Municipal Law,3
+303,106,Health Business M&A,10,8,Healthcare,9
+312,107,Health Business Antitrust,10,8,Healthcare,3
+315,108,Enrolled Agents-Ethics-Programs,60,45,Enrolled Agents,4
+319,109,Enrolled Agents-General-Programs,60,45,Enrolled Agents,9
+326,110,Banking Lit-Consumer-Finance,2,1,Banking,20
+327,111,Banking Lit-Regulatory,2,1,Banking,10
+328,112,Banking Lit-Instruments,2,1,Banking,7
+329,113,Bankruptcy-Asset-Sales,3,2,Bankruptcy,9
+330,114,Bankruptcy-Finance,3,2,Bankruptcy,17
+331,115,Bankruptcy-Lender,3,2,Bankruptcy,44
+332,116,Bankruptcy-Reorganization,3,2,Bankruptcy,55
+333,117,Bankruptcy-Asset-Recovery,3,2,Bankruptcy,39
+335,118,Tax Prep-Pass-Through,59,44,Tax Return Preparer,3
+336,119,Tax Prep-Indiv-Tax,59,44,Tax Return Preparer,93
+339,120,Tax Prep-Trusts-Estates,59,44,Tax Return Preparer,75
+340,121,Tax Prep-Other,59,44,Tax Return Preparer,7
+341,122,Corp Tax,27,21,All-Tax,48
+358,123,Antitrust Horizontal,1,0,Antitrust,32
+359,124,Antitrust Vertical,1,0,Antitrust,22
+360,125,LoanDoc-Mezzanine-SecondLien,61,46,Loan Doc,32
+361,126,LoanDoc-Syndicated Loans,61,46,Loan Doc,16
+362,127,LoanDoc-TermsTrends,61,46,Loan Doc,90
+363,128,LoanDoc-UCC,61,46,Loan Doc,58
+364,129,Class Action-Pre-Certification,4,3,Class Action,62
+365,130,Class Action-Settlements,4,3,Class Action,15
+366,131,Class Action-TrialStrategies,4,3,Class Action,24
+367,132,Class Action-Substantive-Finance,4,3,Class Action,6
+368,133,Class Action-Substantive-Privacy,4,3,Class Action,16
+369,134,Class Action-Substantive-Products,4,3,Class Action,17
+370,135,Construction Contracts,48,33,Construction Law,23
+371,136,Construction Insurance Risk Mitigation,48,33,Construction Law,81
+373,137,Energy-Fracking,51,36,Energy,4
+374,138,Energy-Oil-and-Gas,51,36,Energy,36
+375,139,Energy-Renewable-Finance,51,36,Energy,20
+376,140,Energy-Renewable-Tax,51,36,Energy,7
+377,141,Energy-Renewable-Contracts,51,36,Energy,33
+378,142,Environmental CERCLA,7,5,Environmental,53
+379,143,M&A-Front End Contracts,35,25,Mergers & Acquisitions,96
+380,144,M&A-Structuring Deals,35,25,Mergers & Acquisitions,52
+381,145,Environmental Transactional,7,5,Environmental,27
+382,146,Contracts-Technology,32,23,Contracts & Franchise Law,69
+383,147,Contracts-Supply/Distribution,32,23,Contracts & Franchise Law,41
+384,148,Contracts-Gen/Commercial,32,23,Contracts & Franchise Law,54
+387,149,Insurance-Bad-Faith,12,9,Insurance,39
+389,150,ERISA-Health,8,6,ERISA,19
+390,151,ERISA-Retirement Plans,8,6,ERISA,81
+391,152,Patent-Prosecution,36,26,Intellectual Property Law - Patents,138
+392,153,Patent-Post-Grant,36,26,Intellectual Property Law - Patents,37
+393,154,Patent-Transactions-Licensing,36,26,Intellectual Property Law - Patents,24
+394,155,International-FCPA,14,11,International Law,80
+395,156,RP Transactions-Leasing,19,16,Real Property,59
+396,157,RP Transactions-Sales,19,16,Real Property,48
+397,158,RP Transactions-Proj-Dev,19,16,Real Property,45
+398,159,RP Finance-Lending,19,16,Real Property,112
+399,160,RP Finance-Leasing,19,16,Real Property,16
+400,161,RP Fin-Restructuring,19,16,Real Property,5
+401,162,RP Finance-Tax,19,16,Real Property,62
+402,163,Tax Law-Corporate,21,18,Tax Law,14
+403,164,Tax Law-Foreign,21,18,Tax Law,60
+404,165,Tax Law-M&A,21,18,Tax Law,16
+407,166,Tax Law-Invest-Vehicles,21,18,Tax Law,16
+408,167,Personal Injury-Medicare,52,37,Personal Injury,21
+409,168,Emp-Comp-Discrimination-Retaliation,6,4,Employment,70
+410,169,Emp-Comp-Competition/Trade Secrets,6,4,Employment,10
+411,170,Emp-Comp-Privacy,6,4,Employment,6
+412,171,Employment Agreements,6,4,Employment,27
+413,172,Emp-Lit-Discrimination-Retaliation,6,4,Employment,24
+414,173,Emp-Lit-Competition/Trade Secrets,6,4,Employment,10
+416,174,Emp-Lit-Procedural,6,4,Employment,44
+418,175,Employment HR,6,4,Employment,26
+420,176,Litigation-Discovery,17,14,Litigation,36
+421,177,Litigation-Damages,17,14,Litigation,10
+422,178,Litigation-Jurisdiction,17,14,Litigation,6
+423,179,Litigation-Depositions,17,14,Litigation,19
+424,180,Litigation-Trial-Techniques,17,14,Litigation,42
+425,181,Litigation-Substantive,17,14,Litigation,15
+426,182,Tax Prep-Foreign Individual,59,44,Tax Return Preparer,63
+427,183,Foreign Business,27,21,All-Tax,81
+433,184,Personal Injury-Trial-Strategies,52,37,Personal Injury,51
+434,185,Tax Law-Trusts-and-Estates,21,18,Tax Law,2
+435,186,Tax Prep-Pass-Through-Planning,59,44,Tax Return Preparer,71
+436,187,Tax Prep-Pass-Through-Forms,59,44,Tax Return Preparer,71
+437,188,Tax Prep-Pass-Through-S-Corp,59,44,Tax Return Preparer,30
+438,189,Personal Injury-Substantive,52,37,Personal Injury,67
+439,190,Trademarks-Contracts,13,10,Intellectual Property Law - Other,12
+440,191,Trademarks-Internet,13,10,Intellectual Property Law - Other,24
+441,192,Trademarks-Prosecution,13,10,Intellectual Property Law - Other,30
+442,193,Trademarks-Enforcement,13,10,Intellectual Property Law - Other,7
+443,194,Trademarks-International,13,10,Intellectual Property Law - Other,13
+444,195,Municipal Regulation,18,15,Municipal Law,30
+445,196,Municipal Finance-Admin,18,15,Municipal Law,14
+462,197,Corporate Audit/Investigations,9,7,Corporate Law,7
+463,198,Corporate Data Governance,9,7,Corporate Law,9
+464,199,Corporate D&O Issues,9,7,Corporate Law,6
+465,200,Corporate Legal Dept Policy,9,7,Corporate Law,4
+466,201,Corporate Risk Mgt,9,7,Corporate Law,11
+467,202,Corporate LLC/Partnerships,9,7,Corporate Law,15
+468,203,Health Business Employment,10,8,Healthcare,7
+469,204,Health Business Physician Groups,10,8,Healthcare,4
+470,205,Health Business Telemedicine,10,8,Healthcare,7
+471,206,Health Business Clinical Integration,10,8,Healthcare,8
+472,207,Health Business Managed Care,10,8,Healthcare,2
+473,208,Health Business Non-Hospital,10,8,Healthcare,7
+474,209,Patent-Prosecution-Biotech-Chemical-Pharma,36,26,Intellectual Property Law - Patents,12
+475,210,Patent-Prosecution-Computer/Electronic,36,26,Intellectual Property Law - Patents,13
+476,211,Patent-Prosecution-Design,36,26,Intellectual Property Law - Patents,10
+477,212,Patent-Prosecution-International,36,26,Intellectual Property Law - Patents,3

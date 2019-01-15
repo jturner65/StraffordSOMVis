@@ -40,12 +40,11 @@ public class SOMProjConfigData {
 	//fileNow date string array for most recent experiment
 	private String[] dateTimeStrAra;
 
-
 	//test/train partition - ratio of # of training data points to total # of data points
 	private float trainTestPartition;	
 	//current experiment # of samples total, train partition and test partition
 	private int expNumSmpls, expNumTrain, expNumTest;
-	//current type of data used to train map
+	//current type of data used to train map - unmodified features, normalized features (ftr vec sums to 1) or standardized features (normalized across all data examples per ftr)
 	private String dataType;
 	
 	//calendar object to be used to query instancing time
@@ -56,6 +55,8 @@ public class SOMProjConfigData {
 	private static final String calcWtFileName = "WeightEqConfig.txt";
 	//requested products file name
 	private static final String reqProdConfigFileName = "ProductsToMap.txt";
+	//default SOM Configuration file name
+	private static final String SOMDfltConfigName = "SOM_EXP_Format_default.txt";
 	//source directory for reading all source csv files, writing intermediate outputs, executing SOM_MAP and writing results
 	private String straffBasefDir;
 	//name of som executable
@@ -79,8 +80,6 @@ public class SOMProjConfigData {
 	private static final String straffSOMProcSubDir = "SOM"+ File.separator;
 	//subdir holding calc object information
 	private static final String straffCalcInfoSubDir = "Calc"+ File.separator;
-	//actual directory where SOM data is located
-	private String SOMDataDir;	
 	
 	//boolean flags
 	private int[] stFlags;						//state flags - bits in array holding relevant process info
@@ -177,23 +176,32 @@ public class SOMProjConfigData {
 		return res;
 	}//getExpConfigData()	
 	
+	public void loadProj_Congfig() {	loadProj_Congfig( getSOMConfigFileName());}
+	public void loadProj_Congfig(String configFileName) {
+		mapMgr.dispMessage("SOMProjConfigData","loadProg_Congfig","Start loading project configuration data");
+		//NOTE! if running a debug run, be sure to have the line dateTimeStrAra[0],<date_time_value>_DebugRun in proj config file, otherwise will crash
+		String[] configStrAra = mapMgr.loadFileIntoStringAra(configFileName, "SOMProjConfigData Config File loaded", "SOMProjConfigData Config File Failed to load");
+		setExpConfigData(configStrAra);
+		mapMgr.dispMessage("SOMProjConfigData","loadProg_Congfig","Finished loading project configuration data");				
+	}//loadProg_Congfig
+	
+	
+	//SOM_EXP_Format_default
 	//this will load all essential information for a SOM-based experimental run, from loading preprocced data, configuring map
-	//uses currently set file names ! 
-	public void loadSOM_Exp() {
-		mapMgr.dispMessage("SOMProjConfigData","loadSOM_Exp","Loading SOM Exe config data.");
+	public void loadDefaultSOMExp_Config() {
+		String dfltSOMConfigFName = getDirNameAndBuild(straffSOMProcSubDir+"default"+File.separator) + SOMDfltConfigName;
+		mapMgr.dispMessage("SOMProjConfigData","loadDefaultSOMExp_Config","Default file name  :" + dfltSOMConfigFName);
+		loadSOMExp_Config(dfltSOMConfigFName);
+	}
+	public void loadSOMExp_Config() {loadSOMExp_Config(getSOMMapExpFileName());}
+	public void loadSOMExp_Config(String expFileName) {
+		mapMgr.dispMessage("SOMProjConfigData","loadSOM_Exp","Start loading SOM Exe config data from " + expFileName);
 		//build file describing experiment and put at this location
-		//NOTE! if running a debug run, be sure to have the line dateTimeStrAra[0],<date_time_value>_DebugRun in config file, otherwise will crash
-		String expFileName = getSOMMapExpFileName();
+		//NOTE! if running a debug run, be sure to have the line dateTimeStrAra[0],<date_time_value>_DebugRun in proj config file, otherwise will crash
 		String[] expStrAra = mapMgr.loadFileIntoStringAra(expFileName, "SOM_MapDat Config File loaded", "SOM_MapDat Config File Failed to load");
 		SOMExeDat.buildFromStringArray(expStrAra);
 		mapMgr.setUIValsFromLoad(SOMExeDat);
-		mapMgr.dispMessage("SOMProjConfigData","loadSOM_Exp","Finished loading SOM Exe config data.");
-		mapMgr.dispMessage("SOMProjConfigData","loadSOM_Exp","Loading project configuration data");
-
-		String configFileName = getSOMConfigFileName();
-		String[] configStrAra = mapMgr.loadFileIntoStringAra(configFileName, "SOMProjConfigData Config File loaded", "SOMProjConfigData Config File Failed to load");
-		setExpConfigData(configStrAra);
-		mapMgr.dispMessage("SOMProjConfigData","loadSOM_Exp","Finished loading project configuration data");		
+		mapMgr.dispMessage("SOMProjConfigData","loadSOM_Exp","Finished loading SOM Exe config data from " + expFileName);
 	}//loadSOM_Exp
 	
 	//set experiment vars based on data saved in config file
@@ -332,8 +340,10 @@ public class SOMProjConfigData {
 		//set to debug suffix on output 
 		SOMOutExpSffx = _DBG_PreBuiltMapConfig;	
 		setSOM_ExpFileNames(_DBG_Map_numSmpls, _DBG_Map_numTrain,_DBG_Map_numTest);
-		//with file names built, now can load pre-made SOM exe config and program config files
-		loadSOM_Exp();
+		//with file names built, now can load pre-made SOM exe experimental config...
+		loadSOMExp_Config();
+		//... and project config
+		loadProj_Congfig();
 		//structure holding SOM_MAP specific cmd line args and file names and such
 		
 		//now load new map data and configure SOMMapManager obj to hold all appropriate data
@@ -364,9 +374,6 @@ public class SOMProjConfigData {
 		return SOMExeDat.isToroidal();
 	}
 	
-	//moved from map manager
-	public void setCurDataDir() {SOMDataDir = getDirNameAndBuild(straffSOMProcSubDir);	}
-	
 	//get location for raw data files
 	public String[] getRawDataLoadInfo(boolean fromFiles, String baseFName) {
 		String dataLocStrData = "";
@@ -378,36 +385,34 @@ public class SOMProjConfigData {
 		}
 		return new String[] {baseFName,dataLocStrData};
 	}//getRawDataLoadInfo
+	//return the directory to the most recent prospect data as specified in config file (under project directory/
+	//TODO replace this with info from global project config data 
+	public String getRawDataDesiredDirName() {	return "default" + File.separator;	}
+
 	
 	//build prospect data directory structures based on current date
 	public String[] buildProccedDataCSVFNames(boolean eventsOnly, String _desSuffix) {
 		String[] dateTimeStrAra = getDateTimeString(false, "_", instancedNow);
 		String subDir = "preprocData_" + dateTimeStrAra[0] + File.separator;
-		return buildProccedDataCSVFNames(subDir, eventsOnly,_desSuffix);
+		return _buildDataCSVFNames(getDirNameAndBuild(straffPreProcSubDir),subDir, eventsOnly,_desSuffix);
 	}//buildPrspctDataCSVFNames
 	
-	//return the directory to the most recent prospect data as specified in config file (under project directory/
-	//TODO replace this with info from global project config data 
-	private String getRawDataDesiredDirName() {	return "default" + File.separator;	}
-	
-	//look in default directory for pre-processed data
-	//TODO enable this to be set by a config file entry
-	public String[] buildDefaultProccedDataCSVFileNames(boolean eventsOnly, String _desSuffix) {
-		String subDir = getRawDataDesiredDirName();
-		return buildProccedDataCSVFNames(subDir, eventsOnly,_desSuffix);
-	}
-	
 	//build the file names for the csv files used to save intermediate data from db that has been partially preprocessed
-	private String[] buildProccedDataCSVFNames(String subDir, boolean eventsOnly, String _desSuffix) {
+	//subdir is just sub directory within root project directory; eventsOnly is old flag use to denote 
+	//if examples were chosen based on having events for a particular jp or if prospects without any events could also be considered valid training examples
+	//_desSuffix is text suffix describing file type
+	public String[] buildProccedDataCSVFNames(String subDir, boolean eventsOnly, String _desSuffix) {
 		//build root preproc data dir if doesn't exist
-		String rootDestDir = getDirNameAndBuild(straffPreProcSubDir);
+		return _buildDataCSVFNames(getDirNameAndBuild(straffPreProcSubDir), subDir, eventsOnly, _desSuffix);
+	}
+	private String[] _buildDataCSVFNames(String rootDestDir, String subDir, boolean eventsOnly, String _desSuffix) {
 		//build subdir based on date, if doesn't exist
 		String destDir = getDirNameAndBuild(rootDestDir, subDir);
 		String suffix;
 		if (eventsOnly) {	suffix = _desSuffix + "Evnts";}
 		else {				suffix = _desSuffix;}		
-		String destForPrspctFName = destDir + suffix;				
-		return new String[] {destForPrspctFName, suffix, rootDestDir};
+		String destForFName = destDir + suffix;				
+		return new String[] {destForFName, suffix, rootDestDir};
 	}//buildPrspctDataCSVFNames	
 	
 	//this will retrieve a subdirectory name under the main directory of this project and build the subdir if it doesn't exist
@@ -515,12 +520,10 @@ public class SOMProjConfigData {
 	@Override
 	public String toString(){
 		String res = "SOM Project Data Config Cnstrct : \n";
-		res += "\ttrainDatFNameIDX = " + fnames[trainDatFNameIDX]+"\n";
-		res += "\tsomResFNameIDX = " + fnames[somResFPrfxIDX]+"\n";
-		res += "\tdiffsFNameIDX = " + fnames[diffsFNameIDX]+"\n";
-		res += "\tminsFNameIDX = " + fnames[minsFNameIDX]+"\n";
+		res += "\ttrainDatFNameIDX = " + fnames[trainDatFNameIDX]+"\n" +"\tsomResFNameIDX = " + fnames[somResFPrfxIDX]+"\n";
+		res += "\tdiffsFNameIDX = " + fnames[diffsFNameIDX]+"\n"+  "\tminsFNameIDX = " + fnames[minsFNameIDX]+"\n";
 		res += "\tcsvSavFNameIDX = " + fnames[csvSavFNameIDX]+"\n";
 		return res;	
 	}
 
-}
+}//class SOMProjConfigData

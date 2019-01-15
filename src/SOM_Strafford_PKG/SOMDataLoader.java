@@ -501,6 +501,7 @@ class mapTestDataToBMUs implements Callable<Boolean>{
 	}		
 }//mapTestToBMUs	
 
+//maps products to all map nodes, not just bmu
 class mapProductDataToBMUs implements Callable<Boolean>{
 	SOMMapManager mapMgr;
 	int stIdx, endIdx, curMapFtrType, thdIDX;
@@ -526,20 +527,20 @@ class mapProductDataToBMUs implements Callable<Boolean>{
 		//for every example find closest map node
 		//the function call at the end is ignored by product examples
 		mapMgr.dispMessage("mapTestDataToBMUs", "Run Thread : " +thdIDX, "Starting Product data to BMU mapping using " + ftrTypeDesc + " Features and both including and excluding unshared features in distance.");
-		TreeMap<Double, ArrayList<SOMMapNode>> mapNodes;
+		TreeMap<Double, ArrayList<SOMMapNode>> mapNodesByDist;
 		if (useChiSqDist) {	
 			for (int i=stIdx;i<endIdx;++i) {
-				mapNodes = exs[i].findBMUFromNodes_ChiSq_Excl(mapMgr.MapNodes, curMapFtrType); 
-				exs[i].setMapNodesStruct(ProductExample.SharedFtrsIDX, mapNodes);
-				mapNodes = exs[i].findBMUFromNodes_ChiSq(mapMgr.MapNodes, curMapFtrType); 
-				exs[i].setMapNodesStruct(ProductExample.AllFtrsIDX, mapNodes);  
+				mapNodesByDist = exs[i].findBMUFromNodes_ChiSq_Excl(mapMgr.MapNodes, curMapFtrType); 
+				exs[i].setMapNodesStruct(ProductExample.SharedFtrsIDX, mapNodesByDist);
+				mapNodesByDist = exs[i].findBMUFromNodes_ChiSq(mapMgr.MapNodes, curMapFtrType); 
+				exs[i].setMapNodesStruct(ProductExample.AllFtrsIDX, mapNodesByDist);  
 			}
 		} else {							
 			for (int i=stIdx;i<endIdx;++i) {
-				mapNodes = exs[i].findBMUFromNodes_Excl(mapMgr.MapNodes,  curMapFtrType); 
-				exs[i].setMapNodesStruct(ProductExample.SharedFtrsIDX, mapNodes);
-				mapNodes = exs[i].findBMUFromNodes(mapMgr.MapNodes,  curMapFtrType); 
-				exs[i].setMapNodesStruct(ProductExample.AllFtrsIDX, mapNodes);
+				mapNodesByDist = exs[i].findBMUFromNodes_Excl(mapMgr.MapNodes,  curMapFtrType); 
+				exs[i].setMapNodesStruct(ProductExample.SharedFtrsIDX, mapNodesByDist);
+				mapNodesByDist = exs[i].findBMUFromNodes(mapMgr.MapNodes,  curMapFtrType); 
+				exs[i].setMapNodesStruct(ProductExample.AllFtrsIDX, mapNodesByDist);
 			}
 		}					
 		mapMgr.dispMessage("mapTestDataToBMUs", "Run Thread : " +thdIDX, "Finished Product data to BMU mapping");

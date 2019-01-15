@@ -198,7 +198,6 @@ public class SOMMapManager {
 	//ctor from non-UI stub main
 	public SOMMapManager(ExecutorService _th_exec,float[] _dims) {this(null, null, _th_exec, _dims);}
 
-
 	//build new SOM_MAP map using UI-entered values, then load resultant data
 	//with maps of required SOM exe params
 	//TODO this will be changed to not pass values from UI, but rather to finalize and save values already set in SOM_MapDat object from UI or other user input
@@ -393,7 +392,6 @@ public class SOMMapManager {
 		numTrainData = 0;
 		numFtrs = 0;
 		numInputData = 0;
-		projConfigData.setCurDataDir();
 		dispMessage("SOMMapManager","initData","Init Finished");
 	}//initdata
 	
@@ -440,7 +438,7 @@ public class SOMMapManager {
 		productsByJp = new TreeMap<Integer, ArrayList<ProductExample>>();
 
 		//initialize product-wide aggregations
-		ProductExample.initAllProdData();
+		ProductExample.initAllStaticProdData();
 		setFlag(rawProducDataProcedIDX, false);
 		setAllTrainDatSaveFlags(false);
 	}//resetProspectMap
@@ -477,7 +475,6 @@ public class SOMMapManager {
 			dispMessage("SOMMapManager","loadRawProductData","Unable to process only raw product data into preprocessed format - prospect data must exist before hand.");
 			return;		
 		}
-		
 		//now load raw product data either via csv or sql
 		String[] loadRawDatStrs = projConfigData.getRawDataLoadInfo(fromCSVFiles,straffDataFileNames[tcTagsIDX]);
 		boolean[] flags = new boolean[] {fromCSVFiles,straffRawDatUsesJSON[tcTagsIDX], straffRawDatDebugLoad[tcTagsIDX]};
@@ -494,7 +491,7 @@ public class SOMMapManager {
 		dispMessage("SOMMapManager","loadRawProductData","End initial finalize of product map");		
 		//must rebuild this because we might not have same jp's
 		dispMessage("SOMMapManager","loadRawProductData","Begin setJPDataFromExampleData from prospect map");
-		//we need the jp-jpg counts and relationships dictated by the data by here.
+		//we need the jp-jpg counts and relationships dictated by the data by here - need to rebuild with new product data
 		setJPDataFromExampleData(prospectMap);
 		dispMessage("SOMMapManager","loadRawProductData","End setJPDataFromExampleData from prospect map; calling finishSOMExampleBuild");
 		//finalize - recalc all processed data in case new products have different JP's present, set flags and save to file
@@ -555,28 +552,31 @@ public class SOMMapManager {
 	
 
 	//load all preprocessed data from default data location
-	public void loadAllPreProccedData() {
-		//		boolean singleThread=numUsableThreads<=1;//this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
-		dispMessage("SOMMapManager","loadAllPreProccedData","Begin loading preprocced data");
-		//load monitor first
-		loadMonitorJpJpgrp();
-		loadAllPropsectMapData();
-		loadAllProductMapData();
+	public void loadAllPreProccedData() { loadAllPreProccedData(projConfigData.getRawDataDesiredDirName());}
+	//pass subdir within data directory, or use default
+	public void loadAllPreProccedData(String subDir) {
+		dispMessage("SOMMapManager","loadAllPreProccedData","Begin loading preprocced data from " + subDir +  "directory.");
+		//load monitor first;save it last
+		dispMessage("SOMMapManager","loadMonitorJpJpgrp","Loading MonitorJpJpgrp data");
+		String[] loadSrcFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(subDir, false, "MonitorJpJpgrpData");
+		jpJpgrpMon.loadAllData(loadSrcFNamePrefixAra[0]+".csv");
+		dispMessage("SOMMapManager","loadMonitorJpJpgrp","Finished loading MonitorJpJpgrp data");
+		
+		loadAllPropsectMapData(subDir);
+		loadAllProductMapData(subDir);
 		finishSOMExampleBuild();
 		setFlag(rawPrspctEvDataProcedIDX, true);
 		setFlag(rawProducDataProcedIDX, true);
-		dispMessage("SOMMapManager","loadAllPreProccedData","Finished loading preprocced data");
+		dispMessage("SOMMapManager","loadAllPreProccedData","Finished loading preprocced data from " + subDir +  "directory.");
 	}
 	
 	//load prospect mapped training data into StraffSOMExamples from disk
-	private void loadAllPropsectMapData() {
+	private void loadAllPropsectMapData(String subDir) {
 		//perform in multiple threads if possible
 		dispMessage("SOMMapManager","loadAllPropsectMapData","Loading all prospect map data that only have event-based training info");//" + (eventsOnly ? "that only have event-based training info" : "that have any training info (including only prospect jpg/jp specification)"));
 		//clear out current prospect data
 		resetProspectMap();
-//		String desSubDir = getRawDataDesiredDirName();
-//		String[] loadSrcFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(desSubDir, true, "prospectMapSrcData");
-		String[] loadSrcFNamePrefixAra = projConfigData.buildDefaultProccedDataCSVFileNames(true, "prospectMapSrcData");
+		String[] loadSrcFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(subDir, true, "prospectMapSrcData");
 		
 		String fmtFile = loadSrcFNamePrefixAra[0]+"_format.csv";
 		String[] loadRes = loadFileIntoStringAra(fmtFile, "Format file loaded", "Format File Failed to load");
@@ -611,13 +611,11 @@ public class SOMMapManager {
 	}//loadAllPropsectMapData	
 	
 	//load product pre-procced data from tc_taggings source
-	private void loadAllProductMapData() {
+	private void loadAllProductMapData(String subDir) {
 		dispMessage("SOMMapManager","loadAllProductMapData","Loading all product map data");
 		//clear out current product data
 		resetProductMap();
-//		String desSubDir = getRawDataDesiredDirName();
-//		String[] loadSrcFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(desSubDir, false, "productMapSrcData");
-		String[] loadSrcFNamePrefixAra = projConfigData.buildDefaultProccedDataCSVFileNames(false, "productMapSrcData");
+		String[] loadSrcFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(subDir, false, "productMapSrcData");
 		String dataFile =  loadSrcFNamePrefixAra[0]+".csv";
 		String[] csvLoadRes = loadFileIntoStringAra(dataFile, "Product Data file loaded", "Product Data File Failed to load");
 		//ignore first entry - header
@@ -630,16 +628,7 @@ public class SOMMapManager {
 		}
 		dispMessage("SOMMapManager","loadAllProductMapData","Finished loading and preprocessing all local prospect map data and calculating features.  Number of entries in productMap : " + productMap.size());
 	}//loadAllProductMapData
-	
-	//load MonitorJpJpgrp
-	private void loadMonitorJpJpgrp() {
-		dispMessage("SOMMapManager","loadMonitorJpJpgrp","Loading MonitorJpJpgrp data");
-//		String desSubDir = getRawDataDesiredDirName();
-//		String[] loadSrcFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(desSubDir, false, "MonitorJpJpgrpData");
-		String[] loadSrcFNamePrefixAra = projConfigData.buildDefaultProccedDataCSVFileNames(false, "MonitorJpJpgrpData");
-		jpJpgrpMon.loadAllData(loadSrcFNamePrefixAra[0]+".csv");
-		dispMessage("SOMMapManager","loadMonitorJpJpgrp","Finished loading MonitorJpJpgrp data");
-	}//saveAllProductMapData
+
 	
 	//this will load the product IDs to query on map for prospects from the location specified in the config
 	//map these ids to loaded products and then 
@@ -656,10 +645,12 @@ public class SOMMapManager {
 		dispMessage("SOMMapManager","mapProductsToProspects","Finished load of product to prospecting mapping configuration and building product output mapper | Begin Saving prod-to-prospect mappings to files");	
 		//by here all prods to map have been specified. prodMapBuilder will determine whether multithreaded or single threaded; 
 		prodMapper.saveAllSpecifiedProdMappings();		
-		dispMessage("SOMMapManager","mapProductsToProspects","Finished Saving prod-to-prospect mappings to files");	
+		dispMessage("SOMMapManager","mapProductsToProspects","Finished Saving prod-to-prospect mappings to files | Begin Saving prospect-to-product mappings to files");	
+		//now save prospect-to-product mappings
+		prodMapper.saveAllProspectToProdMappings(inputData);
+		dispMessage("SOMMapManager","mapProductsToProspects","Finished Saving prospect-to-product mappings to files");	
 	}//mapProductsToProspects
 		
-	
 	//write all prospect map data to a csv to be able to be reloaded to build training data from, so we don't have to re-read database every time
 	private boolean saveAllProspectMapData() {
 		if ((null != prospectMap) && (prospectMap.size() > 0)) {
@@ -933,44 +924,21 @@ public class SOMMapManager {
 		}		
 		dispMessage("SOMMapManager","buildTestTrainFromInput","Finished Building Training and Testing Partitions.  Train size : " + numTrainData+ " Testing size : " + numTestData + " Product data size : " +productData.length +".");
 	}//buildTestTrainFromInput
-
 	
-	//build training data from current global prospect data map
-	//and save them to .lrn format 
-	//trainTestPartition : ratio of all data points to # used to train map	
-	public void buildAndSaveTrainingData(float trainTestPartition) {
-		if (prospectMap.size() == 0) {
-			dispMessage("SOMMapManager","buildAndSaveTrainingData","ProspectMap data not loaded/built, unable to build training data for SOM");
-			return;
-		}
-		//build SOM data		
-		buildTestTrainFromProspectMap(trainTestPartition, true);	
-		dispMessage("SOMMapManager","buildAndSaveTrainingData","Saving data to training file : Starting to save training/testing data partitions ");
-		//launchTestTrainSaveThrds();
-		//save mins/maxes so this file data be reconstructed
-		//save diffs and mins - csv files with each field value sep'ed by a comma
-		//boundary region for training data
-		String diffStr = "", minStr = "";
-		for(int i =0; i<minsVals.length; ++i){
-			minStr += String.format("%1.7g", minsVals[i]) + ",";
-			diffStr += String.format("%1.7g", diffsVals[i]) + ",";
-		}
-		String minsFileName = projConfigData.getSOMMapMinsFileName();
-		String diffsFileName = projConfigData.getSOMMapDiffsFileName();				
-		saveStrings(minsFileName,new String[]{minStr});		
-		saveStrings(diffsFileName,new String[]{diffStr});		
-		dispMessage("SOMMapManager","buildAndSaveTrainingData","Strafford Prospects Mins and Diffs Files Saved");	
-	}//buildAndSaveTrainingData	
-
+	//this will load the default map training configuration
+	public void loadSOMConfig() {
+		
+		projConfigData.loadDefaultSOMExp_Config();
+		
+	}//loadSOMConfig
 	
 	//load preproc csv and build training and testing partitions
-	public void dbgLoadCSVBuildDataTrainMap(float trainTestPartition) {
+	public void loadPreprocAndBuildTestTrainPartitions(float trainTestPartition) {
 		dispMessage("SOMMapManager","dbgLoadCSVBuildDataTrainMap","Start Loading all CSV Build Data to train map.");
 		loadAllPreProccedData();
 		//build SOM data
 		buildTestTrainFromProspectMap(trainTestPartition, true);	
 		dispMessage("SOMMapManager","dbgLoadCSVBuildDataTrainMap","Saving data to training file : Starting to save training/testing data partitions ");
-		//launchTestTrainSaveThrds();
 		//save mins/maxes so this file data be reconstructed
 		//save diffs and mins - csv files with each field value sep'ed by a comma
 		//boundary region for training data
@@ -985,11 +953,12 @@ public class SOMMapManager {
 		saveStrings(diffsFileName,new String[]{diffStr});		
 		dispMessage("SOMMapManager","dbgLoadCSVBuildDataTrainMap","Strafford Prospects Mins and Diffs Files Saved");	
 		dispMessage("SOMMapManager","dbgLoadCSVBuildDataTrainMap","Finished Loading all CSV Build Data to train map.");
-	}//
+	}//loadPreprocAndBuildTestTrainPartitions
 	
-	//load the data used to build a map - NOTE this may break if different data is used to build the map than the current data
-	public void dbgBuildExistingMap() {
-		//load data into preproc
+	//load the data used to build a map as well as existing map results
+	//NOTE this may break if different data is used to build the map than the current data being loaded
+	public void loadPretrainedExistingMap() {
+		//load data into preproc  -this must be data used to build map
 		loadAllPreProccedData();
 		//set project test/train partitions based on preset data values
 		projConfigData.setTrainTestPartitionDBG();

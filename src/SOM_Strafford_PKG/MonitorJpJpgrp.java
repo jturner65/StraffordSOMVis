@@ -9,18 +9,20 @@ public class MonitorJpJpgrp {
 	public static SOMMapManager mapData;
 	////////////////////////////////////////
 	//this information comes from the prospect and product map data
-	//reference to jp ids and jpgrps and counts of all jps and jpgrps seen in all data 
+	//reference to jp ids and counts of all jps seen in all data
 	private TreeMap<Integer, Integer> jpSeenCount;
+	//reference to JP ids as key and counts of jps seen in product data
+	private TreeMap<Integer, Integer> prodJpSeenCount;
 	//reference to ids and counts of all jps seen in -event- data
 	private TreeMap<Integer, Integer> jpEvSeenCount;
 	//reference to ids and counts of all jps seen only in prospect record data (not including events)
-	private TreeMap<Integer, Integer> jpPrspctSeenCount;// = new TreeMap<Integer, Integer>();//jpEvSeen
+	private TreeMap<Integer, Integer> jpPrspctSeenCount;
 	//map from jp to idx in resultant feature vector
-	private TreeMap<Integer, Integer> jpToFtrIDX,prodJpToFtrIDX;
+	private TreeMap<Integer, Integer> jpToFtrIDX;
 	//map from jpgroup to integer
-	private TreeMap<Integer, Integer> jpgToIDX, prodJpgToIDX;
+	private TreeMap<Integer, Integer> jpgToIDX;
 	//map from jpgroup to jps corresponding to this group.
-	private TreeMap<Integer, TreeSet <Integer>> jpgsToJps;// = new TreeMap<Integer, TreeSet <Integer>>();
+	private TreeMap<Integer, TreeSet <Integer>> jpgsToJps;
 	//map from jps to owning jpgs
 	private TreeMap<Integer, Integer> jpsToJpgs;// = new TreeMap<Integer, Integer>();
 	//used by UI and also to map specific indexes to actual jps/jpgs
@@ -60,14 +62,12 @@ public class MonitorJpJpgrp {
 		jpSeenCount = new TreeMap<Integer, Integer>(); 	//count of prospect training data records having jp
 		jpEvSeenCount = new TreeMap<Integer, Integer>(); //count of prospect train records having jp only counting events
 		jpPrspctSeenCount = new TreeMap<Integer, Integer>(); //count of prospect train records having jp only in base prospect record
+		prodJpSeenCount = new TreeMap<Integer, Integer>();//count of products having jp
 		jpsToJpgs = new TreeMap<Integer, Integer>();	//map from jpgs to jps
 		jpgsToJps = new TreeMap<Integer, TreeSet <Integer>>();
 		
 		jpToFtrIDX = new TreeMap<Integer, Integer>();	
 		jpgToIDX = new TreeMap<Integer, Integer>();	
-		
-		prodJpToFtrIDX= new TreeMap<Integer, Integer>();	
-		prodJpgToIDX = new TreeMap<Integer, Integer>();	
 		
 		jpByIdx = new Integer[] {1};
 		jpgrpsByIdx = new Integer[] {1};
@@ -97,8 +97,7 @@ public class MonitorJpJpgrp {
 	private void dbgShowNames(TreeMap<Integer, String> jpdat, String _name) {
 		for(Integer jp : jpdat.keySet()) {mapData.dispMessage("MonitorJpJpgrp", "dbgShowNames : " + _name, ""+jp+" : "+ jpdat.get(jp));	}
 	}
-	
-	
+		
 	//this will set the current jp->jpg data maps based on passed prospect data map
 	//When acquiring new data, this must be performed after all data is loaded, but before
 	//the prospect data is finalized and actual map is built due to the data finalization 
@@ -124,7 +123,6 @@ public class MonitorJpJpgrp {
 		}//for each prospect
 		mapData.dispMessage("MonitorJpJpgrp","setJPDataFromExampleData","num jps seen in prospects  : " + tmpSetAllJpsJpgs.size());
 		
-		TreeMap<Integer, Integer> prodJpSeenCount = new TreeMap<Integer, Integer>(); 	//count of prospect training data records having jp
 		//add all jps-jpgs from product data - will have data not seen in prospects		
 		for(ProductExample ex : prdctMap.values()) {
 			HashSet<Tuple<Integer,Integer>> tmpExSet = ex.getSetOfAllJpgJpData(); //tmpExSet is set of all jps/jpgs in ex
@@ -138,28 +136,22 @@ public class MonitorJpJpgrp {
 			}											//add all tuples to set already seen
 		}//for each product		
 		mapData.dispMessage("MonitorJpJpgrp","setJPDataFromExampleData","num jps seen in products  : " + tmpSetProductJpsJpgs.size()  + " | # seen now in tmpSetAllJpsJpgs :  " +tmpSetAllJpsJpgs.size()+ " | # seen only in products : " + (tmpSetAllJpsJpgs.size() - tmpSetProspectEventJpsJpgs.size()) + " | # of product examples : " + prdctMap.size());
+		
+		TreeMap<Integer, TreeSet <Integer>> prodJpgsToJps = new TreeMap<Integer, TreeSet <Integer>>();
 		//build jpsToJpgs and JpgsToJps structs
 		for (Tuple<Integer,Integer> jpgJp : tmpSetAllJpsJpgs) {
-			Integer jpg = jpgJp.x, jp=jpgJp.y;
+			int jpg = jpgJp.x, jp=jpgJp.y;
 			jpsToJpgs.put(jp, jpg);
 			TreeSet <Integer> jpList = jpgsToJps.get(jpg);
 			if (jpList==null) {jpList = new TreeSet <Integer>(); jpgsToJps.put(jpg, jpList);}
 			jpList.add(jp);		
+			TreeSet <Integer> prodJPList = prodJpgsToJps.get(jpg);
+			if (prodJPList==null) {prodJPList = new TreeSet <Integer>(); prodJpgsToJps.put(jpg, jpList);}
+			prodJPList.add(jp);		
 		}
 
 		jpByIdx = jpSeenCount.keySet().toArray(new Integer[0]);
 		jpgrpsByIdx = jpgsToJps.keySet().toArray(new Integer[0]);
-
-		TreeMap<Integer, TreeSet <Integer>> prodJpgsToJps = new TreeMap<Integer, TreeSet <Integer>>();
-		for (Tuple<Integer,Integer> jpgJp : tmpSetAllJpsJpgs) {
-			Integer jpg = jpgJp.x, jp=jpgJp.y;
-			TreeSet <Integer> jpList = prodJpgsToJps.get(jpg);
-			if (jpList==null) {jpList = new TreeSet <Integer>(); prodJpgsToJps.put(jpg, jpList);}
-			jpList.add(jp);		
-		}
-		
-		prodJpByIdx = prodJpSeenCount.keySet().toArray(new Integer[0]);
-		prodJpGrpsByIdx = prodJpgsToJps.keySet().toArray(new Integer[0]);
 
 		for(int i=0;i<jpByIdx.length;++i) {
 			jpToFtrIDX.put(jpByIdx[i], i);
@@ -174,30 +166,13 @@ public class MonitorJpJpgrp {
 			jpGrpNames.put(jpgrpsByIdx[i], name);
 		}
 		
-		for(int i=0;i<prodJpByIdx.length;++i) {
-			prodJpToFtrIDX.put(prodJpByIdx[i], i);
-		}
-		for(int i=0;i<prodJpGrpsByIdx.length;++i) {
-			prodJpgToIDX.put(prodJpGrpsByIdx[i], i);
-		}
-		
+		prodJpByIdx = prodJpSeenCount.keySet().toArray(new Integer[0]);
+		prodJpGrpsByIdx = prodJpgsToJps.keySet().toArray(new Integer[0]);
+				
 		numFtrs = jpSeenCount.size();//needs to be same size as jpByIdx.length
 		mapData.setUI_JPMaxVals(jpgrpsByIdx.length,jpByIdx.length); 
 		mapData.dispMessage("MonitorJpJpgrp","setJPDataFromExampleData","numFtrs : " + numFtrs);
 	}//setJPDataFromProspectData	
-
-//	public int getJpIdxByStr(String dat) {	return findIdxGivenString(jpNames, jpToFtrIDX, dat);}	
-//	public int getJpGrpIdxByStr(String dat) {return findIdxGivenString(jpGrpNames, jpgToIDX, dat);}	
-//	public int getProdJpIdxByStr(String dat) {	return findIdxGivenString(jpNames, prodJpToFtrIDX, dat);}
-//	public int getProdJpGrpIdxByStr(String dat) {	return findIdxGivenString(jpGrpNames, prodJpgToIDX, dat);}
-//	//find index in name list corresponding to passed string
-//	private int findIdxGivenString(TreeMap<Integer, String> map, TreeMap<Integer, Integer> jpToIdx, String tok) {
-//		for(Integer jp : map.keySet()) {
-//			String val = map.get(jp);
-//			if(val.equals(tok)) {return jpToIdx.get(jp);}
-//		}		
-//		return -1;
-//	}//findIdxGivenString
 	
 	//name, jp and ftr idx of jp
 	public String getJpByIdxStr(int uiIDX) {
@@ -259,7 +234,7 @@ public class MonitorJpJpgrp {
 		int numProdJps = prodJpByIdx.length;
 		String tmp = "Num Jps=," + numJps+ ",Num  JpGrps=,"+jpgrpsByIdx.length+",Num ProdJPs=,"+ numProdJps+", Num Prod JPGrps=,"+prodJpGrpsByIdx.length;
 		csvResTmp.add(tmp);
-		tmp = "Jp,JpIDX,Jp Name,Jpgrp,JpgrpIDX,Jpgrp Name,JpSeen,JpEvSeen,JpPrspctSeen";
+		tmp = "Jp,JpIDX,Jp Name,Jpgrp,JpgrpIDX,Jpgrp Name,# JpSeen, # JpEvSeen, # JpPrspctSeen";
 		csvResTmp.add(tmp);
 		for (int idx = 0;idx<numJps;++idx) {
 			int jp = jpByIdx[idx];
@@ -274,7 +249,7 @@ public class MonitorJpJpgrp {
 			int prodJP = prodJpByIdx[idx];
 			int prodJpGrp = jpsToJpgs.get(prodJP);
 			int prodJpGrpIdx = jpgToIDX.get(prodJpGrp);
-			tmp=""+prodJP+","+idx+","+ getNameNullChk(prodJP,jpNames) + "," + prodJpGrpIdx;
+			tmp=""+prodJP+","+idx+","+ getNameNullChk(prodJP,jpNames) + ","+ prodJpGrp + "," + prodJpGrpIdx+","+ getNameNullChk(prodJpGrp,jpGrpNames)+","+getCountNullChk(prodJP,prodJpSeenCount);
 			csvResTmp.add(tmp);
 		}
 		mapData.saveStrings(fileName, csvResTmp);	
@@ -311,14 +286,15 @@ public class MonitorJpJpgrp {
 			if(i==0) {//first line has counts of jps and jpgs
 				jpByIdx = new Integer[Integer.parseInt(vals[1])];		
 				jpgrpsByIdx = new Integer[Integer.parseInt(vals[3])];	
-				prodJpByIdx = new Integer[Integer.parseInt(vals[5])];			
+				prodJpByIdx = new Integer[Integer.parseInt(vals[5])];	
+				prodJpGrpsByIdx = new Integer[Integer.parseInt(vals[7])];
 			} 
 			else if (i==1) {continue;}								//header string
 			else if (vals[0].contains("---------")){
 				isProd = true;
 				continue;}		
 			else {//here record has all values i >= 2
-				if (!isProd) {
+				if (!isProd) {//found in prospects
 					//layout"Jp, JpIDX, Jp Name, Jpgrp, JpgrpIDX, Jpgrp Name, JpSeen, JpEvSeen, JpPrspctSeen";
 					int jp = Integer.parseInt(vals[0]),
 						jpFtrIDX = Integer.parseInt(vals[1]),
@@ -334,8 +310,7 @@ public class MonitorJpJpgrp {
 					jpEvSeenCount.put(jp, jpEvSeen);
 					jpPrspctSeenCount.put(jp, jpPrspctSeen);
 					jpsToJpgs.put(jp, jpgrp);
-					jpNamesRaw.put(jp, jpName);
-					
+					jpNamesRaw.put(jp, jpName);					
 					TreeSet <Integer> jpsAtJpg = jpgsToJps.get(jpgrp);
 					if (jpsAtJpg == null) {jpsAtJpg = new TreeSet <Integer>(); }
 					jpsAtJpg.add(jp);
@@ -343,11 +318,15 @@ public class MonitorJpJpgrp {
 					jpGrpNamesRaw.put(jpgrp, jpgrpName);
 					jpgToIDX.put(jpgrp,jpgrpIDX);
 					jpgrpsByIdx[jpgrpIDX]=jpgrp;
-				} else {//product records 
+				} else {//jps found in products product records - assuming no jps only found in products
 					int prodJP = Integer.parseInt(vals[0]),
 						prodAraIDX = Integer.parseInt(vals[1]),
-						prodJpg = Integer.parseInt(vals[3]);
+						prodJpg = Integer.parseInt(vals[3]),
+						prodJpGrpIDX = Integer.parseInt(vals[4]),
+						prodJpSeen = Integer.parseInt(vals[6]);
 					prodJpByIdx[prodAraIDX]=prodJP;
+					prodJpGrpsByIdx[prodJpGrpIDX] = prodJpg;
+					prodJpSeenCount.put(prodJP, prodJpSeen);
 					tmpProdJpgrs.add(prodJpg);					
 				}
 			}

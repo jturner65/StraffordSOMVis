@@ -86,10 +86,6 @@ public class mySOMMapUIWin extends myDispWindow {
 	public final int numGUIObjs = 25;	
 	
 	private double[] uiVals;				//raw values from ui components
-	//source datapoints to be used to build files to send to SOM_MAP
-	//public dataPoint[] straffTrainData, straffTestData, straffSmplData;
-	//data format is from uiTrainDataFrmtIDX
-	//private int dataFrmtToUseToTrain;
 	//threshold of wt value to display map node
 	private float mapNodeWtDispThresh;
 	//raw data source : 0 == csv, 1 == sql
@@ -105,8 +101,7 @@ public class mySOMMapUIWin extends myDispWindow {
 	//to draw analysis results
 	private float calcScale = .5f;
 	//set analysisHt equal to be around 1/2 SOM_mapDims height
-	private int analysisHt, analysisAllJPBarWidth, analysisPerJPWidth;
-	
+	private int analysisHt, analysisAllJPBarWidth, analysisPerJPWidth;	
 	//array of per-ftr map wts
 	private PImage[] mapPerFtrWtImgs;
 	//array of per jpg map wts - equally weighted all jps within jpg
@@ -123,14 +118,14 @@ public class mySOMMapUIWin extends myDispWindow {
 	//scaling value - use this to decrease the image size and increase the scaling so it is rendered the same size
 	public static final float mapScaleVal = 10.0f;
 	
-	public DispSOMMapExample mseOvrData;//label of mouse-over location in map
+	public DispSOMMapExample mseOvrData;//location and label of mouse-over point in map
 		
 	/////////
 	//custom debug/function ui button names -empty will do nothing
 	public String[][] menuBtnNames = new String[][] {	//each must have literals for every button defined in side bar menu, or ignored
 		{"Load All Raw ---", "Load Raw Prod ---","Recalc Features"},	//row 1
-		{"Ld Proc'ed Data", "Build SOM Data", "Ld & Make Map", "Ld Prebuilt Map"},	//row 1
-		{"Disp JPs","Disp Calc","Disp Ftrs","Disp Raw Data","Dbg 5"}	
+		{"Ld&Bld SOM Data", "Ld SOM Config", "Func 3", "Ld Prebuilt Map"},	//row 1
+		{"Show Raw","Show Proced","Dbg 3","Dbg 4","Dbg 5"}	
 	};
 
 	//used to switch button name for 1st button to reflect whether performing csv-based load of raw data or sql query
@@ -189,7 +184,6 @@ public class mySOMMapUIWin extends myDispWindow {
 		analysisHt = (int) (SOM_mapDims[3]*.45f);
 		//for single jp detail display
 		analysisPerJPWidth = (int) (SOM_mapDims[2]*.1f);
-
 		
 		//init specific sim flags
 		initPrivFlags(numPrivFlags);			
@@ -257,8 +251,7 @@ public class mySOMMapUIWin extends myDispWindow {
 			case mapDrawTrainDatIDX		: {//draw training examples
 				break;}							
 			case mapDrawTestDatIDX		: {//draw testing examples
-				break;}								
-			
+				break;}											
 //			case mapDrawTrDatLblIDX 	: {//draw labels for training samples                                                       
 //				break;}
 			case mapDrawWtMapNodesIDX		: {//draw map nodes
@@ -353,12 +346,12 @@ public class mySOMMapUIWin extends myDispWindow {
 	protected void setupGUIObjsAras(){		
 		
 		guiMinMaxModVals = new double [][]{  
-			{0.0, uiRawDataSourceList.length-1, 1},				//uiRawDataSourceIDX
-			{0.0, uiMapTrainFtrTypeList.length-1, 1.0},			//uiTrainDataFrmtIDX
-			{1.0, 100.0, 1.0},			//uiTrainDatPartIDX
-			{1.0, 120.0, 10},			//uiMapRowsIDX 	 		
-			{1.0, 120.0, 10},			//uiMapColsIDX	 		
-			{1.0, 200.0, 10},			//uiMapEpochsIDX		
+			{0.0, uiRawDataSourceList.length-1, 1},			//uiRawDataSourceIDX
+			{0.0, uiMapTrainFtrTypeList.length-1, 1.0},		//uiTrainDataFrmtIDX
+			{1.0, 100.0, 1.0},								//uiTrainDatPartIDX
+			{1.0, 120.0, 10},								//uiMapRowsIDX 	 		
+			{1.0, 120.0, 10},								//uiMapColsIDX	 		
+			{1.0, 200.0, 10},								//uiMapEpochsIDX		
 			{0.0, uiMapShapeList.length-1, 1},				//uiMapShapeIDX	 		
 			{0.0, uiMapBndsList.length-1, 1},				//uiMapBndsIDX	 		
 			{0.0, uiMapKTypList.length-1, .05},				//uiMapKTypIDX	 		
@@ -376,7 +369,7 @@ public class mySOMMapUIWin extends myDispWindow {
 			{0, uiMapDrawExToBmuTypeList.length-1, 1.0},		//uiMapNodeBMUTypeToDispIDX
 			{0.0, 1.0, .01},			//uiMapNodeWtDispThreshIDX
 			{0.0, 1.0, .001},			//uiNodeInSegThreshIDX//threshold of u-matrix weight for nodes to belong to same segment
-			{0.0, 10, .1},				//uiProdZoneDistThreshIDX
+			{0.0, 2, .01},				//uiProdZoneDistThreshIDX
 			{0.0, 1.0, .1},				//uiMseRegionSensIDX
 	
 		};					
@@ -404,38 +397,37 @@ public class mySOMMapUIWin extends myDispWindow {
 			0,		//uiMapNodeBMUTypeToDispIDX 
 			.04f,	//uiMapNodeWtDispThreshIDX
 			SOMMapManager.getNodeInSegThresh(),	//uiNodeInSegThreshIDX//threshold of u-matrix weight for nodes to belong to same segment
-			0.3,	//uiProdZoneDistThreshIDX
+			0.6,	//uiProdZoneDistThreshIDX
 			0,		//uiMseRegionSensIDX
 		};								//starting value
 		uiVals = new double[numGUIObjs];//raw values
 		System.arraycopy(guiStVals, 0, uiVals, 0, numGUIObjs);
 		guiObjNames = new String[]{
-				"Raw Data Source", //uiRawDataSourceIDX
-				"Training Data Format",	//uiTrainDataFrmtIDX
-				"Data % for Training",	//uiTrainDatPartIDX
-				"# Map Rows",  			//uiMapRowsIDX 	 
-				"# Map Columns",  		//uiMapColsIDX	 
-				"# Training Epochs",  	//uiMapEpochsIDX
-				"Map Node Shape",  		//uiMapShapeIDX	 
-				"Map Boundaries",  		//uiMapBndsIDX	 
-				"Dense/Sparse (C/G)PU", //uiMapKTypIDX	 
-				"Neighborhood Func",  	//uiMapNHdFuncIDX
-				"Radius Cooling", 		//uiMapRadCoolIDX
-				"Learn rate Cooling",   //uiMapLrnCoolIDX
-				"Start Learn Rate",  	//uiMapLrnStIDX	 
-				"End Learn Rate",  		//uiMapLrnEndIDX
-				"Start Cool Radius",  	//uiMapRadStIDX	 
-				"End Cool Radius", 		//uiMapRadEndIDX	
-				"JPGrp Ftrs Shown",     //uiJPGToDispIDX
-				"JP Ftr Shown", 		//uiJPToDispIDX
-				"JPG for Prods to Show",  //uiProdJpgToDispIDX  
-				"JP for Prods to Show",   //uiProdJpToDispIDX
-				"Ex Type For Node BMU",		////uiMapNodeBMUTypeToDispIDX
-				"Map Node Disp Wt Thresh",//uiMapNodeWtDispThreshIDX
-				"Node in Seg UDist Thresh",//uiNodeInSegThreshIDX//threshold of u-matrix weight for nodes to belong to same segment
-				"Prod Max Sq Dist From Map Node",//uiProdZoneDistThreshIDX
-				"Mouse Over JP Sensitivity"	//uiMseRegionSensIDX
-				
+			"Raw Data Source", 			//uiRawDataSourceIDX
+			"Train Data Frmt",			//uiTrainDataFrmtIDX
+			"Data % To Train",			//uiTrainDatPartIDX
+			"# Map Rows",  				//uiMapRowsIDX 	 
+			"# Map Columns",  			//uiMapColsIDX	 
+			"# Training Epochs",  		//uiMapEpochsIDX
+			"Map Node Shape",  			//uiMapShapeIDX	 
+			"Map Boundaries",  			//uiMapBndsIDX	 
+			"Dense/Sparse (C/G)PU",		//uiMapKTypIDX	 
+			"Neighborhood Func",  		//uiMapNHdFuncIDX
+			"Radius Cooling", 			//uiMapRadCoolIDX
+			"Learn rate Cooling",   	//uiMapLrnCoolIDX
+			"Start Learn Rate",  		//uiMapLrnStIDX	 
+			"End Learn Rate",  			//uiMapLrnEndIDX
+			"Start Cool Radius",  		//uiMapRadStIDX	 
+			"End Cool Radius", 			//uiMapRadEndIDX	
+			"JPGrp Ftrs Shown",     	//uiJPGToDispIDX
+			"JP Ftr Shown", 			//uiJPToDispIDX
+			"Prod JPG to Show", 		//uiProdJpgToDispIDX  
+			"Prod JP to Show",   		//uiProdJpToDispIDX
+			"Ex Type For Node BMU",		//uiMapNodeBMUTypeToDispIDX
+			"Map Node Disp Wt Thresh",	//uiMapNodeWtDispThreshIDX
+			"Segment UDist Thresh",		//uiNodeInSegThreshIDX//threshold of u-matrix weight for nodes to belong to same segment
+			"Prod Max Sq Dist",			//uiProdZoneDistThreshIDX
+			"Mouse Over JP Sens"		//uiMseRegionSensIDX				
 		};			//name/label of component	
 					
 		//idx 0 is treat as int, idx 1 is obj has list vals, idx 2 is object gets sent to windows, 3 is object allows for lclick-up/rclick-down mod
@@ -971,23 +963,21 @@ public class mySOMMapUIWin extends myDispWindow {
 			}	
 			break;}//row 1 of menu side bar buttons
 		case mySideBarMenu.btnAuxFunc2Idx : {
-			mapMgr.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Click Functions 2 in "+name+" : btn : " + btn);
+			mapMgr.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Click Functions 2 in "+name+" : btn : " + btn);//{"Ld&Bld SOM Data", "Load SOM Config", "Ld & Make Map", "Ld Prebuilt Map"},	//row 1
 			switch(btn){
 				case 0 : {	
-					mapMgr.loadAllPreProccedData();//getPrivFlags(useOnlyEvntsToTrainIDX));
+					mapMgr.loadPreprocAndBuildTestTrainPartitions((float)(.01*this.guiObjs[uiTrainDatPartIDX].getVal()));
 					resetButtonState();
 					break;}
 				case 1 : {	
-					mapMgr.buildAndSaveTrainingData((float)(.01*this.guiObjs[uiTrainDatPartIDX].getVal()));//pass fraction of data to use for training
+					mapMgr.loadSOMConfig();//pass fraction of data to use for training
 					resetButtonState();
 					break;}
 				case 2 : {	
-					//mapMgr.dbgLoadCSVBuildDataTrainMap(getPrivFlags(useOnlyEvntsToTrainIDX), (float)(.01*this.guiObjs[uiTrainDatPartIDX].getVal()));
-					mapMgr.dbgLoadCSVBuildDataTrainMap((float)(.01*this.guiObjs[uiTrainDatPartIDX].getVal()));
-					this.setPrivFlags(buildSOMExe, true);
+					resetButtonState();
 					break;}
 				case 3 : {	
-					mapMgr.dbgBuildExistingMap();
+					mapMgr.loadPretrainedExistingMap();
 					break;}
 				default : {
 					mapMgr.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Unknown Functions 2 btn : "+btn);
@@ -998,23 +988,22 @@ public class mySOMMapUIWin extends myDispWindow {
 			mapMgr.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Click Debug in "+name+" : btn : " + btn);
 			switch(btn){
 				case 0 : {	
-					mapMgr.dbgShowUniqueJPsSeen();
+					mapMgr.dbgShowAllRawData();
 					resetButtonState();
 					break;}//verify priority queue functionality
 				case 1 : {	
+					mapMgr.dbgShowUniqueJPsSeen();
 					mapMgr.dbgShowCalcEqs();
+					mapMgr.dbgShowAllFtrVecs();
 					resetButtonState();
 					break;}//verify FEL pq integrity
 				case 2 : {	
-					mapMgr.dbgShowAllFtrVecs();
 					resetButtonState();
 					break;}
 				case 3 : {	
-					mapMgr.dbgShowAllRawData();
 					resetButtonState();
 					break;}
-				case 4 : {	
-					
+				case 4 : {						
 					resetButtonState();
 					break;}
 				default : {

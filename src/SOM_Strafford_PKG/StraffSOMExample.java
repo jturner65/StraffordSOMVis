@@ -145,14 +145,13 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	}//addDataToMap
 	
 	//debugging tool to find issues behind occasional BMU seg faults
-	protected boolean checkForErrors(SOMMapNode _n, float[] dataVar){
-		boolean inError = false;
-		if(mapMgr == null){					mapMgr.dispMessage("SOMMapNodeExample","checkForErrors","FATAL ERROR : SOMMapData object is null!");		return true;}//if mapdata is null then stop - should have come up before here anyway
-		if(_n==null){							mapMgr.dispMessage("SOMMapNodeExample","checkForErrors","_n is null!");		inError=true;} 
-		else if(_n.mapLoc == null){				mapMgr.dispMessage("SOMMapNodeExample","checkForErrors","_n has no maploc!");	inError=true;}
-		if(dataVar == null){					mapMgr.dispMessage("SOMMapNodeExample","checkForErrors","map variance not calculated : datavar is null!");	inError=true;	}
-		return inError;
-	}//checkForErrors
+//	protected boolean checkForErrors(SOMMapNode _n, float[] dataVar){
+//		if(mapMgr == null){					mapMgr.dispMessage("SOMMapNodeExample","checkForErrors","FATAL ERROR : SOMMapData object is null!");		return true;}//if mapdata is null then stop - should have come up before here anyway
+//		if(_n==null){							mapMgr.dispMessage("SOMMapNodeExample","checkForErrors","_n is null!");		 return true;} 
+//		if(_n.mapLoc == null){					mapMgr.dispMessage("SOMMapNodeExample","checkForErrors","_n has no maploc!");	return true;}
+//		if(dataVar == null){					mapMgr.dispMessage("SOMMapNodeExample","checkForErrors","map variance not calculated : datavar is null!");	return true;	}
+//		return false;
+//	}//checkForErrors
 	
 	//take map of jpwts to arrays of jps and build maps of jps to rank
 	//This will give a map of all present JPs for this example and the rank of that jp.  null entries mean no rank
@@ -182,6 +181,7 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	}//getJPRankForMap
 	
 	//add passed map node, with passed feature distance, to neighborhood nodes
+	//using a map of arrays so that we can precalc distances 1 time
 	protected void addMapUnitToNeighbrhdMap(SOMMapNode _n, double _dist) {
 		ArrayList<SOMMapNode> tmpMap = mapNodeNghbrs.get(_dist);
 		if (null==tmpMap) {tmpMap = new ArrayList<SOMMapNode>();}
@@ -198,19 +198,20 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		mapNodeNghbrs.put(_sqDistToBMU, tmpMap);		//to hold 9 neighbor nodes and their ftr distance		
 	}//addBMUToNeighbrhdMap
 	
+	//assign passed map node to be bmu
+	protected void _setBMUAddToNeighborhood(SOMMapNode _n, double _dist) {
+		//if (checkForErrors(_n, mapMgr.map_ftrsVar)) {return;}//if true then this is catastrophic error and should interrupt flow here
+		bmu = _n;	
+		_sqDistToBMU = _dist;
+		this.mapLoc.set(bmu.mapLoc);		
+		addBMUToNeighbrhdMap();
+	}//_setBMUAddToNeighborhood
+	
 	//this adds the passed node as this example's best matching unit on the map
 	//this also adds this data point to the map's node with a key of the distance
 	//dataVar is variance of feature weights of map nodes.  this is for chi-squared distance measurements
 	public void setBMU(SOMMapNode _n, int _ftrType){
-		setBMU(_n,getSqDistFromFtrType(_n,  _ftrType), _ftrType );
-	}//setBMU
-	public void setBMU(SOMMapNode _n, double _dist, int _ftrType){
-		if (checkForErrors(_n, mapMgr.map_ftrsVar)) {return;}//if true then this is catastrophic error and should interrupt flow here
-		bmu = _n;	
-		_sqDistToBMU = _dist;//getSqDistFromFtrType_ChiSq(bmu,  _ftrType);
-		this.mapLoc.set(bmu.mapLoc);
-		
-		addBMUToNeighbrhdMap();
+		_setBMUAddToNeighborhood(_n,getSqDistFromFtrType(_n,  _ftrType));
 		//find ftr distance to all 8 surrounding nodes and add them to mapNodeNeighbors
 		buildNghbrhdMapNodes( _ftrType);
 		//dist here is distance of this training example to map node 
@@ -221,44 +222,12 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	//this also adds this data point to the map's node with a key of the distance
 	//dataVar is variance of feature weights of map nodes.  this is for chi-squared distance measurements
 	public void setBMU_ChiSq(SOMMapNode _n, int _ftrType){
-		setBMU_ChiSq(_n,getSqDistFromFtrType_ChiSq(_n,  _ftrType),_ftrType);
-	}
-	public void setBMU_ChiSq(SOMMapNode _n, double _dist, int _ftrType){
-		if (checkForErrors(_n, mapMgr.map_ftrsVar)) {return;}//if true then this is catastrophic error and should interrupt flow here
-		bmu = _n;	
-		_sqDistToBMU = _dist;//getSqDistFromFtrType_ChiSq(bmu,  _ftrType);
-		this.mapLoc.set(bmu.mapLoc);
-		
-		addBMUToNeighbrhdMap();
+		_setBMUAddToNeighborhood(_n,getSqDistFromFtrType_ChiSq(_n,  _ftrType));
 		//find ftr distance to all 8 surrounding nodes and add them to mapNodeNeighbors
 		buildNghbrhdMapNodes_ChiSq(_ftrType);		
 		//dist here is distance of this training example to map node
 		//_n.addBMUExample(this);
 	}//setBMU
-		
-	//use 9 map node neighborhood around this node, accounting for torroidal map, to find exact location on map, using chi_sq dist calc
-	//for this node (put in mapLoc) by using weighted average of mapNodeLocs of neighbor nodes,
-	//where the weight is the inverse feature distance 
-	// mapNodeNghbrs (9 node neighborood) must be set before this is called, and has bmu set as closest, with key being distance
-	//distsToNodes is distance of this node to all map nodes in neighborhood
-	protected void buildNghbrhdMapNodes_ChiSq(int _ftrType){
-		int mapColsSize = mapMgr.getMapNodeCols(), mapRowSize = mapMgr.getMapNodeRows();
-		int mapCtrX = bmu.mapNodeCoord.x, mapCtrY = bmu.mapNodeCoord.y;
-		Integer xTup, yTup;
-		//go through all mapData.MapNodes 
-		for (int x=-1; x<2;++x) {//should be 3 cols
-			xTup = (mapCtrX + x + mapColsSize) % mapColsSize;
-			for (int y=-1; y<2;++y) {//3 rows
-				if((y==0) && (x==0)){continue;}//ignore "center" node - this is bmu
-				yTup = (mapCtrY + y + mapRowSize) % mapRowSize;		
-				Tuple<Integer,Integer> key = new Tuple<Integer, Integer>(xTup, yTup);
-				SOMMapNode node = mapMgr.MapNodes.get(key);
-				double dist = getSqDistFromFtrType_ChiSq(node, _ftrType);
-				addMapUnitToNeighbrhdMap(node, dist);
-			}//for each row/y
-		}//for each column/x	
-		setExactMapLoc();
-	}//addAllMapNodeNeighbors
 	
 	//use 9 map node neighborhood around this node, accounting for torroidal map, to find exact location on map
 	//for this node (put in mapLoc) by using weighted average of mapNodeLocs of neighbor nodes,
@@ -278,6 +247,55 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 				Tuple<Integer,Integer> key = new Tuple<Integer, Integer>(xTup, yTup);
 				SOMMapNode node = mapMgr.MapNodes.get(key);
 				double dist = getSqDistFromFtrType(node, _ftrType);
+				addMapUnitToNeighbrhdMap(node, dist);
+			}//for each row/y
+		}//for each column/x	
+		setExactMapLoc();
+	}//addAllMapNodeNeighbors
+	
+	//use 9 map node neighborhood around this node, accounting for torroidal map, to find exact location on map
+	//for this node (put in mapLoc) by using weighted average of mapNodeLocs of neighbor nodes,
+	//where the weight is the inverse feature distance 
+	// mapNodeNghbrs (9 node neighborood) must be set before this is called, and has bmu set as closest, with key being distance
+	//distsToNodes is distance of this node to all map nodes in neighborhood
+	//this method only measures non-zero features in this node
+	protected void buildNghbrhdMapNodes_Exc(int _ftrType){
+		int mapColsSize = mapMgr.getMapNodeCols(), mapRowSize = mapMgr.getMapNodeRows();
+		int mapCtrX = bmu.mapNodeCoord.x, mapCtrY = bmu.mapNodeCoord.y;
+		Integer xTup, yTup;
+		//go through all mapData.MapNodes 
+		for (int x=-1; x<2;++x) {//should be 3 cols
+			xTup = (mapCtrX + x + mapColsSize) % mapColsSize;
+			for (int y=-1; y<2;++y) {//3 rows
+				if((y==0) && (x==0)){continue;}//ignore "center" node - this is bmu
+				yTup = (mapCtrY + y + mapRowSize) % mapRowSize;		
+				Tuple<Integer,Integer> key = new Tuple<Integer, Integer>(xTup, yTup);
+				SOMMapNode node = mapMgr.MapNodes.get(key);
+				double dist = getSqDistFromFtrType_Exclude(node, _ftrType);
+				addMapUnitToNeighbrhdMap(node, dist);
+			}//for each row/y
+		}//for each column/x	
+		setExactMapLoc();
+	}//addAllMapNodeNeighbors	
+	
+	//use 9 map node neighborhood around this node, accounting for torroidal map, to find exact location on map, using chi_sq dist calc
+	//for this node (put in mapLoc) by using weighted average of mapNodeLocs of neighbor nodes,
+	//where the weight is the inverse feature distance 
+	// mapNodeNghbrs (9 node neighborood) must be set before this is called, and has bmu set as closest, with key being distance
+	//distsToNodes is distance of this node to all map nodes in neighborhood
+	protected void buildNghbrhdMapNodes_ChiSq(int _ftrType){
+		int mapColsSize = mapMgr.getMapNodeCols(), mapRowSize = mapMgr.getMapNodeRows();
+		int mapCtrX = bmu.mapNodeCoord.x, mapCtrY = bmu.mapNodeCoord.y;
+		Integer xTup, yTup;
+		//go through all mapData.MapNodes 
+		for (int x=-1; x<2;++x) {//should be 3 cols
+			xTup = (mapCtrX + x + mapColsSize) % mapColsSize;
+			for (int y=-1; y<2;++y) {//3 rows
+				if((y==0) && (x==0)){continue;}//ignore "center" node - this is bmu
+				yTup = (mapCtrY + y + mapRowSize) % mapRowSize;		
+				Tuple<Integer,Integer> key = new Tuple<Integer, Integer>(xTup, yTup);
+				SOMMapNode node = mapMgr.MapNodes.get(key);
+				double dist = getSqDistFromFtrType_ChiSq(node, _ftrType);
 				addMapUnitToNeighbrhdMap(node, dist);
 			}//for each row/y
 		}//for each column/x	
@@ -309,47 +327,20 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		setExactMapLoc();
 	}//addAllMapNodeNeighbors
 	
-	//use 9 map node neighborhood around this node, accounting for torroidal map, to find exact location on map
-	//for this node (put in mapLoc) by using weighted average of mapNodeLocs of neighbor nodes,
-	//where the weight is the inverse feature distance 
-	// mapNodeNghbrs (9 node neighborood) must be set before this is called, and has bmu set as closest, with key being distance
-	//distsToNodes is distance of this node to all map nodes in neighborhood
-	//this method only measures non-zero features in this node
-	protected void buildNghbrhdMapNodes_Exc(int _ftrType){
-		int mapColsSize = mapMgr.getMapNodeCols(), mapRowSize = mapMgr.getMapNodeRows();
-		int mapCtrX = bmu.mapNodeCoord.x, mapCtrY = bmu.mapNodeCoord.y;
-		Integer xTup, yTup;
-		//go through all mapData.MapNodes 
-		for (int x=-1; x<2;++x) {//should be 3 cols
-			xTup = (mapCtrX + x + mapColsSize) % mapColsSize;
-			for (int y=-1; y<2;++y) {//3 rows
-				if((y==0) && (x==0)){continue;}//ignore "center" node - this is bmu
-				yTup = (mapCtrY + y + mapRowSize) % mapRowSize;		
-				Tuple<Integer,Integer> key = new Tuple<Integer, Integer>(xTup, yTup);
-				SOMMapNode node = mapMgr.MapNodes.get(key);
-				double dist = getSqDistFromFtrType_Exclude(node, _ftrType);
-				addMapUnitToNeighbrhdMap(node, dist);
-			}//for each row/y
-		}//for each column/x	
-		setExactMapLoc();
-	}//addAllMapNodeNeighbors
-	
-	private float calcWrapMod(Integer bmuCoord, Integer exCoord, float mapDim) {
+	//calculate appropriate modifier based on where neighbor node is related to where bmu node is - need to account for wrapping
+	private float calcWrapMod(Integer bmuCoord, Integer neighborCoord, float mapDim) {
 		float mod = 0.0f;
-		if (exCoord > bmuCoord+1) {//this means that the example is actually lower than bmu, but due to wrap it is on the other side of the map, so add
-			mod = mapDim;
-		} else if (exCoord < bmuCoord-1) {//this means that the example is actually higher coord than bmu, but wrapped around to the other side, so subtract dim 
-			mod = -mapDim;
-		}		
+		if (neighborCoord > bmuCoord+1) {		mod = mapDim; }//this means that the example is actually lower than bmu, but due to wrap it is on the other side of the map, so add
+		else if (neighborCoord < bmuCoord-1) {	mod = -mapDim;}//this means that the example is actually higher coord than bmu, but wrapped around to the other side, so subtract dim 
 		return mod;
 	}//calcWrapMod
 	
 	//return location of passed map node, with value added or subtracted based on whether it wraps around map
-	private myPointf findNodeLocWrap(SOMMapNode ex, Integer bmuX, Integer bmuY, float mapW, float mapH) {
-		Integer ex_X = ex.mapNodeCoord.x, ex_Y = ex.mapNodeCoord.y;
-		myPointf loc = new myPointf(ex.mapLoc);
-		float locXMod = calcWrapMod(bmuX, ex_X, mapW);
-		float locYMod = calcWrapMod(bmuY, ex_Y, mapH);		
+	private myPointf findNodeLocWrap(SOMMapNode mapNode, Integer bmuX, Integer bmuY, float mapW, float mapH) {
+		Integer mapNode_X = mapNode.mapNodeCoord.x, mapNode_Y = mapNode.mapNodeCoord.y;
+		myPointf loc = new myPointf(mapNode.mapLoc);
+		float locXMod = calcWrapMod(bmuX, mapNode_X, mapW);		//subtract or add map width or height depending on whether neighborhood wraps around torroidal map
+		float locYMod = calcWrapMod(bmuY, mapNode_Y, mapH);		
 		loc._sub(locXMod,locYMod, 0.0f);
 		return loc;		
 	}//findNodeLocWrap
@@ -361,9 +352,7 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		for (double _dist : mapNodeNghbrs.keySet()) {
 			invDistP1 = (float) (1.0f/(1.0f+_dist));					//handles 0 dist - max will be 0, min will be some fraction
 			ArrayList<SOMMapNode> tmpMap = mapNodeNghbrs.get(_dist);
-			for (SOMMapNode ex : tmpMap) {//public static myPointf _mult(myPointf p, float n){ myPointf result = new myPointf(p.x * n, p.y * n, p.z * n); return result;}                          //1 pt, 1 float				
-				ttlInvDist +=invDistP1;
-			}			
+			for (SOMMapNode ex : tmpMap) {			ttlInvDist +=invDistP1;		}			
 		}
 		float mapW = mapMgr.getMapWidth(), mapH = mapMgr.getMapHeight();
 		Integer bmuX = bmu.mapNodeCoord.x,  bmuY = bmu.mapNodeCoord.y;
@@ -371,13 +360,13 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 		for (double _dist : mapNodeNghbrs.keySet()) {
 			invDistP1 = ((float) (1.0f/(1.0f+_dist))/ttlInvDist);					//handles 0 dist - max will be 0, min will be some fraction
 			ArrayList<SOMMapNode> tmpMap = mapNodeNghbrs.get(_dist);
-			for (SOMMapNode ex : tmpMap) {//public static myPointf _mult(myPointf p, float n){ myPointf result = new myPointf(p.x * n, p.y * n, p.z * n); return result;}                          //1 pt, 1 float			
+			for (SOMMapNode mapNode : tmpMap) {		
 				//if ex is more than 1 in x or y from bmu, then wrap arround, need to add (or subtract) x or y dim of map
-				locToAdd = findNodeLocWrap(ex, bmuX, bmuY, mapW, mapH);
+				locToAdd = findNodeLocWrap(mapNode, bmuX, bmuY, mapW, mapH);
 				totalLoc._add(myPointf._mult(locToAdd, invDistP1));				
 			}			
 		}
-		totalLoc.x += mapW;totalLoc.x %= mapW;
+		totalLoc.x += mapW;totalLoc.x %= mapW;//filter 
 		totalLoc.y += mapH;totalLoc.y %= mapH;
 		
 		this.mapLoc.set(totalLoc);
@@ -578,31 +567,29 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 	}//_getChiSqFtrDist_Exc		
 
 	//given a sqdistance-keyed map of lists of mapnodes, this will find the best matching unit (min distance), with favor given to units that have more examples
-	private void _setBMUFromDistMapOfBMUs(TreeMap<Double, ArrayList<SOMMapNode>> mapNodes) {
+	private void _setBMUFromMapNodeDistMap(TreeMap<Double, ArrayList<SOMMapNode>> mapNodes) {
 		ArrayList<Tuple<Integer,Integer>> bmuKeys = new ArrayList<Tuple<Integer,Integer>>();
 		Entry<Double, ArrayList<SOMMapNode>> topEntry = mapNodes.firstEntry();
-		_sqDistToBMU = topEntry.getKey();
+		Double bmuDist = topEntry.getKey();
 		ArrayList<SOMMapNode>  bmuList = topEntry.getValue();
 		int numBMUs = bmuList.size();
 		for (int i=0;i<numBMUs;++i) {	bmuKeys.add(i, bmuList.get(i).mapNodeCoord);	}
-		SOMMapNode bestUnit = null;//keep null to break on errors // bmuList.get(0);//default to first entry
+		SOMMapNode bestUnit = null;//keep null to break on errors - shouldn't happen // bmuList.get(0);//default to first entry
 		if (numBMUs > 1) {//if more than 1 entry with same distance, find entry with most examples - if no entries have examples, then this will default to first entry
 			int maxNumExamples = 0;
-			for (int i=0;i<numBMUs;++i) {
+			for (int i=0;i<numBMUs;++i) {//# of map nodes sharing distance to this node
 				SOMMapNode node = bmuList.get(i);
 				int numExamples = node.getNumExamples(ExDataType.ProspectTraining);//want # of training examples
-				if (numExamples >= maxNumExamples) {//need to manage if all map nodes have no direct training examples (might happen on large maps), hence >= and not >
+				if (numExamples >= maxNumExamples) {//need to manage if all map nodes that are "best" have no direct training examples (might happen on large maps), hence >= and not >
 					maxNumExamples = numExamples;
 					bestUnit = node;
 				}		
 			}
 		} else {//only 1
 			bestUnit = bmuList.get(0);
-		}		
-		bmu = bestUnit;	
-		this.mapLoc.set(bmu.mapLoc);
-		addBMUToNeighbrhdMap();
-	}//
+		}	
+		_setBMUAddToNeighborhood(bestUnit, bmuDist);
+	}//_setBMUFromMapNodeDistMap
 		
 	//references current map of nodes, finds best matching unit and returns map of all map node tuple addresses and their ftr distances from this node
 	//also build neighborhood nodes
@@ -616,29 +603,12 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 			tmpAra.add(node);
 			mapNodes.put(sqDistToNode, tmpAra);		
 		}				
-		_setBMUFromDistMapOfBMUs(mapNodes);//,all_MapNodeLocToSqDist);		
+		_setBMUFromMapNodeDistMap(mapNodes);//,all_MapNodeLocToSqDist);		
 		//find ftr distance to all 8 surrounding nodes and add them to mapNodeNeighbors
 		buildNghbrhdMapNodes( _ftrtype);	
 		return mapNodes;
 	}//findBMUFromNodes 	
 	
-	//references current map of nodes, finds best matching unit and returns map of all map node tuple addresses and their ftr distances from this node
-	//using chi sq dist
-	public TreeMap<Double, ArrayList<SOMMapNode>> findBMUFromNodes_ChiSq(TreeMap<Tuple<Integer,Integer>, SOMMapNode> _MapNodes, int _ftrtype) {
-		TreeMap<Double, ArrayList<SOMMapNode>> mapNodes = new TreeMap<Double, ArrayList<SOMMapNode>>();
-		for (SOMMapNode node : _MapNodes.values()) {
-			double sqDistToNode = getSqDistFromFtrType_ChiSq(node, _ftrtype);
-			ArrayList<SOMMapNode> tmpAra = mapNodes.get(sqDistToNode);
-			if(tmpAra == null) {tmpAra = new ArrayList<SOMMapNode>();}
-			tmpAra.add(node);
-			mapNodes.put(sqDistToNode, tmpAra);		
-		}				
-		_setBMUFromDistMapOfBMUs(mapNodes);//, all_MapNodeLocToSqDist);
-		//find ftr distance to all 8 surrounding nodes and add them to mapNodeNeighbors
-		buildNghbrhdMapNodes_ChiSq( _ftrtype);	
-		return mapNodes;
-	}//findBMUFromNodes_ChiSq		
-
 	//references current map of nodes, finds distances from all map nodes, and finds and sets bmu
 	//also build neighborhood nodes
 	//this uses only non-zero features in this node when measuring distances.  two methods to minimize if calls for chisq dist vs regular euclidean dist
@@ -651,11 +621,28 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 			tmpAra.add(node);
 			mapNodes.put(sqDistToNode, tmpAra);		
 		}				
-		_setBMUFromDistMapOfBMUs(mapNodes);//,all_MapNodeLocToSqDist);		
+		_setBMUFromMapNodeDistMap(mapNodes);//,all_MapNodeLocToSqDist);		
 		//find ftr distance to all 8 surrounding nodes and add them to mapNodeNeighbors
 		buildNghbrhdMapNodes( _ftrtype);	
 		return mapNodes;
-	}//findBMUFromNodes 	
+	}//findBMUFromNodes 
+	
+	//references current map of nodes, finds best matching unit and returns map of all map node tuple addresses and their ftr distances from this node
+	//using chi sq dist
+	public TreeMap<Double, ArrayList<SOMMapNode>> findBMUFromNodes_ChiSq(TreeMap<Tuple<Integer,Integer>, SOMMapNode> _MapNodes, int _ftrtype) {
+		TreeMap<Double, ArrayList<SOMMapNode>> mapNodes = new TreeMap<Double, ArrayList<SOMMapNode>>();
+		for (SOMMapNode node : _MapNodes.values()) {
+			double sqDistToNode = getSqDistFromFtrType_ChiSq(node, _ftrtype);
+			ArrayList<SOMMapNode> tmpAra = mapNodes.get(sqDistToNode);
+			if(tmpAra == null) {tmpAra = new ArrayList<SOMMapNode>();}
+			tmpAra.add(node);
+			mapNodes.put(sqDistToNode, tmpAra);		
+		}				
+		_setBMUFromMapNodeDistMap(mapNodes);//, all_MapNodeLocToSqDist);
+		//find ftr distance to all 8 surrounding nodes and add them to mapNodeNeighbors
+		buildNghbrhdMapNodes_ChiSq( _ftrtype);	
+		return mapNodes;
+	}//findBMUFromNodes_ChiSq		
 	
 	//references current map of nodes, finds best matching unit and returns map of all map node tuple addresses and their ftr distances from this node
 	//using chi sq dist
@@ -668,7 +655,7 @@ public abstract class StraffSOMExample extends baseDataPtVis{
 			tmpAra.add(node);
 			mapNodes.put(sqDistToNode, tmpAra);		
 		}				
-		_setBMUFromDistMapOfBMUs(mapNodes);//, all_MapNodeLocToSqDist);
+		_setBMUFromMapNodeDistMap(mapNodes);//, all_MapNodeLocToSqDist);
 		//find ftr distance to all 8 surrounding nodes and add them to mapNodeNeighbors
 		buildNghbrhdMapNodes_ChiSq( _ftrtype);	
 		return mapNodes;
@@ -960,10 +947,7 @@ class ProspectExample extends StraffSOMExample{
 		JpOccurrences = new TreeMap<String, TreeMap<Integer, jpOccurrenceData>> ();
 		//for orders and opts, pivot structure to build map holding occurrence records keyed by jp - must be done after all events are aggregated for each prospect
 		//for every date, for every event, aggregate occurences		
-		for (String key : eventMapTypeKeys) {
-			_buildIndivOccStructs(key, eventsByDateMap.get(key));			
-		}
-		
+		for (String key : eventMapTypeKeys) {_buildIndivOccStructs(key, eventsByDateMap.get(key));			}		
 	}//buildOccurrenceStructs	
 	
 	//check whether this prospect has a particular jp in either his prospect data, events or opts
@@ -1002,8 +986,6 @@ class ProspectExample extends StraffSOMExample{
 	
 	//whether this record has any information to be used to train - presence of prospect jpg/jp can't be counted on
 	//isBadExample means resulting ftr data is all 0's for this example.  can't learn from this, so no need to keep it.
-//	public boolean isTrainableRecord() {return !isBadTrainExample && ((prs_JP != 0) || (orderEventsByDateMap.size()>0) || (optEventsByDateMap.size()> 0));}
-//	public boolean isTrainableRecordEvent() {return !isBadTrainExample && ((orderEventsByDateMap.size()>0) || (optEventsByDateMap.size()> 0));}
 	public boolean isTrainableRecord() {return !isBadTrainExample && ((prs_JP != 0) || hasRelelventEvents());}
 	public boolean isTrainableRecordEvent() {return !isBadTrainExample && (hasRelelventEvents());}
 	
@@ -1155,16 +1137,16 @@ class ProductExample extends StraffSOMExample{
 		//super(_map,ExDataType.Product,IDprfx + "_" +  String.format("%06d", IDcount++));
 		super(_map,ExDataType.Product,data.OID);
 		trainPrdctData = new TcTagTrainData(data);	
-		initBMUMaps();		
+		initProdBMUMaps();		
 	}//ctor
 	
 	public ProductExample(SOMMapManager _map,String _OID, String _csvDataStr) {
 		super(_map,ExDataType.Product,_OID);
 		trainPrdctData = new TcTagTrainData(_csvDataStr);
-		initBMUMaps();
+		initProdBMUMaps();
 	}//ctor
 	
-	private void initBMUMaps() {
+	private void initProdBMUMaps() {
 		prodClr = mapMgr.getRndClr();
 		prodClr[3]=255;
 		allMapNodesDists = new TreeMap[numFtrCompVals];
@@ -1177,8 +1159,8 @@ class ProductExample extends StraffSOMExample{
 		allMapNodesDists[mapNodeIDX] =  mapNodes;
 	}
 	
-	//call this once, before any load of data that will over-write the product examples is performed
-	public static void initAllProdData() {
+	//call this before any data loading that will over-write the existing product examples is performed
+	public static void initAllStaticProdData() {
 		ordrWtAraPerSize = new float[100];	//100 is arbitrary but much more than expected # of jps per product. dont expect a product to have anywhere near this many jps
 		for (int i =1;i<ordrWtAraPerSize.length;++i) {ordrWtAraPerSize[i]=1.0f*(ordrWtAraPerSize[i-1]+i);}
 		//manage mins and maxes seen for ftrs, keyed by ftr idx
@@ -1258,7 +1240,18 @@ class ProductExample extends StraffSOMExample{
 	
 	//convert distances to confidences so that for [_maxDist <= _dist <= 0] :
 	//this returns [0 <= conf <= _maxDist*_maxDistScale]; gives 0->1 as confidence
-	private static double distToConf(double _dist, double _maxDist, double _maxDistScale) { return (_maxDist - _dist)*_maxDistScale;	}
+	private static double distToConf(double _dist, double _maxDist) { 	return (_maxDist - _dist)/_maxDist;	}
+	
+	//return a map of all map nodes as keys and their Confidences as values to this product - inv
+	public HashMap<SOMMapNode, Double> getMapNodeConf(int distType, double _maxDist) {
+		NavigableMap<Double, ArrayList<SOMMapNode>> subMap = allMapNodesDists[distType].headMap(_maxDist, true);
+		HashMap<SOMMapNode, Double> resMap = new HashMap<SOMMapNode, Double>();
+		for (Double dist : subMap.keySet()) {
+			ArrayList<SOMMapNode> mapNodeList = subMap.get(dist);		
+			for (SOMMapNode n : mapNodeList) {		resMap.put(n, distToConf(dist, _maxDist));		}			
+		}
+		return resMap;
+	}//getAllMapNodDists
 	
 	//build a map keyed by distance to each map node of arrays of maps of arrays of that mapnode's examples, each array keyed by their distance:
 	//Outer map is keyed by distance from prod to map node, value is array (1 per map node @ dist) of maps keyed by distance from example to map node, value is array of all examples at that distance)
@@ -1269,10 +1262,10 @@ class ProductExample extends StraffSOMExample{
 		TreeMap<Double, TreeMap<Double, ArrayList<StraffSOMExample>>> nodesNearProd = new TreeMap<Double, TreeMap<Double, ArrayList<StraffSOMExample>>>();
 		HashMap<StraffSOMExample, Double> tmpMapOfNodes;
 		for (Double dist : subMap.keySet()) {								//get all map nodes of certain distance from this node; - this dist is distance from this node to map node
-			ArrayList<SOMMapNode> nodeList = subMap.get(dist);				//all ara of all map nodes of specified distance from this product node
+			ArrayList<SOMMapNode> mapNodeList = subMap.get(dist);				//all ara of all map nodes of specified distance from this product node
 			TreeMap<Double, ArrayList<StraffSOMExample>> tmpMapOfArrays = nodesNearProd.get(dist);			
 			if (tmpMapOfArrays==null) {tmpMapOfArrays = new TreeMap<Double, ArrayList<StraffSOMExample>>();}				
-			for (SOMMapNode n : nodeList) {									//for each map node get all examples of ExDataType that consider that map node BMU
+			for (SOMMapNode n : mapNodeList) {									//for each map node get all examples of ExDataType that consider that map node BMU
 				tmpMapOfNodes = n.getAllExsAndDist(type);					//each prospect example and it's distance from the bmu map node				
 				for(StraffSOMExample exN : tmpMapOfNodes.keySet()) {		//for each example that treats map node as bmu
 					Double distFromBMU = tmpMapOfNodes.get(exN);
@@ -1288,7 +1281,9 @@ class ProductExample extends StraffSOMExample{
 	}//getExamplesNearThisProd	
 	
 	//returns a map of dists from this product as keys and values as maps of distance of examples from their bmus as keys and example itself as value
-	public TreeMap<Double, TreeMap<Double, ArrayList<StraffSOMExample>>> getAllExamplesNearThisProd(int distType, double _maxDist) {
+	//primary key is distance to a map node from this node, map holds distance-keyed lists of examples from their bmus.  
+	//multiple map nodes may lie on same distance from this node but example will only have 1 bmu
+	private TreeMap<Double, TreeMap<Double, ArrayList<StraffSOMExample>>> getAllExamplesNearThisProd(int distType, double _maxDist) {
 		NavigableMap<Double, ArrayList<SOMMapNode>> subMap = allMapNodesDists[distType].headMap(_maxDist, true);		
 		TreeMap<Double, TreeMap<Double, ArrayList<StraffSOMExample>>> allNodesAndDists = new TreeMap<Double, TreeMap<Double, ArrayList<StraffSOMExample>>>();		
 		TreeMap<Double, ArrayList<StraffSOMExample>> srcMapNodeAra, destMapNodeAra;
@@ -1313,19 +1308,18 @@ class ProductExample extends StraffSOMExample{
 	}//getExListNearThisProd
 	
 	//get string array representation of this single product - built on demand
-	public String[] getAllExsStrAra(int distType,double _maxDist) {
+	public String[] getAllExmplsPerProdStrAra(int distType,double _maxDist) {
 		ArrayList<String> resAra = new ArrayList<String>();
 		TreeMap<Double, ArrayList<StraffSOMExample>> exmplsAtDist;		
-		String ttlStr = "Product ID : " + this.OID + " JPs covered : ";
+		String ttlStr = "Product ID : " + this.OID + " # of JPs covered : " + allJPs.size()+" : ";
 		for (Integer jp : allJPs) {	ttlStr += "" + jp + " : " + jpJpgMon.getJPNameFromJP(jp) + ", ";	}		
 		resAra.add(ttlStr);
 		resAra.add("OID,Confidence at Map Node,Error at Map Node");
 		TreeMap<Double, TreeMap<Double, ArrayList<StraffSOMExample>>> allNodesAndConfs = getAllExamplesNearThisProd(distType, _maxDist);
-		double _maxDistScale = 1.0/_maxDist;
 		String confStr, dist2BMUStr;
 		for(Double dist : allNodesAndConfs.keySet()) { 
 			exmplsAtDist = allNodesAndConfs.get(dist);
-			confStr = String.format("%.6f",distToConf(dist, _maxDist, _maxDistScale));
+			confStr = String.format("%.6f",distToConf(dist, _maxDist));
 			for(Double dist2BMU : exmplsAtDist.keySet()){		
 				ArrayList<StraffSOMExample> exsAtDistFromBMU = exmplsAtDist.get(dist2BMU);
 				dist2BMUStr = String.format("%.6f",dist2BMU);
@@ -1381,111 +1375,6 @@ class ProductExample extends StraffSOMExample{
 	}
 
 }//class productExample
-
-//this class is for a simple object to just represent a mouse-over on the visualization of the map
-class DispSOMMapExample extends StraffSOMExample{
-	private float ftrThresh;
-	private int mapType;
-	private int[] clrVal = new int[] {255,255,0,255};
-	private String[] mseLabelAra;
-	private float[] mseLabelDims;
-
-	//need to support all ftr types from map - what type of ftrs are these?
-	public DispSOMMapExample(SOMMapManager _map, myPointf ptrLoc, TreeMap<Integer, Float> _ftrs, float _thresh) {
-		super(_map, ExDataType.MouseOver,"Mse_"+ptrLoc.toStrBrf());//(" + String.format("%.4f",this.x) + ", " + String.format("%.4f",this.y) + ", " + String.format("%.4f",this.z)+")
-		//type of features used for currently trained map
-		mapType = mapMgr.getCurrMapDataFrmt();
-		
-		ftrMap = new TreeMap<Integer, Float>();	
-		ftrThresh = _thresh;
-		allJPs = new HashSet<Integer>();
-		allJPFtrIDXs = new ArrayList<Integer>();
-		//decreasing order
-		TreeMap<Float, String> strongestFtrs = new TreeMap<Float, String>(Collections.reverseOrder());
-		for(Integer ftrIDX : _ftrs.keySet()) {
-			Float ftr = _ftrs.get(ftrIDX);
-			if(ftr >= ftrThresh) {	
-				Integer jp = jpJpgMon.getJpByIdx(ftrIDX);
-				allJPs.add(jp);
-				allJPFtrIDXs.add(ftrIDX);	
-				ftrMap.put(ftrIDX, ftr);
-				strongestFtrs.put(ftr, ""+jp);
-			}
-		}	
-		ArrayList<String> _mseLblDat = new ArrayList<String>();
-		int longestLine = 4;
-		String line = "JPs : ";
- 		//descriptive mouse-over label - top x jp's
-		if (allJPs.size()== 0) {	_mseLblDat.add(line + "None");	}
-		else {
-			int jpOnLine = 0, jpPerLine = 3;
-			for (Float ftr : strongestFtrs.keySet()) {
-				String jpName = strongestFtrs.get(ftr);
-				line += ""+jpName+":" + String.format("%03f", ftr);
-				if(jpOnLine < jpPerLine-1) {				line += " | ";			}
-				longestLine = longestLine >= line.length() ? longestLine : line.length();
-				++jpOnLine;
-				if (jpOnLine >= jpPerLine) {
-					_mseLblDat.add(line);
-					line="";
-					jpOnLine = 0;
-				}
-			}
-		}	
-		mseLabelAra = _mseLblDat.toArray(new String[1]);
-		mseLabelDims = new float[] {10, -10.0f,longestLine*6.0f, mseLabelAra.length*10.0f + 15.0f};
-	}//ctor	
-	//need to support all ftr types from map
-	public DispSOMMapExample(SOMMapManager _map, myPointf ptrLoc, float distData, float _thresh) {
-		super(_map, ExDataType.MouseOver,"Mse_"+ptrLoc.toStrBrf());//(" + String.format("%.4f",this.x) + ", " + String.format("%.4f",this.y) + ", " + String.format("%.4f",this.z)+")
-		//type of features used for currently trained map
-		mapType = mapMgr.getCurrMapDataFrmt();
-		
-		ftrMap = new TreeMap<Integer, Float>();	
-		ftrThresh = _thresh;
-		allJPs = new HashSet<Integer>();
-		allJPFtrIDXs = new ArrayList<Integer>();
-
-		ArrayList<String> _mseLblDat = new ArrayList<String>();
-		String line = "Dist : " + String.format("%05f", distData);
-		int longestLine = line.length();
-		_mseLblDat.add(line);
-
-		mseLabelAra = _mseLblDat.toArray(new String[1]);
-		mseLabelDims = new float[] {10, -10.0f,longestLine*6.0f+10, mseLabelAra.length*10.0f + 15.0f};
-	}//ctor	
-	
-		
-	//not used by this object
-	@Override
-	protected HashSet<Tuple<Integer, Integer>> getSetOfAllJpgJpData() {	return null;}//getSetOfAllJpgJpData
-	@Override
-	protected void buildFeaturesMap() { }	
-	@Override
-	public String getRawDescrForCSV() {	return "Should not save DispSOMMapExample to CSV";}
-	@Override
-	public String getRawDescColNamesForCSV() {return "Do not save DispSOMMapExample to CSV";}
-
-	@Override
-	public void finalizeBuild() {}
-
-	public void drawMeLblMap(SOM_StraffordMain p){
-		p.pushMatrix();p.pushStyle();
-		//draw point of radius rad at maploc with label	
-		//p.showBox(mapLoc, rad, 5, clrVal,clrVal, SOM_StraffordMain.gui_LightGreen, mseLabelDat);
-		//(myPointf P, float rad, int det, int[] clrs, String[] txtAra, float[] rectDims)
-		p.showBox(mapLoc, 5, 5,nodeClrs, mseLabelAra, mseLabelDims);
-		p.popStyle();p.popMatrix();		
-	}//drawLabel	
-
-	@Override
-	protected void buildStdFtrsMap() {	
-		stdFtrMap = new TreeMap<Integer, Float>();
-		if (allJPFtrIDXs.size() > 0) {stdFtrMap = calcStdFtrVector(ftrMap, allJPFtrIDXs);}
-		stdFtrsBuilt = true;
-	}
-
-}//DispSOMMapExample
 
 //this class will hold a structure to aggregate and process the examples of a particular type that consider the owning node a BMU
 class SOMMapNodeBMUExamples{
@@ -1579,7 +1468,7 @@ class SOMMapNodeBMUExamples{
 
 //this class represents a particular node in the SOM map
 class SOMMapNode extends StraffSOMExample{
-	private static float ftrThresh = 0.0f;
+	private static float ftrThresh = 0.0f;			//change to non-zero value if wanting to clip very low values
 	public Tuple<Integer,Integer> mapNodeCoord;	
 	
 	private SOMMapNodeBMUExamples trainEx, prospectEx, prodEx;
@@ -1595,19 +1484,16 @@ class SOMMapNode extends StraffSOMExample{
 	//owning segment for this map node
 	private SOMMapSegment seg; 
 	
-	//feature type denotes what kind of features the tkns being sent represent - 0 is unmodded, 1 is standardized across all data for each feature, 2 is normalized across all features for single data point
+	//build a map node from a float array of ftrs
 	public SOMMapNode(SOMMapManager _map, Tuple<Integer,Integer> _mapNode, float[] _ftrs) {
 		super(_map, ExDataType.MapNode,"Node_"+_mapNode.x+"_"+_mapNode.y);
-		//ftrTypeMapBuilt = _ftrType;
 		if(_ftrs.length != 0){	setFtrsFromFloatAra(_ftrs);	}
-		//allJPs = buildJPsFromFtrAra(_ftrs, ftrThresh);
 		initMapNode( _mapNode);
 	}
 	
-	//feature type denotes what kind of features the tkns being sent represent
+	//build a map node from a string array of features
 	public SOMMapNode(SOMMapManager _map,Tuple<Integer,Integer> _mapNode, String[] _strftrs) {
 		super(_map, ExDataType.MapNode, "Node_"+_mapNode.x+"_"+_mapNode.y);
-		//ftrTypeMapBuilt = _ftrType;
 		if(_strftrs.length != 0){	setFtrsFromStrAra(_strftrs);	}
 		initMapNode( _mapNode);
 	}
@@ -1918,6 +1804,112 @@ class SOMMapNode extends StraffSOMExample{
 		return res;		
 	}
 }//SOMMapNodeExample
+
+
+//this class is for a simple object to just represent a mouse-over on the visualization of the map
+class DispSOMMapExample extends StraffSOMExample{
+	private float ftrThresh;
+	private int mapType;
+	private int[] clrVal = new int[] {255,255,0,255};
+	private String[] mseLabelAra;
+	private float[] mseLabelDims;
+
+	//need to support all ftr types from map - what type of ftrs are these?
+	public DispSOMMapExample(SOMMapManager _map, myPointf ptrLoc, TreeMap<Integer, Float> _ftrs, float _thresh) {
+		super(_map, ExDataType.MouseOver,"Mse_"+ptrLoc.toStrBrf());//(" + String.format("%.4f",this.x) + ", " + String.format("%.4f",this.y) + ", " + String.format("%.4f",this.z)+")
+		//type of features used for currently trained map
+		mapType = mapMgr.getCurrMapDataFrmt();
+		
+		ftrMap = new TreeMap<Integer, Float>();	
+		ftrThresh = _thresh;
+		allJPs = new HashSet<Integer>();
+		allJPFtrIDXs = new ArrayList<Integer>();
+		//decreasing order
+		TreeMap<Float, String> strongestFtrs = new TreeMap<Float, String>(Collections.reverseOrder());
+		for(Integer ftrIDX : _ftrs.keySet()) {
+			Float ftr = _ftrs.get(ftrIDX);
+			if(ftr >= ftrThresh) {	
+				Integer jp = jpJpgMon.getJpByIdx(ftrIDX);
+				allJPs.add(jp);
+				allJPFtrIDXs.add(ftrIDX);	
+				ftrMap.put(ftrIDX, ftr);
+				strongestFtrs.put(ftr, ""+jp);
+			}
+		}	
+		ArrayList<String> _mseLblDat = new ArrayList<String>();
+		int longestLine = 4;
+		String line = "JPs : ";
+		//descriptive mouse-over label - top x jp's
+		if (allJPs.size()== 0) {	_mseLblDat.add(line + "None");	}
+		else {
+			int jpOnLine = 0, jpPerLine = 3;
+			for (Float ftr : strongestFtrs.keySet()) {
+				String jpName = strongestFtrs.get(ftr);
+				line += ""+jpName+":" + String.format("%03f", ftr);
+				if(jpOnLine < jpPerLine-1) {				line += " | ";			}
+				longestLine = longestLine >= line.length() ? longestLine : line.length();
+				++jpOnLine;
+				if (jpOnLine >= jpPerLine) {
+					_mseLblDat.add(line);
+					line="";
+					jpOnLine = 0;
+				}
+			}
+		}	
+		mseLabelAra = _mseLblDat.toArray(new String[1]);
+		mseLabelDims = new float[] {10, -10.0f,longestLine*6.0f, mseLabelAra.length*10.0f + 15.0f};
+	}//ctor	
+	//need to support all ftr types from map
+	public DispSOMMapExample(SOMMapManager _map, myPointf ptrLoc, float distData, float _thresh) {
+		super(_map, ExDataType.MouseOver,"Mse_"+ptrLoc.toStrBrf());//(" + String.format("%.4f",this.x) + ", " + String.format("%.4f",this.y) + ", " + String.format("%.4f",this.z)+")
+		//type of features used for currently trained map
+		mapType = mapMgr.getCurrMapDataFrmt();
+		
+		ftrMap = new TreeMap<Integer, Float>();	
+		ftrThresh = _thresh;
+		allJPs = new HashSet<Integer>();
+		allJPFtrIDXs = new ArrayList<Integer>();
+
+		ArrayList<String> _mseLblDat = new ArrayList<String>();
+		String line = "Dist : " + String.format("%05f", distData);
+		int longestLine = line.length();
+		_mseLblDat.add(line);
+
+		mseLabelAra = _mseLblDat.toArray(new String[1]);
+		mseLabelDims = new float[] {10, -10.0f,longestLine*6.0f+10, mseLabelAra.length*10.0f + 15.0f};
+	}//ctor	
+	
+		
+	//not used by this object
+	@Override
+	protected HashSet<Tuple<Integer, Integer>> getSetOfAllJpgJpData() {	return null;}//getSetOfAllJpgJpData
+	@Override
+	protected void buildFeaturesMap() { }	
+	@Override
+	public String getRawDescrForCSV() {	return "Should not save DispSOMMapExample to CSV";}
+	@Override
+	public String getRawDescColNamesForCSV() {return "Do not save DispSOMMapExample to CSV";}
+
+	@Override
+	public void finalizeBuild() {}
+
+	public void drawMeLblMap(SOM_StraffordMain p){
+		p.pushMatrix();p.pushStyle();
+		//draw point of radius rad at maploc with label	
+		//p.showBox(mapLoc, rad, 5, clrVal,clrVal, SOM_StraffordMain.gui_LightGreen, mseLabelDat);
+		//(myPointf P, float rad, int det, int[] clrs, String[] txtAra, float[] rectDims)
+		p.showBox(mapLoc, 5, 5,nodeClrs, mseLabelAra, mseLabelDims);
+		p.popStyle();p.popMatrix();		
+	}//drawLabel	
+
+	@Override
+	protected void buildStdFtrsMap() {	
+		stdFtrMap = new TreeMap<Integer, Float>();
+		if (allJPFtrIDXs.size() > 0) {stdFtrMap = calcStdFtrVector(ftrMap, allJPFtrIDXs);}
+		stdFtrsBuilt = true;
+	}
+
+}//DispSOMMapExample
 
 //this class holds functionality migrated from the DataPoint class for rendering on the map.  since this won't be always necessary, we're moving this code to different class so it can be easily ignored
 abstract class baseDataPtVis{
