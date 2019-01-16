@@ -840,10 +840,10 @@ public class SOMMapManager {
 		dispMessage("SOMMapManager","setTestBMUs","Finished Mapping test data to best matching units.");
 	}//setProductBMUs
 	
-	private void _finalizeBMUProcessing(StraffSOMExample[] _exs, ExDataType _type) {
+	private void _finalizeBMUProcessing(SOMExample[] _exs, ExDataType _type) {
 		for(SOMMapNode mapNode : MapNodes.values()){mapNode.clearBMUExs(_type);addExToNodesWithNoExs(mapNode, _type);}	
 		for (int i=0;i<_exs.length;++i) {	
-			StraffSOMExample ex = _exs[i];
+			SOMExample ex = _exs[i];
 			ex.bmu.addExToBMUs(ex);	
 			addExToNodesWithExs(ex.bmu, _type);
 		}

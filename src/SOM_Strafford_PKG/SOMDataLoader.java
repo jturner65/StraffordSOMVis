@@ -141,7 +141,7 @@ public class SOMDataLoader implements Runnable {
 			tkns = strs[i].split(mapMgr.SOM_FileToken);
 			if(tkns.length < 2){continue;}
 			mapLoc = new Tuple<Integer, Integer>((i-2)%mapX, (i-2)/mapX);//map locations in som data are increasing in x first, then y (row major)
-			dpt = new SOMMapNode(mapMgr, mapLoc, tkns);//give each map node its features
+			dpt = new StraffSOMMapNode(mapMgr, mapLoc, tkns);//give each map node its features
 		
 			++numEx;
 			float[] ftrData = dpt.getFtrs();
@@ -258,9 +258,9 @@ public class SOMDataLoader implements Runnable {
 		int bmuListIDX = 0;
 		int numMapCols = mapMgr.getMapNodeCols();
 		
-		HashMap<SOMMapNode, ArrayList<StraffSOMExample>>[] bmusToExs = new HashMap[numThds];
+		HashMap<SOMMapNode, ArrayList<SOMExample>>[] bmusToExs = new HashMap[numThds];
 		for (int i=0;i<numThds;++i) {
-			bmusToExs[i] = new HashMap<SOMMapNode, ArrayList<StraffSOMExample>>();
+			bmusToExs[i] = new HashMap<SOMMapNode, ArrayList<SOMExample>>();
 		}
 		int mapNodeX, mapNodeY, dpIdx;
 		for (int i=2;i<strs.length;++i){//load in data on all bmu's
@@ -272,12 +272,12 @@ public class SOMDataLoader implements Runnable {
 			Tuple<Integer,Integer> mapLoc = new Tuple<Integer, Integer>(mapNodeX,mapNodeY);//map locations in bmu data are in (y,x) order (row major)
 			SOMMapNode tmpMapNode = mapMgr.MapNodes.get(mapLoc);
 			if(null==tmpMapNode){ mapMgr.dispMessage("DataLoader","loadSOM_BMUs","!!!!!!!!!Map node stated as best matching unit for training example " + tkns[0] + " not found in map ... somehow. "); return false;}//catastrophic error shouldn't be possible
-			StraffSOMExample tmpDataPt = mapMgr.trainData[dpIdx];
+			SOMExample tmpDataPt = mapMgr.trainData[dpIdx];
 			if(null==tmpDataPt){ mapMgr.dispMessage("DataLoader","loadSOM_BMUs","!!Training Datapoint given by idx in BMU file str tok : " + tkns[0] + " of string : --" + strs[i] + "-- not found in training data. "); return false;}//catastrophic error shouldn't happen
 			//partition bmu and its subsequent child examples to a different list depending on location of bmu
 			bmuListIDX = ((mapNodeX * numMapCols) + mapNodeY) % numThds;
-			ArrayList<StraffSOMExample> bmuExs = bmusToExs[bmuListIDX].get(tmpMapNode);
-			if(bmuExs == null) {bmuExs = new ArrayList<StraffSOMExample>(); bmusToExs[bmuListIDX].put(tmpMapNode, bmuExs);}
+			ArrayList<SOMExample> bmuExs = bmusToExs[bmuListIDX].get(tmpMapNode);
+			if(bmuExs == null) {bmuExs = new ArrayList<SOMExample>(); bmusToExs[bmuListIDX].put(tmpMapNode, bmuExs);}
 			bmuExs.add(tmpDataPt);				
 			//debug to verify node row/col order
 			//dbgVerifyBMUs(tmpMapNode, tmpDataPt,Integer.parseInt(tkns[1]) ,Integer.parseInt(tkns[2]));
@@ -298,18 +298,18 @@ public class SOMDataLoader implements Runnable {
 		} else {		
 			//below is the slowest section of this code - to improve performance this part should be multithreaded
 			if (useChiSqDist) {
-				for (HashMap<SOMMapNode, ArrayList<StraffSOMExample>> bmuToExsMap : bmusToExs) {
+				for (HashMap<SOMMapNode, ArrayList<SOMExample>> bmuToExsMap : bmusToExs) {
 					for (SOMMapNode tmpMapNode : bmuToExsMap.keySet()) {
-						ArrayList<StraffSOMExample> exs = bmuToExsMap.get(tmpMapNode);
-						for(StraffSOMExample ex : exs) {ex.setBMU_ChiSq(tmpMapNode, ftrTypeUsedToTrain);tmpMapNode.addExToBMUs(ex);	}
+						ArrayList<SOMExample> exs = bmuToExsMap.get(tmpMapNode);
+						for(SOMExample ex : exs) {ex.setBMU_ChiSq(tmpMapNode, ftrTypeUsedToTrain);tmpMapNode.addExToBMUs(ex);	}
 					}
 				}
 				
 			} else {
-				for (HashMap<SOMMapNode, ArrayList<StraffSOMExample>> bmuToExsMap : bmusToExs) {
+				for (HashMap<SOMMapNode, ArrayList<SOMExample>> bmuToExsMap : bmusToExs) {
 					for (SOMMapNode tmpMapNode : bmuToExsMap.keySet()) {
-						ArrayList<StraffSOMExample> exs = bmuToExsMap.get(tmpMapNode);
-						for(StraffSOMExample ex : exs) {ex.setBMU(tmpMapNode, ftrTypeUsedToTrain);tmpMapNode.addExToBMUs(ex);	}
+						ArrayList<SOMExample> exs = bmuToExsMap.get(tmpMapNode);
+						for(SOMExample ex : exs) {ex.setBMU(tmpMapNode, ftrTypeUsedToTrain);tmpMapNode.addExToBMUs(ex);	}
 					}
 				}				
 			}
@@ -360,7 +360,7 @@ public class SOMDataLoader implements Runnable {
 	
 	
 	//verify that map node coords are in proper order (row-col vs x-y)
-	private void dbgVerifyBMUs(SOMMapNode tmpMapNode, StraffSOMExample tmpDataPt, Integer x, Integer y) {
+	private void dbgVerifyBMUs(SOMMapNode tmpMapNode, SOMExample tmpDataPt, Integer x, Integer y) {
 		//this is alternate node with column-major key
 		Tuple<Integer,Integer> mapAltLoc = new Tuple<Integer, Integer>(x,y);//verifying correct row/col order - tmpMapNode should be closer to mapMgr.trainData[dpIdx] than to tmpAltMapNode
 		SOMMapNode tmpAltMapNode = mapMgr.MapNodes.get(mapAltLoc);
@@ -434,8 +434,8 @@ class straffBMULoader implements Callable<Boolean>{
 	int thdIDX;
 	boolean useChiSqDist;
 	int ftrTypeUsedToTrain;
-	HashMap<SOMMapNode, ArrayList<StraffSOMExample>> bmusToExmpl;
-	public straffBMULoader(SOMMapManager _mapMgr, int _ftrTypeUsedToTrain, boolean _useChiSqDist, HashMap<SOMMapNode, ArrayList<StraffSOMExample>> _bmusToExmpl,int _thdIDX) {
+	HashMap<SOMMapNode, ArrayList<SOMExample>> bmusToExmpl;
+	public straffBMULoader(SOMMapManager _mapMgr, int _ftrTypeUsedToTrain, boolean _useChiSqDist, HashMap<SOMMapNode, ArrayList<SOMExample>> _bmusToExmpl,int _thdIDX) {
 		mapMgr = _mapMgr;
 		ftrTypeUsedToTrain = _ftrTypeUsedToTrain;
 		useChiSqDist =_useChiSqDist;
@@ -443,7 +443,7 @@ class straffBMULoader implements Callable<Boolean>{
 		bmusToExmpl = _bmusToExmpl;
 		int numExs = 0;
 		for (SOMMapNode tmpMapNode : bmusToExmpl.keySet()) {
-			ArrayList<StraffSOMExample> exs = bmusToExmpl.get(tmpMapNode);
+			ArrayList<SOMExample> exs = bmusToExmpl.get(tmpMapNode);
 			numExs += exs.size();
 		}		
 		mapMgr.dispMessage("straffBMULoader","ctor : thd_idx : "+thdIDX, "# of bmus to proc : " +  bmusToExmpl.size() + " # exs : " + numExs);
@@ -453,13 +453,13 @@ class straffBMULoader implements Callable<Boolean>{
 	public Boolean call() throws Exception {
 		if (useChiSqDist) {		
 			for (SOMMapNode tmpMapNode : bmusToExmpl.keySet()) {
-				ArrayList<StraffSOMExample> exs = bmusToExmpl.get(tmpMapNode);
-				for(StraffSOMExample ex : exs) {ex.setBMU_ChiSq(tmpMapNode, ftrTypeUsedToTrain);tmpMapNode.addExToBMUs(ex);	}
+				ArrayList<SOMExample> exs = bmusToExmpl.get(tmpMapNode);
+				for(SOMExample ex : exs) {ex.setBMU_ChiSq(tmpMapNode, ftrTypeUsedToTrain);tmpMapNode.addExToBMUs(ex);	}
 			}		
 		} else {		
 			for (SOMMapNode tmpMapNode : bmusToExmpl.keySet()) {
-				ArrayList<StraffSOMExample> exs = bmusToExmpl.get(tmpMapNode);
-				for(StraffSOMExample ex : exs) {ex.setBMU(tmpMapNode, ftrTypeUsedToTrain); tmpMapNode.addExToBMUs(ex);	}
+				ArrayList<SOMExample> exs = bmusToExmpl.get(tmpMapNode);
+				for(SOMExample ex : exs) {ex.setBMU(tmpMapNode, ftrTypeUsedToTrain); tmpMapNode.addExToBMUs(ex);	}
 			}
 		}	
 		return true;
@@ -475,10 +475,10 @@ class mapTestDataToBMUs implements Callable<Boolean>{
 	private boolean useChiSqDist;
 	
 	int ftrTypeUsedToTrain;
-	StraffSOMExample[] exs;
+	SOMExample[] exs;
 	String ftrTypeDesc;
 
-	public mapTestDataToBMUs(SOMMapManager _mapMgr, int _stProdIDX, int _endProdIDX, StraffSOMExample[] _exs, int _thdIDX, boolean _useChiSqDist) {
+	public mapTestDataToBMUs(SOMMapManager _mapMgr, int _stProdIDX, int _endProdIDX, SOMExample[] _exs, int _thdIDX, boolean _useChiSqDist) {
 		mapMgr = _mapMgr;
 		stIdx = _stProdIDX;
 		endIdx = _endProdIDX;
@@ -719,12 +719,12 @@ class straffDataWriter implements Callable<Boolean>{
 	private SOMMapManager mapData;	
 	private int dataFrmt;
 	private int dataSavedIDX;			//idx in flags array of SOMMapData object to denote what data was saved
-	private StraffSOMExample[] exAra;
+	private SOMExample[] exAra;
 	private int numFtrs,numSmpls;
 	private String savFileFrmt;
 	private String fileName;
 	
-	public straffDataWriter(SOMMapManager _mapData, int _dataFrmt, int _dataSavedIDX, String _fileName, String _savFileFrmt, StraffSOMExample[] _exAra) {
+	public straffDataWriter(SOMMapManager _mapData, int _dataFrmt, int _dataSavedIDX, String _fileName, String _savFileFrmt, SOMExample[] _exAra) {
 		mapData = _mapData;
 		dataFrmt = _dataFrmt;		//either unmodified, standardized or normalized -> 0,1,2
 		exAra = _exAra;

@@ -152,7 +152,7 @@ public class StraffWeightCalc {
 			float val = eqs.get(jp).calcVal(ex,orderOccs.get(jp),linkOccs.get(jp),optOcc);
 			if ((isZeroMagExample) && (val != 0)) {isZeroMagExample = false;}
 			res.put(destIDX,val);
-			ex.setMapOfJpWts(jp, val, StraffSOMExample.ftrMapTypeKey);
+			ex.setMapOfSrcWts(destIDX, val, SOMExample.ftrMapTypeKey);
 			ftrVecSqMag += (val*val);
 			checkValInBnds(jp,destIDX, val);
 		}		

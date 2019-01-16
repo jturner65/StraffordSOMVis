@@ -172,6 +172,7 @@ public class StraffProdMapOutputBuilder {
 		} else {//save prospect 			 
 			ArrayList<String> strList = new ArrayList<String>(),strListNoMaps = new ArrayList<String>();		
 			TreeMap<Double, String> resCalcData = new TreeMap<Double, String> (new Comparator<Double>() { @Override public int compare(Double o1, Double o2) {   return o2.compareTo(o1);}});//descending key order
+			String outRes;
 			for (int i=0; i<prospectsToMap.length;++i) {
 				ProspectExample ex = prospectsToMap[i];
 				String exOutStr = ""+ex.OID + ","+String.format("%.6f",ex._sqDistToBMU)+",";
@@ -180,11 +181,14 @@ public class StraffProdMapOutputBuilder {
 					HashMap<SOMMapNode, Double> nodeConfsToProds = prodToMapNodes.get(prod);					
 					Double conf = nodeConfsToProds.get(ex.bmu);//now find confidence of prod in this node's bmu
 					if(conf == 0.0) {continue;}
-					resCalcData.put(conf, ""+prod.OID+":"+String.format("%.6f",conf));
+					outRes = resCalcData.get(conf);
+					if(outRes == null) {outRes = "";}
+					outRes +=""+prod.OID+":"+String.format("%.6f",conf)+",";
+					resCalcData.put(conf, outRes);
 				}
 			
 				if (resCalcData.size() > 0) {				
-					for(Double conf : resCalcData.keySet()){		exOutStr += resCalcData.get(conf) + ",";}
+					for(Double conf : resCalcData.keySet()){		exOutStr += resCalcData.get(conf);}
 					strList.add(exOutStr);
 				} else {
 					exOutStr += "No Mappings With Chosen Products";
@@ -287,6 +291,7 @@ class StraffProspectOutMapper implements Callable<Boolean>{
 		ArrayList<String> strList = new ArrayList<String>(), strListNoMaps = new ArrayList<String>();	
 		strList.add("Prospect OID,Prospect BMU Dist,Product OID, Product Confidence,...");
 		strListNoMaps.add("Prospect OID,Prospect BMU Dist,<these prospects have no product mappings among specified products>");
+		String outRes;
 		for (int i=stIDX; i<endIDX;++i) {
 			ProspectExample ex = prospectsToMap[i];
 			resCalcData.clear();
@@ -295,11 +300,13 @@ class StraffProspectOutMapper implements Callable<Boolean>{
 				HashMap<SOMMapNode, Double> nodeConfsToProds = prodToMapNodes.get(prod);				
 				Double conf = nodeConfsToProds.get(ex.bmu);//now find confidence of prod in this node's bmu
 				if((conf == null) || (conf == 0.0)) {continue;}
-				resCalcData.put(conf, ""+prod.OID+":"+String.format("%.6f",conf));
-
+				outRes = resCalcData.get(conf);
+				if(outRes == null) {outRes = "";}
+				outRes +=""+prod.OID+":"+String.format("%.6f",conf)+",";
+				resCalcData.put(conf, outRes);
 			}
 			if (resCalcData.size() > 0) {				
-				for(Double conf : resCalcData.keySet()){		exOutStr += resCalcData.get(conf) + ",";}
+				for(Double conf : resCalcData.keySet()){		exOutStr += resCalcData.get(conf);}
 				strList.add(exOutStr);
 			} else {
 				exOutStr += "No Mappings With Chosen Products";
