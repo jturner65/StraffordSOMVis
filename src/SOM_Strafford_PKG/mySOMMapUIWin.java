@@ -190,7 +190,9 @@ public class mySOMMapUIWin extends myDispWindow {
 		setPrivFlags(mapDrawTrainDatIDX,false);
 		setPrivFlags(mapDrawWtMapNodesIDX,false);
 		setPrivFlags(mapUseChiSqDistIDX,false);
-		//setPrivFlags(useOnlyEvntsToTrainIDX, true);
+		//this window uses right side info window
+		//setFlags(drawRightSideMenu, true);		//may need some re-scaling to keep things in the middle and visible
+
 		setPrivFlags(mapExclProdZeroFtrIDX, true);
 		mapMgr.setCurrentDataFormat((int)(this.guiObjs[uiTrainDataFrmtIDX].getVal()));
 		//dataFrmtToUseToTrain = (int)(this.guiObjs[uiTrainDataFrmtIDX].getVal());
@@ -748,6 +750,22 @@ public class mySOMMapUIWin extends myDispWindow {
 	protected void setCameraIndiv(float[] camVals){}
 	@Override
 	protected void stopMe() {}	
+	
+	@Override
+	protected void drawOnScreenStuffPriv(float modAmtMillis) {
+		
+	}
+
+	@Override
+	//draw 2d constructs over 3d area on screen - draws behind left menu section
+	//modAmtMillis is in milliseconds
+	protected void drawRightSideInfoBarPriv(float modAmtMillis) {
+		pa.pushMatrix();pa.pushStyle();
+		//display current simulation variables - call sim world through sim exec
+		//simExec.des.drawResultBar(pa, UIrectBox,  yOff);
+		pa.popStyle();pa.popMatrix();					
+	}//drawOnScreenStuff
+
 	@Override
 	protected void drawMe(float animTimeMod) {
 		setPrivFlags(examplesCalcedIDX, mapMgr.isFtrCalcDone());
@@ -1075,8 +1093,6 @@ public class mySOMMapUIWin extends myDispWindow {
 	protected void delSScrToWinIndiv(int idx) {}	
 	@Override
 	protected void delTrajToScrIndiv(int subScrKey, String newTrajKey) {}
-	@Override
-	protected void drawRightSideInfoBar(float modAmtMillis) {}
 	//resize drawn all trajectories
 	@Override
 	protected void resizeMe(float scale) {		

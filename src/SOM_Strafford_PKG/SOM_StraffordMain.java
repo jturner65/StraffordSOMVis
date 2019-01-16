@@ -333,41 +333,9 @@ public class SOM_StraffordMain extends PApplet {
 		}
 	}//handleAddDelSelCmp	
 
-//	public void handleFuncSelCmp(int btn, int val){handleFuncSelCmp(btn, val, true);}					//display specific windows - multi-select/ always on if sel
-//	public void handleFuncSelCmp(int btn, int val, boolean callFlags){
-//		if(!callFlags){
-//			setMenuBtnState(mySideBarMenu.btnAuxFuncIdx,btn, val);
-//		} else {
-//			dispWinFrames[curFocusWin].clickFunction(btn) ;
-//		}
-//	}//handleAddDelSelCmp	
-
-	
 	public void setAllMenuBtnNames(String[][] btnNames) {
 		for(int _type = 0;_type<btnNames.length;++_type) {((mySideBarMenu)dispWinFrames[dispMenuIDX]).setAllBtnNames(_type,btnNames[_type]);}
 	}
-	
-//	//call menu from instance of dispwindow to update primary debug button names with window-relevant entries
-//	public void setMenuDbgBtnNames(String[] btnNames) {
-//		((mySideBarMenu)dispWinFrames[dispMenuIDX]).setBtnNames(mySideBarMenu.btnDBGSelCmpIdx,btnNames);
-//	}
-//	//call menu from instance of dispwindow to update primary custom function button names with window-relevant entries
-//	public void setMenuFuncBtnNames(String[] btnNames) {
-//		((mySideBarMenu)dispWinFrames[dispMenuIDX]).setBtnNames(mySideBarMenu.btnAuxFuncIdx,btnNames);
-//	}
-
-//	//turn off specific debug button that might have been kept on during processing - btn must be in range of size of guiBtnSt[mySideBarMenu.btnDBGSelCmpIdx]
-//	//isSlowProc means function this was waiting on is a slow process and escaped the click release in the window (i.e. if isSlowProc then we must force button to be off)
-//	public void clearDBGBtnSt(int btn, boolean isSlowProc)  {clearBtnState(mySideBarMenu.btnDBGSelCmpIdx, btn, isSlowProc);}
-//	//process to delete an existing component
-//	public void handleDBGSelCmp(int btn, int val){handleDBGSelCmp(btn, val, true);}					//display specific windows - multi-select/ always on if sel
-//	public void handleDBGSelCmp(int btn, int val, boolean callFlags){
-//		if(!callFlags){
-//			setMenuBtnState(mySideBarMenu.btnDBGSelCmpIdx,btn, val);
-//		} else {
-//			dispWinFrames[curFocusWin].clickDebug(btn) ;
-//		}
-//	}//handleAddDelSelCmp	
 	
 	//process to handle file io	- TODO	
 	public void handleFileCmd(int btn, int val){handleFileCmd(btn, val, true);}					//display specific windows - multi-select/ always on if sel
@@ -421,8 +389,6 @@ public class SOM_StraffordMain extends PApplet {
 		winTrajFillClrs = new int []{gui_Black,gui_LightGray,gui_LightGreen};		//set to color constants for each window
 		winTrajStrkClrs = new int []{gui_Black,gui_DarkGray,gui_White};				//set to color constants for each window			
 		
-		String[] winTitles = new String[]{"","SOM Map UI"},
-				winDescr = new String[] {"", "Visualize Prospect SOM Node Mapping"};
 	//			//display window initialization	
 		int wIdx = dispSOMMapIDX,fIdx=showSOMMapUI;
 		dispWinFrames[wIdx] = new mySOMMapUIWin(this, winTitles[wIdx], fIdx,winFillClrs[wIdx], winStrkClrs[wIdx], winRectDimOpen[wIdx], winRectDimClose[wIdx], winDescr[wIdx],canDrawInWin[wIdx]);
@@ -430,6 +396,7 @@ public class SOM_StraffordMain extends PApplet {
 			int scIdx = dispWinIs3D[i] ? 1 : 0;
 			dispWinFrames[i].finalInit(dispWinIs3D[i], canMoveView[i], sceneCtrValsBase[scIdx], sceneFcsValsBase[scIdx]);
 			dispWinFrames[i].setTrajColors(winTrajFillClrs[i], winTrajStrkClrs[i]);
+			dispWinFrames[i].setRtSideUIBoxClrs(new int[]{0,0,0,200},new int[]{255,255,255,255});
 		}	
 		//set initial state to be true - show info window
 		setFlags(showRtSideMenu, true);
@@ -547,6 +514,8 @@ public class SOM_StraffordMain extends PApplet {
 			);
 	public final int numStFlagsToShow = stateFlagsToShow.size();	
 	
+	public String[] winTitles = new String[]{"","SOM Map UI"},
+			winDescr = new String[] {"", "Visualize Prospect SOM Node Mapping"};
 
 	
 	//individual display/HUD windows for gui/user interaction

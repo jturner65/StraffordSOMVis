@@ -151,8 +151,6 @@ public class SOMMapManager {
 	
 	//time of current process start, from initial construction of mapmgr - TODO use this to monitor specific process time elapsed.  set to 0 at beginning of a particular process, then measure time elapsed in process
 	private long curProcStartTime;
-	//TODO name of currently executing process
-	private String curProcName;
 	//time mapMgr built, in millis - used as offset for instant to provide smaller values for timestamp
 	private final long mapMgrBuiltTime;
 	

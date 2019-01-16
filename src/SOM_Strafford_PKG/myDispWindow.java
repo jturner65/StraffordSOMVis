@@ -8,11 +8,10 @@ import processing.core.*;
 //abstract class to hold base code for a menu/display window (2D for gui, etc), to handle displaying and controlling the window, and calling the implementing class for the specifics
 public abstract class myDispWindow {
 	public SOM_StraffordMain pa;
-
 	public static int winCnt = 0;
 	public int ID;	
 	public String name, winText;		
-	public int[] fillClr, strkClr;
+	public int[] fillClr, strkClr, rtSideUIFillClr, rtSideUIStrkClr;
 	public int trajFillClrCnst, trajStrkClrCnst;
 	public float[] rectDim, closeBox, rectDimClosed, mseClickCrnr;	
 
@@ -46,7 +45,7 @@ public abstract class myDispWindow {
 				showRightSideMenu	= 20,			//whether this window is currently showing right side info menu, or if it is minimized
 				clearPrivBtns		= 21;			//momentary priv buttons have been set, need to be cleared next frame
 						
-			public static final int numDispFlags = 22;
+	public static final int numDispFlags = 22;
 	
 	//private window-specific flags and UI components (buttons)
 	public int[] privFlags;
@@ -145,10 +144,7 @@ public abstract class myDispWindow {
 		String tmpNow = pa.now.toInstant().toString();
 		tmpNow = tmpNow.replace(':','_');
 		ssPathBase = pa.sketchPath() +File.separatorChar +name+"_"+tmpNow + File.separatorChar;
-		
-		fillClr = new int[4];	strkClr = new int[4];	 rectDim = new float[4];	rectDimClosed = new float[4]; closeBox = new float[4]; uiClkCoords = new float[4];
-		for(int i =0;i<4;++i){fillClr[i] = fc[i];strkClr[i]=sc[i];rectDim[i]=rd[i];rectDimClosed[i]=rdClosed[i];}		
-				
+		initClrDims( fc, sc, rd, rdClosed);
 		winText = _winTxt;
 		trajFillClrCnst = SOM_StraffordMain.gui_Black;		//override this in the ctor of the instancing window class
 		trajStrkClrCnst = SOM_StraffordMain.gui_Black;
@@ -204,7 +200,21 @@ public abstract class myDispWindow {
 		tmpDrawnTraj= new myDrawnSmplTraj(pa,this,topOffY,trajFillClrCnst, trajStrkClrCnst, _trajIsFlat, !_trajIsFlat);
 		curDrnTrajScrIDX = 0;
 	}	
+	//init fill and stroke colors and dims of rectangular area open and closed - only called from ctor
+	private void initClrDims(int[] fc,  int[] sc, float[] rd, float[] rdClosed) {
+		fillClr = new int[4];rtSideUIFillClr= new int[4]; rtSideUIStrkClr= new int[4]; strkClr = new int[4];	 
+		rectDim = new float[4];	rectDimClosed = new float[4]; closeBox = new float[4]; uiClkCoords = new float[4];
+		for(int i =0;i<4;++i){
+			fillClr[i] = fc[i];strkClr[i]=sc[i];
+			rtSideUIFillClr[i] = fc[i];rtSideUIStrkClr[i]=sc[i];			
+			rectDim[i]=rd[i];rectDimClosed[i]=rdClosed[i];
+		}				
+	}//initClrDims	
 	
+	//set right side data display fill/stroke colors
+	public void setRtSideUIBoxClrs(int[] fc,  int[] sc) {
+		for(int i =0;i<4;++i){rtSideUIFillClr[i] = fc[i];rtSideUIStrkClr[i]=sc[i];}				
+	}		
 	//initialize traj-specific stuff for this window
 	protected void initTrajStructs(){
 		drwnTrajMap = new TreeMap<Integer,TreeMap<String,ArrayList<myDrawnSmplTraj>>>();
@@ -731,19 +741,24 @@ public abstract class myDispWindow {
 		//move to upper right corner of sidebar menu - cannot draw over leftside menu, use drawCustMenuObjs() instead to put UI objects there
 		//this side window is for information display
 		pa.translate(rectDim[0],0,0);			
-		if(getFlags(showRightSideMenu)) {				
-			pa.setFill(new int[] {0,0,0,200});//transparent black
-			pa.rect(UIRtSideRectBox);
-			pa.translate(UIRtSideRectBox[0]+5,UIRtSideRectBox[1]+yOff-4,0);
-			pa.setFill(new int[] {255,255,255,255});
-
-			 //instancing class implements this function
-			drawRightSideInfoBar(modAmtMillis); 
-		} else {
-			//shows narrow rectangular reminder that window is there
-			pa.translate(rectDim[2]-20,0,0);
-			pa.setFill(new int[] {0,0,0,200});
-			pa.rect(new float[] {0,0,20,rectDim[3]});
+		//draw onscreen stuff for main window
+		drawOnScreenStuffPriv(modAmtMillis);
+		//draw right side info display if relelvant
+		if(getFlags(drawRightSideMenu)) {
+			pa.setFill(rtSideUIFillClr);//transparent black
+			if(getFlags(showRightSideMenu)) {				
+				pa.rect(UIRtSideRectBox);
+				pa.translate(UIRtSideRectBox[0]+5,UIRtSideRectBox[1]+yOff-4,0);
+				pa.setFill(new int[] {255,255,255,255});
+	
+				 //instancing class implements this function
+				drawRightSideInfoBarPriv(modAmtMillis); 
+			} else {
+				//shows narrow rectangular reminder that window is there
+				pa.translate(rectDim[2]-20,0,0);
+									 
+				pa.rect(new float[] {0,0,20,rectDim[3]});
+			}
 		}
 		pa.popStyle();pa.popMatrix();			
 	}//drawRtSideInfoBar
@@ -1240,7 +1255,8 @@ public abstract class myDispWindow {
 	protected abstract void stopMe();
 	protected abstract void setCameraIndiv(float[] camVals);
 	protected abstract void drawMe(float animTimeMod);	
-	protected abstract void drawRightSideInfoBar(float modAmtMillis);
+	protected abstract void drawRightSideInfoBarPriv(float modAmtMillis);
+	protected abstract void drawOnScreenStuffPriv(float modAmtMillis);
 	
 	public String toString(){
 		String res = "Window : "+name+" ID: "+ID+" Fill :("+fillClr[0]+","+fillClr[1]+","+fillClr[2]+","+fillClr[3]+
@@ -1602,8 +1618,10 @@ class mySideBarMenu extends myDispWindow{
 			pa.translate(0,btnLblYOff);
 		}
 	}//drawSideBarButtons	
+	@Override
+	protected void drawOnScreenStuffPriv(float modAmtMillis) {}
 	@Override//for windows to draw on screen
-	protected void drawRightSideInfoBar(float modAmtMillis) {}
+	protected void drawRightSideInfoBarPriv(float modAmtMillis) {}
 	@Override
 	protected void drawMe(float animTimeMod) {
 		pa.pushMatrix();pa.pushStyle();
