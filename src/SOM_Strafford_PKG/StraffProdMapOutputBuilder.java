@@ -39,12 +39,11 @@ public class StraffProdMapOutputBuilder {
 		mapMgr.dispMessage("StraffProdMapOutputBuilder", "loadConfigAndSetVars","Start loading product-to-prospect mapping configurations.");
 		fileName = _fileName;
 		String[] configDatList = mapMgr.loadFileIntoStringAra(fileName, "Products-To-Map File Loaded", "Products-To-Map File Not Loaded Due To Error");
-		int idx = 0;
 		String[] strVals = new String[0];
 		ArrayList<String> prodIDsToMapInit = new ArrayList<String>();
 		//move past initial comments, if any exist
 		for (int i=0; i<configDatList.length;++i) {
-			if (configDatList[idx].contains(fileComment)) { continue;}//move past initial comments, if any exist
+			if (configDatList[i].contains(fileComment)) { continue;}//move past initial comments, if any exist
 			strVals = configDatList[i].trim().split(",");
 			if(strVals.length == 1) {//1 entry per line
 				String pId = strVals[0].trim();
@@ -77,13 +76,16 @@ public class StraffProdMapOutputBuilder {
 	
 	//save mapping results either through multiple threads or in a single thread
 	public void saveAllSpecifiedProdMappings() {//launch in either a single thread or multiples
-		mapMgr.dispMessage("StraffProdMapOutputBuilder", "saveAllSpecifiedProdMappings", "Starting Saving Product data to file.");
+		mapMgr.dispMessage("StraffProdMapOutputBuilder", "saveAllSpecifiedProdMappings", "Starting Saving " +prodsToMap.length + " Product data to file.");
 		//all mappings are known by here - perhaps load balance?
-		if(isMT) {//save multiple product mappings per thread
-			int numUsableThreads = mapMgr.getNumUsableThreads();
+		int numUsableThreads = mapMgr.getNumUsableThreads();
+		int numProdsToMap = prodsToMap.length;
+		if((isMT) && (numProdsToMap >= 2*numUsableThreads)) {//save multiple product mappings per thread
+		//if(isMT)  {//save multiple product mappings per thread
+			
 			List<Future<Boolean>> prdcttMapperFtrs = new ArrayList<Future<Boolean>>();
 			List<StraffProdOutMapper> prdcttMappers = new ArrayList<StraffProdOutMapper>();
-			int numForEachThrd = ((int)((prodsToMap.length-1)/(1.0f*numUsableThreads))) + 1;
+			int numForEachThrd = ((int)((numProdsToMap-1)/(1.0f*numUsableThreads))) + 1;
 			//use this many for every thread but last one
 			int stIDX = 0;
 			int endIDX = numForEachThrd;				
@@ -93,7 +95,7 @@ public class StraffProdMapOutputBuilder {
 				endIDX += numForEachThrd;
 			}
 			//last one probably won't end at endIDX, so use length
-			prdcttMappers.add(new StraffProdOutMapper(mapMgr,stIDX, prodsToMap.length, numUsableThreads-1, prodDistType, prodZoneDistThresh, prodsToMap,fullQualOutPerProdDirs));
+			prdcttMappers.add(new StraffProdOutMapper(mapMgr,stIDX, numProdsToMap, numUsableThreads-1, prodDistType, prodZoneDistThresh, prodsToMap,fullQualOutPerProdDirs));
 			try {prdcttMapperFtrs = th_exec.invokeAll(prdcttMappers);for(Future<Boolean> f: prdcttMapperFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }	
 			
 		} else {//save every product in single thread
@@ -143,7 +145,7 @@ public class StraffProdMapOutputBuilder {
 	
 	//pass input data array?
 	public void saveAllProspectToProdMappings(ProspectExample[] prospectsToMap) {
-		mapMgr.dispMessage("StraffProdMapOutputBuilder", "saveAllProspectToProdMappings", "Starting Saving Prospect to Product data to file.");
+		mapMgr.dispMessage("StraffProdMapOutputBuilder", "saveAllProspectToProdMappings", "Starting Saving Prospect to Product mappings to file.");
 		HashMap<ProductExample, HashMap<SOMMapNode, Double>> prodToMapNodes = new HashMap<ProductExample, HashMap<SOMMapNode, Double>>();
 		//build for every product to be mapped, HashMap keyed by map node that holds confidences that are within specified distances from product, using specified distance measure
 		for (ProductExample ex : prodsToMap) {		//map result below contains map nodes that have >0 confidence for product ex

@@ -151,14 +151,14 @@ public class mySOMMapUIWin extends myDispWindow {
 				"Building SOM", "Resetting Default UI Vals", 
 				"Using ChiSq for Ftr Distance", "Product Dist ignores 0-ftrs",	"Hide Train Data", "Hide Test Data",
 				"Hide Node Lbls","Hide Map Nodes (by Wt)","Hide Map Nodes (by Pop)", "Hide Map Nodes", "Hide Products","Hide Cur Prod Zone",
-				"Hide U Mtrx Dists (Bi-Cubic)", "Hide Clusters (U-Dist)", "Hide Cluster Image", "Hide Calc Analysis", "Saving Prospect Mappings for Products listed in config file"
+				"Showing Per Feature Map", "Hide Clusters (U-Dist)", "Hide Cluster Image", "Hide Calc Analysis", "Saving Prospect Mappings for Products listed in config file"
 		};
 		falsePrivFlagNames = new String[]{			//needs to be in order of flags
 				//"Train W/All Recs",
 				"Build New Map ","Reset Default UI Vals",
 				"Not Using ChiSq Distance", "Product Dist measures all ftrs","Show Train Data","Show Test Data",
 				"Show Node Lbls","Show Map Nodes (by Wt)","Show Map Nodes (by Pop)","Show Map Nodes", "Show Products","Show Cur Prod Zone",
-				"Show U Mtrx Dists (Bi-Cubic)", "Show Clusters (U-Dist)", "Show Cluster Image", "Show Calc Analysis", "Save Prospect Mappings for Products listed in config file"
+				"Showing U Mtrx Dists (Bi-Cubic)", "Show Clusters (U-Dist)", "Show Cluster Image", "Show Calc Analysis", "Save Prospect Mappings for Products listed in config file"
 		};
 		privModFlgIdxs = new int[]{
 				//useOnlyEvntsToTrainIDX, 
@@ -192,6 +192,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		setPrivFlags(mapDrawTrainDatIDX,false);
 		setPrivFlags(mapDrawWtMapNodesIDX,false);
 		setPrivFlags(mapUseChiSqDistIDX,false);
+		setPrivFlags(mapDrawUMatrixIDX, true);
 		//this window uses right side info window
 		setFlags(drawRightSideMenu, true);		//may need some re-scaling to keep things in the middle and visible
 

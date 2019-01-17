@@ -54,7 +54,7 @@ public class SOMProjConfigData {
 	//calcFileWeights is file holding config for calc object - get from config file
 	private static final String calcWtFileName = "WeightEqConfig.txt";
 	//requested products file name
-	private static final String reqProdConfigFileName = "ProductsToMap.txt";
+	private static final String reqProdConfigFileName = "ProductsToMap_Test.txt";
 	//default SOM Configuration file name
 	private static final String SOMDfltConfigName = "SOM_EXP_Format_default.txt";
 	//source directory for reading all source csv files, writing intermediate outputs, executing SOM_MAP and writing results
@@ -137,7 +137,8 @@ public class SOMProjConfigData {
 		fnames = new String[numFiles];
 		for(int i=0;i<numFiles;++i){fnames[i]="";}
 		initFlags();
-		SOMExeDat = new SOM_MapDat(getOSUsed());			
+		SOMExeDat = new SOM_MapDat(getOSUsed());	
+		dateTimeStrAra = getDateTimeString(false, "_");
 	}//ctor
 	
 	//this will save all essential information for a SOM-based experimental run, to make duplication of experiment easier
@@ -268,8 +269,9 @@ public class SOMProjConfigData {
 	}//launchTestTrainSaveThrds	
 	
 	//build a date with each component separated by token
-	private String[] getDateTimeString(Calendar now){return getDateTimeString(false,".", now);}
-	private String[] getDateTimeString(boolean toSecond, String token,Calendar now){
+	private String[] getDateTimeString(){return getDateTimeString(false,".");}
+	private String[] getDateTimeString(boolean toSecond, String token){
+		Calendar now = instancedNow;
 		String res, resWithYear="", resWithoutYear="";
 		int val;
 		val = now.get(Calendar.YEAR);	
@@ -284,7 +286,7 @@ public class SOMProjConfigData {
 	}//getDateTimeString
 			
 	//build array with and without year of string representations of dates, used for file name access
-	public void buildDateTimeStrAraAndDType(String _dType) {	dateTimeStrAra = getDateTimeString(false, "_", instancedNow); dataType = _dType;}//idx 0 has year, idx 1 does not
+	public void buildDateTimeStrAraAndDType(String _dType) {	dateTimeStrAra = getDateTimeString(false, "_"); dataType = _dType;}//idx 0 has year, idx 1 does not
 	
 	//call when src data are first initialized - sets file names for .lrn file  and testing file output database query; also call when loading saved exp
 	//dataFrmt : format used to train SOM == 0:unmodded; 1:std'ized; 2:normed
@@ -324,7 +326,9 @@ public class SOMProjConfigData {
 	//get 
 	//return subdirectory to use to write results for product with passed OID
 	public String getPerProdOutSubDirName(String fullBaseDir,  String OID) {return getDirNameAndBuild(fullBaseDir, OID+File.separator);}
-	public String getFullProdOutMapperBaseDir(String sfx) {return getDirNameAndBuild(straffProdSuggestSubDir + "PerProdMaps_"+sfx+"_"+dateTimeStrAra[0]+File.separator);}
+	public String getFullProdOutMapperBaseDir(String sfx) {
+		String [] tmpNow = getDateTimeString(false, "_");
+		return getDirNameAndBuild(straffProdSuggestSubDir + "PerProdMaps_"+sfx+"_"+ tmpNow[1] + "_data_" +dateTimeStrAra[0]+File.separator);}
 	//these file names are specified above but may be modified/set via a config file in future
 	public String getFullCalcInfoFileName(){ return getDirNameAndBuild(straffCalcInfoSubDir) + calcWtFileName;}
 	public String getFullProdOutMapperInfoFileName(){ return getDirNameAndBuild(straffProdSuggestSubDir) + reqProdConfigFileName;}
@@ -392,7 +396,7 @@ public class SOMProjConfigData {
 	
 	//build prospect data directory structures based on current date
 	public String[] buildProccedDataCSVFNames(boolean eventsOnly, String _desSuffix) {
-		String[] dateTimeStrAra = getDateTimeString(false, "_", instancedNow);
+		String[] dateTimeStrAra = getDateTimeString(false, "_");
 		String subDir = "preprocData_" + dateTimeStrAra[0] + File.separator;
 		return _buildDataCSVFNames(getDirNameAndBuild(straffPreProcSubDir),subDir, eventsOnly,_desSuffix);
 	}//buildPrspctDataCSVFNames

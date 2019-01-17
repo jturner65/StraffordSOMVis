@@ -813,9 +813,7 @@ abstract class SOMMapNode extends SOMExample{
 	public Tuple<Integer,Integer> mapNodeCoord;	
 	
 	//protected SOMMapNodeBMUExamples trainEx, prospectEx, prodEx;
-	protected SOMMapNodeBMUExamples[] BMUExampleNodes;//
-	
-	
+	protected SOMMapNodeBMUExamples[] BMUExampleNodes;//	
 	
 	//set from u matrix built by somoclu - the similarity of this node to its neighbors
 	protected float uMatDist;

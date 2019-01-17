@@ -627,7 +627,6 @@ public class SOMMapManager {
 		}
 		dispMessage("SOMMapManager","loadAllProductMapData","Finished loading and preprocessing all local prospect map data and calculating features.  Number of entries in productMap : " + productMap.size());
 	}//loadAllProductMapData
-
 	
 	//this will load the product IDs to query on map for prospects from the location specified in the config
 	//map these ids to loaded products and then 
