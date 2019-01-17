@@ -14,6 +14,8 @@ public abstract class myDispWindow {
 	public int[] fillClr, strkClr, rtSideUIFillClr, rtSideUIStrkClr;
 	public int trajFillClrCnst, trajStrkClrCnst;
 	public float[] rectDim, closeBox, rectDimClosed, mseClickCrnr;	
+	//current visible screen width and height
+	public float[] curVisScrDims;
 
 	public static final float xOff = 20 , yOff = 18.0f * (SOM_StraffordMain.txtSz/12.0f), btnLblYOff = 2 * yOff, rowStYOff = yOff*.15f;
 	public static final int topOffY = 40;			//offset values to render boolean menu on side of screen - offset at top before drawing
@@ -60,7 +62,6 @@ public abstract class myDispWindow {
 	//array of priv buttons to be cleared next frame - should always be empty except when buttons need to be cleared
 	protected ArrayList<Integer> privBtnsToClear;
 	
-	
 	//edit circle quantities for visual cues when grab and smoothen
 	public static final int[] editCrcFillClrs = new int[] {SOM_StraffordMain.gui_FaintMagenta, SOM_StraffordMain.gui_FaintGreen};			
 	public static final float[] editCrcRads = new float[] {20.0f,40.0f};			
@@ -80,13 +81,14 @@ public abstract class myDispWindow {
 	public String[] guiObjNames;							//display labels for UI components	
 	//idx 0 is treat as int, idx 1 is obj has list vals, idx 2 is object gets sent to windows
 	public boolean[][] guiBoolVals;						//array of UI flags for UI objects
-
 	
 	//offset to bottom of custom window menu 
 	protected float custMenuOffset;
 	
 	//box holding x,y,w,h values of black rectangle to form around menu for display variables on right side of screen, if present
 	private float[] UIRtSideRectBox;
+	//closed window box
+	private float[] closedUIRtSideRecBox;
 
 	//drawn trajectory
 	public myDrawnSmplTraj tmpDrawnTraj;						//currently drawn curve and all handling code - send to instanced owning screen
@@ -147,12 +149,9 @@ public abstract class myDispWindow {
 		initClrDims( fc, sc, rd, rdClosed);
 		winText = _winTxt;
 		trajFillClrCnst = SOM_StraffordMain.gui_Black;		//override this in the ctor of the instancing window class
-		trajStrkClrCnst = SOM_StraffordMain.gui_Black;
-		
-		msClkObj = -1;//	lastTrajIDX = -1; //lastPBEQueryPlayTime = 0;	
+		trajStrkClrCnst = SOM_StraffordMain.gui_Black;		
+		msClkObj = -1;
 		msOvrObj = -1;
-//			stAnimTime=0;
-//			lastAnimTime=0;
 	}	
 	
 	public void initThisWin(boolean _canDrawTraj, boolean _trajIsFlat, boolean _isMenu){
@@ -172,7 +171,6 @@ public abstract class myDispWindow {
 		initAllPrivBtns();
 		initMe();
 		
-		initRtSideMenuBox();
 		setClosedBox();
 		mseClickCrnr = new float[2];		//this is offset for click to check buttons in x and y - since buttons for all menus will be in menubar, this should be the upper left corner of menubar - upper left corner of rect 
 		mseClickCrnr[0] = 0;
@@ -180,11 +178,6 @@ public abstract class myDispWindow {
 		if(getFlags(hasScrollBars)){scbrs = new myScrollBars[numSubScrInWin];	for(int i =0; i<numSubScrInWin;++i){scbrs[i] = new myScrollBars(pa, this);}}
 	}//initThisWin
 	
-	private void initRtSideMenuBox() {
-		//initialize right side info display window
-		float boxWidth = 1.2f*rectDim[0];
-		UIRtSideRectBox = new float[] {rectDim[2]-boxWidth,0,boxWidth, rectDim[3]};		
-	}
 	
 	//final initialization stuff, after window made, but necessary to make sure window displays correctly
 	public void finalInit(boolean thisIs3D, boolean viewCanChange, myPoint _ctr, myVector _baseFcs) {
@@ -192,8 +185,7 @@ public abstract class myDispWindow {
 		setFlags(canChgView, viewCanChange);
 		sceneFcsVal = new myVector(_baseFcs);
 		sceneCtrVal = new myPoint(_ctr);
-		focusTar = new myVector(_baseFcs);
-		
+		focusTar = new myVector(_baseFcs);		
 	}
 	
 	protected void initTmpTrajStuff(boolean _trajIsFlat){
@@ -203,13 +195,28 @@ public abstract class myDispWindow {
 	//init fill and stroke colors and dims of rectangular area open and closed - only called from ctor
 	private void initClrDims(int[] fc,  int[] sc, float[] rd, float[] rdClosed) {
 		fillClr = new int[4];rtSideUIFillClr= new int[4]; rtSideUIStrkClr= new int[4]; strkClr = new int[4];	 
-		rectDim = new float[4];	rectDimClosed = new float[4]; closeBox = new float[4]; uiClkCoords = new float[4];
+		rectDim = new float[4];	rectDimClosed = new float[4]; closeBox = new float[4]; uiClkCoords = new float[4];		
 		for(int i =0;i<4;++i){
 			fillClr[i] = fc[i];strkClr[i]=sc[i];
 			rtSideUIFillClr[i] = fc[i];rtSideUIStrkClr[i]=sc[i];			
 			rectDim[i]=rd[i];rectDimClosed[i]=rdClosed[i];
-		}				
+		}			
+		
+		float boxWidth = 1.1f*rectDim[0];
+		UIRtSideRectBox = new float[] {rectDim[2]-boxWidth,0,boxWidth, rectDim[3]};		
+		closedUIRtSideRecBox = new float[] {rectDim[2]-20,0,20,rectDim[3]};
+
+		curVisScrDims = new float[] {closedUIRtSideRecBox[0],rectDim[3]};
 	}//initClrDims	
+	
+	protected void setVisScreenWidth(float visScrWidth) {setVisScreenDims(visScrWidth,curVisScrDims[1]);}
+	protected void setVisScreenHeight(float visScrHeight) {setVisScreenDims(curVisScrDims[0],visScrHeight);}
+	//based on current visible screen width, set map and calc analysis display locations
+	protected void setVisScreenDims(float visScrWidth, float visScrHeight) {
+		curVisScrDims[0] = visScrWidth;
+		curVisScrDims[1] = visScrHeight;
+		setVisScreenDimsPriv();
+	}//calcAndSetMapLoc
 	
 	//set right side data display fill/stroke colors
 	public void setRtSideUIBoxClrs(int[] fc,  int[] sc) {
@@ -332,6 +339,13 @@ public abstract class myDispWindow {
 			case useCustCam			: { break;}
 			case drawMseEdge		: { break;}
 			case clearPrivBtns		: { break;}
+			case drawRightSideMenu  : { break;}	//can drawn right side menu
+			case showRightSideMenu  : { 		//modify the dimensions of the visible window based on whether the side bar menu is shown
+				if(getFlags(drawRightSideMenu)) {
+					float visWidth = (val ?  UIRtSideRectBox[0] : closedUIRtSideRecBox[0]);		//to match whether the side bar menu is open or closed
+					setVisScreenWidth(visWidth);
+				}
+				break;}		
 		}				
 	}//setFlags
 
@@ -748,16 +762,14 @@ public abstract class myDispWindow {
 			pa.setFill(rtSideUIFillClr);//transparent black
 			if(getFlags(showRightSideMenu)) {				
 				pa.rect(UIRtSideRectBox);
+				//move to manage internal text display in owning window
 				pa.translate(UIRtSideRectBox[0]+5,UIRtSideRectBox[1]+yOff-4,0);
-				pa.setFill(new int[] {255,255,255,255});
-	
+				pa.setFill(new int[] {255,255,255,255});	
 				 //instancing class implements this function
 				drawRightSideInfoBarPriv(modAmtMillis); 
 			} else {
-				//shows narrow rectangular reminder that window is there
-				pa.translate(rectDim[2]-20,0,0);
-									 
-				pa.rect(new float[] {0,0,20,rectDim[3]});
+				//shows narrow rectangular reminder that window is there								 
+				pa.rect(closedUIRtSideRecBox);
 			}
 		}
 		pa.popStyle();pa.popMatrix();			
@@ -1221,8 +1233,9 @@ public abstract class myDispWindow {
 	protected abstract void delSScrToWinIndiv(int idx);
 	protected abstract void delTrajToScrIndiv(int subScrKey, String newTrajKey);
 	
-	protected abstract myPoint getMsePtAs3DPt(int mouseX, int mouseY);
-	
+	protected abstract myPoint getMsePtAs3DPt(int mouseX, int mouseY);	
+	//set window-specific variables that are based on current visible screen dimensions
+	protected abstract void setVisScreenDimsPriv();
 	//implementing class' necessary functions - implement for each individual window
 	protected abstract boolean hndlMouseMoveIndiv(int mouseX, int mouseY, myPoint mseClckInWorld);
 	protected abstract boolean hndlMouseClickIndiv(int mouseX, int mouseY, myPoint mseClckInWorld, int mseBtn);
@@ -1668,6 +1681,8 @@ class mySideBarMenu extends myDispWindow{
 	protected String[] getSaveFileDirNamesPriv() {return new String[]{"menuDir","menuFile"};	}
 	@Override
 	public void drawClickableBooleans() {	}//this is only for non-sidebar menu windows, to display their own personal buttons
+	@Override
+	protected void setVisScreenDimsPriv() {}
 	@Override
 	protected myPoint getMsePtAs3DPt(int mouseX, int mouseY){return pa.P(mouseX,mouseY,0);}
 	@Override

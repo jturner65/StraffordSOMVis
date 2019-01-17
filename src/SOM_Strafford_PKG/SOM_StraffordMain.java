@@ -399,8 +399,7 @@ public class SOM_StraffordMain extends PApplet {
 			dispWinFrames[i].setRtSideUIBoxClrs(new int[]{0,0,0,200},new int[]{255,255,255,255});
 		}	
 		//set initial state to be true - show info window
-		setFlags(showRtSideMenu, true);
-
+		//setFlags(showRtSideMenu, true);
 	}//initDispWins
 	
 	//get the ui rect values of the "master" ui region (another window) -> this is so ui objects of one window can be made, clicked, and shown displaced from those of the parent windwo

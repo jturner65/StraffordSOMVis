@@ -191,7 +191,7 @@ public class StraffWeightCalc {
 	}//getCalcAnalysisRes
 	
 	//draw res of all calcs as single rectangle of height ht and width barWidth*num eqs
-	public void drawAllCalcRes(SOM_StraffordMain p, int ht, int barWidth, int curJPIdx) {		
+	public void drawAllCalcRes(SOM_StraffordMain p, float ht, float barWidth, int curJPIdx) {		
 		p.pushMatrix();p.pushStyle();		
 		for(JPWeightEquation jpEq:eqs.values()) {	
 			//draw bar
@@ -203,7 +203,7 @@ public class StraffWeightCalc {
 	}//draw analysis res for each graphically
 	
 	//draw single detailed feature eq detailed analysis
-	public void drawSingleFtr(SOM_StraffordMain p, int ht, int width, Integer jp) {
+	public void drawSingleFtr(SOM_StraffordMain p, float ht, float width, Integer jp) {
 		p.pushMatrix();p.pushStyle();		
 		//draw detailed analysis
 		eqs.get(jp).drawIndivFtrVec(p, ht, width);
@@ -362,9 +362,8 @@ class JPWeightEquation {
 		return res;
 	}//calcVal
 	
-	public void drawIndivFtrVec(SOM_StraffordMain p, int height, int width) {calcStats.drawIndivFtrVec(p, height, width);	}
-	public void drawFtrVec(SOM_StraffordMain p, int height, int width, boolean selected){calcStats.drawFtrVec(p, height, width,selected);}
-	
+	public void drawIndivFtrVec(SOM_StraffordMain p, float height, float width) {calcStats.drawIndivFtrVec(p, height, width);	}
+	public void drawFtrVec(SOM_StraffordMain p, float height, float width, boolean selected){calcStats.drawFtrVec(p, height, width,selected);}
 	
 	//string rep of this calc
 	public String toString() {
@@ -523,7 +522,7 @@ class calcAnalysis{
 	//this will display a vertical bar corresponding to the performance of the analyzed calculation.
 	//each component of calc object will have a different color
 	//height - the height of the bar.  start each vertical bar at upper left corner, put text beneath bar
-	public void drawFtrVec(SOM_StraffordMain p, int height, int width, boolean selected){
+	public void drawFtrVec(SOM_StraffordMain p, float height, float width, boolean selected){
 		p.pushMatrix();p.pushStyle();
 		float rCompHeight, rYSt = 0.0f;
 		for(int i =0;i<analysisCalcStats[ratioIDX].length;++i) {
@@ -544,7 +543,7 @@ class calcAnalysis{
 	}//drawFtrVec
 	
 	//draw vertical bar describing per-comp values with
-	private void drawDetailFtrVec(SOM_StraffordMain p, int height, int width, float[] vals, float denom, String valTtl, String[] dispStrAra, String[] valDesc) {
+	private void drawDetailFtrVec(SOM_StraffordMain p, float height, float width, float[] vals, float denom, String valTtl, String[] dispStrAra, String[] valDesc) {
 		p.pushMatrix();p.pushStyle();
 			p.translate(0.0f, txtYOff, 0.0f);
 			p.showOffsetText2D(0.0f, p.gui_White, valTtl);
@@ -584,7 +583,7 @@ class calcAnalysis{
 
 	//draw a single ftr vector as a wide bar; include text for descriptions
 	//width is per bar
-	public void drawIndivFtrVec(SOM_StraffordMain p, int height, int width){
+	public void drawIndivFtrVec(SOM_StraffordMain p, float height, float width){
 		p.pushMatrix();p.pushStyle();
 		//title here?
 		p.showOffsetText2D(0.0f, p.gui_White, "Calc Values for ftr idx : " +eq.jpIdx + " jp "+eq.jp + " : " + eq.jpName);//p.drawText("Calc Values for ftr idx : " +eq.jpIdx + " jp "+eq.jp, 0, 0, 0, p.gui_White);

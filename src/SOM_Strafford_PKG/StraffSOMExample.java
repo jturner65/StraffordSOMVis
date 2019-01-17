@@ -518,7 +518,7 @@ class ProductExample extends StraffSOMExample{
 	private static int numFtrCompVals = 2;
 	
 	//types to conduct similarity mapping
-	private static ExDataType[] prospectTypes = new ExDataType[] {ExDataType.ProspectTraining, ExDataType.ProspectTesting};
+	private static int[] prospectTypes_idxs = new int[] {ExDataType.ProspectTraining.getVal(), ExDataType.ProspectTesting.getVal()};
 
 	//color to illustrate map (around bmu) region corresponding to this product - use distance as alpha value
 	private int[] prodClr;
@@ -657,7 +657,7 @@ class ProductExample extends StraffSOMExample{
 	//x : this product's distance to map node ; y : each example's distance to map node
 	//based on their bmu mappings, to map nodes within _maxDist threshold of this node
 	//subMap holds all map nodes within _maxDist of this node
-	private TreeMap<Double, TreeMap<Double, ArrayList<SOMExample>>> getExamplesNearThisProd(NavigableMap<Double, ArrayList<SOMMapNode>> subMap, ExDataType type) {
+	private TreeMap<Double, TreeMap<Double, ArrayList<SOMExample>>> getExamplesNearThisProd(NavigableMap<Double, ArrayList<SOMMapNode>> subMap, int typeIDX) {
 		TreeMap<Double, TreeMap<Double, ArrayList<SOMExample>>> nodesNearProd = new TreeMap<Double, TreeMap<Double, ArrayList<SOMExample>>>();
 		HashMap<SOMExample, Double> tmpMapOfNodes;
 		for (Double dist : subMap.keySet()) {								//get all map nodes of certain distance from this node; - this dist is distance from this node to map node
@@ -665,7 +665,7 @@ class ProductExample extends StraffSOMExample{
 			TreeMap<Double, ArrayList<SOMExample>> tmpMapOfArrays = nodesNearProd.get(dist);			
 			if (tmpMapOfArrays==null) {tmpMapOfArrays = new TreeMap<Double, ArrayList<SOMExample>>();}				
 			for (SOMMapNode n : mapNodeList) {									//for each map node get all examples of ExDataType that consider that map node BMU
-				tmpMapOfNodes = n.getAllExsAndDist(type);					//each prospect example and it's distance from the bmu map node				
+				tmpMapOfNodes = n.getAllExsAndDist(typeIDX);					//each prospect example and it's distance from the bmu map node				
 				for(SOMExample exN : tmpMapOfNodes.keySet()) {		//for each example that treats map node as bmu
 					Double distFromBMU = tmpMapOfNodes.get(exN);
 					ArrayList<SOMExample> exsAtDistFromMapNode = tmpMapOfArrays.get(distFromBMU);
@@ -687,8 +687,8 @@ class ProductExample extends StraffSOMExample{
 		TreeMap<Double, TreeMap<Double, ArrayList<SOMExample>>> allNodesAndDists = new TreeMap<Double, TreeMap<Double, ArrayList<SOMExample>>>();		
 		TreeMap<Double, ArrayList<SOMExample>> srcMapNodeAra, destMapNodeAra;
 		ArrayList<SOMExample> srcExAra, destExAra;
-		for(ExDataType _type : prospectTypes) {
-			TreeMap<Double, TreeMap<Double, ArrayList<SOMExample>>> tmpMapOfAllNodes = getExamplesNearThisProd(subMap, _type);
+		for(int _typeIDX : prospectTypes_idxs) {
+			TreeMap<Double, TreeMap<Double, ArrayList<SOMExample>>> tmpMapOfAllNodes = getExamplesNearThisProd(subMap, _typeIDX);
 			for (Double dist1 : tmpMapOfAllNodes.keySet()) {//this is dist from product to map node source of these examples
 				srcMapNodeAra = tmpMapOfAllNodes.get(dist1);				
 				destMapNodeAra = allNodesAndDists.get(dist1);

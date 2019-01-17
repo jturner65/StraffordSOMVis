@@ -97,11 +97,14 @@ public class mySOMMapUIWin extends myDispWindow {
 	//////////////////////////////
 	//map drawing 	draw/interaction variables
 	public int[] dpFillClr, dpStkClr;
-	public float[] SOM_mapDims;
+	
+	//start location of SOM image - stX, stY, and dimensions of SOM image - width, height; locations to put calc analysis visualizations
+	public float[] SOM_mapLoc, SOM_mapDims, calcAnalysisLocs;
+	
 	//to draw analysis results
 	private float calcScale = .5f;
 	//set analysisHt equal to be around 1/2 SOM_mapDims height
-	private int analysisHt, analysisAllJPBarWidth, analysisPerJPWidth;	
+	private float analysisHt, analysisAllJPBarWidth, analysisPerJPWidth;	
 	//array of per-ftr map wts
 	private PImage[] mapPerFtrWtImgs;
 	//array of per jpg map wts - equally weighted all jps within jpg
@@ -171,19 +174,18 @@ public class mySOMMapUIWin extends myDispWindow {
 
 	protected void initMe() {
 		//initUIBox();				//set up ui click region to be in sidebar menu below menu's entries	
-		float offset = 20;
-		float width = rectDim[3]-(2*offset),//actually height, but want it square, and space is wider than high, so we use height as constraint - ends up being 834.8 x 834.8 with default screen dims
-		xStart = rectDim[0] + .5f*(rectDim[2] - width);
 		//start x and y and dimensions of full map visualization as function of visible window size;
-		SOM_mapDims = new float[]{xStart, rectDim[1] + offset, width, width};
-
+		float width = rectDim[3]-(2*xOff);//actually also height, but want it square, and space is wider than high, so we use height as constraint - ends up being 834.8 x 834.8 with default screen dims and without side menu
+		SOM_mapDims = new float[] {width,width};
 		mapMgr = new SOMMapManager(pa.th_exec,SOM_mapDims);
+		setVisScreenWidth(rectDim[2]);
 		//only set for visualization
 		mapMgr.win=this;
 		
-		analysisHt = (int) (SOM_mapDims[3]*.45f);
+		//based on width of map
+		analysisHt = (SOM_mapDims[1]*.45f);
 		//for single jp detail display
-		analysisPerJPWidth = (int) (SOM_mapDims[2]*.1f);
+		analysisPerJPWidth = (SOM_mapDims[0]*.1f);
 		
 		//init specific sim flags
 		initPrivFlags(numPrivFlags);			
@@ -191,7 +193,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		setPrivFlags(mapDrawWtMapNodesIDX,false);
 		setPrivFlags(mapUseChiSqDistIDX,false);
 		//this window uses right side info window
-		//setFlags(drawRightSideMenu, true);		//may need some re-scaling to keep things in the middle and visible
+		setFlags(drawRightSideMenu, true);		//may need some re-scaling to keep things in the middle and visible
 
 		setPrivFlags(mapExclProdZeroFtrIDX, true);
 		mapMgr.setCurrentDataFormat((int)(this.guiObjs[uiTrainDataFrmtIDX].getVal()));
@@ -207,11 +209,22 @@ public class mySOMMapUIWin extends myDispWindow {
 		initMapAras(1, 1);
 		mseOvrData = null;					
 	}//initMe
+	//set window-specific variables that are based on current visible screen dimensions
+	protected void setVisScreenDimsPriv() {
+		float xStart = rectDim[0] + .5f*(curVisScrDims[0] - (curVisScrDims[1]-(2*xOff)));
+		//start x and y and dimensions of full map visualization as function of visible window size;
+		SOM_mapLoc = new float[]{xStart, rectDim[1] + yOff};
+		//now build calc analysis offset struct
+		calcAnalysisLocs = new float[] {(SOM_mapLoc[0]+SOM_mapDims[0])*calcScale + xOff,(SOM_mapLoc[1]+SOM_mapDims[1])*calcScale + 10.0f};
+		setAnalysisDimWidth();
+	}//calcAndSetMapLoc
+	//per jp bar width ~= total width / # of jps
+	protected void setAnalysisDimWidth() {analysisAllJPBarWidth = (curVisScrDims[0]/(1.0f+mapMgr.numFtrs));	}
 	
 	protected void initMapAras(int numJPVals, int numJPGVals) {
 		curMapImgIDX = 0;
 		int format = pa.RGB; 
-		int w = (int) (SOM_mapDims[2]/mapScaleVal), h = (int) (SOM_mapDims[3]/mapScaleVal);
+		int w = (int) (SOM_mapDims[0]/mapScaleVal), h = (int) (SOM_mapDims[1]/mapScaleVal);
 		mapPerFtrWtImgs = new PImage[numJPVals];
 		for(int i=0;i<mapPerFtrWtImgs.length;++i) {
 			mapPerFtrWtImgs[i] = pa.createImage(w, h, format);
@@ -278,9 +291,8 @@ public class mySOMMapUIWin extends myDispWindow {
 				break;}
 			case mapDrawAnalysisVisIDX: {//whether or not to draw feature calc analysis graphs  
 				if (val) {//if setting to true then aggregate data
-					mapMgr.processCalcAnalysis();		
-					//per jp bar width ~= total width / # of jps
-					analysisAllJPBarWidth = (int) (rectDim[2]/(1.0f+mapMgr.numFtrs));
+					mapMgr.processCalcAnalysis();	
+					setAnalysisDimWidth();
 				}
 				break;}
 			case mapDrawUMatrixIDX :{//whether to show the UMatrix (distance between nodes) representation of the map - overrides per-ftr display
@@ -670,8 +682,8 @@ public class mySOMMapUIWin extends myDispWindow {
 	}
 	
 	//get x and y locations relative to upper corner of map
-	public float getSOMRelX (float x){return (x - SOM_mapDims[0]);}
-	public float getSOMRelY (float y){return (y - SOM_mapDims[1]);}
+	public float getSOMRelX (float x){return (x - SOM_mapLoc[0]);}
+	public float getSOMRelY (float y){return (y - SOM_mapLoc[1]);}
 	
 
 	//given pixel location relative to upper left corner of map, return map node
@@ -679,7 +691,7 @@ public class mySOMMapUIWin extends myDispWindow {
 	//check whether the mouse is over a legitimate map location
 	public boolean chkMouseOvr(int mouseX, int mouseY){		
 		float mapMseX = getSOMRelX(mouseX), mapMseY = getSOMRelY(mouseY);//, mapLocX = mapX * mapMseX/mapDims[2],mapLocY = mapY * mapMseY/mapDims[3] ;
-		if((mapMseX >= 0) && (mapMseY >= 0) && (mapMseX < SOM_mapDims[2]) && (mapMseY < SOM_mapDims[3])){
+		if((mapMseX >= 0) && (mapMseY >= 0) && (mapMseX < SOM_mapDims[0]) && (mapMseY < SOM_mapDims[1])){
 			float[] mapNLoc=getMapNodeLocFromPxlLoc(mapMseX,mapMseY, 1.0f);
 			//mapMgr.dispMessage("In Map : Mouse loc : " + mouseX + ","+mouseY+ "\tRel to upper corner ("+  mapMseX + ","+mapMseY +") | mapNLoc : ("+mapNLoc[0]+","+ mapNLoc[1]+")" );
 			mseOvrData = getDataPointAtLoc(mapNLoc[0], mapNLoc[1], new myPointf(mapMseX, mapMseY,0));
@@ -762,7 +774,7 @@ public class mySOMMapUIWin extends myDispWindow {
 	protected void drawRightSideInfoBarPriv(float modAmtMillis) {
 		pa.pushMatrix();pa.pushStyle();
 		//display current simulation variables - call sim world through sim exec
-		//simExec.des.drawResultBar(pa, UIrectBox,  yOff);
+		mapMgr.drawResultBar(pa, yOff);
 		pa.popStyle();pa.popMatrix();					
 	}//drawOnScreenStuff
 
@@ -801,12 +813,12 @@ public class mySOMMapUIWin extends myDispWindow {
 				tmpImg = mapPerFtrWtImgs[curMapImgIDX];		
 				curImgNum = curMapImgIDX;
 			}
-			pa.image(tmpImg,SOM_mapDims[0]/mapScaleVal,SOM_mapDims[1]/mapScaleVal); if(getPrivFlags(saveLocClrImgIDX)){tmpImg.save(mapMgr.getSOMLocClrImgForJPFName(curImgNum));  setPrivFlags(saveLocClrImgIDX,false);}			
-		if(getPrivFlags(mapDrawSegImgIDX)) {pa.image(mapCubicSegmentsImg,SOM_mapDims[0]/mapScaleVal,SOM_mapDims[1]/mapScaleVal);}
+			pa.image(tmpImg,SOM_mapLoc[0]/mapScaleVal,SOM_mapLoc[1]/mapScaleVal); if(getPrivFlags(saveLocClrImgIDX)){tmpImg.save(mapMgr.getSOMLocClrImgForJPFName(curImgNum));  setPrivFlags(saveLocClrImgIDX,false);}			
+		if(getPrivFlags(mapDrawSegImgIDX)) {pa.image(mapCubicSegmentsImg,SOM_mapLoc[0]/mapScaleVal,SOM_mapLoc[1]/mapScaleVal);}
 		pa.popStyle();pa.popMatrix();
 		
 		pa.pushMatrix();pa.pushStyle();
-			pa.translate(SOM_mapDims[0],SOM_mapDims[1],0);			
+			pa.translate(SOM_mapLoc[0],SOM_mapLoc[1],0);			
 			//mapDrawNodeLblIDX
 			if(getPrivFlags(mapDrawTrainDatIDX)){		mapMgr.drawTrainData(pa);}	
 			if(getPrivFlags(mapDrawTestDatIDX)) {			mapMgr.drawTestData(pa);}
@@ -841,14 +853,14 @@ public class mySOMMapUIWin extends myDispWindow {
 		if (getPrivFlags(mapDrawAnalysisVisIDX)){
 			if (getPrivFlags(examplesCalcedIDX)){	
 				pa.pushMatrix();pa.pushStyle();	
-				pa.translate((SOM_mapDims[0]+SOM_mapDims[2])*calcScale + 20,SOM_mapDims[1]*calcScale + 10,0.0f);
+				pa.translate(calcAnalysisLocs[0],SOM_mapLoc[1]*calcScale + 10,0.0f);
 				//pa.setFill(new int[] {0,255,0}, 255);
 	//			pa.rect(0,0,analysisPerJPWidth,analysisHt);
 				mapMgr.drawAnalysisOneJp(pa,analysisHt, analysisPerJPWidth,curMapImgIDX);	
 				pa.popStyle();pa.popMatrix();
 				
 				pa.pushMatrix();pa.pushStyle();
-				pa.translate(rectDim[0]+5,(SOM_mapDims[1]+SOM_mapDims[3])*calcScale + 10,0.0f);
+				pa.translate(rectDim[0]+5,calcAnalysisLocs[1],0.0f);
 	//			pa.setFill(new int[] {255,0,0}, 255);
 	//			pa.rect(0,0,analysisAllJPBarWidth*mapMgr.numFtrs,analysisHt);
 				mapMgr.drawAnalysisAllJps(pa, analysisHt, analysisAllJPBarWidth, curMapImgIDX);

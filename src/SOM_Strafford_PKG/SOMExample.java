@@ -412,7 +412,8 @@ public abstract class SOMExample extends baseDataPtVis{
 		return res;
 	}//getDistFromFtrType	
 	
-
+	//this value corresponds to training data type - we want to check training data type counts at each node
+	private final int trainDataTypeIDX = ExDataType.ProspectTraining.getVal();
 	//given a sqdistance-keyed map of lists of mapnodes, this will find the best matching unit (min distance), with favor given to units that have more examples
 	private void _setBMUFromMapNodeDistMap(TreeMap<Double, ArrayList<SOMMapNode>> mapNodes) {
 		ArrayList<Tuple<Integer,Integer>> bmuKeys = new ArrayList<Tuple<Integer,Integer>>();
@@ -426,7 +427,7 @@ public abstract class SOMExample extends baseDataPtVis{
 			int maxNumExamples = 0;
 			for (int i=0;i<numBMUs;++i) {//# of map nodes sharing distance to this node
 				SOMMapNode node = bmuList.get(i);
-				int numExamples = node.getNumExamples(ExDataType.ProspectTraining);//want # of training examples
+				int numExamples = node.getNumExamples(trainDataTypeIDX);//want # of training examples
 				if (numExamples >= maxNumExamples) {//need to manage if all map nodes that are "best" have no direct training examples (might happen on large maps), hence >= and not >
 					maxNumExamples = numExamples;
 					bestUnit = node;
@@ -803,15 +804,18 @@ class SOMMapNodeBMUExamples{
 }//class SOMMapNodeExamples
 
 /**
- * objects of this abstract class represent nodes in the SOM.  The instancing class is responsible for managing any connections to underlying data
+ * objects of inheritors to this abstract class represent nodes in the SOM.  
+ * The instancing class is responsible for managing any connections to underlying src data, which is project dependent
  * @author john
- *
  */
 abstract class SOMMapNode extends SOMExample{
 	protected static float ftrThresh = 0.0f;			//change to non-zero value if wanting to clip very low values
 	public Tuple<Integer,Integer> mapNodeCoord;	
 	
-	protected SOMMapNodeBMUExamples trainEx, prospectEx, prodEx;
+	//protected SOMMapNodeBMUExamples trainEx, prospectEx, prodEx;
+	protected SOMMapNodeBMUExamples[] BMUExampleNodes;//
+	
+	
 	
 	//set from u matrix built by somoclu - the similarity of this node to its neighbors
 	protected float uMatDist;
@@ -869,10 +873,13 @@ abstract class SOMMapNode extends SOMExample{
 		//these are the same for map nodes
 		mapNodeLoc.set(mapLoc);
 		uMatClr = new int[3];
-		
-		trainEx = new SOMMapNodeBMUExamples(this);
-		prospectEx  = new SOMMapNodeBMUExamples(this);
-		prodEx = new SOMMapNodeBMUExamples(this);
+		BMUExampleNodes = new SOMMapNodeBMUExamples[ExDataType.getNumVals()];
+		for(int i=0;i<BMUExampleNodes.length;++i) {
+			BMUExampleNodes[i] = new SOMMapNodeBMUExamples(this);
+		}
+//		trainEx = new SOMMapNodeBMUExamples(this);
+//		prospectEx  = new SOMMapNodeBMUExamples(this);
+//		prodEx = new SOMMapNodeBMUExamples(this);
 		//allJPs should be made by here - map nodes only have features assigned in constructor, since they are built by map loader from trained map data
 		//buildFeatureVector();
 		clearSeg();
@@ -964,114 +971,64 @@ abstract class SOMMapNode extends SOMExample{
 	//call this instead of buildStdFtrsMap, passing mins and diffs
 	
 	//called by SOMDataLoader - these are standardized based on data mins and diffs seen in -map nodes- feature data, not in training data
-	public abstract void buildStdFtrsMapFromFtrData_MapNode(float[] minsAra, float[] diffsAra);	
+	public abstract void buildStdFtrsMapFromFtrData_MapNode(float[] minsAra, float[] diffsAra);		
 	
-	
-	public void clearBMUExs(ExDataType _type) {
-		switch (_type) { //trainEx, prospectEx, prodEx
-			case ProspectTraining 	: {trainEx.init(); 		return;}//case 0 is training data
-			case ProspectTesting 	: {prospectEx.init(); 	return;}//case 1 is test data
-			case Product 			: {prodEx.init(); 		return;}//case 4 is product data		
-			case MapNode			: {return;}
-			case MouseOver			: {return;}
-			default					: {return;}
-		}
+//	public void clearBMUExs(ExDataType _type) {
+//		switch (_type) { //trainEx, prospectEx, prodEx
+//			case ProspectTraining 	: {trainEx.init(); 		return;}//case 0 is training data
+//			case ProspectTesting 	: {prospectEx.init(); 	return;}//case 1 is test data
+//			case Product 			: {prodEx.init(); 		return;}//case 4 is product data		
+//			case MapNode			: {return;}
+//			case MouseOver			: {return;}
+//			default					: {return;}
+//		}
+//	}//addToBMUs
+
+	public void clearBMUExs(int _typeIDX) {
+		BMUExampleNodes[_typeIDX].init();
 	}//addToBMUs
+
 	
 	//add passed example to appropriate bmu construct depending on what type of example is passed (training, testing, product)
 	public void addExToBMUs(SOMExample ex) {
-		switch (ex.type) {
-			case ProspectTraining 	: {trainEx.addExample(ex._sqDistToBMU,ex); 		return;}//case 0 is training data
-			case ProspectTesting 	: {prospectEx.addExample(ex._sqDistToBMU,ex); 	return;}//case 1 is test data
-			case Product 			: {prodEx.addExample(ex._sqDistToBMU,ex); 		return;}//case 4 is product data		
-			case MapNode			: {System.out.println("Attempting to map unmappable example as map node : "+ ex.toString());return;}
-			case MouseOver			: {System.out.println("Attempting to map unmappable example as mouse node : "+ ex.toString());return;}
-			default					: {System.out.println("Attempting to map unmappable example in unhandled manner : "+ ex.toString());return;}
-		}
+		int _typeIDX = ex.type.getVal();
+		BMUExampleNodes[_typeIDX].addExample(ex._sqDistToBMU,ex);
 	}//addToBMUs 
 	
 	//add passed example to appropriate bmu construct depending on what type of example is passed (training, testing, product)
 	public void addExToBMUs(double dist, SOMExample ex) {
-		switch (ex.type) {
-			case ProspectTraining 	: {trainEx.addExample(dist,ex); 		return;}//case 0 is training data
-			case ProspectTesting 	: {prospectEx.addExample(dist,ex); 	return;}//case 1 is test data
-			case Product 			: {prodEx.addExample(dist,ex); 		return;}//case 4 is product data		
-			case MapNode			: {return;}
-			case MouseOver			: {return;}
-			default					: {return;}
-		}
+		int _typeIDX = ex.type.getVal();
+		BMUExampleNodes[_typeIDX].addExample(dist,ex);
 	}//addToBMUs 
 	
 	//finalize all calculations for examples using this node as a bmu - this calculates quantities based on totals derived, used for visualizations
 	//MUST BE CALLED after adding all examples but before any visualizations will work
-	public void finalizeAllBmus(ExDataType _type) {
-		switch (_type) { //trainEx, prospectEx, prodEx
-			case ProspectTraining 	: {trainEx.finalize();		return;}//case 0 is training data
-			case ProspectTesting 	: {prospectEx.finalize(); 	return;}//case 1 is test data
-			case Product 			: {prodEx.finalize(); 		return;}//case 4 is product data		
-			case MapNode			: {return;}
-			case MouseOver			: {return;}
-			default					: {return;}
-		}
+	public void finalizeAllBmus(int _typeIDX) {
+		BMUExampleNodes[_typeIDX].finalize();
 	}
 	
 	//get # of requested type of examples mapping to this node
-	public int getNumExamples(ExDataType _type) {
-		switch (_type) { //trainEx, prospectEx, prodEx
-			case ProspectTraining 	: {return trainEx.getNumExamples();}//case 0 is training data
-			case ProspectTesting 	: {return prospectEx.getNumExamples();}//case 1 is test data
-			case Product 			: {return prodEx.getNumExamples();}//case 4 is product data		
-			case MapNode			: {return 0;}
-			case MouseOver			: {return 0;}
-			default					: {return -1;}
-		}
+	public int getNumExamples(int _typeIDX) {
+		return BMUExampleNodes[_typeIDX].getNumExamples();
 	}	
 	
 	//get a map of all examples of specified type near this bmu and the distances for the example
-	public HashMap<SOMExample, Double> getAllExsAndDist(ExDataType _type){
-		switch (_type) { //trainEx, prospectEx, prodEx
-			case ProspectTraining 	: {return trainEx.getExsAndDist();}//case 0 is training data
-			case ProspectTesting 	: {return prospectEx.getExsAndDist();}//case 1 is test data
-			case Product 			: {return prodEx.getExsAndDist();}//case 4 is product data		
-			case MapNode			: {return null;}
-			case MouseOver			: {return null;}
-		default					: {return null;}	
-		}
+	public HashMap<SOMExample, Double> getAllExsAndDist(int _typeIDX){
+		return BMUExampleNodes[_typeIDX].getExsAndDist();
 	}//getAllExsAndDist
 
 	
 	//return string array of descriptions for the requested kind of examples mapped to this node
-	public String[] getAllExampleDescs(ExDataType _type) {
-		switch (_type) { //trainEx, prospectEx, prodEx
-			case ProspectTraining 	: {return trainEx.getAllExampleDescs();}//case 0 is training data
-			case ProspectTesting 	: {return prospectEx.getAllExampleDescs();}//case 1 is test data
-			case Product 			: {return prodEx.getAllExampleDescs();}//case 4 is product data		
-			case MapNode			: {return new String[0];}
-			case MouseOver			: {return new String[0];}
-			default					: {return new String[0];}
-		}		
+	public String[] getAllExampleDescs(int _typeIDX) {
+		return BMUExampleNodes[_typeIDX].getAllExampleDescs();
 	}
 	
-	public void drawMePopLbl(SOM_StraffordMain p, ExDataType _type) {
-		switch (_type) { //trainEx, prospectEx, prodEx
-			case ProspectTraining 	: {trainEx.drawMapNodeWithLabel(p);return;}//case 0 is training data
-			case ProspectTesting 	: {prospectEx.drawMapNodeWithLabel(p); return;}//case 1 is test data
-			case Product 			: {prodEx.drawMapNodeWithLabel(p); return;}//case 4 is product data		
-			case MapNode			: {return;}
-			case MouseOver			: {return;}
-			default					: {return;}
-		}
+	public void drawMePopLbl(SOM_StraffordMain p, int _typeIDX) {
+		BMUExampleNodes[_typeIDX].drawMapNodeWithLabel(p);
 	}
 	
-	public void drawMePopNoLbl(SOM_StraffordMain p, ExDataType _type) {
-		switch (_type) { //trainEx, prospectEx, prodEx
-		case ProspectTraining 	: {trainEx.drawMapNodeNoLabel(p);return;}//case 0 is training data
-		case ProspectTesting 	: {prospectEx.drawMapNodeNoLabel(p); return;}//case 1 is test data
-		case Product 			: {prodEx.drawMapNodeNoLabel(p); return;}//case 4 is product data		
-		case MapNode			: {return;}
-		case MouseOver			: {return;}
-		default					: {return;}
-		}		
+	public void drawMePopNoLbl(SOM_StraffordMain p, int _typeIDX) {
+		BMUExampleNodes[_typeIDX].drawMapNodeNoLabel(p);
 	}
 	
 	public void drawMeSmallWt(SOM_StraffordMain p, int jpIDX){
@@ -1112,6 +1069,43 @@ abstract class SOMMapNode extends SOMExample{
 		return res;		
 	}
 	
-	
-	
 }//class SOMMapNode
+
+//class description for a data point - used to distinguish different jp-jpg members - class membership is determined by comparing the label
+//TODO change this to some other structure, or other comparison mechanism?  allow for subset membership check?
+class dataClass implements Comparable<dataClass> {
+	
+	public String label;
+	public String lrnKey;
+	private String cls;
+	
+	public int jpGrp, jp;
+	//color of this class, for vis rep
+	public int[] clrVal;
+	
+	public dataClass(String _lrnKey, String _lbl, String _cls, int[] _clrVal){
+		lrnKey=_lrnKey;
+		label = _lbl;	
+		cls = _cls;
+		clrVal = _clrVal;
+	}	
+	public dataClass(dataClass _o){this(_o.lrnKey, _o.label,_o.cls, _o.clrVal);}//copy ctor
+	//set the defini
+	public void setJpJPG(int _jpGrp, int _jp) {jpGrp=_jpGrp;jp=_jp;}
+		
+	//this will guarantee that, so long as a string has only one period, the value returned will be in the appropriate format for this mocapClass to match it
+	//reparses and recalcs subject and clip from passed val
+	public static String getPrfxFromData(String val){
+		String[] valTkns = val.trim().split("\\.");
+		return String.format("%03d",(Integer.parseInt(valTkns[0]))) + "."+ String.format("%03d",(Integer.parseInt(valTkns[1])));		
+	}	
+	@Override
+	public int compareTo(dataClass o) {	return label.compareTo(o.label);}
+	public String toCSVString(){String res = "" + lrnKey +","+label+","+cls;	return res;}
+	public String getFullLabel(){return label +"|"+cls;}
+	//public static String buildPrfx(int val){return (val < 100 ? (val < 10 ? "00" : "0") : "") + val;}//handles up to 999 val to be prefixed with 0's	
+	public String toString(){
+		String res = "Label :  " +label + "\tLrnKey : " + lrnKey  + "\tJPGroup # : " + String.format("%03d",jpGrp)+ "\tJP # : "+String.format("%03d",jp)+"\tDesc : "+cls;
+		return res;		
+	}	
+}//dataClass

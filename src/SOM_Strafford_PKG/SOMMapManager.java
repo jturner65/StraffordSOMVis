@@ -6,6 +6,7 @@ import java.util.*;
 import java.util.concurrent.*;
 
 
+
 //this class holds the data describing a SOM and the data used to both build and query the som
 public class SOMMapManager {
 	//struct maintaining complete project configuration and information from config files - all file name data and building needs to be done by this object
@@ -146,8 +147,8 @@ public class SOMMapManager {
 	//////////////////////
 	// misc.
 	//used by UI for visualization, ignored if NULL (passed by command line program)
-	public SOM_StraffordMain p;
-	public mySOMMapUIWin win;				//owning window
+	public SOM_StraffordMain pa;				//applet, if used in graphical context
+	public mySOMMapUIWin win;					//owning window
 	
 	//time of current process start, from initial construction of mapmgr - TODO use this to monitor specific process time elapsed.  set to 0 at beginning of a particular process, then measure time elapsed in process
 	private long curProcStartTime;
@@ -157,11 +158,10 @@ public class SOMMapManager {
 	//threading constructions
 	private ExecutorService th_exec;	//to access multithreading - instance from calling program
 	private final int numUsableThreads;		//# of threads usable by the application
-	///////////////////////////////////
+	///////////////////////////////////	
 	
-	
-	public SOMMapManager(SOM_StraffordMain _pa, mySOMMapUIWin _win, ExecutorService _th_exec, float[] _dims) {
-		p=_pa; win=_win;th_exec=_th_exec;		
+	private SOMMapManager(mySOMMapUIWin _win, ExecutorService _th_exec, float[] _dims) {
+		pa=null; win=_win;th_exec=_th_exec;		
 		//want # of usable background threads.  Leave 2 for primary process (and potential draw loop)
 		numUsableThreads = Runtime.getRuntime().availableProcessors() - 2;
 		//for display of time since processes occur
@@ -194,8 +194,8 @@ public class SOMMapManager {
 		initData();
 	}//ctor	
 	//ctor from non-UI stub main
-	public SOMMapManager(ExecutorService _th_exec,float[] _dims) {this(null, null, _th_exec, _dims);}
-
+	public SOMMapManager(ExecutorService _th_exec,float[] _dims) {this(null, _th_exec, _dims);}
+	
 	//build new SOM_MAP map using UI-entered values, then load resultant data
 	//with maps of required SOM exe params
 	//TODO this will be changed to not pass values from UI, but rather to finalize and save values already set in SOM_MapDat object from UI or other user input
@@ -412,7 +412,8 @@ public class SOMMapManager {
 	
 	public void finalizeExMapNodes(ExDataType _type) {
 		HashSet<SOMMapNode> withMap = nodesWithEx.get(_type);
-		for(SOMMapNode node : withMap){		node.finalizeAllBmus(_type);	}
+		int typeIDX = _type.getVal();
+		for(SOMMapNode node : withMap){		node.finalizeAllBmus(typeIDX);	}
 	}
 	
 	//set all training/testing data save flags to val
@@ -839,7 +840,8 @@ public class SOMMapManager {
 	}//setProductBMUs
 	
 	private void _finalizeBMUProcessing(SOMExample[] _exs, ExDataType _type) {
-		for(SOMMapNode mapNode : MapNodes.values()){mapNode.clearBMUExs(_type);addExToNodesWithNoExs(mapNode, _type);}	
+		int val = _type.getVal();
+		for(SOMMapNode mapNode : MapNodes.values()){mapNode.clearBMUExs(val);addExToNodesWithNoExs(mapNode, _type);}	
 		for (int i=0;i<_exs.length;++i) {	
 			SOMExample ex = _exs[i];
 			ex.bmu.addExToBMUs(ex);	
@@ -1399,13 +1401,13 @@ public class SOMMapManager {
 		pa.popStyle();pa.popMatrix();
 	}//drawProductNodes
 	
-	public void drawAnalysisAllJps(SOM_StraffordMain pa, int ht, int barWidth, int curJPIdx) {
+	public void drawAnalysisAllJps(SOM_StraffordMain pa, float ht, float barWidth, int curJPIdx) {
 		pa.pushMatrix();pa.pushStyle();
 		ftrCalcObj.drawAllCalcRes(pa, ht, barWidth, curJPIdx);
 		pa.popStyle();pa.popMatrix();
 	}//drawAnalysisAllJps
 	
-	public void drawAnalysisOneJp(SOM_StraffordMain pa,  int ht, int width, int curJPIdx) {
+	public void drawAnalysisOneJp(SOM_StraffordMain pa,  float ht, float width, int curJPIdx) {
 		pa.pushMatrix();pa.pushStyle();
 		ftrCalcObj.drawSingleFtr(pa, ht, width,jpJpgrpMon.getJpByIdx(curJPIdx));
 		pa.popStyle();pa.popMatrix();
@@ -1446,14 +1448,16 @@ public class SOMMapManager {
 	
 	public void drawExMapNodes(SOM_StraffordMain pa, ExDataType _type) {
 		HashSet<SOMMapNode> nodes = nodesWithEx.get(_type);
-		pa.pushMatrix();pa.pushStyle(); 
-		for(SOMMapNode node : nodes){	node.drawMePopLbl(pa, _type);}
+		pa.pushMatrix();pa.pushStyle();
+		int _typeIDX = _type.getVal();
+		for(SOMMapNode node : nodes){	node.drawMePopLbl(pa, _typeIDX);}
 		pa.popStyle();pa.popMatrix();		
 	}	
 	public void drawExMapNodesNoLbl(SOM_StraffordMain pa, ExDataType _type) {
 		HashSet<SOMMapNode> nodes = nodesWithEx.get(_type);
 		pa.pushMatrix();pa.pushStyle();
-		for(SOMMapNode node : nodes){				node.drawMePopNoLbl(pa, _type);}
+		int _typeIDX = _type.getVal();
+		for(SOMMapNode node : nodes){				node.drawMePopNoLbl(pa, _typeIDX);}
 		pa.popStyle();pa.popMatrix();		
 	}	
 	private int getDistType() {return (getFlag(mapExclProdZeroFtrIDX) ? ProductExample.SharedFtrsIDX : ProductExample.AllFtrsIDX);}
@@ -1478,6 +1482,16 @@ public class SOMMapManager {
 		}
 		pa.popStyle();pa.popMatrix();	
 	}
+	//draw right sidebar data
+	public void drawResultBar(SOM_StraffordMain pa, float yOff) {
+		yOff-=4;
+		float sbrMult = 1.2f, lbrMult = 1.5f;//offsets multiplier for barriers between contextual ui elements
+		pa.pushMatrix();pa.pushStyle();
+
+		pa.popStyle();pa.popMatrix();	
+	}//drawResultBar	
+	
+	
 	
 	// end drawing routines
 	//////////////////////////////////////////////////////
@@ -1488,20 +1502,20 @@ public class SOMMapManager {
 	
 	//find distance on map
 	public myPoint buildScaledLoc(float x, float y){		
-		float xLoc = (x + .5f) * (mapDims[2]/mapNodeCols), yLoc = (y + .5f) * (mapDims[3]/mapNodeRows);
+		float xLoc = (x + .5f) * (mapDims[0]/mapNodeCols), yLoc = (y + .5f) * (mapDims[1]/mapNodeRows);
 		myPoint pt = new myPoint(xLoc, yLoc, 0);
 		return pt;
 	}
 	
 	//distance on map	
 	public myPointf buildScaledLoc(Tuple<Integer,Integer> mapNodeLoc){		
-		float xLoc = (mapNodeLoc.x + .5f) * (mapDims[2]/mapNodeCols), yLoc = (mapNodeLoc.y + .5f) * (mapDims[3]/mapNodeRows);
+		float xLoc = (mapNodeLoc.x + .5f) * (mapDims[0]/mapNodeCols), yLoc = (mapNodeLoc.y + .5f) * (mapDims[1]/mapNodeRows);
 		myPointf pt = new myPointf(xLoc, yLoc, 0);
 		return pt;
 	}
 	//return upper left corner of umat box x,y and width,height
 	public float[] buildUMatBoxCrnr(Tuple<Integer,Integer> mapNodeLoc) {
-		float w =  (mapDims[2]/mapNodeCols), h = (mapDims[3]/mapNodeRows);		
+		float w =  (mapDims[0]/mapNodeCols), h = (mapDims[1]/mapNodeRows);		
 		float[] res = new float[] {mapNodeLoc.x * w, mapNodeLoc.y * h, w, h};
 		return res;
 	}
@@ -1541,7 +1555,7 @@ public class SOMMapManager {
 	public void dispMessage(String srcClass, String srcMethod, String msgText) {_dispMessage_base(getTimeStrFromProcStart() +"|" + srcClass,srcMethod,msgText);	}	
 	private void _dispMessage_base(String srcClass, String srcMethod, String msgText) {
 		String msg = srcClass + "::" + srcMethod + " : " + msgText;
-		if (p == null) {System.out.println(msg);} else {p.outStr2Scr(msg);}
+		if (pa == null) {System.out.println(msg);} else {pa.outStr2Scr(msg);}
 	}//dispMessage
 
 	//get fill, stroke and text color ID if win exists (to reference papplet) otw returns 0,0,0
@@ -1569,7 +1583,7 @@ public class SOMMapManager {
 	public void setMapNumCols(int _x){
 		//need to update UI value in win
 		mapNodeCols = _x;
-		nodeXPerPxl = mapNodeCols/this.mapDims[2];
+		nodeXPerPxl = mapNodeCols/this.mapDims[0];
 		if (win != null) {			
 			boolean didSet = win.setWinToUIVals(win.uiMapColsIDX, mapNodeCols);
 			if(!didSet){dispMessage("SOMMapManager","setMapX","Setting ui map x value failed for x = " + _x);}
@@ -1578,15 +1592,15 @@ public class SOMMapManager {
 	public void setMapNumRows(int _y){
 		//need to update UI value in win
 		mapNodeRows = _y;
-		nodeYPerPxl = mapNodeRows/this.mapDims[3];
+		nodeYPerPxl = mapNodeRows/this.mapDims[1];
 		if (win != null) {			
 			boolean didSet = win.setWinToUIVals(win.uiMapRowsIDX, mapNodeRows);
 			if(!didSet){dispMessage("SOMMapManager","setMapY","Setting ui map y value failed for y = " + _y);}
 		}
 	}//setMapY
 	
-	public float getMapWidth(){return mapDims[2];}
-	public float getMapHeight(){return mapDims[3];}
+	public float getMapWidth(){return mapDims[0];}
+	public float getMapHeight(){return mapDims[1];}
 	public int getMapNodeCols(){return mapNodeCols;}
 	public int getMapNodeRows(){return mapNodeRows;}	
 	
@@ -1680,44 +1694,6 @@ public class SOMMapManager {
 	}	
 }//SOMMapManager
 
-//class description for a data point - used to distinguish different jp-jpg members - class membership is determined by comparing the label
-//TODO change this to some other structure, or other comparison mechanism?  allow for subset membership check?
-class dataClass implements Comparable<dataClass> {
-	
-	public String label;
-	public String lrnKey;
-	private String cls;
-	
-	public int jpGrp, jp;
-	//color of this class, for vis rep
-	public int[] clrVal;
-	
-	public dataClass(String _lrnKey, String _lbl, String _cls, int[] _clrVal){
-		lrnKey=_lrnKey;
-		label = _lbl;	
-		cls = _cls;
-		clrVal = _clrVal;
-	}	
-	public dataClass(dataClass _o){this(_o.lrnKey, _o.label,_o.cls, _o.clrVal);}//copy ctor
-	//set the defini
-	public void setJpJPG(int _jpGrp, int _jp) {jpGrp=_jpGrp;jp=_jp;}
-		
-	//this will guarantee that, so long as a string has only one period, the value returned will be in the appropriate format for this mocapClass to match it
-	//reparses and recalcs subject and clip from passed val
-	public static String getPrfxFromData(String val){
-		String[] valTkns = val.trim().split("\\.");
-		return String.format("%03d",(Integer.parseInt(valTkns[0]))) + "."+ String.format("%03d",(Integer.parseInt(valTkns[1])));		
-	}	
-	@Override
-	public int compareTo(dataClass o) {	return label.compareTo(o.label);}
-	public String toCSVString(){String res = "" + lrnKey +","+label+","+cls;	return res;}
-	public String getFullLabel(){return label +"|"+cls;}
-	//public static String buildPrfx(int val){return (val < 100 ? (val < 10 ? "00" : "0") : "") + val;}//handles up to 999 val to be prefixed with 0's	
-	public String toString(){
-		String res = "Label :  " +label + "\tLrnKey : " + lrnKey  + "\tJPGroup # : " + String.format("%03d",jpGrp)+ "\tJP # : "+String.format("%03d",jp)+"\tDesc : "+cls;
-		return res;		
-	}	
-}//dataClass
 
 //manage a message stream from a launched external process
 class messageMgr implements Callable<Boolean> {
