@@ -43,7 +43,6 @@ public abstract class SOMExample extends baseDataPtVis{
 	
 	public SOMExample(SOMMapManager _map, ExDataType _type, String _id) {
 		super(_map,_type);
-		mapMgr=_map;
 		OID = _id;
 		_sqDistToBMU = 0.0;
 		ftrsBuilt = false;

@@ -9,6 +9,9 @@ import processing.core.PImage;
 //class that describes the hierarchy of files required for running and analysing a SOM
 public class SOMDataLoader implements Runnable {
 	public SOMMapManager mapMgr;				//the map these files will use
+	//manage IO in this object
+	private fileIOManager fileIO;
+
 	public SOMProjConfigData projConfigData;			//struct maintaining configuration information for entire project
 	
 	public final static float nodeDistThresh = 100000.0f;
@@ -21,6 +24,7 @@ public class SOMDataLoader implements Runnable {
 	
 	public SOMDataLoader(SOMMapManager _mapMgr, SOMProjConfigData _configData) {
 		mapMgr = _mapMgr;
+		fileIO = new fileIOManager(mapMgr,"SOMDataLoader");
 		projConfigData = _configData;
 	}
 
@@ -83,7 +87,7 @@ public class SOMDataLoader implements Runnable {
 	//read file with scaling/min values for Map to convert data back to original feature space - single row of data
 	private Float[] loadCSVSrcDataPoint(String fileName){		
 		if(fileName.length() < 1){return null;}
-		String [] strs= mapMgr.loadFileIntoStringAra(fileName, "Loaded data file : "+fileName, "Error reading file : "+fileName);
+		String [] strs= fileIO.loadFileIntoStringAra(fileName, "Loaded data file : "+fileName, "Error reading file : "+fileName);
 		if(strs==null){return null;}
 		//strs should only be length 1
 		if(strs.length > 1){mapMgr.dispMessage("DataLoader","loadCSVSrcDataPoint","error reading file : " + fileName + " String array has more than 1 row.");return null;}		
@@ -113,7 +117,7 @@ public class SOMDataLoader implements Runnable {
 		mapMgr.MapNodes = new TreeMap<Tuple<Integer,Integer>, SOMMapNode>();
 		mapMgr.clearBMUNodesWithNoExs(ExDataType.ProspectTraining);//clear structures holding map nodes with and without training examples
 		if(wtsFileName.length() < 1){return false;}
-		String [] strs= mapMgr.loadFileIntoStringAra(wtsFileName, "Loaded wts data file : "+wtsFileName, "Error wts reading file : "+wtsFileName);
+		String [] strs= fileIO.loadFileIntoStringAra(wtsFileName, "Loaded wts data file : "+wtsFileName, "Error wts reading file : "+wtsFileName);
 		if(strs==null){return false;}
 		String[] tkns,ftrNames;
 		SOMMapNode dpt;	
@@ -251,7 +255,7 @@ public class SOMDataLoader implements Runnable {
 		mapMgr.clearBMUNodesWithExs(ExDataType.ProspectTraining);
 		mapMgr.dispMessage("DataLoader","loadSOM_BMUs","Start Loading BMU File : "+bmFileName);
 		String[] tkns;			
-		String[] strs= mapMgr.loadFileIntoStringAra(bmFileName, "Loaded best matching unit data file : "+bmFileName, "Error reading best matching unit file : "+bmFileName);			
+		String[] strs= fileIO.loadFileIntoStringAra(bmFileName, "Loaded best matching unit data file : "+bmFileName, "Error reading best matching unit file : "+bmFileName);			
 		if((strs==null) || (strs.length == 0)){return false;}
 		if (! checkBMUHeader(strs, bmFileName)) {return false;}
 		int numThds =  mapMgr.getNumUsableThreads();
@@ -379,7 +383,7 @@ public class SOMDataLoader implements Runnable {
 		String uMtxBMUFname =  projConfigData.getSOMResFName(projConfigData.umtxIDX);
 		mapMgr.dispMessage("DataLoader","loadSOM_nodeDists","Start Loading U-Matrix File : "+uMtxBMUFname);
 		if(uMtxBMUFname.length() < 1){return false;}
-		String [] strs= mapMgr.loadFileIntoStringAra(uMtxBMUFname, "Loaded U Matrix data file : "+uMtxBMUFname, "Error reading U Matrix data file : "+uMtxBMUFname);
+		String [] strs= fileIO.loadFileIntoStringAra(uMtxBMUFname, "Loaded U Matrix data file : "+uMtxBMUFname, "Error reading U Matrix data file : "+uMtxBMUFname);
 		if(strs==null){return false;}
 		int numEx = 0, mapX=1, mapY=1,numWtData = 0;
 		String[] tkns;
@@ -723,6 +727,8 @@ class straffDataWriter implements Callable<Boolean>{
 	private int numFtrs,numSmpls;
 	private String savFileFrmt;
 	private String fileName;
+	//manage IO in this object
+	private fileIOManager fileIO;
 	
 	public straffDataWriter(SOMMapManager _mapData, int _dataFrmt, int _dataSavedIDX, String _fileName, String _savFileFrmt, SOMExample[] _exAra) {
 		mapData = _mapData;
@@ -733,6 +739,7 @@ class straffDataWriter implements Callable<Boolean>{
 		savFileFrmt = _savFileFrmt;
 		fileName = _fileName;
 		dataSavedIDX = _dataSavedIDX;
+		fileIO = new fileIOManager(mapData, "straffDataWriter");
 	}//ctor
 
 	//build LRN file header
@@ -759,7 +766,7 @@ class straffDataWriter implements Callable<Boolean>{
 		String[] outStrings = buildInitLRN();
 		int strIDX = 4;
 		for (int i=0;i<exAra.length; ++i) {outStrings[i+strIDX]=exAra[i].toLRNString(dataFrmt, " ");	}
-		mapData.saveStrings(fileName,outStrings);		
+		fileIO.saveStrings(fileName,outStrings);		
 		mapData.dispMessage("straffDataWriter","saveLRNData","Finished saving .lrn file with " + outStrings.length+ " elements to file : "+ fileName);			
 	}//save lrn train data
 	
@@ -769,7 +776,7 @@ class straffDataWriter implements Callable<Boolean>{
 		String[] outStrings = buildInitLRN();
 		int strIDX = 4;
 		for (int i=0;i<exAra.length; ++i) {outStrings[i+strIDX]=exAra[i].toCSVString(dataFrmt);	}
-		mapData.saveStrings(fileName,outStrings);		
+		fileIO.saveStrings(fileName,outStrings);		
 		mapData.dispMessage("straffDataWriter","saveCSVData","Finished saving .csv file with " + outStrings.length+ " elements to file : "+ fileName);			
 	}//save csv test data
 	
@@ -778,7 +785,7 @@ class straffDataWriter implements Callable<Boolean>{
 		//need to save a vector to determine the 
 		String[] outStrings = new String[numSmpls];
 		for (int i=0;i<exAra.length; ++i) {outStrings[i]=exAra[i].toSVMString(dataFrmt);	}
-		mapData.saveStrings(fileName,outStrings);		
+		fileIO.saveStrings(fileName,outStrings);		
 		mapData.dispMessage("straffDataWriter","saveSVMData","Finished saving .svm (sparse) file with " + outStrings.length+ " elements to file : "+ fileName);			
 	}
 

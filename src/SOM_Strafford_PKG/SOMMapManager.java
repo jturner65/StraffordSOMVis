@@ -11,6 +11,8 @@ import java.util.concurrent.*;
 public class SOMMapManager {
 	//struct maintaining complete project configuration and information from config files - all file name data and building needs to be done by this object
 	public SOMProjConfigData projConfigData;			
+	//manage IO in this object
+	private fileIOManager fileIO;
 			
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	//map descriptions
@@ -162,6 +164,7 @@ public class SOMMapManager {
 	
 	private SOMMapManager(mySOMMapUIWin _win, ExecutorService _th_exec, float[] _dims) {
 		pa=null; win=_win;th_exec=_th_exec;		
+		fileIO = new fileIOManager(this,"SOMMapManager");
 		//want # of usable background threads.  Leave 2 for primary process (and potential draw loop)
 		numUsableThreads = Runtime.getRuntime().availableProcessors() - 2;
 		//for display of time since processes occur
@@ -245,30 +248,59 @@ public class SOMMapManager {
 		
 	}//buildStraffDataLoaders
 		
-	//write data to file
-	public void saveStrings(String fname, String[] data) {
-		PrintWriter pw = null;
-		try {
-		     File file = new File(fname);
-		     FileWriter fw = new FileWriter(file, false);
-		     pw = new PrintWriter(fw);
-		     for (int i=0;i<data.length;++i) { pw.println(data[i]);}
-		     
-		} catch (IOException e) {	e.printStackTrace();}
-		finally {			if (pw != null) {pw.close();}}
-	}//saveStrings
-
-	public void saveStrings(String fname, ArrayList<String> data) {
-		PrintWriter pw = null;
-		try {
-		     File file = new File(fname);
-		     FileWriter fw = new FileWriter(file, false);
-		     pw = new PrintWriter(fw);
-		     for (int i=0;i<data.size();++i) { pw.println(data.get(i));}
-		     
-		} catch (IOException e) {	e.printStackTrace();}
-		finally {			if (pw != null) {pw.close();}}
-	}//saveStrings
+//	//write data to file
+//	public void saveStrings(String fname, String[] data) {
+//		PrintWriter pw = null;
+//		try {
+//		     File file = new File(fname);
+//		     FileWriter fw = new FileWriter(file, false);
+//		     pw = new PrintWriter(fw);
+//		     for (int i=0;i<data.length;++i) { pw.println(data[i]);}
+//		     
+//		} catch (IOException e) {	e.printStackTrace();}
+//		finally {			if (pw != null) {pw.close();}}
+//	}//saveStrings
+//
+//	public void saveStrings(String fname, ArrayList<String> data) {
+//		PrintWriter pw = null;
+//		try {
+//		     File file = new File(fname);
+//		     FileWriter fw = new FileWriter(file, false);
+//		     pw = new PrintWriter(fw);
+//		     for (int i=0;i<data.size();++i) { pw.println(data.get(i));}
+//		     
+//		} catch (IOException e) {	e.printStackTrace();}
+//		finally {			if (pw != null) {pw.close();}}
+//	}//saveStrings
+//	
+//	public String[] loadFileIntoStringAra(String fileName, String dispYesStr, String dispNoStr) {try {return _loadFileIntoStringAra(fileName, dispYesStr, dispNoStr);} catch (Exception e) {e.printStackTrace(); } return new String[0];}
+//	//stream read the csv file and build the data objects
+//	private String[] _loadFileIntoStringAra(String fileName, String dispYesStr, String dispNoStr) throws IOException {		
+//		FileInputStream inputStream = null;
+//		Scanner sc = null;
+//		List<String> lines = new ArrayList<String>();
+//		String[] res = null;
+//	    //int line = 1, badEntries = 0;
+//		try {
+//		    inputStream = new FileInputStream(fileName);
+//		    sc = new Scanner(inputStream);
+//		    while (sc.hasNextLine()) {lines.add(sc.nextLine()); }
+//		    //Scanner suppresses exceptions
+//		    if (sc.ioException() != null) { throw sc.ioException(); }
+//		    dispMessage("SOMMapManager", "_loadFileIntoStringAra",dispYesStr+"\tLength : " +  lines.size());
+//		    res = lines.toArray(new String[0]);		    
+//		} catch (Exception e) {	
+//			e.printStackTrace();
+//			 dispMessage("SOMMapManager", "_loadFileIntoStringAra","!!"+dispNoStr);
+//			res= new String[0];
+//		} 
+//		finally {
+//		    if (inputStream != null) {inputStream.close();		    }
+//		    if (sc != null) { sc.close();		    }
+//		}
+//		return res;
+//	}//loadFileContents	
+	
 	
 	//set max display list values
 	public void setUI_JPMaxVals(int jpGrpLen, int jpLen) {if (win != null) {win.setUI_JPListMaxVals(jpGrpLen, jpLen);}}	
@@ -283,34 +315,7 @@ public class SOMMapManager {
 	
 	//only appropriate if using UI
 	public void setSaveLocClrImg(boolean val) {if (win != null) { win.setPrivFlags(win.saveLocClrImgIDX,val);}}
-	
-	public String[] loadFileIntoStringAra(String fileName, String dispYesStr, String dispNoStr) {try {return _loadFileIntoStringAra(fileName, dispYesStr, dispNoStr);} catch (Exception e) {e.printStackTrace(); } return new String[0];}
-	//stream read the csv file and build the data objects
-	private String[] _loadFileIntoStringAra(String fileName, String dispYesStr, String dispNoStr) throws IOException {		
-		FileInputStream inputStream = null;
-		Scanner sc = null;
-		List<String> lines = new ArrayList<String>();
-		String[] res = null;
-	    //int line = 1, badEntries = 0;
-		try {
-		    inputStream = new FileInputStream(fileName);
-		    sc = new Scanner(inputStream);
-		    while (sc.hasNextLine()) {lines.add(sc.nextLine()); }
-		    //Scanner suppresses exceptions
-		    if (sc.ioException() != null) { throw sc.ioException(); }
-		    dispMessage("SOMMapManager", "_loadFileIntoStringAra",dispYesStr+"\tLength : " +  lines.size());
-		    res = lines.toArray(new String[0]);		    
-		} catch (Exception e) {	
-			e.printStackTrace();
-			 dispMessage("SOMMapManager", "_loadFileIntoStringAra","!!"+dispNoStr);
-			res= new String[0];
-		} 
-		finally {
-		    if (inputStream != null) {inputStream.close();		    }
-		    if (sc != null) { sc.close();		    }
-		}
-		return res;
-	}//loadFileContents
+
 	
 	//Build map from data by aggregating all training data, building SOM exec string from UI input, and calling OS cmd to run SOM_MAP
 	public boolean buildNewMap(SOM_MapDat mapExeDat){
@@ -578,7 +583,7 @@ public class SOMMapManager {
 		String[] loadSrcFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(subDir, true, "prospectMapSrcData");
 		
 		String fmtFile = loadSrcFNamePrefixAra[0]+"_format.csv";
-		String[] loadRes = loadFileIntoStringAra(fmtFile, "Format file loaded", "Format File Failed to load");
+		String[] loadRes = fileIO.loadFileIntoStringAra(fmtFile, "Format file loaded", "Format File Failed to load");
 		int numPartitions = 0;
 		try {
 			numPartitions = Integer.parseInt(loadRes[0].split(" : ")[1].trim());
@@ -595,7 +600,7 @@ public class SOMMapManager {
 		} else {//load each file in its own csv
 			for (int i=numPartitions-1; i>=0;--i) {
 				String dataFile = loadSrcFNamePrefixAra[0]+"_"+i+".csv";
-				String[] csvLoadRes = loadFileIntoStringAra(dataFile, "Data file " + i +" loaded", "Data File " + i +" Failed to load");
+				String[] csvLoadRes = fileIO.loadFileIntoStringAra(dataFile, "Data file " + i +" loaded", "Data File " + i +" Failed to load");
 				//ignore first entry - header
 				for (int j=1;j<csvLoadRes.length; ++j) {
 					String str = csvLoadRes[j];
@@ -616,7 +621,7 @@ public class SOMMapManager {
 		resetProductMap();
 		String[] loadSrcFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(subDir, false, "productMapSrcData");
 		String dataFile =  loadSrcFNamePrefixAra[0]+".csv";
-		String[] csvLoadRes = loadFileIntoStringAra(dataFile, "Product Data file loaded", "Product Data File Failed to load");
+		String[] csvLoadRes = fileIO.loadFileIntoStringAra(dataFile, "Product Data file loaded", "Product Data File Failed to load");
 		//ignore first entry - header
 		for (int j=1;j<csvLoadRes.length; ++j) {
 			String str = csvLoadRes[j];
@@ -677,12 +682,12 @@ public class SOMMapManager {
 			nameCounter = 0;
 			for (ArrayList<String> csvResSubAra : csvRes) {		
 				dispMessage("SOMMapManager","saveAllProspectMapData","Saving Pre-procced Prospect data String array : " +nameCounter);
-				saveStrings(saveDestFNamePrefixAra[0]+"_"+nameCounter+".csv", csvResSubAra);
+				fileIO.saveStrings(saveDestFNamePrefixAra[0]+"_"+nameCounter+".csv", csvResSubAra);
 				++nameCounter;
 			}
 			//save the data in a format file
 			String[] data = new String[] {"Number of file partitions for " + saveDestFNamePrefixAra[1] +" data : "+ nameCounter + "\n"};
-			saveStrings(saveDestFNamePrefixAra[0]+"_format.csv", data);		
+			fileIO.saveStrings(saveDestFNamePrefixAra[0]+"_format.csv", data);		
 			dispMessage("SOMMapManager","saveAllProspectMapData","Finished saving all prospect map data");
 			return true;
 		} else {dispMessage("SOMMapManager","saveAllProspectMapData","No prospect example data to save. Aborting"); return false;}
@@ -699,7 +704,7 @@ public class SOMMapManager {
 			for (ProductExample ex : productMap.values()) {			
 				csvResTmp.add(ex.getRawDescrForCSV());
 			}
-			saveStrings(saveDestFNamePrefixAra[0]+".csv", csvResTmp);		
+			fileIO.saveStrings(saveDestFNamePrefixAra[0]+".csv", csvResTmp);		
 			dispMessage("SOMMapManager","saveAllProductMapData","Finished saving all product map data");
 			return true;
 		} else {dispMessage("SOMMapManager","saveAllProductMapData","No product example data to save. Aborting"); return false;}
@@ -948,8 +953,8 @@ public class SOMMapManager {
 		}
 		String minsFileName = projConfigData.getSOMMapMinsFileName();
 		String diffsFileName = projConfigData.getSOMMapDiffsFileName();				
-		saveStrings(minsFileName,new String[]{minStr});		
-		saveStrings(diffsFileName,new String[]{diffStr});		
+		fileIO.saveStrings(minsFileName,new String[]{minStr});		
+		fileIO.saveStrings(diffsFileName,new String[]{diffStr});		
 		dispMessage("SOMMapManager","dbgLoadCSVBuildDataTrainMap","Strafford Prospects Mins and Diffs Files Saved");	
 		dispMessage("SOMMapManager","dbgLoadCSVBuildDataTrainMap","Finished Loading all CSV Build Data to train map.");
 	}//loadPreprocAndBuildTestTrainPartitions
@@ -1019,7 +1024,7 @@ public class SOMMapManager {
 				}//for every event
 			}			
 			if (saveBadRecs && (badEventOIDs.size() > 0)) {
-				saveStrings(eventBadFName, uniqueBadEventOIDs.toArray(new String[0]));		
+				fileIO.saveStrings(eventBadFName, uniqueBadEventOIDs.toArray(new String[0]));		
 				dispMessage("SOMMapManager","procRawEventData","# of "+eventType+" events without corresponding prospect records : "+badEventOIDs.size() + " | # Unique bad "+eventType+" event prospect OID refs (missing OIDs in prospect) : "+uniqueBadEventOIDs.size());
 			}
 		}
@@ -1489,9 +1494,7 @@ public class SOMMapManager {
 
 		pa.popStyle();pa.popMatrix();	
 	}//drawResultBar	
-	
-	
-	
+		
 	// end drawing routines
 	//////////////////////////////////////////////////////
 	
@@ -1631,8 +1634,7 @@ public class SOMMapManager {
 				break;}				//all prospect examples saved as training data
 			case testDataSavedIDX : {
 				if (val) {dispMessage("SOMMapManager","setFlag","All "+ this.numTestData + " saved to " + projConfigData.getSOMMapTestFileName() + " using "+(projConfigData.useSparseTestingData ? "Sparse ": "Dense ") + "data format");}
-				break;		}
-			
+				break;		}			
 		}
 	}//setFlag		
 	public boolean getFlag(int idx){int bitLoc = 1<<(idx%32);return (stFlags[idx/32] & bitLoc) == bitLoc;}		
@@ -1694,7 +1696,7 @@ public class SOMMapManager {
 }//SOMMapManager
 
 
-//manage a message stream from a launched external process
+//manage a message stream from a launched external process - used to manage output from som training process
 class messageMgr implements Callable<Boolean> {
 	SOMMapManager mapMgr;
 	final Process process;

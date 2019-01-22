@@ -723,7 +723,7 @@ class ProductExample extends StraffSOMExample{
 				ArrayList<SOMExample> exsAtDistFromBMU = exmplsAtDist.get(dist2BMU);
 				dist2BMUStr = String.format("%.6f",dist2BMU);
 				for (SOMExample exN : exsAtDistFromBMU) {				
-					resAra.add("" + exN.OID + "," + confStr + ", "+dist2BMUStr);	
+					resAra.add("" + exN.OID + "," + confStr + ","+dist2BMUStr);	
 				}//for all examples at bmu
 			}//for all bmus at certain distance
 		}//for all distances/all bmus

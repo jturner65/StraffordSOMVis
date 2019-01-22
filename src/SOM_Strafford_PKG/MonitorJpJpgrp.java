@@ -7,6 +7,8 @@ import java.util.concurrent.ConcurrentSkipListMap;
 //in training data for map
 public class MonitorJpJpgrp {
 	public static SOMMapManager mapData;
+	//manage IO in this object
+	private fileIOManager fileIO;
 	////////////////////////////////////////
 	//this information comes from the prospect and product map data
 	//reference to jp ids and counts of all jps seen in all data
@@ -38,6 +40,7 @@ public class MonitorJpJpgrp {
 	
 	public MonitorJpJpgrp(SOMMapManager _mapData) {
 		mapData=_mapData;
+		fileIO = new fileIOManager(mapData,"MonitorJpJpgrp");
 		initAllStructs();
 	}//ctor
 	
@@ -252,7 +255,7 @@ public class MonitorJpJpgrp {
 			tmp=""+prodJP+","+idx+","+ getNameNullChk(prodJP,jpNames) + ","+ prodJpGrp + "," + prodJpGrpIdx+","+ getNameNullChk(prodJpGrp,jpGrpNames)+","+getCountNullChk(prodJP,prodJpSeenCount);
 			csvResTmp.add(tmp);
 		}
-		mapData.saveStrings(fileName, csvResTmp);	
+		fileIO.saveStrings(fileName, csvResTmp);	
 		mapData.dispMessage("MonitorJpJpgrp","saveAllData","Finished saving all jp data in :"+fileName);
 	}//saveAllData
 	
@@ -277,7 +280,7 @@ public class MonitorJpJpgrp {
 		jpNamesRaw = new TreeMap<Integer, String>();	
 		jpGrpNamesRaw = new TreeMap<Integer, String>();
 		HashSet<Integer> tmpProdJpgrs = new HashSet<Integer>();
-		String[] csvLoadRes = mapData.loadFileIntoStringAra(fileName, "MonitorJpJpgrp file loaded", "MonitorJpJpgrp File Failed to load");
+		String[] csvLoadRes = fileIO.loadFileIntoStringAra(fileName, "MonitorJpJpgrp file loaded", "MonitorJpJpgrp File Failed to load");
 		int numJps = 0, numJpgs = 0;
 		boolean isProd = false;
 		for(int i=0;i<csvLoadRes.length;++i) {

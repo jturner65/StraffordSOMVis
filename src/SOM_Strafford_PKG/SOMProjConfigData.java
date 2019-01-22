@@ -1,6 +1,10 @@
 package SOM_Strafford_PKG;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -8,9 +12,12 @@ import java.util.concurrent.*;
 //will manage that all file names need to be reset when any are changed
 public class SOMProjConfigData {
 	//owning map manager
-	public SOMMapManager mapMgr;
+	protected SOMMapManager mapMgr;
+	//manage IO in this object
+	private fileIOManager fileIO;
+	
 	//ref to SOM_MapDat SOM executiond descriptor object
-	public SOM_MapDat SOMExeDat;	
+	protected SOM_MapDat SOMExeDat;	
 	
 	//this is redundant TODO merge the use of this with SOMFileNamesAra
 	private String[] fnames; 
@@ -110,6 +117,7 @@ public class SOMProjConfigData {
 	
 	public SOMProjConfigData(SOMMapManager _map) {
 		mapMgr=_map;
+		fileIO = new fileIOManager(mapMgr,"SOMProjConfigData");
 		//----accumulate and manage OS info ----//
 		//find platform this is executing on
 		OSUsed = System.getProperty("os.name");
@@ -151,11 +159,11 @@ public class SOMProjConfigData {
 		ArrayList<String> SOMDescAra = SOMExeDat.buildStringDescAra();
 		mapMgr.dispMessage("SOMProjConfigData","saveSOM_Exp","Finished saving SOM Exe config data.");
 		mapMgr.dispMessage("SOMProjConfigData","saveSOM_Exp","Saving project configuration data");
-		mapMgr.saveStrings(expFileName,SOMDescAra);
+		fileIO.saveStrings(expFileName,SOMDescAra);
 		String configFileName = getSOMConfigFileName();
 		//get array of data describing config info
 		ArrayList<String> ConfigDescAra = getExpConfigData();
-		mapMgr.saveStrings(configFileName,ConfigDescAra);		
+		fileIO.saveStrings(configFileName,ConfigDescAra);		
 		mapMgr.dispMessage("SOMProjConfigData","saveSOM_Exp","Finished saving project configuration data");
 	}//saveSOM_Exp
 		
@@ -181,7 +189,7 @@ public class SOMProjConfigData {
 	public void loadProj_Congfig(String configFileName) {
 		mapMgr.dispMessage("SOMProjConfigData","loadProg_Congfig","Start loading project configuration data");
 		//NOTE! if running a debug run, be sure to have the line dateTimeStrAra[0],<date_time_value>_DebugRun in proj config file, otherwise will crash
-		String[] configStrAra = mapMgr.loadFileIntoStringAra(configFileName, "SOMProjConfigData Config File loaded", "SOMProjConfigData Config File Failed to load");
+		String[] configStrAra = fileIO.loadFileIntoStringAra(configFileName, "SOMProjConfigData Config File loaded", "SOMProjConfigData Config File Failed to load");
 		setExpConfigData(configStrAra);
 		mapMgr.dispMessage("SOMProjConfigData","loadProg_Congfig","Finished loading project configuration data");				
 	}//loadProg_Congfig
@@ -199,7 +207,7 @@ public class SOMProjConfigData {
 		mapMgr.dispMessage("SOMProjConfigData","loadSOM_Exp","Start loading SOM Exe config data from " + expFileName);
 		//build file describing experiment and put at this location
 		//NOTE! if running a debug run, be sure to have the line dateTimeStrAra[0],<date_time_value>_DebugRun in proj config file, otherwise will crash
-		String[] expStrAra = mapMgr.loadFileIntoStringAra(expFileName, "SOM_MapDat Config File loaded", "SOM_MapDat Config File Failed to load");
+		String[] expStrAra = fileIO.loadFileIntoStringAra(expFileName, "SOM_MapDat Config File loaded", "SOM_MapDat Config File Failed to load");
 		SOMExeDat.buildFromStringArray(expStrAra);
 		mapMgr.setUIValsFromLoad(SOMExeDat);
 		mapMgr.dispMessage("SOMProjConfigData","loadSOM_Exp","Finished loading SOM Exe config data from " + expFileName);
@@ -251,7 +259,7 @@ public class SOMProjConfigData {
 		List<Future<Boolean>> straffSOMDataWriteFutures = new ArrayList<Future<Boolean>>();
 		List<straffDataWriter> straffSOMDataWrite = new ArrayList<straffDataWriter>();
 		//call threads to instance and save different file formats
-		if (expNumTrain > 0) {
+		if (expNumTrain > 0) {//save training data
 			if (useSparseTrainingData) {
 				saveFileName = getSOMMapSVMFileName();
 				straffSOMDataWrite.add(new straffDataWriter(mapMgr, curMapFtrType, SOMMapManager.sparseTrainDataSavedIDX, saveFileName, "sparseSVMData", mapMgr.trainData));	
@@ -260,7 +268,7 @@ public class SOMProjConfigData {
 				straffSOMDataWrite.add(new straffDataWriter(mapMgr, curMapFtrType, SOMMapManager.denseTrainDataSavedIDX, saveFileName, "denseLRNData", mapMgr.trainData));	
 			}
 		}
-		if (expNumTest > 0) {
+		if (expNumTest > 0) {//save testing data
 			saveFileName = getSOMMapTestFileName();
 			straffSOMDataWrite.add(new straffDataWriter(mapMgr, curMapFtrType, SOMMapManager.testDataSavedIDX, saveFileName, useSparseTestingData ? "sparseSVMData" : "denseLRNData", mapMgr.testData));
 		}
@@ -531,3 +539,75 @@ public class SOMProjConfigData {
 	}
 
 }//class SOMProjConfigData
+
+
+//this class will manage file io
+class fileIOManager{
+	//owning map manager
+	protected SOMMapManager mapMgr;
+	//name of owning class of the instance of this object, for display
+	protected String owner;
+	
+	public fileIOManager(SOMMapManager _mapMgr, String _owner) {mapMgr = _mapMgr; owner=_owner;}
+	
+	public void dispMessage(String srcClass, String srcMethod, String msgText) {_dispMessage_base(mapMgr.getTimeStrFromProcStart() +"|" + srcClass,srcMethod,msgText);	}	
+	private void _dispMessage_base(String srcClass, String srcMethod, String msgText) {
+		String msg = srcClass + "::" + srcMethod + " : " + msgText;
+		if (mapMgr.pa == null) {System.out.println(msg);} else {mapMgr.pa.outStr2Scr(msg);}
+	}//dispMessage
+
+	
+	//write data to file
+	public void saveStrings(String fname, String[] data) {
+		PrintWriter pw = null;
+		try {
+		     File file = new File(fname);
+		     FileWriter fw = new FileWriter(file, false);
+		     pw = new PrintWriter(fw);
+		     for (int i=0;i<data.length;++i) { pw.println(data[i]);}
+		     
+		} catch (IOException e) {	e.printStackTrace();}
+		finally {			if (pw != null) {pw.close();}}
+	}//saveStrings
+
+	public void saveStrings(String fname, ArrayList<String> data) {
+		PrintWriter pw = null;
+		try {
+		     File file = new File(fname);
+		     FileWriter fw = new FileWriter(file, false);
+		     pw = new PrintWriter(fw);
+		     for (int i=0;i<data.size();++i) { pw.println(data.get(i));}
+		     
+		} catch (IOException e) {	e.printStackTrace();}
+		finally {			if (pw != null) {pw.close();}}
+	}//saveStrings
+	
+	public String[] loadFileIntoStringAra(String fileName, String dispYesStr, String dispNoStr) {try {return _loadFileIntoStringAra(fileName, dispYesStr, dispNoStr);} catch (Exception e) {e.printStackTrace(); } return new String[0];}
+	//stream read the csv file and build the data objects
+	private String[] _loadFileIntoStringAra(String fileName, String dispYesStr, String dispNoStr) throws IOException {		
+		FileInputStream inputStream = null;
+		Scanner sc = null;
+		List<String> lines = new ArrayList<String>();
+		String[] res = null;
+	    //int line = 1, badEntries = 0;
+		try {
+		    inputStream = new FileInputStream(fileName);
+		    sc = new Scanner(inputStream);
+		    while (sc.hasNextLine()) {lines.add(sc.nextLine()); }
+		    //Scanner suppresses exceptions
+		    if (sc.ioException() != null) { throw sc.ioException(); }
+		    dispMessage("fileIOManager:"+owner, "_loadFileIntoStringAra",dispYesStr+"\tLength : " +  lines.size());
+		    res = lines.toArray(new String[0]);		    
+		} catch (Exception e) {	
+			e.printStackTrace();
+			 dispMessage("fileIOManager:"+owner, "_loadFileIntoStringAra","!!"+dispNoStr);
+			res= new String[0];
+		} 
+		finally {
+		    if (inputStream != null) {inputStream.close();		    }
+		    if (sc != null) { sc.close();		    }
+		}
+		return res;
+	}//loadFileContents	
+
+}//class fileIOManager

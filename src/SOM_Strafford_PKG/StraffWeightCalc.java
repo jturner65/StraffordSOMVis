@@ -56,7 +56,8 @@ public class StraffWeightCalc {
 	
 	private void loadConfigAndSetVars(String _fileName) {
 		fileName = _fileName;
-		String[] configDatList = mapMgr.loadFileIntoStringAra(fileName, "Weight Calc File Loaded", "Weight Calc File Not Loaded Due To Error");
+		fileIOManager fileIO = new fileIOManager(mapMgr, "StraffWeightCalc");
+		String[] configDatList = fileIO.loadFileIntoStringAra(fileName, "Weight Calc File Loaded", "Weight Calc File Not Loaded Due To Error");
 		eqs = new TreeMap<Integer, JPWeightEquation> ();
 		//initialize bnds
 		initBnds();

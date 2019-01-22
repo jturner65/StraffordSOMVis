@@ -19,6 +19,7 @@ public class StraffProdMapOutputBuilder {
 	public static final String fileComment = "#";
 	public String fileName;
 	public SOMMapManager mapMgr;
+	private fileIOManager fileIO;
 	private SOMProjConfigData projConfigData;
 	private ProductExample[] prodsToMap;
 	private String[] fullQualOutPerProdDirs;
@@ -29,7 +30,9 @@ public class StraffProdMapOutputBuilder {
 	private double prodZoneDistThresh;
 
 	public StraffProdMapOutputBuilder(SOMMapManager _mapMgr, String _fileName, ExecutorService _th_exec, int _pDistType, double _pZnDistThresh) {
-		mapMgr = _mapMgr;projConfigData = mapMgr.projConfigData;th_exec = _th_exec;
+		mapMgr = _mapMgr;
+		fileIO = new fileIOManager(mapMgr,"StraffProdMapOutputBuilder");
+		projConfigData = mapMgr.projConfigData;th_exec = _th_exec;
 		prodDistType = _pDistType; prodZoneDistThresh = _pZnDistThresh;
 		isMT = mapMgr.isMTCapable();
 		loadConfigAndSetVars( _fileName);
@@ -38,7 +41,7 @@ public class StraffProdMapOutputBuilder {
 	private void loadConfigAndSetVars(String _fileName) {
 		mapMgr.dispMessage("StraffProdMapOutputBuilder", "loadConfigAndSetVars","Start loading product-to-prospect mapping configurations.");
 		fileName = _fileName;
-		String[] configDatList = mapMgr.loadFileIntoStringAra(fileName, "Products-To-Map File Loaded", "Products-To-Map File Not Loaded Due To Error");
+		String[] configDatList = fileIO.loadFileIntoStringAra(fileName, "Products-To-Map File Loaded", "Products-To-Map File Not Loaded Due To Error");
 		String[] strVals = new String[0];
 		ArrayList<String> prodIDsToMapInit = new ArrayList<String>();
 		//move past initial comments, if any exist
@@ -105,7 +108,7 @@ public class StraffProdMapOutputBuilder {
 				String OID = ex.OID;
 				String outDir = fullQualOutPerProdDirs[i];
 				String fileNameToSave = outDir + OID +"_mappingResults.csv";
-				mapMgr.saveStrings(fileNameToSave, strRes);
+				fileIO.saveStrings(fileNameToSave, strRes);
 			}
 		}
 		mapMgr.dispMessage("StraffProdMapOutputBuilder", "saveAllSpecifiedProdMappings", "Finished Saving Product data to file.");		
@@ -137,7 +140,7 @@ public class StraffProdMapOutputBuilder {
 		nameCounter = 0;
 		for (ArrayList<String> csvResSubAra : csvRes) {		
 			mapMgr.dispMessage("StraffProdMapOutputBuilder","saveAllProspectToProdMappings","Saving Per-Prospect Product Mapping suggestions : " +nameCounter);
-			mapMgr.saveStrings(fullQualOutPerProspectDir + "Prospect_mappingResults_" + nameCounter+".csv", csvResSubAra);
+			fileIO.saveStrings(fullQualOutPerProspectDir + "Prospect_mappingResults_" + nameCounter+".csv", csvResSubAra);
 			++nameCounter;
 		}
 
@@ -212,6 +215,7 @@ public class StraffProdMapOutputBuilder {
 
 class StraffProdOutMapper implements Callable<Boolean>{
 	private SOMMapManager mapMgr;
+	private fileIOManager fileIO;
 	private ProductExample[] prodsToMap;
 	private String[] fullQualOutDirs;
 	private int stIDX, endIDX, thdIDX, prodDistType;
@@ -222,22 +226,10 @@ class StraffProdOutMapper implements Callable<Boolean>{
 		mapMgr = _mapMgr;		projConfigData = mapMgr.projConfigData;
 		prodsToMap = _prodsToMap;	fullQualOutDirs = _fullQualOutDirs;	
 		stIDX = _stIDX;		endIDX = _endIDX;		thdIDX = _thdIDX;		prodDistType = _pDistType; prodZoneDistThresh = _pZnDistThresh;
+		fileIO = new fileIOManager(mapMgr,"StraffProdOutMapper_"+thdIDX);
 	}//ctor
 	
-	//write data to file
-	public void saveStrings(String fname, String[] data) {
-		PrintWriter pw = null;
-		try {
-		     File file = new File(fname);
-		     FileWriter fw = new FileWriter(file, false);
-		     pw = new PrintWriter(fw);
-		     for (int i=0;i<data.length;++i) { pw.println(data[i]);}
-		     
-		} catch (IOException e) {	e.printStackTrace();}
-		finally {			if (pw != null) {pw.close();}}
-	}//saveStrings
-	//outputDir 
-	
+
 	@Override
 	public Boolean call() throws Exception {
 		//save all products from stIDX to endIDX
@@ -248,7 +240,7 @@ class StraffProdOutMapper implements Callable<Boolean>{
 			String OID = ex.OID;
 			String outDir = fullQualOutDirs[i];
 			String fileNameToSave = outDir + OID +"_mappingResults.csv";
-			saveStrings(fileNameToSave, strRes);
+			fileIO.saveStrings(fileNameToSave, strRes);
 		}		
 		mapMgr.dispMessage("StraffProdOutMapper", "Run Thread : " +thdIDX, "Finished Product data to BMU mapping");	
 		return true;
@@ -257,6 +249,7 @@ class StraffProdOutMapper implements Callable<Boolean>{
 
 class StraffProspectOutMapper implements Callable<Boolean>{
 	private SOMMapManager mapMgr;
+	private fileIOManager fileIO;
 	private ProspectExample[] prospectsToMap;
 	private int stIDX, endIDX, thdIDX;
 	private HashMap<ProductExample, HashMap<SOMMapNode, Double>> prodToMapNodes;
@@ -270,21 +263,8 @@ class StraffProspectOutMapper implements Callable<Boolean>{
 		resCalcData = new TreeMap<Double, String> (new Comparator<Double>() { @Override public int compare(Double o1, Double o2) {   return o2.compareTo(o1);}});//descending key order
 		fileNameToSave = _fullQualOutDir + "Prospect_mappingResults_" + thdIDX+".csv";
 		fileNameBadProspectsToSave = _fullQualOutDir + "Prospect_WithoutMappings_" + thdIDX+".csv";
+		fileIO = new fileIOManager(mapMgr, "StraffProspectOutMapper_"+thdIDX);
 	}//ctor
-	
-	//write data to file
-	public void saveStrings(String fname, ArrayList<String> data) {
-		PrintWriter pw = null;
-		try {
-		     File file = new File(fname);
-		     FileWriter fw = new FileWriter(file, false);
-		     pw = new PrintWriter(fw);
-		     for (int i=0;i<data.size();++i) { pw.println(data.get(i));}
-		     
-		} catch (IOException e) {	e.printStackTrace();}
-		finally {			if (pw != null) {pw.close();}}
-	}//saveStrings
-	//outputDir 
 	
 	@Override
 	public Boolean call() throws Exception {
@@ -316,8 +296,8 @@ class StraffProspectOutMapper implements Callable<Boolean>{
 			}
 		}		
 		mapMgr.dispMessage("StraffProdMapOutputBuilder","saveAllProspectToProdMappings","Saving Per-Prospect Product Mapping suggestions : " +thdIDX);
-		saveStrings(fileNameToSave, strList);
-		saveStrings(fileNameBadProspectsToSave, strListNoMaps);
+		fileIO.saveStrings(fileNameToSave, strList);
+		fileIO.saveStrings(fileNameBadProspectsToSave, strListNoMaps);
 		mapMgr.dispMessage("StraffProspectOutMapper", "Run Thread : " +thdIDX, "Finished Prospect data to Product BMU mapping");	
 		return true;
 	}//call

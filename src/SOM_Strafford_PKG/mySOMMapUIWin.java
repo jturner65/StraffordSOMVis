@@ -7,7 +7,6 @@ import java.util.concurrent.*;
 import processing.core.PImage;
 
 
-
 //window that accepts trajectory editing
 public class mySOMMapUIWin extends myDispWindow {
 	
@@ -34,7 +33,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		mapDrawSegImgIDX			= 16,			//draw the image of the interpolated segments
 		mapDrawSegMembersIDX		= 17,			//draw segments around regions of maps - visualizes clusters with different colors
 		
-		showSelRegionIDX			= 18,			//TODO highlight a specific region of the map, either all nodes above a certain threshold for a chosen jp or jpgroup
+		showSelRegionIDX			= 18,			//highlight a specific region of the map, either all nodes above a certain threshold for a chosen jp or jpgroup
 		showSelJPIDX				= 19, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
 		//train/test data managemen
 		somTrainDataLoadedIDX		= 20,			//whether data used to build map has been loaded yet
