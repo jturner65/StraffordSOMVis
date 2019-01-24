@@ -12,7 +12,7 @@ public class SOMMapManager {
 	//struct maintaining complete project configuration and information from config files - all file name data and building needs to be done by this object
 	public SOMProjConfigData projConfigData;			
 	//manage IO in this object
-	private fileIOManager fileIO;
+	private fileIOManager fileIO; 
 			
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	//map descriptions
@@ -85,11 +85,12 @@ public class SOMMapManager {
 			rawPrspctEvDataProcedIDX	= 12,			//all raw prospect/event data has been loaded and processed into StraffSOMExamples (prospect)
 			rawProducDataProcedIDX		= 13,			//all raw product data (from tc_taggings) has been loaded and processed into StraffSOMExamples (product)
 			//training data saved state : 
-			denseTrainDataSavedIDX 		= 14,			//all current prospect data has been saved as a training data file for SOM (.lrn format) - strafford doesn't use dense training data
-			sparseTrainDataSavedIDX		= 15,			//sparse data format using .svm file descriptions (basically a map with a key:value pair of ftr index : ftr value
-			testDataSavedIDX			= 16;			//save test data in sparse format csv
+			testTrainProdDataBuiltIDX	= 14,			//product, input, testing and training data arrays have all been built
+			denseTrainDataSavedIDX 		= 15,			//all current prospect data has been saved as a training data file for SOM (.lrn format) - strafford doesn't use dense training data
+			sparseTrainDataSavedIDX		= 16,			//sparse data format using .svm file descriptions (basically a map with a key:value pair of ftr index : ftr value
+			testDataSavedIDX			= 17;			//save test data in sparse format csv
 		
-	public static final int numFlags = 17;	
+	public static final int numFlags = 18;	
 	
 	//////////////////////////////
 	//data in files created by SOM_MAP separated by spaces
@@ -431,7 +432,12 @@ public class SOMMapManager {
 	//clear out existing prospect map
 	private void resetProspectMap() {
 		prospectMap = new ConcurrentSkipListMap<String, ProspectExample>();
+		inputData = null;
+		testData = null;
+		trainData = null;
 		setFlag(rawPrspctEvDataProcedIDX, false);
+		setFlag(testTrainProdDataBuiltIDX, false);
+		
 		setAllTrainDatSaveFlags(false);
 	}//resetProspectMap
 	
@@ -440,7 +446,8 @@ public class SOMMapManager {
 		productMap = new ConcurrentSkipListMap<String, ProductExample>();
 		productsByJpg = new TreeMap<Integer, ArrayList<ProductExample>>();
 		productsByJp = new TreeMap<Integer, ArrayList<ProductExample>>();
-
+		productData = null;
+		setFlag(testTrainProdDataBuiltIDX, false);
 		//initialize product-wide aggregations
 		ProductExample.initAllStaticProdData();
 		setFlag(rawProducDataProcedIDX, false);
@@ -812,6 +819,37 @@ public class SOMMapManager {
 		dispMessage("SOMMapManager","setProductBMUs","Finished Mapping products to best matching units.");
 	}//setProductBMUs
 
+	//build and save feature-based reports for all examples, products and map nodes
+	public void buildFtrBasedRpt() {
+		if(!getFlag(testTrainProdDataBuiltIDX)) {return;}
+		dispMessage("SOMMapManager","buildFtrBasedRpt","Start Building feature weight reports for all examples --NOT YET IMPLEMENTED-- .");
+		//all underlying code in SOMExample has been completed
+		boolean canMultiThread=isMTCapable();//this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
+		if(canMultiThread) {
+		
+		} else {
+
+			for (Tuple<Integer, Integer> nodeLoc : MapNodes.keySet()) {
+				SOMExample ex = MapNodes.get(nodeLoc);
+				
+			}
+			for (int idx=0; idx<inputData.length;++idx) {
+				SOMExample ex = inputData[idx];
+				
+			}
+			
+			for (int idx=0; idx<productData.length;++idx) {
+				SOMExample ex = productData[idx];
+				
+			}
+			
+		}
+			
+	
+		dispMessage("SOMMapManager","buildFtrBasedRpt","Finished Building feature weight reports for all examples.");
+
+	}//buildFtrBasedRpt
+	
 	
 	//once map is built, find bmus on map for each test data example
 	public void setTestBMUs() {
@@ -900,8 +938,7 @@ public class SOMMapManager {
 		//set partition size in project config
 		projConfigData.setTrainTestPartition(trainTestPartition);
 		//set inputdata array to be all prospect map examples
-		inputData = prospectMap.values().toArray(new ProspectExample[0]);
-		
+		inputData = prospectMap.values().toArray(new ProspectExample[0]);		
 		//shuffleProspects(ProspectExample[] _list, long seed) -- performed in place - use same key so is reproducible training, always has same shuffled order
 		inputData = shuffleProspects(inputData, 12345L);
 		
@@ -916,6 +953,7 @@ public class SOMMapManager {
 		for (int i=0;i<testData.length;++i) {testData[i]=inputData[i+numTrainData];testData[i].setIsTrainingDataIDX(false, i);}
 		//build array of produt examples based on product map
 		productData = productMap.values().toArray(new ProductExample[0]);
+		setFlag(testTrainProdDataBuiltIDX,true);
 		//dbg disp
 		//for(ProductExample prdEx : productData) {dispMessage("SOMMapManager","buildTestTrainFromInput",prdEx.toString());}
 		//build file names, including info for data type used to train map
@@ -1615,17 +1653,18 @@ public class SOMMapManager {
 		int flIDX = idx/32, mask = 1<<(idx%32);
 		stFlags[flIDX] = (val ?  stFlags[flIDX] | mask : stFlags[flIDX] & ~mask);
 		switch (idx) {//special actions for each flag
-			case debugIDX : {break;}	
+			case debugIDX : 				{break;}	
 			case isMTCapableIDX : {						//whether or not the host architecture can support multiple execution threads
 				break;}
-			case mapDataLoadedIDX	: {break;}		
+			case mapDataLoadedIDX	: 		{break;}		
 			case loaderRtnIDX : {break;}
-			case mapExclProdZeroFtrIDX : {break;}
-			case prospectDataLoadedIDX: {break;}		//raw prospect data has been loaded but not yet processed
-			case optDataLoadedIDX: {break;}				//raw opt data has been loaded but not processed
-			case orderDataLoadedIDX: {break;}			//raw order data loaded not proced
-			case rawPrspctEvDataProcedIDX: {break;}				//all raw prospect/event data has been processed into StraffSOMExamples and subsequently erased
-			case rawProducDataProcedIDX : {break;}			//all raw product data has been processed into StraffSOMExamples and subsequently erased 
+			case mapExclProdZeroFtrIDX : 	{break;}
+			case prospectDataLoadedIDX: 	{break;}		//raw prospect data has been loaded but not yet processed
+			case optDataLoadedIDX: 			{break;}				//raw opt data has been loaded but not processed
+			case orderDataLoadedIDX: 		{break;}			//raw order data loaded not proced
+			case rawPrspctEvDataProcedIDX: 	{break;}				//all raw prospect/event data has been processed into StraffSOMExamples and subsequently erased
+			case rawProducDataProcedIDX : 	{break;}			//all raw product data has been processed into StraffSOMExamples and subsequently erased 
+			case testTrainProdDataBuiltIDX : 	{break;}			//arrays of input, training and testing data built
 			case denseTrainDataSavedIDX : {
 				if (val) {dispMessage("SOMMapManager","setFlag","All "+ this.numTrainData +" Dense Training data saved to .lrn file");}
 				break;}				//all prospect examples saved as training data

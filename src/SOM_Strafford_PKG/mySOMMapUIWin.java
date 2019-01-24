@@ -26,7 +26,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		mapDrawTestDatIDX 			= 9,			//draw testing examples - data held out and not used to train the map 
 		mapDrawNodeLblIDX			= 10,			//draw labels for nodes
 		mapDrawWtMapNodesIDX		= 11,			//draw map nodes with non-0 (present) wt vals
-		mapDrawPopMapNodesIDX	   = 12,			//draw map nodes that are bmus for training examples
+		mapDrawPopMapNodesIDX	   	= 12,			//draw map nodes that are bmus for training examples
 		mapDrawAllMapNodesIDX		= 13,			//draw all map nodes, even empty
 		mapDrawAnalysisVisIDX		= 14,			//whether or not to draw feature calc analysis graphs
 		mapDrawUMatrixIDX			= 15,			//draw visualization of u matrix - distance between nodes

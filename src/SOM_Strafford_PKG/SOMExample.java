@@ -13,25 +13,29 @@ import java.util.Map.Entry;
  * @author john
  */
 public abstract class SOMExample extends baseDataPtVis{	
-	//corresponds to OID in prospect database - primary key of all this data is OID in prospects
+	//unique key field used for this example
 	public final String OID;		
 	//use a map to hold only sparse data frmt
-	//protected TreeMap<Integer, Float> ftrMaps[ftrMapTypeKey], ftrMaps[stdFtrMapTypeKey], ftrMaps[normFtrMapTypeKey];	
-	protected TreeMap<Integer, Float>[] ftrMaps;//, ftrMaps[stdFtrMapTypeKey], ftrMaps[normFtrMapTypeKey];	
-	//designate whether feature vector built or not
-	protected boolean ftrsBuilt, stdFtrsBuilt, normFtrsBuilt;
+	protected TreeMap<Integer, Float>[] ftrMaps;
 	//idx's in feature vector that have non-zero values
 	public ArrayList<Integer> allNonZeroFtrIDXs;	
-
-	///if all feature values == 0 then this is a useless example for training. only set upon feature vector calc
-	protected boolean isBadTrainExample;	
 	//magnitude of this feature vector
 	public float ftrVecMag;	
 	//keys for ftr map arrays
 	protected static final int ftrMapTypeKey = SOMMapManager.useUnmoddedDat, normFtrMapTypeKey = SOMMapManager.useNormedDat, stdFtrMapTypeKey = SOMMapManager.useScaledDat;	
 	protected static final Integer[] ftrMapTypeKeysAra = new Integer[] {ftrMapTypeKey, normFtrMapTypeKey, stdFtrMapTypeKey};
 
-	//reference to map node that best matches this node
+	private int[] stFlags;						//state flags - bits in array holding relevant process info
+	public static final int
+			debugIDX 			= 0,
+			ftrsBuiltIDX		= 1,			//whether particular kind of feature was built or not
+			stdFtrsBuiltIDX		= 2,			//..standardized (Across all examples per feature)
+			normFtrsBuiltIDX	= 3,			//..normalized (feature vector scaled to have magnitude 1
+			isBadTrainExIDX		= 4,			//whether this example is a good one or not - if all feature values == 0 then this is a useless example for training. only set upon feature vector calc
+			ftrWtRptBuiltIDX	= 5;			//whether or not the structures used to calculate feature-based reports for this example have been calculated
+	public static final int numFlags = 5;	
+	
+	//reference to map node that best matches this example node
 	protected SOMMapNode bmu;			
 	//this is the distance, using the chosen distance measure, to the best matching unit of the map for this example
 	protected double _sqDistToBMU;
@@ -41,14 +45,17 @@ public abstract class SOMExample extends baseDataPtVis{
 	//hash code for using in a map
 	private int _hashCode;
 	
+	//these objects are for reporting on individual examples.  
+	//use a map per feature type : unmodified, normalized, standardized,to hold the features sorted by weight as key, value is array of ftrs at a particular weight -submap needs to be instanced in descending key order
+	private TreeMap<Float, ArrayList<Integer>>[] mapOfWtsToFtrIDXs;	
+	//a map per feature type : unmodified, normalized, standardized, of ftr IDXs and their relative "rank" in this particular example, as determined by the weight calc
+	private TreeMap<Integer,Integer>[] mapOfFtrIDXVsWtRank;	
+	
 	public SOMExample(SOMMapManager _map, ExDataType _type, String _id) {
 		super(_map,_type);
 		OID = _id;
 		_sqDistToBMU = 0.0;
-		ftrsBuilt = false;
-		stdFtrsBuilt = false;
-		normFtrsBuilt = false;
-		isBadTrainExample = false;	
+		initFlags();	
 		ftrMaps = new TreeMap[ftrMapTypeKeysAra.length];
 		for (int i=0;i<ftrMaps.length;++i) {
 			ftrMaps[i] = new TreeMap<Integer, Float>(); 
@@ -70,8 +77,8 @@ public abstract class SOMExample extends baseDataPtVis{
 	//return all jpg/jps in this example record
 	protected abstract HashSet<Tuple<Integer,Integer>> getSetOfAllJpgJpData();
 	
-	public boolean isBadExample() {return isBadTrainExample;}
-	public void setIsBadExample(boolean val) { isBadTrainExample=val;}
+	public boolean isBadExample() {return getFlag(isBadTrainExIDX);}
+	public void setIsBadExample(boolean val) { setFlag(isBadTrainExIDX,val);}
 	
 	//debugging tool to find issues behind occasional BMU seg faults
 //	protected boolean checkForErrors(SOMMapNode _n, float[] dataVar){
@@ -279,7 +286,7 @@ public abstract class SOMExample extends baseDataPtVis{
 	public final void buildFeatureVector() {//all jps seen by all examples must exist by here so that mapData.jpToFtrIDX has accurate data
 		buildAllNonZeroFtrIDXs();
 		buildFeaturesMap();
-		ftrsBuilt = true;		
+		setFlag(ftrsBuiltIDX,true);		
 		buildNormFtrData();//once ftr map is built can normalize easily
 		_PostBuildFtrVec_Priv();
 	}//buildFeatureVector
@@ -291,23 +298,19 @@ public abstract class SOMExample extends baseDataPtVis{
 	//build structures that require that the feature vector be built before hand
 	public final void buildPostFeatureVectorStructs() {
 		buildStdFtrsMap();
-		_PostBuildPostFtrVecStructs_Priv();
 	}//buildPostFeatureVectorStructs
-	
-	//example-specific post-ftr derivation calculations - this is called for any example after all examples have had features calced
-	protected abstract void _PostBuildPostFtrVecStructs_Priv();
 
 	//build normalized vector of data - only after features have been set
 	protected void buildNormFtrData() {
-		if(!ftrsBuilt) {mapMgr.dispMessage("StraffSOMExample","buildNormFtrData","OID : " + OID + " : Features not built, cannot normalize feature data");return;}
+		if(!getFlag(ftrsBuiltIDX)) {mapMgr.dispMessage("StraffSOMExample","buildNormFtrData","OID : " + OID + " : Features not built, cannot normalize feature data");return;}
 		ftrMaps[normFtrMapTypeKey]=new TreeMap<Integer, Float>();
 		if(this.ftrVecMag == 0) {return;}
 		for (Integer IDX : ftrMaps[ftrMapTypeKey].keySet()) {
 			Float val  = ftrMaps[ftrMapTypeKey].get(IDX)/this.ftrVecMag;
 			ftrMaps[normFtrMapTypeKey].put(IDX,val);
-			setMapOfSrcWts(IDX, val, normFtrMapTypeKey);			
+			//setMapOfSrcWts(IDX, val, normFtrMapTypeKey);			
 		}	
-		normFtrsBuilt = true;
+		setFlag(normFtrsBuiltIDX,true);
 	}//buildNormFtrData
 	
 	//scale each feature value to be between 0->1 based on min/max values seen for this feature
@@ -326,13 +329,81 @@ public abstract class SOMExample extends baseDataPtVis{
 				val = (ftrs.get(destIDX)-lb)/diff;
 			}	
 			sclFtrs.put(destIDX,val);
-			setMapOfSrcWts(destIDX, val, stdFtrMapTypeKey);
+			//setMapOfSrcWts(destIDX, val, stdFtrMapTypeKey);
 			
 		}//for each jp
 		return sclFtrs;
 	}//standardizeFeatureVector		getSqDistFromFtrType
 	
-	protected abstract void setMapOfSrcWts(int destIDX, float wt, int mapToGetIDX);
+	//call this to aggregate wts information for reporting and debugging purposes
+	//protected abstract void setMapOfSrcWts(int destIDX, float wt, int mapToGetIDX);
+	
+	//initialize structures used to aggregate and report the ranking of particular ftrs for this example
+	private void initPerFtrObjs() {
+		mapOfWtsToFtrIDXs = new TreeMap[ftrMapTypeKeysAra.length];
+		mapOfFtrIDXVsWtRank = new TreeMap[ftrMapTypeKeysAra.length];
+		for(Integer ftrType : ftrMapTypeKeysAra) {//type of features
+			mapOfWtsToFtrIDXs[ftrType] = new TreeMap<Float, ArrayList<Integer>>(new Comparator<Float>() { @Override public int compare(Float o1, Float o2) {   return o2.compareTo(o1);}});//descending key order
+			mapOfFtrIDXVsWtRank[ftrType] = new TreeMap<Integer,Integer>();
+		}
+	}//initPerFtrObjs()
+	
+	//to execute per-example ftr-based reporting, first call buildFtrRptStructs for all examples, then iterate through getters for ftr type == mapToGet, then call clearFtrRptStructs to release memory
+	//called to report on this example's feature weight rankings 
+	public void buildFtrRprtStructs() {
+		if(getFlag(ftrWtRptBuiltIDX)) {return;}
+		initPerFtrObjs();
+		//for every feature type build 
+		for(Integer mapToGet : ftrMapTypeKeysAra) {//type of features
+			int rank = 0;
+			TreeMap<Integer, Float> ftrMap = ftrMaps[mapToGet];
+			//go through features ara, for each ftr idx find rank 
+			TreeMap<Float, ArrayList<Integer>> mapOfFtrsToIdxs = mapOfWtsToFtrIDXs[mapToGet];
+			//shouldn't be null - means using inappropriate key
+			if(mapOfFtrsToIdxs == null) {mapMgr.dispMessage("SOMExample" + OID,"buildFtrRprtStructs","Using inappropriate key to access mapOfWtsToFtrIDXs : " + mapToGet + " No submap exists with this key."); return;}	
+			for (Integer ftrIDX : ftrMap.keySet()) {
+				float wt = ftrMap.get(ftrIDX);
+				ArrayList<Integer> ftrIDXsAtWt = mapOfFtrsToIdxs.get(wt);
+				if (ftrIDXsAtWt == null) {ftrIDXsAtWt = new ArrayList<Integer>(); }
+				ftrIDXsAtWt.add(ftrIDX);
+				mapOfFtrsToIdxs.put(wt, ftrIDXsAtWt);
+			}
+			//after every feature is built, then poll mapOfFtrsToIdxs for ranked features
+			TreeMap<Integer,Integer> mapOfRanks = mapOfFtrIDXVsWtRank[mapToGet];
+			for (Float wtVal : mapOfFtrsToIdxs.keySet()) {
+				ArrayList<Integer> jpsAtRank = mapOfFtrsToIdxs.get(wtVal);
+				for (Integer jp : jpsAtRank) {	mapOfRanks.put(jp, rank);}
+				++rank;
+			}
+			mapOfFtrIDXVsWtRank[mapToGet] = mapOfRanks;//probably not necessary since already initialized (will never be empty or deleted)					
+		}//for ftrType		
+		setFlag(ftrWtRptBuiltIDX, true);
+	}//buildFtrReports
+	
+	//return mapping of ftr IDXs to rank for this example
+	public TreeMap<Integer,Integer> getMapOfFtrIDXBsWtRank(int mapToGet){
+		if(!getFlag(ftrWtRptBuiltIDX)) {
+			mapMgr.dispMessage("SOMExample" + OID,"getMapOfFtrIDXBsWtRank","Feature-based report structures not yet built. Aborting.");
+			return null;
+		}
+		return mapOfFtrIDXVsWtRank[mapToGet];
+	}//getMapOfFtrIDXBsWtRank
+	
+	public TreeMap<Float, ArrayList<Integer>> getMapOfWtsToFtrIDXs(int mapToGet){
+		if(!getFlag(ftrWtRptBuiltIDX)) {
+			mapMgr.dispMessage("SOMExample" + OID,"getMapOfWtsToFtrIDXs","Feature-based report structures not yet built. Aborting.");
+			return null;
+		}
+		return mapOfWtsToFtrIDXs[mapToGet];
+	}//getMapOfWtsToFtrIDXs
+		
+	//clears out structures used for reports, to minimize memory footprint
+	public void clearFtrRprtStructs() {		
+		mapOfWtsToFtrIDXs = null;
+		mapOfFtrIDXVsWtRank = null;		
+		setFlag(ftrWtRptBuiltIDX, false);		
+	}//clearFtrReports
+	
 	
 	//this is here so can more easily use the mins and diffs equations
 	protected TreeMap<Integer, Float> calcStdFtrVector(TreeMap<Integer, Float> ftrs, ArrayList<Integer> jpIdxs){
@@ -520,8 +591,8 @@ public abstract class SOMExample extends baseDataPtVis{
 	public String toCSVString(int _type) {
 		switch(_type){
 			case SOMMapManager.useUnmoddedDat : {return _toCSVString(ftrMaps[ftrMapTypeKey]); }
-			case SOMMapManager.useNormedDat  : {return _toCSVString(normFtrsBuilt ? ftrMaps[normFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]);}
-			case SOMMapManager.useScaledDat  : {return _toCSVString(stdFtrsBuilt ? ftrMaps[stdFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]); }
+			case SOMMapManager.useNormedDat  : {return _toCSVString(getFlag(normFtrsBuiltIDX) ? ftrMaps[normFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]);}
+			case SOMMapManager.useScaledDat  : {return _toCSVString(getFlag(stdFtrsBuiltIDX) ? ftrMaps[stdFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]); }
 			default : {return _toCSVString(ftrMaps[ftrMapTypeKey]); }
 		}
 	}//toCSVString
@@ -537,8 +608,8 @@ public abstract class SOMExample extends baseDataPtVis{
 	public String toLRNString(int _type, String sep) {
 		switch(_type){
 			case SOMMapManager.useUnmoddedDat : {return _toLRNString(ftrMaps[ftrMapTypeKey], sep); }
-			case SOMMapManager.useNormedDat   : {return _toLRNString(normFtrsBuilt ? ftrMaps[normFtrMapTypeKey] : ftrMaps[ftrMapTypeKey], sep);}
-			case SOMMapManager.useScaledDat   : {return _toLRNString(stdFtrsBuilt ? ftrMaps[stdFtrMapTypeKey] : ftrMaps[ftrMapTypeKey], sep); }
+			case SOMMapManager.useNormedDat   : {return _toLRNString(getFlag(normFtrsBuiltIDX) ? ftrMaps[normFtrMapTypeKey] : ftrMaps[ftrMapTypeKey], sep);}
+			case SOMMapManager.useScaledDat   : {return _toLRNString(getFlag(stdFtrsBuiltIDX) ? ftrMaps[stdFtrMapTypeKey] : ftrMaps[ftrMapTypeKey], sep); }
 			default : {return _toLRNString(ftrMaps[ftrMapTypeKey], sep); }
 		}		
 	}//toLRNString
@@ -553,8 +624,8 @@ public abstract class SOMExample extends baseDataPtVis{
 	public String toSVMString(int _type) {
 		switch(_type){
 			case SOMMapManager.useUnmoddedDat : {return _toSVMString(ftrMaps[ftrMapTypeKey]); }
-			case SOMMapManager.useNormedDat   : {return _toSVMString(normFtrsBuilt ? ftrMaps[normFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]);}
-			case SOMMapManager.useScaledDat   : {return _toSVMString(stdFtrsBuilt ? ftrMaps[stdFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]); }
+			case SOMMapManager.useNormedDat   : {return _toSVMString(getFlag(normFtrsBuiltIDX) ? ftrMaps[normFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]);}
+			case SOMMapManager.useScaledDat   : {return _toSVMString(getFlag(stdFtrsBuiltIDX) ? ftrMaps[stdFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]); }
 			default : {return _toSVMString(ftrMaps[ftrMapTypeKey]); }
 		}		
 	}//toLRNString
@@ -575,8 +646,8 @@ public abstract class SOMExample extends baseDataPtVis{
 	public TreeMap<Integer, Float> getCurrentFtrMap(int _type){
 		switch(_type){
 			case SOMMapManager.useUnmoddedDat : {return ftrMaps[ftrMapTypeKey]; }
-			case SOMMapManager.useNormedDat   : {return (normFtrsBuilt ? ftrMaps[normFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]);}
-			case SOMMapManager.useScaledDat   : {return (stdFtrsBuilt ? ftrMaps[stdFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]); }
+			case SOMMapManager.useNormedDat   : {return (getFlag(normFtrsBuiltIDX) ? ftrMaps[normFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]);}
+			case SOMMapManager.useScaledDat   : {return (getFlag(stdFtrsBuiltIDX) ? ftrMaps[stdFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]); }
 			default : {return ftrMaps[ftrMapTypeKey]; }
 		}		
 	}
@@ -615,6 +686,21 @@ public abstract class SOMExample extends baseDataPtVis{
 		if (_hashCode != other._hashCode)			return false;
 		return true;
 	}
+	
+	private void initFlags(){stFlags = new int[1 + numFlags/32]; for(int i = 0; i<numFlags; ++i){setFlag(i,false);}}
+	public void setAllFlags(int[] idxs, boolean val) {for (int idx : idxs) {setFlag(idx, val);}}
+	public void setFlag(int idx, boolean val){
+		int flIDX = idx/32, mask = 1<<(idx%32);
+		stFlags[flIDX] = (val ?  stFlags[flIDX] | mask : stFlags[flIDX] & ~mask);
+		switch (idx) {//special actions for each flag
+			case debugIDX			: {break;}	
+			case ftrsBuiltIDX		: {break;}
+			case stdFtrsBuiltIDX	: {break;}
+			case normFtrsBuiltIDX	: {break;}
+			case isBadTrainExIDX	: {break;}
+		}
+	}//setFlag		
+	public boolean getFlag(int idx){int bitLoc = 1<<(idx%32);return (stFlags[idx/32] & bitLoc) == bitLoc;}		
 
 	@Override
 	public String toString(){
@@ -755,7 +841,7 @@ class SOMMapNodeBMUExamples{
 	
 	//finalize calculations - perform after all examples are mapped - used for visualizations
 	public void finalize() {	
-		logExSize = (float) Math.log(numMappedEx + 1)*2;	
+		logExSize = (float) Math.log(numMappedEx + 1)*1.5f;	
 		nodeSphrDet = (int)( Math.log(logExSize+1)+2);
 		visLabel = new String[] {""+node.OID+" : ", ""+numMappedEx};
 	}
@@ -855,7 +941,8 @@ abstract class SOMMapNode extends SOMExample{
 		}
 		//called after features are built because that's when we have all jp's for this example determined
 		ftrVecMag = (float) Math.sqrt(ftrVecSqMag);		
-		ftrsBuilt = true;		
+		
+		setFlag(ftrsBuiltIDX, true);
 		//buildNormFtrData();		
 	}//setFtrsFromFloatAra	
 	
