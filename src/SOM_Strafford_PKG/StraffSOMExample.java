@@ -113,7 +113,7 @@ public abstract class StraffSOMExample extends SOMExample{
 		allNonZeroFtrIDXs = new ArrayList<Integer>();
 		for(Integer jp : allJPs) {
 			Integer jpIDX = jpJpgMon.getJpToFtrIDX(jp);
-			if(jpIDX==null) {mapMgr.dispMessage("StraffSOMExample","buildAllNonZeroFtrIDXs","ERROR!  null value in jpJpgMon.getJpToFtrIDX("+jp+")" );}
+			if(jpIDX==null) {mapMgr.dispMessage("StraffSOMExample","buildAllNonZeroFtrIDXs","ERROR!  null value in jpJpgMon.getJpToFtrIDX("+jp+")", MsgCodes.error2 );}
 			allNonZeroFtrIDXs.add(jpJpgMon.getJpToFtrIDX(jp));
 		}
 	}//buildAllNonZeroFtrIDXs (was buildAllJPFtrIDXsJPs)
@@ -235,7 +235,7 @@ class ProspectExample extends StraffSOMExample{
 		
 	public  TreeMap<Integer, jpOccurrenceData> getOcccurenceMap(String key) {
 		TreeMap<Integer, jpOccurrenceData> res = JpOccurrences.get(key);
-		if (res==null) {mapMgr.dispMessage("ProspectExample","getOcccurenceMap","JpOccurrences map does not have key : " + key); return null;}
+		if (res==null) {mapMgr.dispMessage("ProspectExample","getOcccurenceMap","JpOccurrences map does not have key : " + key, MsgCodes.warning2); return null;}
 		return res;
 	}
 	
@@ -328,11 +328,11 @@ class ProspectExample extends StraffSOMExample{
 	
 	public void addObj(BaseRawData obj, int type) {
 		switch(type) {
-		case SOMMapManager.prspctIDX : 	{mapMgr.dispMessage("ProspectExample","addObj","ERROR attempting to add prospect raw data as event data. Ignored");return;}
+		case SOMMapManager.prspctIDX : 	{mapMgr.dispMessage("ProspectExample","addObj","ERROR attempting to add prospect raw data as event data. Ignored", MsgCodes.error2);return;}
 		case SOMMapManager.orderEvntIDX : 	{		addDataToTrainMap((OrderEvent)obj,eventsByDateMap.get(eventMapTypeKeys[0]), 0); 		return;}
 		case SOMMapManager.optEvntIDX : 	{		addDataToTrainMap((OptEvent)obj,eventsByDateMap.get(eventMapTypeKeys[1]), 1); 		return;}
 		case SOMMapManager.linkEvntIDX : 	{		addDataToTrainMap((LinkEvent)obj,eventsByDateMap.get(eventMapTypeKeys[2]), 2); 		return;}
-		default :{mapMgr.dispMessage("ProspectExample","addObj","ERROR attempting to add unknown raw data type : " + type + " as event data. Ignored");return;}
+		default :{mapMgr.dispMessage("ProspectExample","addObj","ERROR attempting to add unknown raw data type : " + type + " as event data. Ignored", MsgCodes.error2);return;}
 		}		
 	}
 	
@@ -688,7 +688,9 @@ class ProductExample extends StraffSOMExample{
 		TreeMap<Integer, Integer> orderMap = trainPrdctData.getJPOrderMap();
 		int numJPs = orderMap.size();
 		//verify # of jps as expected
-		if (numJPs != allNonZeroFtrIDXs.size()) {	mapMgr.dispMessage("ProductExample", "buildFeaturesMap", "Problem with size of expected jps from trainPrdctData vs. allJPFtrIDXs : trainPrdctData says # jps == " +numJPs + " | allJPFtrIDXs.size() == " +allNonZeroFtrIDXs.size());}
+		if (numJPs != allNonZeroFtrIDXs.size()) {	
+			mapMgr.dispMessage("ProductExample", "buildFeaturesMap", "Problem with size of expected jps from trainPrdctData vs. allJPFtrIDXs : trainPrdctData says # jps == " +numJPs + " | allJPFtrIDXs.size() == " +allNonZeroFtrIDXs.size(), MsgCodes.warning2);
+		}
 		if(numJPs == 1) {
 			Integer ftrIDX = allNonZeroFtrIDXs.get(0);
 			ftrMaps[ftrMapTypeKey].put(ftrIDX, 1.0f);
@@ -916,6 +918,8 @@ enum ExDataType {
 	public int getVal(){return value;}
 	public static ExDataType getVal(int idx){return map.get(idx);}
 	public static int getNumVals(){return map.size();}						//get # of values in enum
+	@Override
+    public String toString() { return ""+value; }	
 }
 
 

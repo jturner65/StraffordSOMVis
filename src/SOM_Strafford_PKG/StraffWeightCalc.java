@@ -11,7 +11,6 @@ import java.util.Map.Entry;
  * @author john
  */
 public class StraffWeightCalc {
-	public static final String fileComment = "#";
 	public String fileName;
 	public SOMMapManager mapMgr;
 	public final Date now;
@@ -56,7 +55,7 @@ public class StraffWeightCalc {
 	
 	private void loadConfigAndSetVars(String _fileName) {
 		fileName = _fileName;
-		fileIOManager fileIO = new fileIOManager(mapMgr, "StraffWeightCalc");
+		FileIOManager fileIO = new FileIOManager(mapMgr, "StraffWeightCalc");
 		String[] configDatList = fileIO.loadFileIntoStringAra(fileName, "Weight Calc File Loaded", "Weight Calc File Not Loaded Due To Error");
 		eqs = new TreeMap<Integer, JPWeightEquation> ();
 		//initialize bnds
@@ -66,12 +65,12 @@ public class StraffWeightCalc {
 		int idx = 0;
 		String[] strVals = new String[0];
 		while (!foundDflt) {
-			if (configDatList[idx].contains(fileComment)) {++idx;			}
+			if (configDatList[idx].contains(SOMProjConfigData.fileComment)) {++idx;			}
 			else {
 				strVals = configDatList[idx].trim().split(",");
 				if (strVals[0].toLowerCase().contains("default")) {
 					foundDflt = true;
-				} else {mapMgr.dispMessage("StraffWeightCalc","loadConfigAndSetVars", "Error! First non comment record in config file "+ fileName + " is not default weight map.  Exiting calc unbuilt.");return;}
+				} else {mapMgr.dispMessage("StraffWeightCalc","loadConfigAndSetVars", "Error! First non comment record in config file "+ fileName + " is not default weight map.  Exiting calc unbuilt.", MsgCodes.error2);return;}
 			}		
 		}//while		
 		//string record has jp in col 0, 3 mult values 1-3, 3 offset values 4-6 and 3 decay values 7-9.
@@ -85,7 +84,7 @@ public class StraffWeightCalc {
 		}//
 		//now go through every line and build eqs for specified jps
 		for (int i=idx+1; i<configDatList.length; ++i) {		
-			if (configDatList[i].contains(fileComment)) {continue;			}
+			if (configDatList[i].contains(SOMProjConfigData.fileComment)) {continue;			}
 			addIndivJpEq(configDatList[i].trim().split(","));		
 		}
 	}//loadConfigAndSetVars	
@@ -149,7 +148,7 @@ public class StraffWeightCalc {
 			destIDX = jpJpgMon.getJpToFtrIDX(jp);
 			if (destIDX==null) {continue;}//ignore unknown/unmapped jps
 			optOcc =  optOccs.get(jp);
-			if ((optOcc != null )&& (ex.getOptAllOccObj() != null)) {	mapMgr.dispMessage("StraffWeightCalc","calcFeatureVector","Multiple opt refs for prospect : " + ex.OID + " | This should not happen - opt events will be overly-weighted.");	}
+			if ((optOcc != null )&& (ex.getOptAllOccObj() != null)) {	mapMgr.dispMessage("StraffWeightCalc","calcFeatureVector","Multiple opt refs for prospect : " + ex.OID + " | This should not happen - opt events will be overly-weighted.", MsgCodes.warning4);	}
 			float val = eqs.get(jp).calcVal(ex,orderOccs.get(jp),linkOccs.get(jp),optOcc);
 			if ((isZeroMagExample) && (val != 0)) {isZeroMagExample = false;}
 			res.put(destIDX,val);

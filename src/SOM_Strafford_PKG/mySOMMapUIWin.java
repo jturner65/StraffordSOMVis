@@ -180,6 +180,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		setVisScreenWidth(rectDim[2]);
 		//only set for visualization
 		mapMgr.win=this;
+		mapMgr.pa = pa;
 		
 		//based on width of map
 		analysisHt = (SOM_mapDims[1]*.45f);
@@ -315,11 +316,11 @@ public class mySOMMapUIWin extends myDispWindow {
 	//first verify that new .lrn file exists, then
 	//build new SOM_MAP map using UI-entered values, then load resultant data
 	protected void buildNewSOMMap(){
-		mapMgr.dispMessage("mySOMMapUIWin","buildNewSOMMap","Starting Map Build");
+		mapMgr.dispMessage("mySOMMapUIWin","buildNewSOMMap","Starting Map Build", MsgCodes.info5);
 		int kVal = (int)this.guiObjs[uiMapKTypIDX].getVal();
 		//verify sphere train/test data exists, otherwise save it
 		if(!mapMgr.mapCanBeTrained(kVal)){
-			mapMgr.dispMessage("mySOMMapUIWin","buildNewSOMMap","No Training Data Found, unable to build SOM");
+			mapMgr.dispMessage("mySOMMapUIWin","buildNewSOMMap","No Training Data Found, unable to build SOM", MsgCodes.warning2);
 			setPrivFlags(buildSOMExe, false);
 			return;
 		}
@@ -333,24 +334,24 @@ public class mySOMMapUIWin extends myDispWindow {
 		mapInts.put("mapKType", kVal);
 		mapInts.put("mapStRad", (int)this.guiObjs[uiMapRadStIDX].getVal());
 		mapInts.put("mapEndRad", (int)this.guiObjs[uiMapRadEndIDX].getVal());
-		for (String key : mapInts.keySet()) {mapMgr.dispMessage("mySOMMapUIWin","buildNewSOMMap","mapInts["+key+"] = "+mapInts.get(key));}		
+		for (String key : mapInts.keySet()) {mapMgr.dispMessage("mySOMMapUIWin","buildNewSOMMap","mapInts["+key+"] = "+mapInts.get(key), MsgCodes.info1);}		
 		HashMap<String, Float> mapFloats = new HashMap<String, Float>(); 
 		mapFloats.put("mapStLrnRate",(float)this.guiObjs[uiMapLrnStIDX].getVal());
 		mapFloats.put("mapEndLrnRate",(float)this.guiObjs[uiMapLrnEndIDX].getVal());
-		for (String key : mapFloats.keySet()) {mapMgr.dispMessage("mySOMMapUIWin","buildNewSOMMap","mapFloats["+key+"] = "+ String.format("%.4f",mapFloats.get(key)));}		
+		for (String key : mapFloats.keySet()) {mapMgr.dispMessage("mySOMMapUIWin","buildNewSOMMap","mapFloats["+key+"] = "+ String.format("%.4f",mapFloats.get(key)), MsgCodes.info1);}		
 		HashMap<String, String> mapStrings = new HashMap<String, String> ();
 		mapStrings.put("mapGridShape", getUIListValStr(uiMapShapeIDX, (int)this.guiObjs[uiMapShapeIDX].getVal()));	
 		mapStrings.put("mapBounds", getUIListValStr(uiMapBndsIDX, (int)this.guiObjs[uiMapBndsIDX].getVal()));	
 		mapStrings.put("mapRadCool", getUIListValStr(uiMapRadCoolIDX, (int)this.guiObjs[uiMapRadCoolIDX].getVal()));	
 		mapStrings.put("mapNHood", getUIListValStr(uiMapNHdFuncIDX, (int)this.guiObjs[uiMapNHdFuncIDX].getVal()));	
 		mapStrings.put("mapLearnCool", getUIListValStr(uiMapLrnCoolIDX, (int)this.guiObjs[uiMapLrnCoolIDX].getVal()));	
-		for (String key : mapStrings.keySet()) {mapMgr.dispMessage("mySOMMapUIWin","buildNewSOMMap","mapStrings["+key+"] = "+mapStrings.get(key));}
+		for (String key : mapStrings.keySet()) {mapMgr.dispMessage("mySOMMapUIWin","buildNewSOMMap","mapStrings["+key+"] = "+mapStrings.get(key), MsgCodes.info1);}
 		
 		//call map data object to build and execute map call
 		boolean returnCode = mapMgr.buildNewSOMMap(mapInts, mapFloats, mapStrings);
 		//returnCode is whether map was built and trained successfully
 		setFlagsDoneMapBuild();
-		mapMgr.dispMessage("mySOMMapUIWin","buildNewSOMMap","Map Build " + (returnCode ? "Completed Successfully." : "Failed due to error."));
+		mapMgr.dispMessage("mySOMMapUIWin","buildNewSOMMap","Map Build " + (returnCode ? "Completed Successfully." : "Failed due to error."), MsgCodes.info5);
 		setPrivFlags(buildSOMExe, false);
 	}//buildNewSOMMap	
 
@@ -644,7 +645,7 @@ public class mySOMMapUIWin extends myDispWindow {
 				rawDataSource = (int)(this.guiObjs[uiRawDataSourceIDX].getVal());
 				//change button display
 				setCustMenuBtnNames();
-				mapMgr.dispMessage("mySOMMapUIWin","setUIWinVals","uiRawDataSourceIDX : rawDataSource : " + rawDataSource);
+				mapMgr.dispMessage("mySOMMapUIWin","setUIWinVals","uiRawDataSourceIDX : rawDataSource : " + rawDataSource, MsgCodes.info1);
 				break;}			
 			case uiMapNodeBMUTypeToDispIDX : {//type of examples being mapped to each map node to display
 				mapNodeDispType = ExDataType.getVal((int)(this.guiObjs[uiMapNodeBMUTypeToDispIDX].getVal()));
@@ -818,9 +819,8 @@ public class mySOMMapUIWin extends myDispWindow {
 		pa.popStyle();pa.popMatrix();
 		
 		pa.pushMatrix();pa.pushStyle();
-			pa.translate(SOM_mapLoc[0],SOM_mapLoc[1],0);			
-			//mapDrawNodeLblIDX
-			if(getPrivFlags(mapDrawTrainDatIDX)){		mapMgr.drawTrainData(pa);}	
+			pa.translate(SOM_mapLoc[0],SOM_mapLoc[1],0);	
+			if(getPrivFlags(mapDrawTrainDatIDX)){			mapMgr.drawTrainData(pa);}	
 			if(getPrivFlags(mapDrawTestDatIDX)) {			mapMgr.drawTestData(pa);}
 			if(getPrivFlags(mapDrawNodeLblIDX)) {
 				if(getPrivFlags(mapDrawAllMapNodesIDX)){	mapMgr.drawAllNodes(pa);		} 		
@@ -831,8 +831,7 @@ public class mySOMMapUIWin extends myDispWindow {
 			}
 			//draw nodes
 			if (curImgNum > -1) {
-				if ((!getPrivFlags(mapDrawAnalysisVisIDX)) && (mseOvrData != null)){	drawMseLocJPs();}//draw mouse-over info if not showing calc analysis
-				
+				if ((!getPrivFlags(mapDrawAnalysisVisIDX)) && (mseOvrData != null)){	drawMseLocJPs();}//draw mouse-over info if not showing calc analysis				
 				if(getPrivFlags(mapDrawPrdctNodesIDX)){		mapMgr.drawProductNodes(pa, curMapImgIDX, true);}
 				if(getPrivFlags(mapDrawWtMapNodesIDX)){		mapMgr.drawNodesWithWt(pa, mapNodeWtDispThresh, curMapImgIDX);} 
 			} else {//draw all products				
@@ -952,7 +951,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		}
 		for (int i=0;i<mapPerFtrWtImgs.length;++i) {	mapPerFtrWtImgs[i].updatePixels();		}
 		int endTime = pa.millis();
-		mapMgr.dispMessage("mySOMMapUIWin", "setMapImgClrs", "Time to build all vis imgs : "  + ((endTime-stTime)/1000.0f) + "s | Threading : " + (mtCapable ? "Multi ("+numThds+")" : "Single" ));
+		mapMgr.dispMessage("mySOMMapUIWin", "setMapImgClrs", "Time to build all vis imgs : "  + ((endTime-stTime)/1000.0f) + "s | Threading : " + (mtCapable ? "Multi ("+numThds+")" : "Single" ), MsgCodes.info5);
 	}//setMapImgClrs
 		
 	//return strings for directory names and for individual file names that describe the data being saved.  used for screenshots, and potentially other file saving
@@ -971,7 +970,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		int btn = curCustBtn[curCustBtnType];
 		switch(curCustBtnType) {
 		case mySideBarMenu.btnAuxFunc1Idx : {
-			mapMgr.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Click Functions 1 in "+name+" : btn : " + btn);
+			mapMgr.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Click Functions 1 in "+name+" : btn : " + btn, MsgCodes.info4);
 			switch(btn){
 				case 0 : {	
 					//load all data from raw local csvs or sql from db
@@ -988,12 +987,12 @@ public class mySOMMapUIWin extends myDispWindow {
 					resetButtonState();
 					break;}
 				default : {
-					mapMgr.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Unknown Functions 1 btn : "+btn);
+					mapMgr.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Unknown Functions 1 btn : "+btn, MsgCodes.warning2);
 					break;}
 			}	
 			break;}//row 1 of menu side bar buttons
 		case mySideBarMenu.btnAuxFunc2Idx : {
-			mapMgr.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Click Functions 2 in "+name+" : btn : " + btn);//{"Ld&Bld SOM Data", "Load SOM Config", "Ld & Make Map", "Ld Prebuilt Map"},	//row 1
+			mapMgr.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Click Functions 2 in "+name+" : btn : " + btn, MsgCodes.info4);//{"Ld&Bld SOM Data", "Load SOM Config", "Ld & Make Map", "Ld Prebuilt Map"},	//row 1
 			switch(btn){
 				case 0 : {	
 					mapMgr.loadPreprocAndBuildTestTrainPartitions((float)(.01*this.guiObjs[uiTrainDatPartIDX].getVal()));
@@ -1010,12 +1009,12 @@ public class mySOMMapUIWin extends myDispWindow {
 					mapMgr.loadPretrainedExistingMap();
 					break;}
 				default : {
-					mapMgr.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Unknown Functions 2 btn : "+btn);
+					mapMgr.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Unknown Functions 2 btn : "+btn, MsgCodes.warning2);
 					break;}	
 			}
 			break;}//row 2 of menu side bar buttons
 		case mySideBarMenu.btnDBGSelCmpIdx : {
-			mapMgr.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Click Debug in "+name+" : btn : " + btn);
+			mapMgr.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Click Debug in "+name+" : btn : " + btn, MsgCodes.info4);
 			switch(btn){
 				case 0 : {	
 					mapMgr.dbgShowAllRawData();
@@ -1037,7 +1036,7 @@ public class mySOMMapUIWin extends myDispWindow {
 					resetButtonState();
 					break;}
 				default : {
-					mapMgr.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Unknown Debug btn : "+btn);
+					mapMgr.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Unknown Debug btn : "+btn, MsgCodes.warning2);
 					break;}
 			}				
 			break;}//row 3 of menu side bar buttons (debug)			

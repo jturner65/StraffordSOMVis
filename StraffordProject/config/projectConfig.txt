@@ -1,0 +1,40 @@
+# project-wide configuration file - do not delete this file or modify the tags with BEGIN or END;  also, do not modify the -key- values in any way.
+#	all values should be <variable name>,<value>
+#	quotes can be used for strings, they will be ignored
+###########  directories and file locations ##################
+#
+#BEGIN CONFIG FILE NAMES
+#
+#	name of file holding config for calc object
+calcWtFileName,"WeightEqConfig.txt"
+#
+#	file name of requested products to map to prospects
+reqProdConfigFileName,"ProductsToMap_Test.txt"
+#
+# 	default SOM exe map configuration file name
+SOMDfltConfigFileName,"SOM_MapConfig_default.txt"
+#
+#END CONFIG FILE NAMES
+#BEGIN SUBDIR DEFS
+#
+#	subdir to hold prospect and product suggestions
+straffProdSuggest,"PerProdSuggestions"
+#
+#	subdir to put preproc data files
+straffPreProc,"PreprocData"
+#
+#	subdir to hold source csv files
+straffSourceCSV,"source_csvs"
+#
+#	subdir for all sql info - connect config file
+straffSQLProc,"Sql"
+#
+#	subdir for all SOM functionality
+straffSOMProc,"SOM"
+#
+#END SUBDIR DEFS
+#BEGIN PREBUILT MAP TO LOAD
+#
+preBuildMapDir,"StraffSOM_2019_01_25_13_05"
+#
+#END PREBUILT MAP TO LOAD

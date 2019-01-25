@@ -302,7 +302,7 @@ public abstract class SOMExample extends baseDataPtVis{
 
 	//build normalized vector of data - only after features have been set
 	protected void buildNormFtrData() {
-		if(!getFlag(ftrsBuiltIDX)) {mapMgr.dispMessage("StraffSOMExample","buildNormFtrData","OID : " + OID + " : Features not built, cannot normalize feature data");return;}
+		if(!getFlag(ftrsBuiltIDX)) {mapMgr.dispMessage("StraffSOMExample","buildNormFtrData","OID : " + OID + " : Features not built, cannot normalize feature data", MsgCodes.warning2);return;}
 		ftrMaps[normFtrMapTypeKey]=new TreeMap<Integer, Float>();
 		if(this.ftrVecMag == 0) {return;}
 		for (Integer IDX : ftrMaps[ftrMapTypeKey].keySet()) {
@@ -360,7 +360,7 @@ public abstract class SOMExample extends baseDataPtVis{
 			//go through features ara, for each ftr idx find rank 
 			TreeMap<Float, ArrayList<Integer>> mapOfFtrsToIdxs = mapOfWtsToFtrIDXs[mapToGet];
 			//shouldn't be null - means using inappropriate key
-			if(mapOfFtrsToIdxs == null) {mapMgr.dispMessage("SOMExample" + OID,"buildFtrRprtStructs","Using inappropriate key to access mapOfWtsToFtrIDXs : " + mapToGet + " No submap exists with this key."); return;}	
+			if(mapOfFtrsToIdxs == null) {mapMgr.dispMessage("SOMExample" + OID,"buildFtrRprtStructs","Using inappropriate key to access mapOfWtsToFtrIDXs : " + mapToGet + " No submap exists with this key.", MsgCodes.warning2); return;}	
 			for (Integer ftrIDX : ftrMap.keySet()) {
 				float wt = ftrMap.get(ftrIDX);
 				ArrayList<Integer> ftrIDXsAtWt = mapOfFtrsToIdxs.get(wt);
@@ -383,7 +383,7 @@ public abstract class SOMExample extends baseDataPtVis{
 	//return mapping of ftr IDXs to rank for this example
 	public TreeMap<Integer,Integer> getMapOfFtrIDXBsWtRank(int mapToGet){
 		if(!getFlag(ftrWtRptBuiltIDX)) {
-			mapMgr.dispMessage("SOMExample" + OID,"getMapOfFtrIDXBsWtRank","Feature-based report structures not yet built. Aborting.");
+			mapMgr.dispMessage("SOMExample" + OID,"getMapOfFtrIDXBsWtRank","Feature-based report structures not yet built. Aborting.", MsgCodes.warning2);
 			return null;
 		}
 		return mapOfFtrIDXVsWtRank[mapToGet];
@@ -391,7 +391,7 @@ public abstract class SOMExample extends baseDataPtVis{
 	
 	public TreeMap<Float, ArrayList<Integer>> getMapOfWtsToFtrIDXs(int mapToGet){
 		if(!getFlag(ftrWtRptBuiltIDX)) {
-			mapMgr.dispMessage("SOMExample" + OID,"getMapOfWtsToFtrIDXs","Feature-based report structures not yet built. Aborting.");
+			mapMgr.dispMessage("SOMExample" + OID,"getMapOfWtsToFtrIDXs","Feature-based report structures not yet built. Aborting.", MsgCodes.warning2);
 			return null;
 		}
 		return mapOfWtsToFtrIDXs[mapToGet];
@@ -1050,7 +1050,7 @@ abstract class SOMMapNode extends SOMExample{
 	//this should not be used - should build stdFtrsmap based on ranges of each ftr value in trained map
 	@Override
 	protected void buildStdFtrsMap() {
-		mapMgr.dispMessage("SOMMapNode","buildStdFtrsMap","Calling inappropriate buildStdFtrsMap for SOMMapNode : should call buildStdFtrsMap_MapNode from SOMDataLoader using trained map w/arrays of per feature mins and diffs");		
+		mapMgr.dispMessage("SOMMapNode","buildStdFtrsMap","Calling inappropriate buildStdFtrsMap for SOMMapNode : should call buildStdFtrsMap_MapNode from SOMDataLoader using trained map w/arrays of per feature mins and diffs", MsgCodes.warning2);		
 	}
 	//call this instead of buildStdFtrsMap, passing mins and diffs
 	
