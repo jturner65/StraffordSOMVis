@@ -1,0 +1,21 @@
+# Below is config data for a particular experimental setup
+# Base Configuration Data
+useSparseTrainingData,true
+useSparseTestingData,true
+trainTestPartition,0.900000
+expNumSmpls,387601
+expNumTrain,348840
+expNumTest,38761
+dataType,stdFtrs
+dateTimeStrAra[0],2019_02_04_08_54
+dateTimeStrAra[1],02_04_08_54
+SOMFileNamesAra[0],D:\Eclipse Workspace\eclipse workspace\SOM_StraffordExp\StraffordProject\SOM\StraffSOM_2019_02_04_08_54\Out_straff_Smp_387601
+SOMFileNamesAra[1],D:\Eclipse Workspace\eclipse workspace\SOM_StraffordExp\StraffordProject\SOM\StraffSOM_2019_02_04_08_54\Train_straff_Smp_348840_of_387601_typ_stdFtrs_Dt_02_04_08_54.lrn
+SOMFileNamesAra[2],D:\Eclipse Workspace\eclipse workspace\SOM_StraffordExp\StraffordProject\SOM\StraffSOM_2019_02_04_08_54\Train_straff_Smp_348840_of_387601_typ_stdFtrs_Dt_02_04_08_54.svm
+SOMFileNamesAra[3],D:\Eclipse Workspace\eclipse workspace\SOM_StraffordExp\StraffordProject\SOM\StraffSOM_2019_02_04_08_54\Test_straff_Smp_38761_of_387601_typ_stdFtrs_Dt_02_04_08_54.svm
+SOMFileNamesAra[4],D:\Eclipse Workspace\eclipse workspace\SOM_StraffordExp\StraffordProject\SOM\StraffSOM_2019_02_04_08_54\Mins_straff_Smp_387601_Dt_02_04_08_54_typ_stdFtrs.csv
+SOMFileNamesAra[5],D:\Eclipse Workspace\eclipse workspace\SOM_StraffordExp\StraffordProject\SOM\StraffSOM_2019_02_04_08_54\Diffs_straff_Smp_387601_Dt_02_04_08_54_typ_stdFtrs.csv
+SOMFileNamesAra[6],D:\Eclipse Workspace\eclipse workspace\SOM_StraffordExp\StraffordProject\SOM\StraffSOM_2019_02_04_08_54\SOMImg_straff_Smp_387601_Dt_02_04_08_54_typ_stdFtrs.png
+SOMFileNamesAra[7],D:\Eclipse Workspace\eclipse workspace\SOM_StraffordExp\StraffordProject\SOM\StraffSOM_2019_02_04_08_54\SOM_MapConfig_straff_Smp_387601_Dt_02_04_08_54.txt
+SOMFileNamesAra[8],D:\Eclipse Workspace\eclipse workspace\SOM_StraffordExp\StraffordProject\SOM\StraffSOM_2019_02_04_08_54\SOM_EXEC_Proj_Config.txt
+# End Configuration Data

@@ -69,7 +69,7 @@ public class SOMProjConfigData {
 	private HashMap<String,String> configFileNames, subDirLocs;
 	
 	//directory under SOM where prebuilt map resides that is desired to be loaded into UI - replaces dbg files - set in project config file
-	private String preBuildMapDir;
+	private String preBuiltMapDir;
 
 	//boolean flags
 	private int[] stFlags;						//state flags - bits in array holding relevant process info
@@ -169,7 +169,7 @@ public class SOMProjConfigData {
 			if(idx == -1) {mapMgr.dispMessage("SOMProjConfigData","loadProjectConfig","Error after _loadProjConfigData with subDirLocs : idx == -1", MsgCodes.error2); return;}
 		//read through individual config vars
 		idx = _loadIndivConfigVars(fileStrings, idx); 
-		mapMgr.dispMessage("SOMProjConfigData","loadProjectConfig","preBuildMapDir set to be : " + preBuildMapDir, MsgCodes.info3);
+		mapMgr.dispMessage("SOMProjConfigData","loadProjectConfig","preBuiltMapDir set to be : " + preBuiltMapDir, MsgCodes.info3);
 			if(idx == -1) {mapMgr.dispMessage("SOMProjConfigData","loadProjectConfig","Error after _loadIndivConfigVars : idx == -1", MsgCodes.error2); return;}
 		mapMgr.dispMessage("SOMProjConfigData","loadProjectConfig","Finished loading project configuration.", MsgCodes.info5);
 	}//loadProjectConfig
@@ -198,7 +198,7 @@ public class SOMProjConfigData {
 			if((s.contains(fileComment)) || (s.trim().length() == 0)){++stIDX; continue;}
 			String[] tkns = s.trim().split(mapMgr.csvFileToken);
 			switch (tkns[0].trim()) {
-				case "preBuildMapDir" : { preBuildMapDir = tkns[1].trim().replace("\"", "") + File.separator; break;}
+				case "preBuiltMapDir" : { preBuiltMapDir = tkns[1].trim().replace("\"", "") + File.separator; break;}
 			}	
 			++stIDX;
 		}
@@ -262,7 +262,7 @@ public class SOMProjConfigData {
 	//load a specific configuration based on a previously run experiment
 	public void loadProjConfigForSOMExe() {	loadProjConfigForSOMExe( getProjConfigForSOMExeFileName());}
 	private void loadProjConfigForSOMExe(String configFileName) {
-		mapMgr.dispMessage("SOMProjConfigData","loadProjConfigForSOMExe","Start loading project config data for SOM Execution", MsgCodes.info5);
+		mapMgr.dispMessage("SOMProjConfigData","loadProjConfigForSOMExe","Start loading project config data for SOM Execution : "+ configFileName, MsgCodes.info5);
 		//NOTE! if running a debug run, be sure to have the line dateTimeStrAra[0],<date_time_value>_DebugRun in proj config file, otherwise will crash
 		String[] configStrAra = fileIO.loadFileIntoStringAra(configFileName, "SOMProjConfigData project config data for SOM Execution File loaded", "SOMProjConfigData project config data for SOM Execution Failed to load");
 		setExpConfigData(configStrAra);
@@ -399,7 +399,7 @@ public class SOMProjConfigData {
 //		setSOM_ExpFileNames(_DBG_Map_numSmpls, _DBG_Map_numTrain,_DBG_Map_numTest);
 		//with file names built, now can load pre-made SOM exe experimental config...
 		//build file name to load
-		String configFileName = getDirNameAndBuild(subDirLocs.get("straffSOMProc") + preBuildMapDir) + expProjConfigFileName;
+		String configFileName = getDirNameAndBuild(subDirLocs.get("straffSOMProc") + preBuiltMapDir) + expProjConfigFileName;
 		//load project config for this SOM execution
 		loadProjConfigForSOMExe(configFileName);		
 		//load and map config
