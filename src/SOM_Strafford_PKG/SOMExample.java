@@ -733,8 +733,8 @@ abstract class baseDataPtVis{
 	protected static int drawDet;	
 	//for debugging purposes, gives min and max radii of spheres that will be displayed on map for each node proportional to # of samples - only display related
 	public static float minRad = 100000, maxRad = -100000;
-	
-	protected int[] nodeClrs;		//idx 0 ==fill, idx 1 == strk, idx 2 == txt
+	//array of color IDXs for specific color roles : idx 0 ==fill, idx 1 == strk, idx 2 == txt
+	protected int[] nodeClrs;		
 	
 	public baseDataPtVis(SOMMapManager _map, ExDataType _type) {
 		mapMgr = _map;type=_type;
@@ -786,14 +786,14 @@ abstract class baseDataPtVis{
 	public final void drawMeMapClr(SOM_StraffordMain p, int[] clr){
 		p.pushMatrix();p.pushStyle();
 		//draw point of radius rad at mapLoc
-		p.show(mapLoc, rad,drawDet, clr, clr);
+		p.show_ClrAra(mapLoc, rad,drawDet, clr, clr);
 		p.popStyle();p.popMatrix();		
 	}//drawMeMapClr
 	
 	public void drawMeRanked(SOM_StraffordMain p, String lbl, int[] clr, float rad, int rank){
 		p.pushMatrix();p.pushStyle();
 		//draw point of radius rad at maploc with label and no background box	
-		p.showNoBox(mapLoc, rad, drawDet, clr, clr, SOM_StraffordMain.gui_White, lbl);
+		p.showNoBox_ClrAra(mapLoc, rad, drawDet, clr, clr, SOM_StraffordMain.gui_White, lbl);
 		p.popStyle();p.popMatrix();
 	}
 }//baseDataPtVis

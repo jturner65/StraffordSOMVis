@@ -10,7 +10,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 /**
- * Instances of this object will load a desired set of product IDs and compare them to the constructed SOM to find derive appropriate prospects.
+ * Instances of this object will load a desired set of product IDs and compare them to the constructed SOM to derive appropriate prospects.
  * Listings of these prospects will then be saved to disk
  * @author john
  *
