@@ -6,10 +6,11 @@
 #BEGIN CONFIG FILE NAMES
 #
 #	name of file holding config for calc object
-#calcWtFileName,"WeightEqConfig.txt"
+#no date decay
+calcWtFileName,"WeightEqConfig.txt"
 #
 #calc with .1 decay all event dates 
-calcWtFileName,"WeightEqConfig_allDecay_p1.txt"
+#calcWtFileName,"WeightEqConfig_allDecay_p1.txt"
 #
 #calc with .1 D_ord 
 #calcWtFileName,"WeightEqConfig_ordDecay_p1.txt"
@@ -46,9 +47,9 @@ straffSOMProc,"SOM"
 #
 #END SUBDIR DEFS
 #BEGIN PREBUILT MAP TO LOAD
-#all the following use the new data as of 2/4/19
-#no weight decay  - use base weightEqConfig, and verify no decay for D_ord
-#preBuiltMapDir,"StraffSOM_2019_02_04_08_54"
+#all the following use the new data as of 2/7/19
+#no weight decay  - use base weightEqConfig, 
+#preBuiltMapDir,"StraffSOM_2019_02_07_09_06"
 #
 #all weights decayed at 0.1 - use "WeightEqConfig_allDecay_p1.txt" file!
 preBuiltMapDir,"StraffSOM_2019_02_07_08_23"
