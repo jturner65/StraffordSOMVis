@@ -13,7 +13,10 @@
 #calcWtFileName,"WeightEqConfig_allDecay_p1.txt"
 #
 #calc with .01 decay all event dates 
-calcWtFileName,"WeightEqConfig_allDecay_p01.txt"
+#calcWtFileName,"WeightEqConfig_allDecay_p01.txt"
+#
+#calc with .01 decay all event dates and weight .01 opts
+calcWtFileName,"WeightEqConfig_allDecay_p01_optWt_p01.txt"
 #
 #calc with .1 D_ord 
 #calcWtFileName,"WeightEqConfig_ordDecay_p1.txt"
@@ -54,9 +57,12 @@ straffSOMProc,"SOM"
 #no weight decay  - use base weightEqConfig, 
 #preBuiltMapDir,"StraffSOM_2019_02_07_09_06"
 #
-#all weights decayed at 0.1 - use "WeightEqConfig_allDecay_p1.txt" file!
-preBuiltMapDir,"StraffSOM_2019_02_07_08_23"
+#all time decayed at 0.1 - use "WeightEqConfig_allDecay_p1.txt" file!
+#preBuiltMapDir,"StraffSOM_2019_02_07_08_23"
 #
-#all weights decayed at 0.01 - use "WeightEqConfig_allDecay_p01.txt" file!
-preBuiltMapDir,"StraffSOM_2019_02_07_09_36"
+#all time decayed at 0.01 - use "WeightEqConfig_allDecay_p01.txt" file!
+#preBuiltMapDir,"StraffSOM_2019_02_07_09_36"
+#
+#all time decayed at 0.01 and opts weighted by .01 - use "WeightEqConfig_allDecay_p01_optWt_p01.txt" file!
+preBuiltMapDir,"StraffSOM_2019_02_07_10_03"
 #END PREBUILT MAP TO LOAD
