@@ -412,7 +412,7 @@ public class mySOMMapUIWin extends myDispWindow {
 			0,		//uiMapNodeBMUTypeToDispIDX 
 			.04f,	//uiMapNodeWtDispThreshIDX
 			SOMMapManager.getNodeInSegThresh(),	//uiNodeInSegThreshIDX//threshold of u-matrix weight for nodes to belong to same segment
-			0.6,	//uiProdZoneDistThreshIDX
+			0.99,	//uiProdZoneDistThreshIDX
 			0,		//uiMseRegionSensIDX
 		};								//starting value
 		uiVals = new double[numGUIObjs];//raw values

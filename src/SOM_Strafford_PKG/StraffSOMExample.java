@@ -23,12 +23,6 @@ public abstract class StraffSOMExample extends SOMExample{
 	protected static MonitorJpJpgrp jpJpgMon;
 	//all jps seen in all occurrence structures - NOT IDX IN FEATURE VECTOR!
 	protected HashSet<Integer> allJPs;
-	
-//	//these objects are for reporting on individual examples.  They are built when features, keyed by ftr type, and are 
-//	//use a map per feature type : unmodified, normalized, standardized,to hold the features sorted by weight as key, value is array of jps at that weight -submap needs to be instanced in descending key order
-//	private TreeMap<Float, ArrayList<Integer>>[] mapOfTopWtJps;	
-//	//a map per feature type : unmodified, normalized, standardized, of jps and their relative "rank" in this particular example, as determined by the weight calc
-//	private TreeMap<Integer,Integer>[] mapOfJpsVsWtRank;
 
 	public StraffSOMExample(SOMMapManager _map, ExDataType _type, String _id) {
 		super(_map, _type, _id);
@@ -94,18 +88,6 @@ public abstract class StraffSOMExample extends SOMExample{
 	@Override
 	//this is called after an individual example's features are built
 	protected void _PostBuildFtrVec_Priv() {}		
-//	@Override
-//	//\build structure registering weight of jps in ftr vector mapToGet in descending strength
-//	protected void setMapOfSrcWts(int destIDX, float wt, int mapToGetIDX) {
-//		int jp = jpJpgMon.getJpByIdx(destIDX);
-//		TreeMap<Float, ArrayList<Integer>> map = mapOfTopWtJps[mapToGetIDX];
-//		//shouldn't be null - means using inappropriate key
-//		if(map == null) {mapMgr.dispMessage("StraffSOMExample","setMapOfSrcWtsByJp","Using inappropriate key to access mapOfTopJps : " + mapToGetIDX + " No submap exists with this key."); return;}		 
-//		ArrayList<Integer> jpIdxsAtWt = map.get(wt);
-//		if (jpIdxsAtWt == null) {jpIdxsAtWt = new ArrayList<Integer>(); }
-//		jpIdxsAtWt.add(jp);
-//		map.put(wt, jpIdxsAtWt);
-//	}//setMapOfSrcWts	
 	
 	@Override
 	//this is a mapping of non-zero source data elements to their idx in the underlying feature vector
@@ -159,19 +141,27 @@ class ProspectExample extends StraffSOMExample{
 	private jpOccurrenceData posOptAllEventObj = null;
 	
 	//is this datapoint used for training 
-	private boolean isTrainingData;
+	private boolean isTrainingData, hasNoProspectJpJpgData;
 	//this is index for this data point in training/testing data array; original index in preshuffled array (reflecting build order)
 	private int testTrainDataIDX;
 	
-	//build this object based on prospect object 
+	public static int numProsRecsWithNoJPData = 0;
+	
+	//build this object based on prospectData object from raw
 	public ProspectExample(SOMMapManager _map,prospectData _prspctData) {
 		super(_map,ExDataType.ProspectTraining,_prspctData.OID);	
 		if( _prspctData.rawJpMapOfArrays.size() > 0) {
 			prs_JPGrp = _prspctData.rawJpMapOfArrays.firstKey();
 			prs_JP = _prspctData.rawJpMapOfArrays.get(prs_JPGrp).get(0);
-		} else {prs_JPGrp=0;prs_JP=0;}
+			hasNoProspectJpJpgData = false;
+		} else {
+			//mapMgr.dispMessage("ProspectExample", "CTOR", "No Jpg/Jp's found for prospect record : " + OID, MsgCodes.warning2);
+			hasNoProspectJpJpgData = true;
+			numProsRecsWithNoJPData++;
+			prs_JPGrp=0;prs_JP=0;
+		}
 		prs_LUDate = _prspctData.getDate();
-		initObjsData() ;
+		initObjsData();
 	
 	}//prospectData ctor
 	
@@ -255,7 +245,7 @@ class ProspectExample extends StraffSOMExample{
 	}//buildDataFromCSVString	
 
 	protected void initObjsData() {
-		rad = 3.0f;
+		rad = 3.0f;			//for display
 		eventsByDateMap = new TreeMap<String, TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>>>();
 		for (String key : eventMapTypeKeys) {eventsByDateMap.put(key, new TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>> ());	}
 		//occurrence structures - keyed by type, then by JP
@@ -264,16 +254,6 @@ class ProspectExample extends StraffSOMExample{
 		isTrainingData = false;
 		testTrainDataIDX = -1;
 	}//initObjsData
-	
-	public void setIsTrainingDataIDX(boolean val, int idx) {
-		isTrainingData=val; 
-		testTrainDataIDX=idx;
-		type= isTrainingData ? ExDataType.ProspectTraining : ExDataType.ProspectTesting;
-		nodeClrs = mapMgr.getClrVal(type);
-	}//setIsTrainingDataIDX
-
-	public boolean getIsTrainingData() {return isTrainingData;}
-	public int getTestTrainIDX() {return testTrainDataIDX;}
 
 	//any processing that must occur once all constituent data records are added to this example - must be called externally, before ftr vec is built
 	@Override
@@ -336,10 +316,25 @@ class ProspectExample extends StraffSOMExample{
 		}		
 	}
 	
+	public void setIsTrainingDataIDX(boolean val, int idx) {
+		isTrainingData=val; 
+		testTrainDataIDX=idx;
+		type= isTrainingData ? ExDataType.ProspectTraining : ExDataType.ProspectTesting;
+		nodeClrs = mapMgr.getClrVal(type);
+	}//setIsTrainingDataIDX
+	//
+	//whether this record was used to train the current map or not
+	public boolean getIsTrainingData() {return isTrainingData;}
+	public int getTestTrainIDX() {return testTrainDataIDX;}
+
 	//whether this record has any information to be used to train - presence of prospect jpg/jp can't be counted on
 	//isBadExample means resulting ftr data is all 0's for this example.  can't learn from this, so no need to keep it.
-	public boolean isTrainableRecord() {return !getFlag(isBadTrainExIDX) && ((prs_JP != 0) || hasRelelventEvents());}
+	//public boolean isTrainableRecord() {return !getFlag(isBadTrainExIDX) && ((prs_JP != 0) || hasRelelventEvents());}
 	public boolean isTrainableRecordEvent() {return !getFlag(isBadTrainExIDX) && (hasRelelventEvents());}
+	
+	//whether this record should be used as validation record - if it has no past events but does have a jp/jpg set in the base prospect record
+	public boolean isValidationRecord() {	return getFlag(isBadTrainExIDX) && !hasNoProspectJpJpgData;}
+	
 	
 	private boolean hasRelelventEvents() {
 		boolean res = false;
@@ -437,8 +432,7 @@ class ProspectExample extends StraffSOMExample{
 			res += occ.toString();			
 		}	
 		return res;		
-	}
-
+	}//toStringOptOccMap
 	
 	@Override
 	public String toString() {	
@@ -451,6 +445,75 @@ class ProspectExample extends StraffSOMExample{
 	}
 
 }//class prospectExample
+
+
+/**
+ * This class will hold a reduced prospect that has no events tied to their account - these prospects can't be used 
+ * for training, but can be used for validation.  There are going to be many of these - many more than buyer prospects,
+ * and they have much less overhead, hence they have a separate class with some overlapping functionality.
+ * 
+ * The jp group attached to their prospect record should be used to provide what jp's they will be marketed to.
+ * @author john
+ */
+
+//class pureProspectExample extends StraffSOMExample{	
+//	//column names for csv of this SOM example
+//	private static final String csvColDescrPrfx = "OID,Prospect_LU_Date,Prospect_JPG,Prospect_JP";
+//    //prospect job practice and job practice group if any specified
+//	public final int prs_JPGrp,prs_JP;
+//	//prospect last lookup date, if any specified
+//	public Date prs_LUDate;
+//
+//	//build this object based on prospectData object 
+//	public pureProspectExample(SOMMapManager _map,prospectData _prspctData) {
+//		super(_map,ExDataType.ProspectTraining,_prspctData.OID);	
+//		if( _prspctData.rawJpMapOfArrays.size() > 0) {
+//			prs_JPGrp = _prspctData.rawJpMapOfArrays.firstKey();
+//			prs_JP = _prspctData.rawJpMapOfArrays.get(prs_JPGrp).get(0);
+//		} else {prs_JPGrp=0;prs_JP=0;}
+//		prs_LUDate = _prspctData.getDate();
+//		initObjsData();
+//	
+//	}//prospectData ctor
+//	
+//	//build this object based on csv string - rebuild data from csv string columns 4+
+//	public pureProspectExample(SOMMapManager _map,String _OID, String _csvDataStr) {
+//		super(_map,ExDataType.ProspectTraining,_OID);		
+//		String[] dataAra = _csvDataStr.split(",");
+//		//idx 0 : OID; idx 1,2, 3 are date, prspct_JPG, prsPct_JP
+//		prs_LUDate = BaseRawData.buildDateFromString(dataAra[1]);
+//		prs_JPGrp = Integer.parseInt(dataAra[2]);
+//		prs_JP = Integer.parseInt(dataAra[3]);
+//		int[] numEvsAra = new int[] {Integer.parseInt(dataAra[4]),Integer.parseInt(dataAra[5]),Integer.parseInt(dataAra[6])};
+//		initObjsData();	
+//		//Build data here from csv strint
+//		buildDataFromCSVString(numEvsAra, _csvDataStr);		
+//	}//csv string ctor
+//	
+//	protected void initObjsData() {
+//		rad = 3.0f;			//for display
+//
+//	}//initObjsData
+//	
+//	//required info for this example to build feature data - use this so we don't have to reload data ever time 
+//	//this will build a single record (row) for each OID (prospect)
+//	@Override
+//	public String getRawDescrForCSV() {
+//		//first build prospect data
+//		String dateStr = BaseRawData.buildStringFromDate(prs_LUDate);//(prs_LUDate == null) ? "" : BaseRawData.buildStringFromDate(prs_LUDate);
+//		String res = ""+OID+","+dateStr+","+prs_JPGrp+","+prs_JP+",";
+//		return res;
+//	}	
+//
+//	//column names for raw descriptorCSV output
+//	@Override
+//	public String getRawDescColNamesForCSV(){
+//		String csvColDescr = csvColDescrPrfx + ",";
+//		//add extra column descriptions for orders if using any		
+//		return csvColDescr;	
+//	}
+//
+//}//pureProspectExample
 
 
 /**

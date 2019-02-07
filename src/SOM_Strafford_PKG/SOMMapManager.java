@@ -1128,6 +1128,8 @@ public class SOMMapManager {
 			 else {dispMessage("SOMMapManager","procRawLoadedData","Prospect with OID : "+  prs.OID + " existed in map already and was replaced.", MsgCodes.warning2);}
 			 tmpProspectMap.put(ex.OID, ex);
 		}
+		dispMessage("SOMMapManager","procRawLoadedData","# prospect records with no base prospect record jp/jpg set : " + ProspectExample.numProsRecsWithNoJPData, MsgCodes.info1);	
+		ProspectExample.numProsRecsWithNoJPData = 0;
 		//add all events to prospects
 		procRawEventData(tmpProspectMap, rawDataArrays, true);
 		
@@ -1155,10 +1157,13 @@ public class SOMMapManager {
 		//build actual prospect map only from prospectExamples that hold trainable information
 		//need to have every entered prospect example finalized before this - the finalization process is necessary to determine if an example is to be used as a training example or not
 		//if(eventsOnly) {//only records with events will be used to train
+		int numValidationRecs = 0;
 		for (String OID : tmpProspectMap.keySet()) {
 			ProspectExample ex = tmpProspectMap.get(OID);
 			if (ex.isTrainableRecordEvent()) {			prospectMap.put(OID, ex);		} 
+			if (ex.isValidationRecord()) {numValidationRecs++;}
 		}
+		dispMessage("SOMMapManager","procRawLoadedData","# prospect records that should be used as valiation records (have jp/jpg set in prospect data but no events) : " + numValidationRecs, MsgCodes.info1);	
 //		} else {//any jpgs/jps present will be used to train
 //			for (String OID : tmpProspectMap.keySet()) {
 //				ProspectExample ex = tmpProspectMap.get(OID);
