@@ -18,6 +18,7 @@ public abstract class myDispWindow {
 	public float[] curVisScrDims;
 
 	public static final float xOff = 20 , yOff = 18.0f * (SOM_StraffordMain.txtSz/12.0f), btnLblYOff = 2 * yOff, rowStYOff = yOff*.15f;
+	private static final float maxBtnWidthMult = .9f;
 	public static final int topOffY = 40;			//offset values to render boolean menu on side of screen - offset at top before drawing
 	public static final float clkBxDim = 10;//size of interaction/close window box in pxls
 	
@@ -261,7 +262,7 @@ public abstract class myDispWindow {
 	//yDisp is displacement for button to be drawn
 	protected void initPrivBtnRects(float yDisp, int numBtns){
 		//pa.outStr2Scr("initPrivBtnRects in :"+ name + "st value for uiClkCoords[3]");
-		float maxBtnLen = .95f * pa.menuWidth, halfBtnLen = .5f*maxBtnLen;
+		float maxBtnLen = maxBtnWidthMult * pa.menuWidth, halfBtnLen = .5f*maxBtnLen;
 		//pa.pr("maxBtnLen : " + maxBtnLen);
 		privFlagBtns = new float[numBtns][];
 		this.uiClkCoords[3] += yOff;
