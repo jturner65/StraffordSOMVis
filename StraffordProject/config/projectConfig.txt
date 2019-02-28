@@ -53,16 +53,8 @@ straffSOMProc,"SOM"
 #
 #END SUBDIR DEFS
 #BEGIN PREBUILT MAP TO LOAD
-#all the following use the new data as of 2/7/19
-#no weight decay  - use base weightEqConfig, 
-#preBuiltMapDir,"StraffSOM_2019_02_07_09_06"
-#
-#all time decayed at 0.1 - use "WeightEqConfig_allDecay_p1.txt" file!
-#preBuiltMapDir,"StraffSOM_2019_02_07_08_23"
-#
-#all time decayed at 0.01 - use "WeightEqConfig_allDecay_p01.txt" file!
-#preBuiltMapDir,"StraffSOM_2019_02_07_09_36"
+#all the following use the new data as of 2/27/19
 #
 #all time decayed at 0.01 and opts weighted by .01 - use "WeightEqConfig_allDecay_p01_optWt_p01.txt" file!
-preBuiltMapDir,"StraffSOM_2019_02_07_10_03"
+preBuiltMapDir,"StraffSOM_2019_02_26_14_16"
 #END PREBUILT MAP TO LOAD
