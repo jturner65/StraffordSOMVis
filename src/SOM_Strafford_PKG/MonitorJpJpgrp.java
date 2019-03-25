@@ -15,10 +15,10 @@ public class MonitorJpJpgrp {
 	private TreeMap<Integer, Integer> jpSeenCount;
 	//reference to JP ids as key and counts of jps seen in product data
 	private TreeMap<Integer, Integer> prodJpSeenCount;
-	//reference to ids and counts of all jps seen in -event- data
-	private TreeMap<Integer, Integer> jpEvSeenCount;
-	//reference to ids and counts of all jps seen only in prospect record data (not including events)
-	private TreeMap<Integer, Integer> jpPrspctSeenCount;
+	//reference to ids and counts of all jps seen in prospect/customer -event- data (not counting source "Events" which may or may not correspond to actual events)
+	private TreeMap<Integer, Integer> jpProspectSeenCounts;
+	//reference to ids and counts of all jps seen in source event records
+	private HashMap<EvtDataType, TreeMap<Integer, Integer>> jpPerEventSeenCount;
 	//map from jp to idx in resultant feature vector
 	private TreeMap<Integer, Integer> jpToFtrIDX;
 	//map from jpgroup to integer
@@ -63,8 +63,13 @@ public class MonitorJpJpgrp {
 	
 	private void initAllStructs() {		
 		jpSeenCount = new TreeMap<Integer, Integer>(); 	//count of prospect training data records having jp
-		jpEvSeenCount = new TreeMap<Integer, Integer>(); //count of prospect train records having jp only counting events
-		jpPrspctSeenCount = new TreeMap<Integer, Integer>(); //count of prospect train records having jp only in base prospect record
+		jpProspectSeenCounts = new TreeMap<Integer, Integer>(); //count of prospect train records having jp counting events
+		jpPerEventSeenCount = new HashMap<EvtDataType, TreeMap<Integer, Integer>>(); //count of prospect train records having jp only seen in source events
+		int numEvTypes = EvtDataType.getNumVals();
+		for (int i=0;i<numEvTypes;++i) {
+			jpPerEventSeenCount.put(EvtDataType.getVal(i), new TreeMap<Integer, Integer>());			
+		}//for
+		
 		prodJpSeenCount = new TreeMap<Integer, Integer>();//count of products having jp
 		jpsToJpgs = new TreeMap<Integer, Integer>();	//map from jpgs to jps
 		jpgsToJps = new TreeMap<Integer, TreeSet <Integer>>();
@@ -80,7 +85,7 @@ public class MonitorJpJpgrp {
 		
 		jpGrpNames = new TreeMap<Integer, String>();
 		jpNames = new TreeMap<Integer, String>();	
-	}
+	}//initAllStructs()
 	
 	//get names from raw data and set them
 	public void setJpJpgrpNames(ArrayList<BaseRawData> _rawJpData, ArrayList<BaseRawData> _rawJpgData) {
@@ -88,7 +93,8 @@ public class MonitorJpJpgrp {
 		jpNamesRaw = buildJPNames(_rawJpData);		
 		jpGrpNamesRaw = buildJPNames(_rawJpgData);
 		mapMgr.dispMessage("MonitorJpJpgrp","setJpJpgrpNames","Done setting names", MsgCodes.info5);
-	}
+	}//setJpJpgrpNames
+	
 	private TreeMap<Integer, String> buildJPNames(ArrayList<BaseRawData> _raw) {
 		TreeMap<Integer, String> _nameList= new TreeMap<Integer, String>();
 		for (BaseRawData rawJp : _raw) {
@@ -96,36 +102,57 @@ public class MonitorJpJpgrp {
 			_nameList.put(jp.getJPID(), jp.getName());			
 		}
 		return _nameList;
-	}
+	}//buildJPNames
+	
 	private void dbgShowNames(TreeMap<Integer, String> jpdat, String _name) {
 		for(Integer jp : jpdat.keySet()) {mapMgr.dispMessage("MonitorJpJpgrp", "dbgShowNames : " + _name, ""+jp+" : "+ jpdat.get(jp), MsgCodes.info1);	}
-	}
-		
-	//this will set the current jp->jpg data maps based on passed prospect data map
-	//When acquiring new data, this must be performed after all data is loaded, but before
-	//the prospect data is finalized and actual map is built due to the data finalization 
-	//requiring a knowledge of the entire dataset to build weights appropriately
-	public void setJPDataFromExampleData(ConcurrentSkipListMap<String, ProspectExample> prspctMap, ConcurrentSkipListMap<String, ProductExample> prdctMap) {
-		initAllStructs();
-		//rebuild all jp->jpg mappings based on prospect data
-		HashSet<Tuple<Integer,Integer>> tmpSetAllJpsJpgs = new HashSet<Tuple<Integer,Integer>>();
-		HashSet<Tuple<Integer,Integer>> tmpSetProspectEventJpsJpgs = new HashSet<Tuple<Integer,Integer>>();//only seen in prospect/event records
-		HashSet<Tuple<Integer,Integer>> tmpSetProductJpsJpgs = new HashSet<Tuple<Integer,Integer>>();//only seen in product records
-		
-		for (ProspectExample ex : prspctMap.values()) {//for every prospect, look at every jp
+	}//dbgShowNames
+	
+	//find counts of each kind of event reference for each jp
+	private void buildJpPresentMaps(ConcurrentSkipListMap<String, ProspectExample> map,HashSet<Tuple<Integer,Integer>> tmpSetAllJpsJpgs) {
+		int numEventTypes = EvtDataType.getNumVals();
+		//for every prospect, look at every jp
+		for (ProspectExample ex : map.values()) {
 			HashSet<Tuple<Integer,Integer>> tmpExSet = ex.getSetOfAllJpgJpData(); //tmpExSet is set of all jps/jpgs in ex
 			for (Tuple<Integer,Integer> jpgJp : tmpExSet) {
 				Integer jpg = jpgJp.x, jp=jpgJp.y;
 				incrJPCounts(jp, jpSeenCount);
+				//idxs : 0==if in an order; 1==if in an opt, 2 == if is in link, 3==if in source event, 4 if in any non-source event (denotes action by customer),5 if in any event including source
 				boolean[] recMmbrship = ex.hasJP(jp);
-				if (recMmbrship[1]){incrJPCounts(jp,jpPrspctSeenCount);}
-				if (recMmbrship[2]){incrJPCounts(jp,jpEvSeenCount);}
+				if (recMmbrship[numEventTypes+1]){incrJPCounts(jp,jpProspectSeenCounts);}	//idx should always be # events  + 1  - this is idx of whether jp is present in any non-source event
+				for (int i=0;i<numEventTypes;++i) {
+					if (recMmbrship[i]){incrJPCounts(jp,jpPerEventSeenCount.get(EvtDataType.getVal(i)));}		
+				}
 				tmpSetAllJpsJpgs.add(jpgJp);
-				tmpSetProspectEventJpsJpgs.add(new Tuple<Integer,Integer>(jpgJp));			//only seen in prospect records
 			}											//add all tuples to set already seen
-		}//for each prospect
-		mapMgr.dispMessage("MonitorJpJpgrp","setJPDataFromExampleData","num jps seen in prospects  : " + tmpSetAllJpsJpgs.size(), MsgCodes.info1);
+		}//for each prospect		
+	}//buildJpPresentMaps
+			
+	//this will set the current jp->jpg data maps based on passed customer and prospect data maps
+	//When acquiring new data, this must be performed after all data is loaded, but before
+	//the prospect data is finalized and actual map is built due to the data finalization 
+	//requiring a knowledge of the entire dataset to build weights appropriately
+	public void setJPDataFromExampleData(ConcurrentSkipListMap<String, ProspectExample> customerMap, ConcurrentSkipListMap<String, ProspectExample> prospectMap, ConcurrentSkipListMap<String, ProductExample> prdctMap) {
+		initAllStructs();
+		mapMgr.dispMessage("MonitorJpJpgrp","setJPDataFromExampleData","State after init : " + this.toString(), MsgCodes.info1);
+		//rebuild all jp->jpg mappings based on customer and prospect data
+		HashSet<Tuple<Integer,Integer>> tmpSetCustJpsJpgs = new HashSet<Tuple<Integer,Integer>>(), 
+				tmpSetPrspctJpsJpgs = new HashSet<Tuple<Integer,Integer>>(),
+				tmpSetAllJpsJpgs =  new HashSet<Tuple<Integer,Integer>>();
+		buildJpPresentMaps(customerMap,tmpSetCustJpsJpgs);
+		int numCustJps = tmpSetCustJpsJpgs.size();
+		mapMgr.dispMessage("MonitorJpJpgrp","setJPDataFromExampleData","# customer records : " + customerMap.size() + " | # jps seen in customers : " + numCustJps, MsgCodes.info1);
+		buildJpPresentMaps(customerMap,tmpSetPrspctJpsJpgs);
+		int numPrspctJps = tmpSetPrspctJpsJpgs.size();
+		mapMgr.dispMessage("MonitorJpJpgrp","setJPDataFromExampleData","# prospect records : " + prospectMap.size() + " | # jps seen in prospects : " + numPrspctJps, MsgCodes.info1);
+		tmpSetAllJpsJpgs.addAll(tmpSetPrspctJpsJpgs);
+		tmpSetAllJpsJpgs.addAll(tmpSetPrspctJpsJpgs);
+		int numCustPrspctJps = tmpSetAllJpsJpgs.size();
+		mapMgr.dispMessage("MonitorJpJpgrp","setJPDataFromExampleData","# cust & prspct records : " + (customerMap.size() + prospectMap.size()) + " | # jps seen in customers and prospects : " + numCustPrspctJps, MsgCodes.info1);
+	
 		
+		//add contributions from products
+		HashSet<Tuple<Integer,Integer>> tmpSetProductJpsJpgs = new HashSet<Tuple<Integer,Integer>>();//only seen in product records
 		//add all jps-jpgs from product data - will have data not seen in prospects		
 		for(ProductExample ex : prdctMap.values()) {
 			HashSet<Tuple<Integer,Integer>> tmpExSet = ex.getSetOfAllJpgJpData(); //tmpExSet is set of all jps/jpgs in ex
@@ -138,8 +165,8 @@ public class MonitorJpJpgrp {
 				tmpSetProductJpsJpgs.add(new Tuple<Integer,Integer>(jpgJp));
 			}											//add all tuples to set already seen
 		}//for each product		
-		mapMgr.dispMessage("MonitorJpJpgrp","setJPDataFromExampleData","num jps seen in products  : " + tmpSetProductJpsJpgs.size()  + " | # seen now in tmpSetAllJpsJpgs :  " +tmpSetAllJpsJpgs.size()+ " | # seen only in products : " + (tmpSetAllJpsJpgs.size() - tmpSetProspectEventJpsJpgs.size()) + " | # of product examples : " + prdctMap.size(), MsgCodes.info1);
-		
+		int numProdJps = tmpSetProductJpsJpgs.size();
+		mapMgr.dispMessage("MonitorJpJpgrp","setJPDataFromExampleData","# product records : " + prdctMap.size() + " | # jps seen in products : " + numProdJps + " | Total # jps seen in all customers, prospects and products : " + tmpSetAllJpsJpgs.size(), MsgCodes.info1);
 		TreeMap<Integer, TreeSet <Integer>> prodJpgsToJps = new TreeMap<Integer, TreeSet <Integer>>();
 		//build jpsToJpgs and JpgsToJps structs
 		for (Tuple<Integer,Integer> jpgJp : tmpSetAllJpsJpgs) {
@@ -153,6 +180,10 @@ public class MonitorJpJpgrp {
 			prodJPList.add(jp);		
 		}
 
+		//these are jps
+		//TODO this should change to jpPerEventSeenCount.get(EvtDataType.getVal(EvtDataType.Order)) ? - feature training should only be on jps that have orders maybe?
+		
+		
 		jpByIdx = jpSeenCount.keySet().toArray(new Integer[0]);
 		jpgrpsByIdx = jpgsToJps.keySet().toArray(new Integer[0]);
 
@@ -171,12 +202,15 @@ public class MonitorJpJpgrp {
 		
 		prodJpByIdx = prodJpSeenCount.keySet().toArray(new Integer[0]);
 		prodJpGrpsByIdx = prodJpgsToJps.keySet().toArray(new Integer[0]);
-				
+		
+		//make all null records in prospect counts == 0
+		for(int jp : jpSeenCount.keySet()) {if(jpProspectSeenCounts.get(jp)==null) {jpProspectSeenCounts.put(jp,0);}}		
 		numFtrs = jpSeenCount.size();//needs to be same size as jpByIdx.length
+		
 		mapMgr.setUI_JPMaxVals(jpgrpsByIdx.length,jpByIdx.length); 
 		mapMgr.dispMessage("MonitorJpJpgrp","setJPDataFromExampleData","numFtrs : " + numFtrs, MsgCodes.info1);
-	}//setJPDataFromProspectData	
-	
+	}//setJPDataFromProspectData
+
 	//name, jp and ftr idx of jp
 	public String getJpByIdxStr(int uiIDX) {
 		int idx = uiIDX % jpByIdx.length, jp=jpByIdx[idx];
@@ -237,14 +271,17 @@ public class MonitorJpJpgrp {
 		int numProdJps = prodJpByIdx.length;
 		String tmp = "Num Jps=," + numJps+ ",Num  JpGrps=,"+jpgrpsByIdx.length+",Num ProdJPs=,"+ numProdJps+", Num Prod JPGrps=,"+prodJpGrpsByIdx.length;
 		csvResTmp.add(tmp);
-		tmp = "Jp,JpIDX,Jp Name,Jpgrp,JpgrpIDX,Jpgrp Name,# JpSeen, # JpEvSeen, # JpPrspctSeen";
+		tmp = "Jp,JpIDX,Jp Name,Jpgrp,JpgrpIDX,Jpgrp Name,# JpSeen, # JpProspectsSeen, ";//# JpSourceSeen";
+		int numEventTypes = EvtDataType.getNumVals();
+		for(int i=0;i<numEventTypes;++i) {			tmp+= "# Jp"+EvtDataType.getVal(i).name()+"Seen,";		}
 		csvResTmp.add(tmp);
 		for (int idx = 0;idx<numJps;++idx) {
 			int jp = jpByIdx[idx];
 			int jpGrp = jpsToJpgs.get(jp);
 			int jpGrpIdx = jpgToIDX.get(jpGrp);
 			tmp = ""+jp+","+idx+","+ getNameNullChk(jp,jpNames);
-			tmp +=","+jpGrp+","+jpGrpIdx+","+ getNameNullChk(jpGrp,jpGrpNames)+","+getCountNullChk(jp,jpSeenCount)+","+getCountNullChk(jp,jpEvSeenCount)+","+getCountNullChk(jp,jpPrspctSeenCount);
+			tmp +=","+jpGrp+","+jpGrpIdx+","+ getNameNullChk(jpGrp,jpGrpNames)+","+getCountNullChk(jp,jpSeenCount)+","+getCountNullChk(jp,jpProspectSeenCounts)+",";			
+			for(int i=0;i<numEventTypes;++i) {			tmp+= ""+getCountNullChk(jp,jpPerEventSeenCount.get(EvtDataType.getVal(i))) +",";}
 			csvResTmp.add(tmp);
 		}		
 		csvResTmp.add("---------,-----------,product-specific,values,---------,-----------");
@@ -283,6 +320,7 @@ public class MonitorJpJpgrp {
 		String[] csvLoadRes = fileIO.loadFileIntoStringAra(fileName, "MonitorJpJpgrp file loaded", "MonitorJpJpgrp File Failed to load");
 		int numJps = 0, numJpgs = 0;
 		boolean isProd = false;
+		int numEventTypes = EvtDataType.getNumVals();
 		for(int i=0;i<csvLoadRes.length;++i) {
 			String line = csvLoadRes[i];
 			String[] vals = line.split(mapMgr.csvFileToken);
@@ -298,20 +336,23 @@ public class MonitorJpJpgrp {
 				continue;}		
 			else {//here record has all values i >= 2
 				if (!isProd) {//found in prospects
-					//layout"Jp, JpIDX, Jp Name, Jpgrp, JpgrpIDX, Jpgrp Name, JpSeen, JpEvSeen, JpPrspctSeen";
+					//layout"Jp, JpIDX, Jp Name, Jpgrp, JpgrpIDX, Jpgrp Name, JpSeen, JpPrspctSeen, <for each type of even count of jp's seen, following EvtDataType order>";
 					int jp = Integer.parseInt(vals[0]),
 						jpFtrIDX = Integer.parseInt(vals[1]),
 						jpgrp = Integer.parseInt(vals[3]),
 						jpgrpIDX = Integer.parseInt(vals[4]),
 						jpSeen = Integer.parseInt(vals[6]),
-						jpEvSeen = Integer.parseInt(vals[6]),
-						jpPrspctSeen = Integer.parseInt(vals[6]);
+						jpPrspctSeen = Integer.parseInt(vals[7]);
 					String jpName = vals[2], jpgrpName = vals[5];
 					jpByIdx[jpFtrIDX] = jp;
 					jpToFtrIDX.put(jp, jpFtrIDX);			
 					jpSeenCount.put(jp, jpSeen);
-					jpEvSeenCount.put(jp, jpEvSeen);
-					jpPrspctSeenCount.put(jp, jpPrspctSeen);
+					jpProspectSeenCounts.put(jp, jpPrspctSeen);
+					for(int j=0;j<numEventTypes;++j) {		
+						TreeMap<Integer, Integer> PerEvtCountMap = jpPerEventSeenCount.get(EvtDataType.getVal(j));
+						PerEvtCountMap.put(jp, Integer.parseInt(vals[8+j]));
+					}
+					
 					jpsToJpgs.put(jp, jpgrp);
 					jpNamesRaw.put(jp, jpName);					
 					TreeSet <Integer> jpsAtJpg = jpgsToJps.get(jpgrp);
@@ -364,18 +405,84 @@ public class MonitorJpJpgrp {
 	}
 	
 	public String toString() {
-		String res ="";
 		int numJps = jpByIdx.length;		
-		res += "Num Jps = " + numJps+ " | Num  JpGrps = "+jpgrpsByIdx.length +"\n";
-		res += "Jp\tJpIDX\tJp Name\t\tJpgrp\tJpgrpIDX\tJpgrp Name\t\tJpSeen\tJpEvSeen\tJpPrspctSeen\n";
+		if (numJps < 2) {return "JpJpg Monitoring Construct not built yet";}//not made yet
+		String res ="";
+		String sep = "|";//use for display separator - change to comma for csv-suitable output
+		int frmtLen = 50, frmtLenJPG = 21;
+		String frmtStr = "%-"+(frmtLen+1) + "s",frmtStrJPG = "%-"+(frmtLenJPG+1) + "s";
+			
+		res += "\nNum Jps = " + numJps+ " "+sep+" Num  JpGrps = "+jpgrpsByIdx.length +"\n";
+		res += " Jp "+sep+"JpIDX"+sep + String.format(frmtStr,"Jp Name") +sep+" Jpgrp "+sep+" JpgIDX "+sep + String.format(frmtStrJPG,"Jpgrp Name") +" "+sep+"# Jp exs"+sep+"# in Cust"+sep;
+		int numEventTypes = EvtDataType.getNumVals();
+		for(int i=0;i<numEventTypes;++i) {		res+= String.format("# %6s"+sep,EvtDataType.getVal(i).name());		}
+		res +="\n";
+		int[] ttlNumJpOcc = new int[numEventTypes+2];
+		
+		//for each jpgroup, save all counts
+		TreeMap<Integer,Integer[]> countsPerJPG = new TreeMap<Integer,Integer[]>();
+		
 		for (int idx = 0;idx<numJps;++idx) {
 			int jp = jpByIdx[idx];
 			int jpGrp = jpsToJpgs.get(jp);
 			int jpGrpIdx = jpgToIDX.get(jpGrp);
-			res += ""+jp+"\t|"+idx+"\t|"+ jpNames.get(jp);
-			res +="\t|"+jpGrp+"\t|"+jpGrpIdx+"\t|"+ jpGrpNames.get(jpGrp)+"\t|"+jpSeenCount.get(jp)+"\t|"+jpEvSeenCount.get(jp)+"\t|"+jpPrspctSeenCount.get(jp)+"\n";
+			Integer[] perJPGrpCounts = countsPerJPG.get(jpGrp);
+			if(null==perJPGrpCounts) {
+				perJPGrpCounts = new Integer[ttlNumJpOcc.length]; 
+				countsPerJPG.put(jpGrp,perJPGrpCounts); 
+				for (int i=0;i<perJPGrpCounts.length;++i) {perJPGrpCounts[i]=0;}
+			}
+			String jpName =  jpNames.get(jp), jpgName = jpGrpNames.get(jpGrp);
+			if(jpName==null) {jpName = jpNamesRaw.get(jp);}
+			if(jpgName==null) {jpgName = jpGrpNamesRaw.get(jpGrp);}			
+			Integer jpSeen = jpSeenCount.get(jp);
+			Integer jpPrsSeen = jpProspectSeenCounts.get(jp);		
+			
+			res += String.format("%3d "+sep+" %3d "+sep, jp,idx)+ String.format(frmtStr,jpName.substring(0, (jpName.length() < frmtLen ? jpName.length() : frmtLen)));			
+			ttlNumJpOcc[0]+=jpSeen;		
+			ttlNumJpOcc[1]+=jpPrsSeen;	
+			perJPGrpCounts[0] += jpSeen;	
+			perJPGrpCounts[1]+=jpPrsSeen;	
+			res += sep+" "+String.format("%5d "+sep+" %6d "+sep, jpGrp, jpGrpIdx)+ String.format(frmtStrJPG,jpgName.substring(0, (jpgName.length() < frmtLenJPG ? jpgName.length() : frmtLenJPG))) + String.format(" "+sep+"%7d "+sep+" %7d",jpSeen,jpPrsSeen);			
+			for(int i=0;i<numEventTypes;++i) {	
+				Integer count = jpPerEventSeenCount.get(EvtDataType.getVal(i)).get(jp);
+				if(count==null) {count=0;}
+				ttlNumJpOcc[i+2]+=count;
+				perJPGrpCounts[i+2]+=count;
+				res+= String.format(" "+sep+"%7d",count);
+			}			
+			res +=" " + sep+"\n";
 		}		
+		res += "Ttls : Seen : " + ttlNumJpOcc[0] + " "+sep+" Cust/Prspct : "+ ttlNumJpOcc[1];
+		for(int i=0;i<numEventTypes;++i) {	
+			res+= " "+sep+" "+EvtDataType.getVal(i).name()+" : " + ttlNumJpOcc[2+i];	
+		}
+		res +="\n";
+		
+		//show how many event-based records there are for each jp group
+		int numJPGs = jpgrpsByIdx.length;
+		ttlNumJpOcc = new int[numEventTypes+2];
+		res +="\n"+sep+" Jpgrp "+sep + String.format(frmtStrJPG,"Jpgrp Name") +" "+sep+"#Jpg exs"+sep+"#in Cust"+sep;
+		for(int i=0;i<numEventTypes;++i) {		res+= String.format("# %6s"+sep,EvtDataType.getVal(i).name());		}
+		res +="\n";
+		for (int jpGrpIdx = 0;jpGrpIdx<numJPGs;++jpGrpIdx) {
+			int jpGrp = jpgrpsByIdx[jpGrpIdx];
+			String jpgName = jpGrpNames.get(jpGrp);
+			if(jpgName==null) {jpgName = jpGrpNamesRaw.get(jpGrp);}			
+			res +=sep+" "+String.format("%5d "+sep, jpGrp)+String.format(frmtStrJPG,jpgName.substring(0, (jpgName.length() < frmtLenJPG ? jpgName.length() : frmtLenJPG)));
+			Integer[] counts = countsPerJPG.get(jpGrp);
+			for(int i=0;i<counts.length;++i) {
+				ttlNumJpOcc[i]+=counts[i];
+				res+= String.format(" "+sep+"%7d",counts[i]);
+			}			
+			res +=" "+sep+"\n";
+		}
+		res += "\nTtls : JPGroup Seen : " + ttlNumJpOcc[0] + " "+sep+" JPGroup Cust/Prspct : "+ ttlNumJpOcc[1];
+		for(int i=0;i<numEventTypes;++i) {	
+			res+= " "+sep+" "+EvtDataType.getVal(i).name()+" : " + ttlNumJpOcc[2+i];	
+		}
+		res +="\n";
 		return res;
-	}
+	}//toString
 
 }//class MonitorJpJpgrp

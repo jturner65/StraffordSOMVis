@@ -5,8 +5,10 @@ import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.stream.*;
 
 //structure to hold all the file names, file configurations and general program configurations required to run the SOM project
 //will manage that all file names need to be reset when any are changed
@@ -53,7 +55,6 @@ public class SOMProjConfigData {
 	private static final String projectConfigFile = "projectConfig.txt";
 	//file name of experimental config for a particular experiment
 	private static final String expProjConfigFileName = "SOM_EXEC_Proj_Config.txt";
-
 	
 	//fully qualified source directory for reading all source csv files, writing intermediate outputs, executing SOM_MAP and writing results
 	private String straff_QualifedBaseDir;
@@ -70,6 +71,9 @@ public class SOMProjConfigData {
 	
 	//directory under SOM where prebuilt map resides that is desired to be loaded into UI - replaces dbg files - set in project config file
 	private String preBuiltMapDir;
+	
+	//type of event membership that defines a prospect as a customer and as a true prospect (generally will be cust has order event, prospect doesnt)
+	private int custTruePrsTypeEvents;
 
 	//boolean flags
 	private int[] stFlags;						//state flags - bits in array holding relevant process info
@@ -97,23 +101,6 @@ public class SOMProjConfigData {
 	//this string holds experiment-specific string used for output files - x,y and k of map used to generate output.  this is set 
 	//separately from calls to setSOM_ExpFileNames because experimental parameters can change between the saving of training data and the running of the experiment
 	private String SOMOutExpSffx;
-	
-	////////////////////////////////
-	//debug info - default map to load - TODO move this to (or build this from) a default exp config file file
-	//whether to use larger or smaller map
-//	private final boolean _DBGuseBiggerMap = true;//set to true to use larger map
-//	//data format used in map training StraffSOM_2018_12_27_12_33_DebugRun
-//	private int _DBG_dataFrmt = 1;
-//	//map topology for debug
-//	private String _DBG_PreBuiltMapConfig = (_DBGuseBiggerMap ? "_x40_y40_k2" : "_x20_y20_k2");	
-//	//date/time of debug pre-made map
-//	private String _DBG_Map_fileNow = (_DBGuseBiggerMap ? "01_03_13_02" : "12_27_12_33");//2019_01_03_13_02
-//	//date/time used in folder for debug of pre-made map
-//	private String _DBG_Map_fldrNow = (_DBGuseBiggerMap ? "2019_"+_DBG_Map_fileNow+"_DebugRun" : "2018_"+_DBG_Map_fileNow+"_DebugRun");
-//	//prebuilt map values
-//	private int _DBG_Map_numSmpls = 459110, _DBG_Map_numTrain = 413199, _DBG_Map_numTest = 45911;
-	
-	///////////////////////////////////////
 	
 	public SOMProjConfigData(SOMMapManager _map) {
 		mapMgr=_map;
@@ -162,11 +149,14 @@ public class SOMProjConfigData {
 		int idx = 0; boolean found = false;
 		//find start of first block of data
 		while (!found && (idx < fileStrings.length)){if(fileStrings[idx].contains(fileComment)) {++idx; } else {found=true;}}
-		
+		// CONFIG FILE NAMES
 		idx = _loadProjConfigData(fileStrings, configFileNames, idx, false);//returns next idx, fills config variables
 			if(idx == -1) {mapMgr.dispMessage("SOMProjConfigData","loadProjectConfig","Error after _loadProjConfigData with configFileNames : idx == -1", MsgCodes.error2); return;}
+		// SUBDIR DEFS
 		idx = _loadProjConfigData(fileStrings, subDirLocs, idx, true);//returns next idx, fills subdir variables
 			if(idx == -1) {mapMgr.dispMessage("SOMProjConfigData","loadProjectConfig","Error after _loadProjConfigData with subDirLocs : idx == -1", MsgCodes.error2); return;}
+		
+		// MISC GLOBAL VARS
 		//read through individual config vars
 		idx = _loadIndivConfigVars(fileStrings, idx); 
 		mapMgr.dispMessage("SOMProjConfigData","loadProjectConfig","preBuiltMapDir set to be : " + preBuiltMapDir, MsgCodes.info3);
@@ -198,12 +188,43 @@ public class SOMProjConfigData {
 			if((s.contains(fileComment)) || (s.trim().length() == 0)){++stIDX; continue;}
 			String[] tkns = s.trim().split(mapMgr.csvFileToken);
 			switch (tkns[0].trim()) {
-				case "preBuiltMapDir" : { preBuiltMapDir = tkns[1].trim().replace("\"", "") + File.separator; break;}
+				case "preBuiltMapDir" : { 		preBuiltMapDir = tkns[1].trim().replace("\"", "") + File.separator; break;}
+				case "custTruePrsTypeEvents": {	custTruePrsTypeEvents = Integer.parseInt(tkns[1].trim().replace("\"", ""));		break;}
 			}	
 			++stIDX;
 		}
 		return -1;			
 	}//_loadIndivConfigVars
+	
+	public TreeMap<String, String[]> buildFileNameMap(String[] dataDirNames) {
+		mapMgr.dispMessage("SOMProjConfigData","buildFileNameMap","Begin building list of raw data file names for each type of data.", MsgCodes.info3);
+		TreeMap<String, String[]> straffDataFileNames = new TreeMap<String, String[]>();
+		//for each directory, find all file names present, stripping ".csv" from name
+		for (int dIdx = 0; dIdx < dataDirNames.length;++dIdx) {
+			String dirName = straff_QualifedBaseDir + subDirLocs.get("straffSourceCSV") + dataDirNames[dIdx];
+			File folder = new File(dirName);
+			File[] listOfFiles = folder.listFiles();
+			ArrayList<String> resList = new ArrayList<String>();
+			for (File file : listOfFiles) {
+			    if (file.isFile()) {
+			    	String baseFileName = file.getName();
+			    	String[] fileNameTkns = baseFileName.split("\\.");
+			    	if(fileNameTkns[fileNameTkns.length-1].contains("csv")) {
+			    		String fileName = "";
+			    		for (int i=0;i<fileNameTkns.length-2;++i) { 			fileName += fileNameTkns[i] +".";  		}
+			    		fileName += fileNameTkns[fileNameTkns.length-2];
+			    		resList.add(fileName);
+			    	}
+			    }//if is file and not dir
+			}//for each dir/file in list
+			straffDataFileNames.put(dataDirNames[dIdx], resList.toArray(new String[0]));
+		}//		
+		mapMgr.dispMessage("SOMProjConfigData","buildFileNameMap","Finished building list of raw data file names for each type of data.", MsgCodes.info3);
+		return straffDataFileNames;
+	}//buildFileNameMap
+	
+	//return int representing type of events that should be used to define a prospect as a customer (generally has a order event in history) and a true prospect (lacks orders but has sources)
+	public int getTypeOfEventsForCustAndProspect(){		return custTruePrsTypeEvents;}//getTypeOfEventsForCustAndProspect()
 	
 	//this will save all essential information for a SOM-based experimental run, to make duplication of experiment easier
 	//Info saved : SOM_MapData; 
@@ -435,15 +456,17 @@ public class SOMProjConfigData {
 	}
 	
 	//get location for raw data files
-	public String[] getRawDataLoadInfo(boolean fromFiles, String baseFName) {
+	//baseDirName : directory/file type name
+	//baseFName : specific file base name (without extension) - will be same as baseDirName unless multiple files for specific file type were necessary for raw data due to size of data set
+	public String getRawDataLoadInfo(boolean fromFiles, String baseDirName, String baseFName) {
 		String dataLocStrData = "";
 		if (fromFiles) {
-			dataLocStrData = straff_QualifedBaseDir + subDirLocs.get("straffSourceCSV") + baseFName + File.separator + baseFName+".csv";
+			dataLocStrData = straff_QualifedBaseDir + subDirLocs.get("straffSourceCSV") + baseDirName + File.separator + baseFName+".csv";
 		} else {//SQL connection configuration needs to be determined/designed
-			dataLocStrData = straff_QualifedBaseDir + subDirLocs.get("straffSQLProc") + "sqlConnData_"+baseFName+".csv";
+			dataLocStrData = straff_QualifedBaseDir + subDirLocs.get("straffSQLProc") + "sqlConnData_"+baseDirName+".csv";
 			mapMgr.dispMessage("SOMProjConfigData","getLoadRawDataStrs","Need to construct appropriate sql connection info and put in text config file : " + dataLocStrData, MsgCodes.warning2);
 		}
-		return new String[] {baseFName,dataLocStrData};
+		return dataLocStrData;
 	}//getRawDataLoadInfo
 	//return the directory to the most recent prospect data as specified in config file (under project directory/
 	//TODO replace this with info from global project config data 

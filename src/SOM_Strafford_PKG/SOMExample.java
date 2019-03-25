@@ -5,9 +5,12 @@ import java.util.Map.Entry;
 
 
 /**
- * NOTE : None of the ADT's  in this file is thread safe so do not allow for opportunities for concurrent modification 
+ * NOTE : None of the data types in this file are thread safe so do not allow for opportunities for concurrent modification
  * of any instanced object in this file. This decision was made for speed concerns - 
  * concurrency-protected objects have high overhead that proved greater than any gains in 10 execution threads.
+ * 
+ * All multithreaded access of these objects should be designed such that any individual object is only accessed by 
+ * a single thread.
  * 
  * This is the base class describing an example data point to be used to train a SOM
  * @author john
@@ -452,7 +455,6 @@ public abstract class SOMExample extends baseDataPtVis{
 		return res;
 	}//getDistFromFtrType	
 
-
 	//return the chi-sq distance from this node to passed node, only measuring non-zero features in this node
 	protected double getSqDistFromFtrType_ChiSq_Exclude(SOMExample fromNode, int _ftrType){
 		TreeMap<Integer, Float> fromftrMap = fromNode.ftrMaps[_ftrType], toftrMap = ftrMaps[_ftrType];
@@ -718,7 +720,6 @@ public abstract class SOMExample extends baseDataPtVis{
 	}
 }//SOMExample 
 
-
 //this class holds functionality migrated from the DataPoint class for rendering on the map.  since this won't be always necessary, we're moving this code to different class so it can be easily ignored
 abstract class baseDataPtVis{
 	protected static SOMMapManager mapMgr;
@@ -896,8 +897,7 @@ class SOMMapNodeBMUExamples{
 abstract class SOMMapNode extends SOMExample{
 	protected static float ftrThresh = 0.0f;			//change to non-zero value if wanting to clip very low values
 	public Tuple<Integer,Integer> mapNodeCoord;	
-	
-	//protected SOMMapNodeBMUExamples trainEx, prospectEx, prodEx;
+
 	protected SOMMapNodeBMUExamples[] BMUExampleNodes;//	
 	
 	//set from u matrix built by somoclu - the similarity of this node to its neighbors
@@ -961,11 +961,6 @@ abstract class SOMMapNode extends SOMExample{
 		for(int i=0;i<BMUExampleNodes.length;++i) {
 			BMUExampleNodes[i] = new SOMMapNodeBMUExamples(this);
 		}
-//		trainEx = new SOMMapNodeBMUExamples(this);
-//		prospectEx  = new SOMMapNodeBMUExamples(this);
-//		prodEx = new SOMMapNodeBMUExamples(this);
-		//allJPs should be made by here - map nodes only have features assigned in constructor, since they are built by map loader from trained map data
-		//buildFeatureVector();
 		clearSeg();
 	}//initMapNode
 	
@@ -1056,22 +1051,10 @@ abstract class SOMMapNode extends SOMExample{
 	
 	//called by SOMDataLoader - these are standardized based on data mins and diffs seen in -map nodes- feature data, not in training data
 	public abstract void buildStdFtrsMapFromFtrData_MapNode(float[] minsAra, float[] diffsAra);		
-	
-//	public void clearBMUExs(ExDataType _type) {
-//		switch (_type) { //trainEx, prospectEx, prodEx
-//			case ProspectTraining 	: {trainEx.init(); 		return;}//case 0 is training data
-//			case ProspectTesting 	: {prospectEx.init(); 	return;}//case 1 is test data
-//			case Product 			: {prodEx.init(); 		return;}//case 4 is product data		
-//			case MapNode			: {return;}
-//			case MouseOver			: {return;}
-//			default					: {return;}
-//		}
-//	}//addToBMUs
 
 	public void clearBMUExs(int _typeIDX) {
 		BMUExampleNodes[_typeIDX].init();
 	}//addToBMUs
-
 	
 	//add passed example to appropriate bmu construct depending on what type of example is passed (training, testing, product)
 	public void addExToBMUs(SOMExample ex) {

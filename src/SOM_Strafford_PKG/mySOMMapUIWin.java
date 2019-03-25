@@ -127,7 +127,7 @@ public class mySOMMapUIWin extends myDispWindow {
 	public String[][] menuBtnNames = new String[][] {	//each must have literals for every button defined in side bar menu, or ignored
 		{"Load All Raw ---", "Load Raw Prod ---","Recalc Features"},	//row 1
 		{"Ld&Bld SOM Data", "Ld SOM Config", "Func 3", "Ld Prebuilt Map"},	//row 1
-		{"Show Raw","Show Proced","Dbg 3","Dbg 4","Dbg 5"}	
+		{"Show Raw","Show Proced","Show JpJpg","Dbg 4","Dbg 5"}	
 	};
 
 	//used to switch button name for 1st button to reflect whether performing csv-based load of raw data or sql query
@@ -150,14 +150,14 @@ public class mySOMMapUIWin extends myDispWindow {
 				"Building SOM", "Resetting Default UI Vals", 
 				"Using ChiSq for Ftr Distance", "Product Dist ignores 0-ftrs",	"Hide Train Data", "Hide Test Data",
 				"Hide Node Lbls","Hide Map Nodes (by Wt)","Hide Map Nodes (by Pop)", "Hide Map Nodes", "Hide Products","Hide Cur Prod Zone",
-				"Showing Per Feature Map", "Hide Clusters (U-Dist)", "Hide Cluster Image", "Hide Calc Analysis", "Saving Prospect Mappings for Products listed in config file"
+				"Showing U Mtrx Dists (Bi-Cubic)","Hide Clusters (U-Dist)", "Hide Cluster Image", "Hide Calc Analysis", "Saving Prospect Mappings for Products listed in config file"
 		};
 		falsePrivFlagNames = new String[]{			//needs to be in order of flags
 				//"Train W/All Recs",
 				"Build New Map ","Reset Default UI Vals",
 				"Not Using ChiSq Distance", "Product Dist measures all ftrs","Show Train Data","Show Test Data",
 				"Show Node Lbls","Show Map Nodes (by Wt)","Show Map Nodes (by Pop)","Show Map Nodes", "Show Products","Show Cur Prod Zone",
-				"Showing U Mtrx Dists (Bi-Cubic)", "Show Clusters (U-Dist)", "Show Cluster Image", "Show Calc Analysis", "Save Prospect Mappings for Products listed in config file"
+				"Showing Per Feature Map", "Show Clusters (U-Dist)", "Show Cluster Image", "Show Calc Analysis", "Save Prospect Mappings for Products listed in config file"
 		};
 		privModFlgIdxs = new int[]{
 				//useOnlyEvntsToTrainIDX, 
@@ -220,7 +220,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		setAnalysisDimWidth();
 	}//calcAndSetMapLoc
 	//per jp bar width ~= total width / # of jps
-	protected void setAnalysisDimWidth() {analysisAllJPBarWidth = (curVisScrDims[0]/(1.0f+mapMgr.numFtrs));	}
+	protected void setAnalysisDimWidth() {analysisAllJPBarWidth = (curVisScrDims[0]/(1.0f+mapMgr.numFtrs))*.98f;	}
 	
 	protected void initMapAras(int numJPVals, int numJPGVals) {
 		curMapImgIDX = 0;
@@ -1019,14 +1019,14 @@ public class mySOMMapUIWin extends myDispWindow {
 				case 0 : {	
 					mapMgr.dbgShowAllRawData();
 					resetButtonState();
-					break;}//verify priority queue functionality
+					break;}
 				case 1 : {	
 					mapMgr.dbgShowUniqueJPsSeen();
 					mapMgr.dbgShowCalcEqs();
-					mapMgr.dbgShowAllFtrVecs();
 					resetButtonState();
-					break;}//verify FEL pq integrity
+					break;}
 				case 2 : {	
+					mapMgr.dbgShowJpJpgrpData();
 					resetButtonState();
 					break;}
 				case 3 : {	

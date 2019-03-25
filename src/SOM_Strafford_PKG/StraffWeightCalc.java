@@ -15,12 +15,11 @@ public class StraffWeightCalc {
 	public SOMMapManager mapMgr;
 	public final Date now;
 	//arrays are for idxs of various eq components (mult, offset, decay) in the format file for 
-	//each component contributor (prospect, order, opt, link), in order.  0-idx is jp name or "default"
+	//each component contributor (order, opt, link, source), in order.  0-idx is jp name or "default"
 	private static final int[] mIdx = new int[] {1, 4, 7, 10},
 			   					oIdx = new int[] {2, 5, 8, 11},
 			   					dIdx = new int[] {3, 6, 9, 12};
-	//map of per-jp equations to calculate feature vector from prospect, order, 
-	//and opt data (expandable to more sources eventually if necessary).  keyed by jp
+	//map of per-jp equations to calculate feature vector from event data (expandable to more sources eventually if necessary).  keyed by jp
 	private TreeMap<Integer, JPWeightEquation> eqs;	
 	//hold relevant quantities for each jp calculation across all data
 	private Float[][] bndsAra;
@@ -136,7 +135,9 @@ public class StraffWeightCalc {
 	}
 
 	//calculate feature vector for this example
-	public TreeMap<Integer, Float> calcFeatureVector(ProspectExample ex, HashSet<Integer> jps, TreeMap<Integer, jpOccurrenceData> orderOccs,TreeMap<Integer, jpOccurrenceData> linkOccs, TreeMap<Integer, jpOccurrenceData> optOccs) {
+	public TreeMap<Integer, Float> calcFeatureVector(ProspectExample ex, HashSet<Integer> jps, 
+			TreeMap<Integer, jpOccurrenceData> orderOccs,TreeMap<Integer, jpOccurrenceData> linkOccs, 
+			TreeMap<Integer, jpOccurrenceData> optOccs,TreeMap<Integer, jpOccurrenceData> srcOccs) {
 		TreeMap<Integer, Float> res = new TreeMap<Integer, Float>();
 		float ftrVecSqMag = 0.0f;
 		jpOccurrenceData optOcc;
@@ -147,13 +148,17 @@ public class StraffWeightCalc {
 			//find destIDX
 			destIDX = jpJpgMon.getJpToFtrIDX(jp);
 			if (destIDX==null) {continue;}//ignore unknown/unmapped jps
-			optOcc =  optOccs.get(jp);
-			if ((optOcc != null )&& (ex.getOptAllOccObj() != null)) {	mapMgr.dispMessage("StraffWeightCalc","calcFeatureVector","Multiple opt refs for prospect : " + ex.OID + " | This should not happen - opt events will be overly-weighted.", MsgCodes.warning4);	}
-			float val = eqs.get(jp).calcVal(ex,orderOccs.get(jp),linkOccs.get(jp),optOcc);
-			if ((isZeroMagExample) && (val != 0)) {isZeroMagExample = false;}
-			res.put(destIDX,val);
-			//ex.setMapOfSrcWts(destIDX, val, SOMExample.ftrMapTypeKey);
-			ftrVecSqMag += (val*val);
+			optOcc = optOccs.get(jp);
+			if ((optOcc != null )&& ((ex.getPosOptAllOccObj() != null) || (ex.getNegOptAllOccObj() != null))) {	//opt all means they have opted for positive behavior for all jps that allow opts
+				mapMgr.dispMessage("StraffWeightCalc","calcFeatureVector","Multiple opt refs for prospect : " + ex.OID + " : indiv opt and opt-all | This should not happen - opt events will be overly-weighted.", MsgCodes.warning4);	
+			}
+			float val = eqs.get(jp).calcVal(ex,orderOccs.get(jp),linkOccs.get(jp), optOcc, srcOccs.get(jp));
+			
+			if (val != 0) {
+				isZeroMagExample = false;
+				ftrVecSqMag += (val*val);
+			}
+			res.put(destIDX,val);		//add zero value 			
 			checkValInBnds(jp,destIDX, val);
 		}		
 		ex.ftrVecMag = (float) Math.sqrt(ftrVecSqMag);
@@ -269,13 +274,13 @@ class JPWeightEquation {
 	
 	//mults and offsets are of the form (mult * x + offset), where x is output of membership function
 	public static int 						//idxs in eq coefficient arrays
-			prspctCoeffIDX = 0, 
-			orderCoeffIDX = 1, 
-			optCoeffIDX = 2,
-			linkCoeffIDX = 3;
+			orderCoeffIDX = 0, 
+			optCoeffIDX = 1,
+			linkCoeffIDX = 2,
+			srcCoeffIDX = 3;
 	public static int numEqs = 4;
 	//these names must match order and number of component idxs above
-	public static String[] calcNames = new String[] {"Prospect","Order","Opt","Link"};
+	public static String[] calcNames = new String[] {"Order","Opt","Link","Source"};
 	
 	private final Float[] Mult;						//multiplier for membership functions
 	private final Float[] Offset;					//offsets for membership functions	
@@ -319,8 +324,27 @@ class JPWeightEquation {
 		float res = 0.0f;
 		Date[] dates = jpOcc.getDatesInOrder();
 		for (Date date : dates) {
-			Tuple<Integer, Integer> occTup = jpOcc.getOccurrences(date);
-			int numOcc = occTup.x;
+			//Tuple<Integer, Integer> occTup = jpOcc.getOccurrences(date);
+			//int numOcc = occTup.x;
+			TreeMap<Integer, Integer> occDat = jpOcc.getOccurrences(date);
+			int numOcc = 0;
+			for (Integer count : occDat.values()) {				numOcc += count;			}
+			res += scaleCalc(idx,numOcc, date);
+		}
+		return res;
+	}//aggregateOccs
+	
+	//get total weight contribution for all events of this jp, based on their date
+	private float aggregateOccsSourceEv(jpOccurrenceData jpOcc, int idx) {
+		float res = 0.0f;
+		Date[] dates = jpOcc.getDatesInOrder();
+		for (Date date : dates) {
+			//Tuple<Integer, Integer> occTup = jpOcc.getOccurrences(date);
+			//int numOcc = occTup.x;
+			int numOcc = 0;
+			TreeMap<Integer, Integer> occDat = jpOcc.getOccurrences(date);
+			//key is type of occurrence in source data, value is count
+			for (Integer typeSrc : occDat.keySet()) {		numOcc += occDat.get(typeSrc);	}
 			res += scaleCalc(idx,numOcc, date);
 		}
 		return res;
@@ -335,9 +359,11 @@ class JPWeightEquation {
 		//so other prospects that look like them may not want to see these jps either, so we learn from that - we set this ftr value to be 0 for an opt < 0 , 
 		//regardless of what other behavior they have for this jp
 		//ignores opts of 0.  TODO need to determine appropriate behavior for opts of 0
-		Entry<Date, Tuple<Integer,Integer>> vals = jpOcc.getLastOccurrence();
+		//Entry<Date, Tuple<Integer,Integer>> vals = jpOcc.getLastOccurrence();
+		Entry<Date, TreeMap<Integer, Integer>> vals = jpOcc.getLastOccurrence();
 		//Date mostRecentDate = vals.getKey();
-		Integer optChoice = vals.getValue().y;
+		//Integer optChoice = vals.getValue().y;
+		Integer optChoice = vals.getValue().lastKey();
 		if (optChoice < 0) {res = optOutSntnlVal;}
 		else if (optChoice > 0) {	res =  (Mult[optCoeffIDX] * optChoice/(1+Decay[optCoeffIDX])) + Offset[optCoeffIDX];  	}
 		return res;
@@ -347,16 +373,16 @@ class JPWeightEquation {
 	public void resetAnalysis() {calcStats.reset();	}
 	
 	//calculate a particular example's weight value for this object's jp
-	public float calcVal(ProspectExample ex, jpOccurrenceData orderJpOccurrences, jpOccurrenceData linkJpOccurrences, jpOccurrenceData optJpOccurrences) {	
+	public float calcVal(ProspectExample ex, jpOccurrenceData orderJpOccurrences, jpOccurrenceData linkJpOccurrences, jpOccurrenceData optJpOccurrences, jpOccurrenceData srcJpOccurrences) {	
 		boolean hasData = false;
-			//this means jp was used set in prospect record : scale propsect contribution by update date of record - assumes accurate at time of update
-		if (ex.prs_JP == jp) {		hasData = true;				calcStats.setWSVal(prspctCoeffIDX, scaleCalc(prspctCoeffIDX, 1, ex.prs_LUDate));		}//calcStats.workSpace[prspctCoeffIDX] = scaleCalc(prspctCoeffIDX, 1, ex.prs_LUDate);		}
+			//for source data - should replace prospect calc above
+		if (srcJpOccurrences != null) {	hasData = true;		calcStats.setWSVal(srcCoeffIDX, aggregateOccsSourceEv(srcJpOccurrences, srcCoeffIDX));}//calcStats.workSpace[orderCoeffIDX] = aggregateOccs(orderJpOccurrences, orderCoeffIDX);}
 			//handle order occurrences for this jp.   aggregate every order occurrence, with decay on importance based on date
-		if (orderJpOccurrences != null) {	hasData = true;		calcStats.setWSVal(orderCoeffIDX, aggregateOccs(orderJpOccurrences, orderCoeffIDX));}//calcStats.workSpace[orderCoeffIDX] = aggregateOccs(orderJpOccurrences, orderCoeffIDX);}
+		if (orderJpOccurrences != null) {hasData = true;	calcStats.setWSVal(orderCoeffIDX, aggregateOccs(orderJpOccurrences, orderCoeffIDX));}//calcStats.workSpace[orderCoeffIDX] = aggregateOccs(orderJpOccurrences, orderCoeffIDX);}
 			//for links use same mechanism as orders - handle differences through weightings - aggregate every order occurrence, with decay on importance based on date
-		if (linkJpOccurrences != null) {	hasData = true;		calcStats.setWSVal(linkCoeffIDX, aggregateOccs(linkJpOccurrences, linkCoeffIDX));	}//calcStats.workSpace[linkCoeffIDX] = aggregateOccs(linkJpOccurrences, linkCoeffIDX);	}
+		if (linkJpOccurrences != null) {hasData = true;		calcStats.setWSVal(linkCoeffIDX, aggregateOccs(linkJpOccurrences, linkCoeffIDX));	}//calcStats.workSpace[linkCoeffIDX] = aggregateOccs(linkJpOccurrences, linkCoeffIDX);	}
 			//user opts - these are handled differently - calcOptRes return of -9999 means negative opt specified for this jp alone (ignores negative opts across all jps) - should force total from eq for this jp to be ==0
-		if (optJpOccurrences != null) {		hasData = true;		calcStats.setWSVal(optCoeffIDX, calcOptRes(optJpOccurrences));}	//calcStats.workSpace[optCoeffIDX] = calcOptRes(optJpOccurrences);}	
+		if (optJpOccurrences != null) {	hasData = true;		calcStats.setWSVal(optCoeffIDX, calcOptRes(optJpOccurrences));}	//calcStats.workSpace[optCoeffIDX] = calcOptRes(optJpOccurrences);}	
 		if (hasData) {calcObj.incrBnds(jpIdx);		}
 		float res = calcStats.getValFromCalcs(optCoeffIDX, optOutSntnlVal);//(calcStats.workSpace[optCoeffIDX]==optOutSntnlVal);
 		return res;
@@ -369,8 +395,6 @@ class JPWeightEquation {
 	public String toString() {
 		String ftrBuffer = (jpIdx >=100) ? "" : (jpIdx >=10) ? " " : "  ";//to align output
 		String res = "JP : "+ String.format("%3d", jp) +" Ftr[" + jpIdx + "]" + ftrBuffer + " = ";
-		//base prospect
-		res += "(("+String.format("%.3f", Mult[prspctCoeffIDX]) + "/(1 + "+String.format("%.4f", Decay[prspctCoeffIDX])+"*DLU)) + "+String.format("%.4f", Offset[prspctCoeffIDX])+")"; 
 		//order
 		res += " + ("+ String.format("%.3f", Mult[orderCoeffIDX]) + "*[sum(NumOcc[i]/(1 + "+String.format("%.4f", Decay[orderCoeffIDX])+" * DEV)) for each event i] + "+String.format("%.4f", Offset[orderCoeffIDX])+")"; 		
 		//link
@@ -396,11 +420,11 @@ class calcAnalysis{
 	//calculated totals of statistic values, to get appropriate ratios
 	private float[] ttlCalcStats_Vis;
 	private static final int
-		ratioIDX = 0,
-		meanIDX = 1,
-		meanOptIDX = 2,
-		stdIDX = 3,
-		stdOptIDX = 4;
+		ratioIDX = 0,			//ratio of total wt contribution for JP for particular eq-type value (i.e. orders, links, etc.)
+		meanIDX = 1,			//over all examples for particular JP, including opt-outs
+		meanOptIDX = 2,			//only include non-opt-out data
+		stdIDX = 3,				//over all examples incl opt-outs
+		stdOptIDX = 4;			//only non-opt-out
 	private static final int numCalcStats = 5;
 	//titles of each stat-of-interest disp bar
 	private static final String[] calcStatTitles = new String[] {"Ratios", "Means", "Means w/Opts", "Stds","Stds w/Opts"};
@@ -448,16 +472,19 @@ class calcAnalysis{
 		analysisRes = new ArrayList<String>();
 	}//reset()
 	
+	//overwrites old workspace calcs
 	public void setWSVal(int idx, float val) {
 		workSpace[idx]=val;		
 		if (val != 0.0f) {eqTypeCount[idx]++;}		
 	}
 	
-		//add values for a particular calc run - returns calc total
+	//add values for a particular calc run - returns calc total
 	public float getValFromCalcs(int optCoeffIDX, float optOutValCk) {
+			//if below is true, then this means this JP's opt out value was set to sentinel val to allow for calculations but ultimately to set the weight of this jp's contribution to 0
 		boolean optOut = workSpace[optCoeffIDX]==optOutValCk;
-		++numExamplesWithJP;
-		if (optOut) {return 0.0f;	}//opt result means all values are cleared out (user opted out of this specific JP) so only increment numExamplesWithJP
+		++numExamplesWithJP;		//if optOut is true, then this increases # of examples, but all values will be treated as 0
+			//opt result means all values are cleared out (user opted out of this specific JP) so only increment numExamplesWithJP
+		if (optOut) {return 0.0f;	}
 		++numExamplesNoOptOut;
 			//res is per record result - this is result of eq for calculation, used by weight.
 		float res = 0;
@@ -496,7 +523,7 @@ class calcAnalysis{
 		}
 		for (int i=0;i<analysisCalcStats.length;++i) {
 			ttlCalcStats_Vis[i]=0.0f;
-			for (int j=0;j<analysisCalcStats[j].length;++j) {		
+			for (int j=0;j<analysisCalcStats[i].length;++j) {		
 				ttlCalcStats_Vis[i] += analysisCalcStats[i][j];		
 				analysisCalcValStrs[i][j] = String.format("%.5f", analysisCalcStats[i][j]);
 			}

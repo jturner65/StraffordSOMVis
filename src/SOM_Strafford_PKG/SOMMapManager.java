@@ -5,8 +5,6 @@ import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
 
-
-
 //this class holds the data describing a SOM and the data used to both build and query the som
 public class SOMMapManager {
 	//struct maintaining complete project configuration and information from config files - all file name data and building needs to be done by this object
@@ -16,18 +14,24 @@ public class SOMMapManager {
 			
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	//map descriptions
-	
+	//full input data, data set to be training data and testing data (all of these examples are potential -training- data, in that they have all features required of training data)
+	public ProspectExample[] inputData, trainData, testData;	
 	//all nodes of som map, keyed by node location as tuple of row/col coordinates
-	public TreeMap<Tuple<Integer,Integer>, SOMMapNode> MapNodes;
-	//map of prospectExamples built from database data, keyed by prospect OID
-	private ConcurrentSkipListMap<String, ProspectExample> prospectMap;	
-	//map of prospectExamples built from database data, keyed by prospect OID - 
+	public TreeMap<Tuple<Integer,Integer>, SOMMapNode> MapNodes;	
+	
+	//map keyed by type of maps of prospectExamples built from database data, each keyed by prospect OID.  type :  
+	//"customer" : customer prospectExamples with order events in their history
+	//"prospect" : true prospects, with no order event history 
+	private ConcurrentSkipListMap<String, ConcurrentSkipListMap<String, ProspectExample>> prospectExamples;
+	private String custExKey = "custProspect", prspctExKey = "trueProspect";
+	
+	//private ConcurrentSkipListMap<String, ProspectExample> customerPrspctMap;	
+	//map of prospectExamples built from database data, keyed by prospect OID - these are true prospects, with no order event history 
 	//TODO these examples are loaded and then applied against an existing map to find products for them
-	private ConcurrentSkipListMap<String, ProspectExample> validationMap;	
+	//private ConcurrentSkipListMap<String, ProspectExample> truePrspctMap;	
+	//map of names of 
 	//map of products build from TC_Taggings entries, keyed by tag ID (synthesized upon creation)
 	private ConcurrentSkipListMap<String, ProductExample> productMap;	
-	//data set to be training data, etc
-	public ProspectExample[] inputData, trainData, testData;
 	
 	//structure to map specified products to the SOM and find prospects with varying levels of confidence
 	public StraffProdMapOutputBuilder prodMapper;
@@ -47,13 +51,13 @@ public class SOMMapManager {
 	
 	//data values directly from the trained map
 	public float[] 
-			map_ftrsMean, 
+			map_ftrsMean, 				
 			map_ftrsVar, 
 			map_ftrsDiffs, 
-			map_ftrsMin,				//per feature mean, variance, difference, maxs, in -map features- data
-			
-			td_ftrsMean, td_ftrsVar, 	//TODO perhaps remove these - we have this info already
-			in_ftrsMean, in_ftrsVar; 	//TODO perhaps remove these - we have this info already : per feature training and input data means and variances
+			map_ftrsMin;				//per feature mean, variance, difference, mins, in -map features- data
+//	public float[] 		
+//			td_ftrsMean, td_ftrsVar, 	//TODO perhaps remove these - we have this info already
+//			in_ftrsMean, in_ftrsVar; 	//TODO perhaps remove these - we have this info already : per feature training and input data means and variances
 	
 	public TreeMap<ExDataType, HashSet<SOMMapNode>> nodesWithEx, nodesWithNoEx;	//map nodes that have/don't have training examples - for display only
 	
@@ -79,18 +83,19 @@ public class SOMMapManager {
 			optDataLoadedIDX			= 6,			//raw opt data has been loaded but not processed
 			orderDataLoadedIDX			= 7,			//raw order data loaded not proced
 			linkDataLoadedIDX			= 8,			//raw link data loaded not proced
-			tcTagsDataLoadedIDX			= 9,			//raw tc taggings data loaded not proced
-			jpDataLoadedIDX				= 10,			//raw jp data loaded not proced
-			jpgDataLoadedIDX			= 11,			//raw jpg data loaded not proced
-			rawPrspctEvDataProcedIDX	= 12,			//all raw prospect/event data has been loaded and processed into StraffSOMExamples (prospect)
-			rawProducDataProcedIDX		= 13,			//all raw product data (from tc_taggings) has been loaded and processed into StraffSOMExamples (product)
+			sourceDataLoadedIDX			= 9,			//raw source event data loaded not proced
+			tcTagsDataLoadedIDX			= 10,			//raw tc taggings data loaded not proced
+			jpDataLoadedIDX				= 11,			//raw jp data loaded not proced
+			jpgDataLoadedIDX			= 12,			//raw jpg data loaded not proced
+			rawPrspctEvDataProcedIDX	= 13,			//all raw prospect/event data has been loaded and processed into StraffSOMExamples (prospect)
+			rawProducDataProcedIDX		= 14,			//all raw product data (from tc_taggings) has been loaded and processed into StraffSOMExamples (product)
 			//training data saved state : 
-			testTrainProdDataBuiltIDX	= 14,			//product, input, testing and training data arrays have all been built
-			denseTrainDataSavedIDX 		= 15,			//all current prospect data has been saved as a training data file for SOM (.lrn format) - strafford doesn't use dense training data
-			sparseTrainDataSavedIDX		= 16,			//sparse data format using .svm file descriptions (basically a map with a key:value pair of ftr index : ftr value
-			testDataSavedIDX			= 17;			//save test data in sparse format csv
+			testTrainProdDataBuiltIDX	= 15,			//product, input, testing and training data arrays have all been built
+			denseTrainDataSavedIDX 		= 16,			//all current prospect data has been saved as a training data file for SOM (.lrn format) - strafford doesn't use dense training data
+			sparseTrainDataSavedIDX		= 17,			//sparse data format using .svm file descriptions (basically a map with a key:value pair of ftr index : ftr value
+			testDataSavedIDX			= 18;			//save test data in sparse format csv
 		
-	public static final int numFlags = 18;	
+	public static final int numFlags = 19;	
 	
 	//////////////////////////////
 	//data in files created by SOM_MAP separated by spaces
@@ -102,29 +107,34 @@ public class SOMMapManager {
 	//source data constructs
 	//all of these constructs must follow the same order - 1st value must be prospect, 2nd must be order events, etc.
 	//idxs for each type of data in arrays holding relevant data info
-	public static final int prspctIDX = 0, orderEvntIDX = 1, optEvntIDX = 2, linkEvntIDX = 3, tcTagsIDX = 4, jpDataIDX = 5, jpgDataIDX = 6;
-	//file names of each type of file
-	private static final String[] straffDataFileNames = new String[] {"prospect_objects", "order_event_objects", "opt_event_objects", "link_event_objects", "tc_taggings", "jp_data", "jpg_data"};
+	public static final int prspctIDX = 0, orderEvntIDX = 1, optEvntIDX = 2, linkEvntIDX = 3, srcEvntIDX = 4, tcTagsIDX = 5, jpDataIDX = 6, jpgDataIDX = 7;
+	//directory names where raw data files can be found - also use as key in rawDataArrays to access arrays of raw objects
+	private static final String[] straffDataDirNames = new String[] {"prospect_objects", "order_event_objects", "opt_event_objects", "link_event_objects", "source_event_objects", "tc_taggings", "jp_data", "jpg_data"};
+	//idxs of string keys in rawDataArrays corresponding to EVENTS (from xxx_event_objects tables)
+	private static final int[] straffEventDataIDXs = new int[] {orderEvntIDX, optEvntIDX, linkEvntIDX, srcEvntIDX};
+	
+	//file names for specific file dirs/types, keyed by dir - looks up in directory and gets all csv files to use as sources
+	private TreeMap<String, String[]> straffDataFileNames;
 	//whether each table uses json as final field to hold important info or not
-	private static final boolean[] straffRawDatUsesJSON = new boolean[] {true, true, true, true, false, true, true};
+	private static final boolean[] straffRawDatUsesJSON = new boolean[] {true, true, true, true, true, false, true, true};
 	//whether we want to debug the loading of a particular type of raw data
-	private static final boolean[] straffRawDatDebugLoad = new boolean[] {false, false, false, false, true, true, true};
+	private static final boolean[] straffRawDatDebugLoad = new boolean[] {false, false, false, false,false, true, true, true};
 	//list of idxs related to each table for data
-	private static final int[] straffObjFlagIDXs = new int[] {prospectDataLoadedIDX, orderDataLoadedIDX, optDataLoadedIDX, linkDataLoadedIDX, tcTagsDataLoadedIDX, jpDataLoadedIDX, jpgDataLoadedIDX};
+	private static final int[] straffObjFlagIDXs = new int[] {prospectDataLoadedIDX, orderDataLoadedIDX, optDataLoadedIDX, linkDataLoadedIDX, sourceDataLoadedIDX, tcTagsDataLoadedIDX, jpDataLoadedIDX, jpgDataLoadedIDX};
 	//list of class names used to build array of object loaders
 	private static final String[] straffClassLdrNames = new String[] {
-			"SOM_Strafford_PKG.ProspectDataLoader","SOM_Strafford_PKG.OrderEventDataLoader","SOM_Strafford_PKG.OptEventDataLoader",
-			"SOM_Strafford_PKG.LinkEventDataLoader","SOM_Strafford_PKG.TcTagDataLoader", "SOM_Strafford_PKG.JpDataLoader", "SOM_Strafford_PKG.JpgrpDataLoader"
+			"SOM_Strafford_PKG.ProspectDataLoader","SOM_Strafford_PKG.OrderEventDataLoader","SOM_Strafford_PKG.OptEventDataLoader","SOM_Strafford_PKG.LinkEventDataLoader",
+			"SOM_Strafford_PKG.SourceEventDataLoader","SOM_Strafford_PKG.TcTagDataLoader", "SOM_Strafford_PKG.JpDataLoader", "SOM_Strafford_PKG.JpgrpDataLoader"
 		};	
-	//total # of source data types
-	public static final int numStraffDataTypes = straffObjFlagIDXs.length;	
+	
 	//classes of data loader objects
 	public Class[] straffObjLoaders;
 	//destination object to manage arrays of each type of raw data from db
 	public ConcurrentSkipListMap<String, ArrayList<BaseRawData>> rawDataArrays;
 	//for multi-threaded calls to base loader
 	public List<Future<Boolean>> straffDataLdrFtrs;
-	public List<StraffordDataLoader> straffDataLoaders;
+	public TreeMap<String, StraffordDataLoader>straffDataLoaders;
+	//public List<StraffordDataLoader> straffDataLoaders;
 	////////////////////
 		
 	//data type to use to train map
@@ -176,12 +186,17 @@ public class SOMMapManager {
 		
 		//build project configuration data object - this manages all file locations and other configuration options
 		projConfigData = new SOMProjConfigData(this);
+		//load all raw data file names based on exploring directory structure for all csv files
+		straffDataFileNames = projConfigData.buildFileNameMap(straffDataDirNames);
+		prospectExamples = new ConcurrentSkipListMap<String, ConcurrentSkipListMap<String, ProspectExample>>();
+		
 
 		mapDims = _dims;
 		//raw data from csv's/db
 		rawDataArrays = new ConcurrentSkipListMap<String, ArrayList<BaseRawData>>();
-		//instantiate map of ProspectExamples
-		prospectMap = new ConcurrentSkipListMap<String, ProspectExample>();		
+		//instantiate maps of ProspectExamples - customers and true prospects (no order event history)
+		prospectExamples.put(custExKey,  new ConcurrentSkipListMap<String, ProspectExample>());		
+		prospectExamples.put(prspctExKey,  new ConcurrentSkipListMap<String, ProspectExample>());		
 		productMap = new ConcurrentSkipListMap<String, ProductExample>();
 		
 		productsByJpg = new TreeMap<Integer, ArrayList<ProductExample>>();
@@ -237,71 +252,24 @@ public class SOMMapManager {
 	private void buildStraffDataLoaders() {
 		//to launch loader callable instances
 		straffDataLdrFtrs = new ArrayList<Future<Boolean>>();
-		straffDataLoaders = new ArrayList<StraffordDataLoader>();
+		//straffDataLoaders = new ArrayList<StraffordDataLoader>();
+		straffDataLoaders = new TreeMap<String, StraffordDataLoader>();
 		//build constructors
 		@SuppressWarnings("rawtypes")
 		Class[] args = new Class[] {boolean.class, String.class};//classes of arguments for loader ctor	
 		//numStraffDataTypes
 		try {
-			for (int idx=0;idx<numStraffDataTypes;++idx) {straffDataLoaders.add((StraffordDataLoader) straffObjLoaders[idx].getDeclaredConstructor(args).newInstance(true, "to be set"));}
+			for (int idx=0;idx<straffDataDirNames.length;++idx) {
+				String[] fileNameAra = straffDataFileNames.get(straffDataDirNames[idx]);
+				for (int fidx = 0;fidx < fileNameAra.length;++fidx) {
+					String dataLoaderKey = fileNameAra[fidx];				
+					straffDataLoaders.put(dataLoaderKey,(StraffordDataLoader) straffObjLoaders[idx].getDeclaredConstructor(args).newInstance(true, dataLoaderKey));
+				}
+			}
 		} catch (Exception e) {			e.printStackTrace();}
-		
+	
 	}//buildStraffDataLoaders
-		
-//	//write data to file
-//	public void saveStrings(String fname, String[] data) {
-//		PrintWriter pw = null;
-//		try {
-//		     File file = new File(fname);
-//		     FileWriter fw = new FileWriter(file, false);
-//		     pw = new PrintWriter(fw);
-//		     for (int i=0;i<data.length;++i) { pw.println(data[i]);}
-//		     
-//		} catch (IOException e) {	e.printStackTrace();}
-//		finally {			if (pw != null) {pw.close();}}
-//	}//saveStrings
-//
-//	public void saveStrings(String fname, ArrayList<String> data) {
-//		PrintWriter pw = null;
-//		try {
-//		     File file = new File(fname);
-//		     FileWriter fw = new FileWriter(file, false);
-//		     pw = new PrintWriter(fw);
-//		     for (int i=0;i<data.size();++i) { pw.println(data.get(i));}
-//		     
-//		} catch (IOException e) {	e.printStackTrace();}
-//		finally {			if (pw != null) {pw.close();}}
-//	}//saveStrings
-//	
-//	public String[] loadFileIntoStringAra(String fileName, String dispYesStr, String dispNoStr) {try {return _loadFileIntoStringAra(fileName, dispYesStr, dispNoStr);} catch (Exception e) {e.printStackTrace(); } return new String[0];}
-//	//stream read the csv file and build the data objects
-//	private String[] _loadFileIntoStringAra(String fileName, String dispYesStr, String dispNoStr) throws IOException {		
-//		FileInputStream inputStream = null;
-//		Scanner sc = null;
-//		List<String> lines = new ArrayList<String>();
-//		String[] res = null;
-//	    //int line = 1, badEntries = 0;
-//		try {
-//		    inputStream = new FileInputStream(fileName);
-//		    sc = new Scanner(inputStream);
-//		    while (sc.hasNextLine()) {lines.add(sc.nextLine()); }
-//		    //Scanner suppresses exceptions
-//		    if (sc.ioException() != null) { throw sc.ioException(); }
-//		    dispMessage("SOMMapManager", "_loadFileIntoStringAra",dispYesStr+"\tLength : " +  lines.size());
-//		    res = lines.toArray(new String[0]);		    
-//		} catch (Exception e) {	
-//			e.printStackTrace();
-//			 dispMessage("SOMMapManager", "_loadFileIntoStringAra","!!"+dispNoStr);
-//			res= new String[0];
-//		} 
-//		finally {
-//		    if (inputStream != null) {inputStream.close();		    }
-//		    if (sc != null) { sc.close();		    }
-//		}
-//		return res;
-//	}//loadFileContents	
-	
-	
+
 	//set max display list values
 	public void setUI_JPMaxVals(int jpGrpLen, int jpLen) {if (win != null) {win.setUI_JPListMaxVals(jpGrpLen, jpLen);}}	
 	//only appropriate if using UI
@@ -378,7 +346,6 @@ public class SOMMapManager {
 		return success;
 	}//_buildNewMap
 	
-
 	//initialize the SOM-facing data structures - these are used to train/consume a map.
 	public void initData(){
 		dispMessage("SOMMapManager","initData","Init Called", MsgCodes.info5);
@@ -428,19 +395,23 @@ public class SOMMapManager {
 		setFlag(testDataSavedIDX, val);		
 	}
 	
-	//clear out existing prospect map
+	private void resetValidationMap() {
+		prospectExamples.put(prspctExKey,  new ConcurrentSkipListMap<String, ProspectExample>());		
+	}
+	
+	//clear out existing prospect map to be rebuilt
 	private void resetProspectMap() {
-		prospectMap = new ConcurrentSkipListMap<String, ProspectExample>();
+		prospectExamples.put(custExKey,  new ConcurrentSkipListMap<String, ProspectExample>());		
+		//data used by actual SOM for testing/training
 		inputData = null;
 		testData = null;
 		trainData = null;
 		setFlag(rawPrspctEvDataProcedIDX, false);
-		setFlag(testTrainProdDataBuiltIDX, false);
-		
+		setFlag(testTrainProdDataBuiltIDX, false);		
 		setAllTrainDatSaveFlags(false);
 	}//resetProspectMap
 	
-	//clear out existing product map
+	//clear out existing product map to be rebuilt
 	private void resetProductMap() {
 		productMap = new ConcurrentSkipListMap<String, ProductExample>();
 		productsByJpg = new TreeMap<Integer, ArrayList<ProductExample>>();
@@ -472,6 +443,7 @@ public class SOMMapManager {
 		}
 	}//addProductToProductMaps	
 	
+	//use this to rebuild product data only
 	public void loadRawProductData(boolean fromCSVFiles) {
 		dispMessage("SOMMapManager","loadRawProductData","Start loading and processing raw product only data", MsgCodes.info5);
 		if(!fromCSVFiles) {
@@ -481,34 +453,24 @@ public class SOMMapManager {
 		//no need to make multi-threaded - this will only ever process in a single thread anyway
 		//first load all existing data, then overwrite existing data with new product data
 		loadAllPreProccedData();	
-		if((prospectMap.size() == 0) || (productMap.size()==0)){
+		if((prospectExamples.get(custExKey).size() == 0) || (productMap.size()==0)){
 			dispMessage("SOMMapManager","loadRawProductData","Unable to process only raw product data into preprocessed format - prospect data must exist before hand.", MsgCodes.warning1);
 			return;		
 		}
-		//now load raw product data either via csv or sql
-		String[] loadRawDatStrs = projConfigData.getRawDataLoadInfo(fromCSVFiles,straffDataFileNames[tcTagsIDX]);
+		//now load raw product/tcTag data either via csv or sql
+		String tcTaggingsFileName = projConfigData.getRawDataLoadInfo(fromCSVFiles,straffDataDirNames[tcTagsIDX],straffDataFileNames.get(straffDataDirNames[tcTagsIDX])[0]);
 		boolean[] flags = new boolean[] {fromCSVFiles,straffRawDatUsesJSON[tcTagsIDX], straffRawDatDebugLoad[tcTagsIDX]};
-		loadRawDataVals(loadRawDatStrs, flags,tcTagsIDX);
+		loadRawDataVals( straffDataDirNames[tcTagsIDX] ,tcTaggingsFileName, flags,tcTagsIDX);
 		//now process raw products
 		resetProductMap();
-		procRawProductData(rawDataArrays.get(straffDataFileNames[tcTagsIDX]));		
-		
-		dispMessage("SOMMapManager","loadRawProductData","Begin initial finalize of product map to aggregate all JP found in updated products", MsgCodes.info1);		
-		//finalize builds each example's occurence structures, which describe the jp-jpg relationships found in the example
-		for (ProspectExample ex : prospectMap.values()) {			ex.finalizeBuild();		}		
-		//finalize build for all products - aggregates all jps seen in product
-		for (ProductExample ex : productMap.values()){		ex.finalizeBuild();		}		
-		//must rebuild this because we might not have same jp's
-		dispMessage("SOMMapManager","loadRawProductData","End initial finalize of product map | Begin setJPDataFromExampleData from prospect map", MsgCodes.info1);
-		//we need the jp-jpg counts and relationships dictated by the data by here - need to rebuild with new product data
-		setJPDataFromExampleData(prospectMap);
-		dispMessage("SOMMapManager","loadRawProductData","End setJPDataFromExampleData from prospect map; calling finishSOMExampleBuild", MsgCodes.info1);
+		procRawProductData(rawDataArrays.get(straffDataDirNames[tcTagsIDX]));
+		//finalize all products and customers
+		_finalizeProsProdJpJPGMon("loadRawProductData", "main customer", prospectExamples.get(custExKey));
 		//finalize - recalc all processed data in case new products have different JP's present, set flags and save to file
 		calcFtrsDiffsMinsAndSave();
 		dispMessage("SOMMapManager","loadRawProductData","Finished loading raw product data, processing and saving preprocessed for products data only", MsgCodes.info5);
 	}//only load the product/TC-tagging data, process it and then save it to files
-	
-	
+		
 	//fromCSVFiles : whether loading data from csv files or from SQL calls
 	//eventsOnly : only use examples with event data to train
 	//append : whether to append to existing data values or to load new data
@@ -522,18 +484,27 @@ public class SOMMapManager {
 		boolean canMultiThread=isMTCapable();//this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
 		if(canMultiThread) {
 			buildStraffDataLoaders();
-			for (int idx=0;idx<numStraffDataTypes;++idx) {//build a thread per data type //straffRawDatDebugLoad
-				String[] loadRawDatStrs = projConfigData.getRawDataLoadInfo(fromCSVFiles,straffDataFileNames[idx]);
+			ArrayList<String> _fileNames;
+			String destAraDataKey;
+			for (int idx=0;idx<straffDataDirNames.length;++idx) {//build a thread per data type //straffRawDatDebugLoad
+				 _fileNames = new ArrayList<String>();
 				boolean[] flags = new boolean[] {fromCSVFiles,straffRawDatUsesJSON[idx], straffRawDatDebugLoad[idx]};
-				straffDataLoaders.get(idx).setLoadData(this, loadRawDatStrs,  flags, straffObjFlagIDXs[idx]);
+				String[] fileNameAra = straffDataFileNames.get(straffDataDirNames[idx]);
+				for (int fidx =0;fidx <fileNameAra.length;++fidx) {
+					String fullFileName = projConfigData.getRawDataLoadInfo(fromCSVFiles,straffDataDirNames[idx],fileNameAra[fidx]);
+					straffDataLoaders.get(fileNameAra[fidx]).setLoadData(this, straffDataDirNames[idx],  fullFileName, flags, straffObjFlagIDXs[idx]);
+				}
 			}
 			//blocking on callables for multithreaded
-			try {straffDataLdrFtrs = th_exec.invokeAll(straffDataLoaders);for(Future<Boolean> f: straffDataLdrFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }		
+			try {straffDataLdrFtrs = th_exec.invokeAll(straffDataLoaders.values());for(Future<Boolean> f: straffDataLdrFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }		
 		} else {
-			for (int idx=0;idx<numStraffDataTypes;++idx) {
-				String[] loadRawDatStrs = projConfigData.getRawDataLoadInfo(fromCSVFiles,straffDataFileNames[idx]);
+			for (int idx=0;idx<straffDataDirNames.length;++idx) {
 				boolean[] flags = new boolean[] {fromCSVFiles,straffRawDatUsesJSON[idx], straffRawDatDebugLoad[idx]};
-				loadRawDataVals(loadRawDatStrs, flags,idx);
+				String[] fileNameAra = straffDataFileNames.get(straffDataDirNames[idx]);
+				for (int fidx =0;fidx <fileNameAra.length;++fidx) {
+					String fullFileName = projConfigData.getRawDataLoadInfo(fromCSVFiles,straffDataDirNames[idx],fileNameAra[fidx]);
+					loadRawDataVals(straffDataDirNames[idx], fullFileName, flags,idx);
+				}
 			}
 		}
 		//process loaded data
@@ -543,23 +514,26 @@ public class SOMMapManager {
 	}//loadAllRawData
 	
 	//will instantiate specific loader class object and load the data specified by idx, either from csv file or from an sql call described by csvFile
-	private void loadRawDataVals(String[] loadRawDatStrs, boolean[] flags, int idx){//boolean _isFileLoader, String _fileNameAndPath
+	private void loadRawDataVals(String dataDirTypeName, String fullFileName, boolean[] flags, int idx){//boolean _isFileLoader, String _fileNameAndPath
 		//single threaded implementation
 		@SuppressWarnings("rawtypes")
 		Class[] args = new Class[] {boolean.class, String.class};//classes of arguments for loader ctor		
 		try {
 			@SuppressWarnings("unchecked")
-			StraffordDataLoader loaderObj = (StraffordDataLoader) straffObjLoaders[idx].getDeclaredConstructor(args).newInstance(flags[0], loadRawDatStrs[1]);
-			loaderObj.setLoadData(this, loadRawDatStrs,  flags, straffObjFlagIDXs[idx]);
+			StraffordDataLoader loaderObj = (StraffordDataLoader) straffObjLoaders[idx].getDeclaredConstructor(args).newInstance(flags[0], fullFileName);
+			loaderObj.setLoadData(this, dataDirTypeName, fullFileName, flags, straffObjFlagIDXs[idx]);
 			ArrayList<BaseRawData> datAra = loaderObj.execLoad();
-			rawDataArrays.put(loadRawDatStrs[0], datAra);
-			setFlag(straffObjFlagIDXs[idx], true);			//set flag corresponding to this type of data to be loaded
-		} catch (Exception e) {			e.printStackTrace();}		
+			if(datAra.size() > 0) {
+				ArrayList<BaseRawData> existAra = rawDataArrays.get(dataDirTypeName);
+				if(existAra != null) {			datAra.addAll(existAra);			} //merge with existing array
+				rawDataArrays.put(dataDirTypeName, datAra);
+				setFlag(straffObjFlagIDXs[idx], true);			//set flag corresponding to this type of data to be loaded
+			}
+		} catch (Exception e) {						e.printStackTrace();				}		
 		
-		setFlag(straffObjFlagIDXs[idx], true);			//set flag corresponding to this type of data to be loaded
+		//setFlag(straffObjFlagIDXs[idx], true);			//set flag corresponding to this type of data to be loaded
 	}//loadRawDataVals	
 	
-
 	//load all preprocessed data from default data location
 	public void loadAllPreProccedData() { loadAllPreProccedData(projConfigData.getRawDataDesiredDirName());}
 	//pass subdir within data directory, or use default
@@ -570,36 +544,55 @@ public class SOMMapManager {
 		String[] loadSrcFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(subDir, false, "MonitorJpJpgrpData");
 		jpJpgrpMon.loadAllData(loadSrcFNamePrefixAra[0]+".csv");
 		dispMessage("SOMMapManager","loadMonitorJpJpgrp","Finished loading MonitorJpJpgrp data", MsgCodes.info1);
+		dispMessage("SOMMapManager","loadMonitorJpJpgrp",jpJpgrpMon.toString(), MsgCodes.info1);
+		//load prospect data
+		loadAllProspectData(subDir);		
 		
-		loadAllPropsectMapData(subDir);
+		//load product data
 		loadAllProductMapData(subDir);
 		finishSOMExampleBuild();
 		setFlag(rawPrspctEvDataProcedIDX, true);
 		setFlag(rawProducDataProcedIDX, true);
 		dispMessage("SOMMapManager","loadAllPreProccedData","Finished loading preprocced data from " + subDir +  "directory.", MsgCodes.info5);
-	}
+	}//loadAllPreProccedData
+
+	//load "prospect" (customers/prospects with past events) data found in subDir
+	private void loadAllProspectData(String subDir) {
+		//load prospect data - prospect records with orders
+		//clear out current prospect data
+		resetProspectMap();		
+		loadAllExampleMapData(subDir, custExKey, prospectExamples.get(custExKey));		
+	}//loadAllProspectData
+	
+	//load validation (true prospects) data found in subDir
+	private void loadAllValidationData(String subDir) {
+		//load validation data - prospect records with no order events
+		//clear out current validation data
+		resetValidationMap();	
+		loadAllExampleMapData(subDir, prspctExKey, prospectExamples.get(prspctExKey));		
+	}//loadAllProspectData	
+	
 	
 	//load prospect mapped training data into StraffSOMExamples from disk
-	private void loadAllPropsectMapData(String subDir) {
+	//must reset prospect/validation maps before this is called
+	private void loadAllExampleMapData(String subDir, String mapType, ConcurrentSkipListMap<String, ProspectExample> mapToBuild) {
 		//perform in multiple threads if possible
-		dispMessage("SOMMapManager","loadAllPropsectMapData","Loading all prospect map data that only have event-based training info", MsgCodes.info5);//" + (eventsOnly ? "that only have event-based training info" : "that have any training info (including only prospect jpg/jp specification)"));
-		//clear out current prospect data
-		resetProspectMap();
-		String[] loadSrcFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(subDir, true, "prospectMapSrcData");
-		
+		dispMessage("SOMMapManager","loadAllExampleMapData","Loading all " + mapType+ " map data that only have event-based training info", MsgCodes.info5);//" + (eventsOnly ? "that only have event-based training info" : "that have any training info (including only prospect jpg/jp specification)"));
+		String[] loadSrcFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(subDir, true, mapType+ "MapSrcData");
 		String fmtFile = loadSrcFNamePrefixAra[0]+"_format.csv";
+		
 		String[] loadRes = fileIO.loadFileIntoStringAra(fmtFile, "Format file loaded", "Format File Failed to load");
 		int numPartitions = 0;
 		try {
 			numPartitions = Integer.parseInt(loadRes[0].split(" : ")[1].trim());
-		} catch (Exception e) {e.printStackTrace(); dispMessage("SOMMapManager","loadAllPropsectMapData","Due to error with not finding format file : " + fmtFile+ " no data will be loaded.", MsgCodes.error1); return;} 
+		} catch (Exception e) {e.printStackTrace(); dispMessage("SOMMapManager","loadAllExampleMapData","Due to error with not finding format file : " + fmtFile+ " no data will be loaded.", MsgCodes.error1); return;} 
 		
 		boolean canMultiThread=isMTCapable();//this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
 		if(canMultiThread) {			
 			List<Future<Boolean>> preProcLoadFtrs = new ArrayList<Future<Boolean>>();
 			List<straffCSVDataLoader> preProcLoaders = new ArrayList<straffCSVDataLoader>();
 			for (int i=0; i<numPartitions;++i) {				
-				preProcLoaders.add(new straffCSVDataLoader(this, i, loadSrcFNamePrefixAra[0]+"_"+i+".csv", "Data file " + i +" loaded", "Data File " + i +" Failed to load"));
+				preProcLoaders.add(new straffCSVDataLoader(this, i, loadSrcFNamePrefixAra[0]+"_"+i+".csv", "Data file " + i +" loaded", "Data File " + i +" Failed to load", mapToBuild));
 			}
 			try {preProcLoadFtrs = th_exec.invokeAll(preProcLoaders);for(Future<Boolean> f: preProcLoadFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }					
 		} else {//load each file in its own csv
@@ -612,11 +605,11 @@ public class SOMMapManager {
 					int pos = str.indexOf(',');
 					String oid = str.substring(0, pos);
 					ProspectExample ex = new ProspectExample(this, oid, str);
-					prospectMap.put(oid, ex);			
+					mapToBuild.put(oid, ex);			
 				}
 			}		
 		}	
-		dispMessage("SOMMapManager","loadAllPropsectMapData","Finished loading and preprocessing all local prospect map data and calculating features.  Number of entries in prospectMap : " + prospectMap.size(), MsgCodes.info5);
+		dispMessage("SOMMapManager","loadAllExampleMapData","Finished loading and preprocessing all local prospect map data and calculating features.  Number of entries in " + mapType + " prospectMap : " + mapToBuild.size(), MsgCodes.info5);
 	}//loadAllPropsectMapData	
 	
 	//load product pre-procced data from tc_taggings source
@@ -660,22 +653,22 @@ public class SOMMapManager {
 	}//mapProductsToProspects
 		
 	//write all prospect map data to a csv to be able to be reloaded to build training data from, so we don't have to re-read database every time
-	private boolean saveAllProspectMapData() {
-		if ((null != prospectMap) && (prospectMap.size() > 0)) {
-			dispMessage("SOMMapManager","saveAllProspectMapData","Saving all prospect map data : " + prospectMap.size() + " examples to save.", MsgCodes.info5);
-			String[] saveDestFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(true, "prospectMapSrcData");
+	private boolean saveAllExampleMapData(String mapType, ConcurrentSkipListMap<String, ProspectExample> exMap) {
+		if ((null != exMap) && (exMap.size() > 0)) {
+			dispMessage("SOMMapManager","saveAllExampleMapData","Saving all "+mapType+" map data : " + exMap.size() + " examples to save.", MsgCodes.info5);
+			String[] saveDestFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(true, mapType+"MapSrcData");
 			ArrayList<ArrayList<String>> csvRes = new ArrayList<ArrayList<String>>();
 			ArrayList<String> csvResTmp = new ArrayList<String>();		
 			int counter = 0;
-			ProspectExample ex1 = prospectMap.get(prospectMap.firstKey());
+			ProspectExample ex1 = exMap.get(exMap.firstKey());
 			String hdrStr = ex1.getRawDescColNamesForCSV();
 			csvResTmp.add( hdrStr);
 			int nameCounter = 0;
-			for (ProspectExample ex : prospectMap.values()) {			
+			for (ProspectExample ex : exMap.values()) {			
 				csvResTmp.add(ex.getRawDescrForCSV());
 				++counter;
 				if(counter % preProcDatPartSz ==0) {
-					dispMessage("SOMMapManager","saveAllProspectMapData","Done Building String Array : " +(nameCounter++), MsgCodes.info1);
+					dispMessage("SOMMapManager","saveAllExampleMapData","Done Building String Array : " +(nameCounter++), MsgCodes.info1);
 					counter = 0;
 					csvRes.add(csvResTmp); 
 					csvResTmp = new ArrayList<String>();
@@ -683,21 +676,21 @@ public class SOMMapManager {
 				}
 			}
 			if(csvResTmp.size() > 1) {	csvRes.add(csvResTmp);}//add last result
-			dispMessage("SOMMapManager","saveAllProspectMapData","Finished partitioning " + prospectMap.size()+ " prospect records into " + csvRes.size() + " prospect record files, each holding up to " + preProcDatPartSz + " records.  Start saving files.", MsgCodes.info1);
+			dispMessage("SOMMapManager","saveAllExampleMapData","Finished partitioning " + exMap.size()+ " "+mapType+" records into " + csvRes.size() + " "+mapType+" record files, each holding up to " + preProcDatPartSz + " records.  Start saving files.", MsgCodes.info1);
 			//save array of arrays of strings, partitioned and named so that no file is too large
 			nameCounter = 0;
 			for (ArrayList<String> csvResSubAra : csvRes) {		
-				dispMessage("SOMMapManager","saveAllProspectMapData","Saving Pre-procced Prospect data String array : " +nameCounter, MsgCodes.info1);
+				dispMessage("SOMMapManager","saveAllExampleMapData","Saving Pre-procced "+mapType+" data String array : " +nameCounter, MsgCodes.info1);
 				fileIO.saveStrings(saveDestFNamePrefixAra[0]+"_"+nameCounter+".csv", csvResSubAra);
 				++nameCounter;
 			}
 			//save the data in a format file
 			String[] data = new String[] {"Number of file partitions for " + saveDestFNamePrefixAra[1] +" data : "+ nameCounter + "\n"};
 			fileIO.saveStrings(saveDestFNamePrefixAra[0]+"_format.csv", data);		
-			dispMessage("SOMMapManager","saveAllProspectMapData","Finished saving all prospect map data", MsgCodes.info5);
+			dispMessage("SOMMapManager","saveAllExampleMapData","Finished saving all "+mapType+" map data", MsgCodes.info5);
 			return true;
-		} else {dispMessage("SOMMapManager","saveAllProspectMapData","No prospect example data to save. Aborting", MsgCodes.error2); return false;}
-	}//saveAllProspectMapData	
+		} else {dispMessage("SOMMapManager","saveAllExampleMapData","No "+mapType+" example data to save. Aborting", MsgCodes.error2); return false;}
+	}//saveAllExampleMapData	
 
 	private boolean saveAllProductMapData() {
 		if ((null != productMap) && (productMap.size() > 0)) {
@@ -723,36 +716,32 @@ public class SOMMapManager {
 		jpJpgrpMon.saveAllData(saveDestFNamePrefixAra[0]+".csv");
 		dispMessage("SOMMapManager","saveMonitorJpJpgrp","Finished saving MonitorJpJpgrp data", MsgCodes.info5);
 	}//saveMonitorJpJpgrp
-		
-	//build the calculation object, recalculate the features and calc and save the mins and diffs
+			
+	//build the calculation object, recalculate the features and calc and save the mins, diffs, and all prospect, validation and product map data
 	public void calcFtrsDiffsMinsAndSave() {
 		dispMessage("SOMMapManager","rebuildCalcObj","Start loading calc object, calculating all feature vectors for prospects and products, calculating mins and diffs, and saving all results.", MsgCodes.info5);
 		finishSOMExampleBuild();
 		dispMessage("SOMMapManager","rebuildCalcObj","Finished loading calc object, calculating all feature vectors for prospects and products & calculating mins and diffs | Start saving all results.", MsgCodes.info1);
 		setFlag(rawPrspctEvDataProcedIDX, true);
 		setFlag(rawProducDataProcedIDX, true);
-		boolean prspctSuccess = saveAllProspectMapData();
+		boolean prspctSuccess = saveAllExampleMapData(custExKey, prospectExamples.get(custExKey));
+		boolean validationSuccess = saveAllExampleMapData(prspctExKey, prospectExamples.get(prspctExKey));
 		boolean prodSuccess = saveAllProductMapData();		
-		if (prspctSuccess || prodSuccess) { saveMonitorJpJpgrp();}
+		if (prspctSuccess || validationSuccess || prodSuccess) { saveMonitorJpJpgrp();}
 		dispMessage("SOMMapManager","rebuildCalcObj","Finished loading calc object, calculating all feature vectors for prospects and products, calculating mins and diffs, and saving all results.", MsgCodes.info5);
 	}//calcFtrsDiffsMinsAndSave()
 
 	//finish building the prospect map - finalize each prospect example and then perform calculation to derive weight vector
 	private void finishSOMExampleBuild() {
-		if((prospectMap.size() != 0) || (productMap.size() != 0)) {
+		if((prospectExamples.get(custExKey).size() != 0) || (productMap.size() != 0)) {
 			setFlag(mapDataLoadedIDX,false);//current map, if there is one, is now out of date, do not use
-			dispMessage("SOMMapManager","finishSOMExampleBuild","Begin Finalize of prospect and product map.", MsgCodes.info5);
-			//finalize builds each example's occurence structures, which describe the jp-jpg relationships found in the example
-			for (ProspectExample ex : prospectMap.values()) {			ex.finalizeBuild();		}		
-			//finalize build for all products - aggregates all jps seen in product
-			for (ProductExample ex : productMap.values()){		ex.finalizeBuild();		}	
-			dispMessage("SOMMapManager","finishSOMExampleBuild","End Finalize of prospect and product map | Begin setJPDataFromExampleData", MsgCodes.info1);
-			//we need the jp-jpg counts and relationships dictated by the data by here.
-			setJPDataFromExampleData(prospectMap);
-			dispMessage("SOMMapManager","finishSOMExampleBuild","End setJPDataFromExampleData | Begin buildFeatureVector prospects", MsgCodes.info1);	
-			//reset calc analysis objects before building feature vectors to enable new analytic info to be aggregated
+			//finalize prospects and products - customers are defined by 
+			ConcurrentSkipListMap<String, ProspectExample> customerMap = prospectExamples.get(custExKey);
+			_finalizeProsProdJpJPGMon("finishSOMExampleBuild", "main customer", customerMap);
+			//reset calc analysis objects before building feature vectors to enable new analytic info to be aggregated - only build features on customers
 			ftrCalcObj.resetAllCalcObjs();
-			for (ProspectExample ex : prospectMap.values()) {			ex.buildFeatureVector();	}
+			Collection<ProspectExample> exs = customerMap.values();
+			for (ProspectExample ex : exs) {			ex.buildFeatureVector();	}
 			//set state as finished
 			ftrCalcObj.finishFtrCalcs();
 			dispMessage("SOMMapManager","finishSOMExampleBuild","End buildFeatureVector prospects | Begin buildFeatureVector products", MsgCodes.info1);
@@ -764,8 +753,10 @@ public class SOMMapManager {
 			//now get mins and diffs from calc object
 			diffsVals = ftrCalcObj.getDiffsBndsAra();
 			minsVals = ftrCalcObj.getMinBndsAra();
-			dispMessage("SOMMapManager","finishSOMExampleBuild","End calculating diffs and mins | Begin building post-feature calc structs in prospects (i.e. std ftrs) dependent on diffs and mins", MsgCodes.info1);			
-			for (ProspectExample ex : prospectMap.values()) {			ex.buildPostFeatureVectorStructs();		}//this builds std ftr vector for prospects, once diffs and mins are set - not necessary for products, buildFeatureVector for products builds std ftr vec
+			dispMessage("SOMMapManager","finishSOMExampleBuild","End calculating diffs and mins | Begin building post-feature calc structs in prospects (i.e. std ftrs) dependent on diffs and mins", MsgCodes.info1);		
+			
+			exs = customerMap.values();
+			for (ProspectExample ex : exs) {			ex.buildPostFeatureVectorStructs();		}//this builds std ftr vector for prospects, once diffs and mins are set - not necessary for products, buildFeatureVector for products builds std ftr vec
 			dispMessage("SOMMapManager","finishSOMExampleBuild","End building post-feature calc structs in prospects (i.e. std ftrs)", MsgCodes.info5);			
 				
 		} else {		dispMessage("SOMMapManager","finishSOMExampleBuild","No prospects or products loaded to calculate.", MsgCodes.warning2);	}
@@ -842,8 +833,7 @@ public class SOMMapManager {
 				
 			}
 			
-		}
-			
+		}			
 	
 		dispMessage("SOMMapManager","buildFtrBasedRpt","Finished Building feature weight reports for all examples.", MsgCodes.info5);
 
@@ -930,14 +920,14 @@ public class SOMMapManager {
 		default : {return -1;}		//unknown data frmt type
 		}		
 	}//getDataFrmtTypeFromName
-	
+
 	//using the passed map, build the testing and training data partitions and save them to files
 	private void buildTestTrainFromProspectMap(float trainTestPartition, boolean isBuildingNewMap) {
 		dispMessage("SOMMapManager","buildTestTrainFromInput","Building Training and Testing Partitions.", MsgCodes.info5);
 		//set partition size in project config
 		projConfigData.setTrainTestPartition(trainTestPartition);
 		//set inputdata array to be all prospect map examples
-		inputData = prospectMap.values().toArray(new ProspectExample[0]);		
+		inputData = prospectExamples.get(custExKey).values().toArray(new ProspectExample[0]);		
 		//shuffleProspects(ProspectExample[] _list, long seed) -- performed in place - use same key so is reproducible training, always has same shuffled order
 		inputData = shuffleProspects(inputData, 12345L);
 		
@@ -967,19 +957,18 @@ public class SOMMapManager {
 	}//buildTestTrainFromInput
 	
 	//this will load the default map training configuration
-	public void loadSOMConfig() {
-		
+	public void loadSOMConfig() {		
 		projConfigData.loadDefaultSOMExp_Config();
 		
 	}//loadSOMConfig
 	
 	//load preproc csv and build training and testing partitions
 	public void loadPreprocAndBuildTestTrainPartitions(float trainTestPartition) {
-		dispMessage("SOMMapManager","dbgLoadCSVBuildDataTrainMap","Start Loading all CSV Build Data to train map.", MsgCodes.info5);
+		dispMessage("SOMMapManager","loadPreprocAndBuildTestTrainPartitions","Start Loading all CSV Build Data to train map.", MsgCodes.info5);
 		loadAllPreProccedData();
 		//build SOM data
 		buildTestTrainFromProspectMap(trainTestPartition, true);	
-		dispMessage("SOMMapManager","dbgLoadCSVBuildDataTrainMap","Saving data to training file : Starting to save training/testing data partitions ", MsgCodes.info1);
+		dispMessage("SOMMapManager","loadPreprocAndBuildTestTrainPartitions","Saving data to training file : Starting to save training/testing data partitions ", MsgCodes.info1);
 		//save mins/maxes so this file data be reconstructed
 		//save diffs and mins - csv files with each field value sep'ed by a comma
 		//boundary region for training data
@@ -992,8 +981,8 @@ public class SOMMapManager {
 		String diffsFileName = projConfigData.getSOMMapDiffsFileName();				
 		fileIO.saveStrings(minsFileName,new String[]{minStr});		
 		fileIO.saveStrings(diffsFileName,new String[]{diffStr});		
-		dispMessage("SOMMapManager","dbgLoadCSVBuildDataTrainMap","Strafford Prospects Mins and Diffs Files Saved", MsgCodes.info1);	
-		dispMessage("SOMMapManager","dbgLoadCSVBuildDataTrainMap","Finished Loading all CSV Build Data to train map.", MsgCodes.info5);
+		dispMessage("SOMMapManager","loadPreprocAndBuildTestTrainPartitions","Strafford Prospects Mins and Diffs Files Saved", MsgCodes.info1);	
+		dispMessage("SOMMapManager","loadPreprocAndBuildTestTrainPartitions","Finished Loading all CSV Build Data to train map.", MsgCodes.info5);
 	}//loadPreprocAndBuildTestTrainPartitions
 	
 	//load the data used to build a map as well as existing map results
@@ -1017,7 +1006,7 @@ public class SOMMapManager {
 	//requiring a knowledge of the entire dataset to build weights appropriately
 	private void setJPDataFromExampleData(ConcurrentSkipListMap<String, ProspectExample> map) {
 		//object to manage all jps and jpgroups seen in project
-		jpJpgrpMon.setJPDataFromExampleData(map, productMap);		
+		jpJpgrpMon.setJPDataFromExampleData(map, prospectExamples.get(prspctExKey), productMap);		
 		numFtrs = jpJpgrpMon.getNumFtrs();
 		//rebuild calc object since feature terrain might have changed 
 		String calcFullFileName = projConfigData.getFullCalcInfoFileName(); 
@@ -1028,45 +1017,37 @@ public class SOMMapManager {
 	//process all events into training examples
 	private void procRawEventData(ConcurrentSkipListMap<String, ProspectExample> tmpProspectMap,ConcurrentSkipListMap<String, ArrayList<BaseRawData>> dataArrays, boolean saveBadRecs) {			
 		dispMessage("SOMMapManager","procRawEventData","Start processing raw event data.", MsgCodes.info5);
-		for (int idx = 1; idx <straffDataFileNames.length;++idx) {
-			if (idx == tcTagsIDX) {continue;}//dont' handle tcTags here
-			ArrayList<BaseRawData> events = dataArrays.get(straffDataFileNames[idx]);
-			String eventType = straffDataFileNames[idx].split("_")[0];		
-			String eventBadFName = projConfigData.getBadEventFName(straffDataFileNames[idx]);//	
+		String dataName;
+		int dataTypeIDX;
+		//only iterate through event records in dataArraysMap
+		for (int i = 0; i <straffEventDataIDXs.length;++i) {//for each event
+			dataTypeIDX = straffEventDataIDXs[i];
+			dataName = straffDataDirNames[dataTypeIDX];
+			ArrayList<BaseRawData> events = dataArrays.get(dataName);
+			//derive event type from file name?
+			String eventType = dataName.split("_")[0];		
+			String eventBadFName = projConfigData.getBadEventFName(dataName);//	
 			ArrayList<String> badEventOIDs = new ArrayList<String>();
 			HashSet<String> uniqueBadEventOIDs = new HashSet<String>();
 			
-			if (idx == optEvntIDX){
-				//to monitor bad event formats - events with OIDs that are not found in prospect DB data
-				TreeMap<String, Integer> badOptOIDsOps = new TreeMap<String, Integer>();		
-				for (BaseRawData obj : events) {
-					ProspectExample ex = tmpProspectMap.get(obj.OID);
-					if (ex == null) {
-						if (saveBadRecs) {//means no prospect object corresponding to the OID in this event
-							badEventOIDs.add(obj.OID);
-							uniqueBadEventOIDs.add(obj.OID);
-							badOptOIDsOps.put(obj.OID, ((OptEvent)obj).getOptType());
-						}
-						continue;}
-					ex.addObj(obj, idx);
-				}//for every event				
-			} else {
-				for (BaseRawData obj : events) {
-					ProspectExample ex = tmpProspectMap.get(obj.OID);
-					if (ex == null) {
-						if (saveBadRecs) {//means no prospect object corresponding to the OID in this event
-							badEventOIDs.add(obj.OID);
-							uniqueBadEventOIDs.add(obj.OID);
-						}
-						continue;}
-					ex.addObj(obj, idx);
-				}//for every event
-			}			
+			for (BaseRawData obj : events) {
+				ProspectExample ex = tmpProspectMap.get(obj.OID);			//event has OID referencing prospect/customer record in prospect table
+				if (ex == null) {
+					if (saveBadRecs) {//means no prospect object corresponding to the OID in this event
+						badEventOIDs.add(obj.OID);
+						uniqueBadEventOIDs.add(obj.OID);
+					}
+					continue;}
+				ex.addEventObj(obj, dataTypeIDX);//can't multi-thread this based on event type because prospect objects might collide and they aren't thread safe
+			}//for every actual event - verify every event references an actual object using its OID field
+	
 			if (saveBadRecs && (badEventOIDs.size() > 0)) {
 				fileIO.saveStrings(eventBadFName, uniqueBadEventOIDs.toArray(new String[0]));		
-				dispMessage("SOMMapManager","procRawEventData","# of "+eventType+" events without corresponding prospect records : "+badEventOIDs.size() + " | # Unique bad "+eventType+" event prospect OID refs (missing OIDs in prospect) : "+uniqueBadEventOIDs.size(), MsgCodes.info3);
+				dispMessage("SOMMapManager","procRawEventData","# of "+eventType+" events without corresponding prospect records : "+badEventOIDs.size() + " out of " +events.size() + " total "+eventType+" events | # Unique bad "+eventType+" event prospect OID refs (missing OIDs in prospect) : "+uniqueBadEventOIDs.size(), MsgCodes.info3);
+			} else {
+				dispMessage("SOMMapManager","procRawEventData","No "+eventType+" events without corresponding prospect records found after processing "+ events.size() +" events.", MsgCodes.info3);				
 			}
-		}
+		}//for each event type
 		dispMessage("SOMMapManager","procRawEventData","Finished processing raw event data.", MsgCodes.info5);
 	}//procRawEventData
 	
@@ -1110,68 +1091,144 @@ public class SOMMapManager {
 				calcVal = (ftrVal - min)/diffs;
 		return Math.round(255 * calcVal);
 	}//scaleUnfrmttedFtrData
+	
+	//manage the finalizing of the prospects in tmpProspectMap and the loaded products
+	private void _finalizeProsProdJpJPGMon(String calledFromMethod, String prospectMapName, ConcurrentSkipListMap<String, ProspectExample> tmpProspectMap) {
+		//code pulled from finalize; finalize builds each example's occurence structures, which describe the jp-jpg relationships found in the example
+		dispMessage("SOMMapManager",calledFromMethod+"->_finalizeProsProdJpJPGMon","Begin initial finalize of "+ prospectMapName +" customer map to aggregate all JPs and (potentially) determine which records are valid training examples", MsgCodes.info1);		
+		//finalize each customer - this will aggregate all the jp's that are seen, as well as finding all records that are bad due to having a 0 ftr vector
+		for (ProspectExample ex : tmpProspectMap.values()) {			ex.finalizeBuild();		}		
+		ConcurrentSkipListMap<String, ProspectExample> trueProspects = prospectExamples.get(prspctExKey);
+		if(trueProspects.size() != 0) {
+			dispMessage("SOMMapManager",calledFromMethod+"->_finalizeProsProdJpJPGMon","End initial finalize of "+ prospectMapName +" customer map | Begin initial finalize of true prospects map to aggregate all JPs", MsgCodes.info1);			
+			Collection<ProspectExample> truPspctExs = trueProspects.values();
+			for (ProspectExample ex : truPspctExs) {			ex.finalizeBuild();		}		
+			dispMessage("SOMMapManager",calledFromMethod+"->_finalizeProsProdJpJPGMon","End initial finalize of true prospects map | Begin initial finalize of product map to aggregate all JPs", MsgCodes.info1);	
+		} else {
+			dispMessage("SOMMapManager",calledFromMethod+"->_finalizeProsProdJpJPGMon","End initial finalize of "+ prospectMapName +" customer map | Begin initial finalize of product map to aggregate all JPs", MsgCodes.info1);	
+		}
+		//finalize build for all products - aggregates all jps seen in product
+		for (ProductExample ex : productMap.values()){		ex.finalizeBuild();		}		
+		//must rebuild this because we might not have same jp's
+		dispMessage("SOMMapManager",calledFromMethod+"->_finalizeProsProdJpJPGMon","End initial finalize of product map | Begin setJPDataFromExampleData from prospect map", MsgCodes.info1);
+		//we need the jp-jpg counts and relationships dictated by the data by here.
+		setJPDataFromExampleData(tmpProspectMap);
+		dispMessage("SOMMapManager",calledFromMethod+"->_finalizeProsProdJpJPGMon","End setJPDataFromExampleData from "+ prospectMapName +" prospect map", MsgCodes.info1);
+	}//_finalizeProsProdJpJPGMon
+	
+	//this will display debug-related 
+	private void dispDebugEventPresenceData(int[] countsOfBoolResOcc, int[] countsOfBoolResEvt) {
+		for(int i=0;i<ProspectExample.eventMapTypeKeys.length;++i) {
+			dispMessage("SOMMapManager","_buildCustomerAndProspectMaps->dispDebugEventPresenceData","# prospect OCC records with "+ ProspectExample.eventMapTypeKeys[i]+" events : " + countsOfBoolResOcc[i] , MsgCodes.info1);				
+			dispMessage("SOMMapManager","_buildCustomerAndProspectMaps->dispDebugEventPresenceData","# prospect Event records with "+ ProspectExample.eventMapTypeKeys[i]+" events : " + countsOfBoolResEvt[i] , MsgCodes.info1);	
+			if(i==1) {
+				dispMessage("SOMMapManager","_buildCustomerAndProspectMaps->dispDebugEventPresenceData","# prospect records with global opt : " + StraffEvntTrainData.numOptAllIncidences , MsgCodes.info1);	
+				dispMessage("SOMMapManager","_buildCustomerAndProspectMaps->dispDebugEventPresenceData","# prospect records with positive global opt : " + StraffEvntTrainData.numPosOptAllIncidences , MsgCodes.info1);	
+				dispMessage("SOMMapManager","_buildCustomerAndProspectMaps->dispDebugEventPresenceData","# prospect records with non-positive global opt : " + StraffEvntTrainData.numNegOptAllIncidences , MsgCodes.info1);	
+			}
+			dispMessage("SOMMapManager","_buildCustomerAndProspectMaps->dispDebugEventPresenceData"," " , MsgCodes.info1);				
+		}		
+		dispMessage("SOMMapManager","_buildCustomerAndProspectMaps->dispDebugEventPresenceData","# prospect records with OCC non-source events : " + countsOfBoolResOcc[countsOfBoolResOcc.length-1] , MsgCodes.info1);			
+		dispMessage("SOMMapManager","_buildCustomerAndProspectMaps->dispDebugEventPresenceData","# prospect records with Evt non-source events : " + countsOfBoolResEvt[countsOfBoolResEvt.length-1] , MsgCodes.info1);			
 		
-	//this will go through all the prospects, opts, and events and build a map of prospectExample keyed by prospect OID and holding all the known data
+	}//dispDebugEventPresenceData
+	
+	//check and increment relevant counters if specific events are found in a particular example
+	private void dbgEventInExample(ProspectExample ex, int[] countsOfBoolResOcc, int[] countsOfBoolResEvt) {
+		boolean[] exOCCStatus, exEvtStatus;
+		exOCCStatus = ex.getExampleStatusOcc();
+		exEvtStatus = ex.getExampleStatusEvt();
+		for(int i=0;i<exOCCStatus.length;++i) {
+			if(exOCCStatus[i]) {++countsOfBoolResOcc[i];}
+			if(exEvtStatus[i]) {++countsOfBoolResEvt[i];}
+		}
+	}//dbgEventInExample
+		
+	//this function will take all raw loaded prospects and partition them into customers and true prospects
+	//it determines what the partition/definition is for a "customer" which is used to train the map, and a "true prospect" which is polled against the map to find product membership.
+	//typeOfEventsForCustomer : int corresponding to what kind of events define a customer and what defines a prospect.  
+	//    0 : cust has order event, prospect does not but has source and possibly other events
+	//    1 : cust has some non-source event, prospect does not have customer event but does have source event
+	private void _buildCustomerAndProspectMaps(ConcurrentSkipListMap<String, ProspectExample> tmpProspectMap) {
+		//whether or not to display total event membership counts across all examples to console
+		boolean dispDebugEventMembership = true;
+		
+		int typeOfEventsForCustomer = projConfigData.getTypeOfEventsForCustAndProspect();
+
+		int[] countsOfBoolResOcc = new int[ProspectExample.eventMapTypeKeys.length+1],
+			countsOfBoolResEvt = new int[ProspectExample.eventMapTypeKeys.length+1];		//all types of events supported + 1
+		ConcurrentSkipListMap<String, ProspectExample> 
+			customerPrspctMap = prospectExamples.get(custExKey),			//map of customers to build
+			truePrspctMap = prospectExamples.get(prspctExKey);				//map of true prospects to build
+		
+		switch(typeOfEventsForCustomer) {
+		case 0 : {		// cust has order event, prospect does not but has source and possibly other events
+			for (String OID : tmpProspectMap.keySet()) {		
+				ProspectExample ex = tmpProspectMap.get(OID);
+				if(dispDebugEventMembership) {dbgEventInExample(ex, countsOfBoolResOcc, countsOfBoolResEvt);}
+				if (ex.isTrainablePastCustomer()) {			customerPrspctMap.put(OID, ex);		} 			//training data - has valid feature vector and past order events
+				else if (ex.isTrueProspect()) {				truePrspctMap.put(OID, ex);		} 				//no past order events but has valid source event data
+			}
+			break;}
+		case 1 : {		//cust has some non-source event, prospect does not have customer event but does have source event
+			for (String OID : tmpProspectMap.keySet()) {		
+				ProspectExample ex = tmpProspectMap.get(OID);
+				if(dispDebugEventMembership) {dbgEventInExample(ex, countsOfBoolResOcc, countsOfBoolResEvt);}
+				if (ex.hasNonSourceEvents()) {					customerPrspctMap.put(OID, ex);		} 			//training data - has valid feature vector and any non-source event data
+				else if (ex.hasOnlySourceEvents()) {			truePrspctMap.put(OID, ex);		} 				//only has source data
+			}
+			break;}
+			default : { 
+				return;}
+		}//switch
+		//eventMapTypeKeys 
+		//display debug info relating to counts of different types of events present in given examples
+		if(dispDebugEventMembership) {dispDebugEventPresenceData(countsOfBoolResOcc, countsOfBoolResEvt);}
+		//display customers and true prospects info
+		dispMessage("SOMMapManager","procRawLoadedData->_buildCustomerAndProspectMaps","Raw Records Unique OIDs presented : " + tmpProspectMap.size(), MsgCodes.info3);
+		dispMessage("SOMMapManager","procRawLoadedData->_buildCustomerAndProspectMaps","# prospect records that should be used as valiation records (have jp/jpg set in prospect data but no events) : " + truePrspctMap.size(), MsgCodes.info1);	
+		dispMessage("SOMMapManager","procRawLoadedData->_buildCustomerAndProspectMaps","# prospect records found with trainable event-based info : " + customerPrspctMap.size(), MsgCodes.info3);
+
+	}//_buildCustomerAndProspectMaps
+	
+	
+	//this will go through all the prospects and events and build a map of prospectExample keyed by prospect OID and holding all the known data
 	private void procRawLoadedData() {
 		resetProspectMap();		
+		resetValidationMap();		
 		dispMessage("SOMMapManager","procRawLoadedData","Start Processing all loaded raw data", MsgCodes.info5);
 		if (!(getFlag(prospectDataLoadedIDX) && getFlag(optDataLoadedIDX) && getFlag(orderDataLoadedIDX))){//not all data loaded, don't process 
 			dispMessage("SOMMapManager","procRawLoadedData","Can't build data examples until prospect, opt event and order event data is all loaded", MsgCodes.warning2);
 			return;
 		}
 		//build prospectMap - first get prospect data and add to map
-		ArrayList<BaseRawData> prospects = rawDataArrays.get(straffDataFileNames[prspctIDX]);
-		ConcurrentSkipListMap<String, ProspectExample> tmpProspectMap = new ConcurrentSkipListMap<String, ProspectExample>();
+		ArrayList<BaseRawData> prospects = rawDataArrays.get(straffDataDirNames[prspctIDX]);
+		ConcurrentSkipListMap<String, ProspectExample> tmpProspectMap = new ConcurrentSkipListMap<String, ProspectExample>(), 
+				customerPrspctMap = prospectExamples.get(custExKey);
 		for (BaseRawData prs : prospects) {
-			 ProspectExample ex = prospectMap.get(prs.OID);
-			 if (ex == null) {ex = new ProspectExample(this, (prospectData) prs);}
-			 else {dispMessage("SOMMapManager","procRawLoadedData","Prospect with OID : "+  prs.OID + " existed in map already and was replaced.", MsgCodes.warning2);}
-			 tmpProspectMap.put(ex.OID, ex);
-		}
-		dispMessage("SOMMapManager","procRawLoadedData","# prospect records with no base prospect record jp/jpg set : " + ProspectExample.numProsRecsWithNoJPData, MsgCodes.info1);	
-		ProspectExample.numProsRecsWithNoJPData = 0;
+			//prospectMap is empty here
+			ProspectExample ex = customerPrspctMap.get(prs.OID);
+			if (ex == null) {ex = new ProspectExample(this, (prospectData) prs);}
+			else {dispMessage("SOMMapManager","procRawLoadedData","Prospect with OID : "+  prs.OID + " existed in map already and was replaced.", MsgCodes.warning2);}
+			tmpProspectMap.put(ex.OID, ex);
+		}		
 		//add all events to prospects
-		procRawEventData(tmpProspectMap, rawDataArrays, true);
-		
-		//now handle products
+		procRawEventData(tmpProspectMap, rawDataArrays, true);		
+		//now handle products - found in tc_taggings table
 		resetProductMap();
-		procRawProductData(rawDataArrays.get(straffDataFileNames[tcTagsIDX]));
-		
+		procRawProductData(rawDataArrays.get(straffDataDirNames[tcTagsIDX]));		
 		//now handle loaded jp and jpgroup data
-		jpJpgrpMon.setJpJpgrpNames(rawDataArrays.get(straffDataFileNames[jpDataIDX]),rawDataArrays.get(straffDataFileNames[jpgDataIDX]));
-		//to free up memory before we build feature weight vectors
-		rawDataArrays = null;//new ConcurrentSkipListMap<String, ArrayList<BaseRawData>>();		//finalize builds each example's occurence structures, which describe the jp-jpg relationships found in the example
+		jpJpgrpMon.setJpJpgrpNames(rawDataArrays.get(straffDataDirNames[jpDataIDX]),rawDataArrays.get(straffDataDirNames[jpgDataIDX]));		
+		//to free up memory before we build feature weight vectors; get rid of rawDataArrays used to hold original data read from files		
+		rawDataArrays = null;			
+		//finalize around temp map - finalize builds each example's occurrence structures, which describe the jp-jpg relationships found in the example
+		_finalizeProsProdJpJPGMon("procRawLoadedData", "temp", tmpProspectMap);
+	
+		//build actual customer and validation maps using rules defining what is a customer (probably means having an order event) and what is a "prospect" (probably not having an order event)
+		_buildCustomerAndProspectMaps(tmpProspectMap);
+
 		
-		dispMessage("SOMMapManager","procRawLoadedData","Begin initial finalize of temp prospect map to aggregate all JPs and determine which records are valid training examples", MsgCodes.info1);		
-		//finalize each potential prospect and product - this will aggregate all the jp's that are seen, as well as finding all records that are bad due to having a 0 ftr vector
-		for (ProspectExample ex : tmpProspectMap.values()) {			ex.finalizeBuild();		}		
-		dispMessage("SOMMapManager","procRawLoadedData","End initial finalize of temp prospect map | Begin initial finalize of product map to aggregate all JPs", MsgCodes.info1);		
-		//finalize build for all products - aggregates all jps seen in product
-		for (ProductExample ex : productMap.values()){		ex.finalizeBuild();		}		
-		//must rebuild this because we might not have same jp's
-		dispMessage("SOMMapManager","procRawLoadedData","End initial finalize of product map | Begin setJPDataFromExampleData from temp prospect map", MsgCodes.info1);
-		//we need the jp-jpg counts and relationships dictated by the data by here.
-		setJPDataFromExampleData(tmpProspectMap);
-		dispMessage("SOMMapManager","procRawLoadedData","End setJPDataFromExampleData from temp prospect map", MsgCodes.info1);
 		
-		//build actual prospect map only from prospectExamples that hold trainable information
-		//need to have every entered prospect example finalized before this - the finalization process is necessary to determine if an example is to be used as a training example or not
-		//if(eventsOnly) {//only records with events will be used to train
-		int numValidationRecs = 0;
-		for (String OID : tmpProspectMap.keySet()) {
-			ProspectExample ex = tmpProspectMap.get(OID);
-			if (ex.isTrainableRecordEvent()) {			prospectMap.put(OID, ex);		} 
-			if (ex.isValidationRecord()) {numValidationRecs++;}
-		}
-		dispMessage("SOMMapManager","procRawLoadedData","# prospect records that should be used as valiation records (have jp/jpg set in prospect data but no events) : " + numValidationRecs, MsgCodes.info1);	
-//		} else {//any jpgs/jps present will be used to train
-//			for (String OID : tmpProspectMap.keySet()) {
-//				ProspectExample ex = tmpProspectMap.get(OID);
-//				if (ex.isTrainableRecord()) {				prospectMap.put(OID, ex);			}
-//			}			
-//		}	
-		dispMessage("SOMMapManager","procRawLoadedData","Raw Records Unique OIDs presented : " + tmpProspectMap.size()+" | Records found with trainable events info : " + prospectMap.size(), MsgCodes.info3);
-			
 		//finalize - recalc all processed data in case new products have different JP's present, set flags and save to file
 		calcFtrsDiffsMinsAndSave();
 		dispMessage("SOMMapManager","procRawLoadedData","Finished processing all loaded data", MsgCodes.info5);
@@ -1307,21 +1364,14 @@ public class SOMMapManager {
 	}
 	
 	private void dbgLoadedData(int idx) {
-		ArrayList<BaseRawData> recs = rawDataArrays.get(straffDataFileNames[idx]);
-		for  (BaseRawData rec : recs) {if(rec.rawJpMapOfArrays.size() > 1) {dispMessage("SOMMapManager","dbgLoadedData",straffDataFileNames[idx] + " : " + rec.toString(), MsgCodes.info1);}}			
+		ArrayList<BaseRawData> recs = rawDataArrays.get(straffDataDirNames[idx]);
+		for  (BaseRawData rec : recs) {if(rec.rawJpMapOfArrays.size() > 1) {dispMessage("SOMMapManager","dbgLoadedData",straffDataDirNames[idx] + " : " + rec.toString(), MsgCodes.info1);}}			
 	}
 	
+	public void dbgShowJpJpgrpData() {
+		dispMessage("SOMMapManager","dbgShowJpJpgrpData","Showing current jpJpg Data : \n"+jpJpgrpMon.toString(), MsgCodes.info1);
+	}
 	
-	//display all currently calculated feature vectors
-	public void dbgShowAllFtrVecs() {
-		dispMessage("SOMMapManager","dbgShowAllFtrVecs","Feature vectors of all examples : ", MsgCodes.info1);	
-		int numBadEx = 0;
-		for (ProspectExample ex : prospectMap.values()) {	
-			float[] ftrData = ex.getFtrs();
-			if(ex.isBadExample()) {		++numBadEx;	} else {			dispMessage("SOMMapManager","dbgShowAllFtrVecs",ex.OID + " : " + getFloatAraStr(ftrData, "%.6f", 80), MsgCodes.info2);}
-		}
-		dispMessage("SOMMapManager","dbgShowAllFtrVecs","# of bad examples (which have empty feature vectors and are useless for training) : " + numBadEx, MsgCodes.info1);
-	}//loadAllPropsectMapData
 
 	//build a string to display an array of floats
 	private String getFloatAraStr(float[] datAra, String fmtStr, int brk) {
@@ -1716,7 +1766,7 @@ public class SOMMapManager {
 	public boolean isFtrCalcDone() {return (ftrCalcObj != null) && ftrCalcObj.calcAnalysisIsReady();}	
 	public boolean isToroidal(){return projConfigData.isToroidal();}
 	//add prospect to prospect map
-	public ProspectExample putInProspectMap(ProspectExample ex) {	return prospectMap.put(ex.OID, ex);}	
+	//public ProspectExample putInProspectMap(ProspectExample ex) {	return prospectMap.put(ex.OID, ex);}	
 
 	public ProductExample getProductByID(String prodOID) {	return productMap.get(prodOID);		}
 	public boolean getUseChiSqDist() {return useChiSqDist;}

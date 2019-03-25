@@ -1,0 +1,3 @@
+only put actual source csvs in the subdirectories of this directory; a specific format will be expected and not checked for.
+
+

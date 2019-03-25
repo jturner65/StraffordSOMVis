@@ -1,20 +1,22 @@
 # This file holds the configuration for weight calc coefficients for each jp to build the feature vector used to train/query the SOM for a prospect
 # the equation follows this format for each jp:            
 #
-# ftr[jp] = M_p * (1.0/ (1+(D_p * days since update))) 0 O_p          
-# 0 M_ord * (sum ( n_i/ (1+(D_ord * days since ord_i))) for all i) 0 O_ord       
-# 0 (M_opt * (v) 0 O_opt) where v is some value based on opt choice of user.       
-#                 
+# ftr[jp] = M_ord * (sum ( n_i/ (1+(D_ord * days since ord_i))) for all i) + O_ord       
+# + M_lnk * (sum ( n_i/ (1+(D_lnk * days since lnk_i))) for all i) + O_lnk
+# + M_src * (sum ( n_i/ (1+(D_src * days since src_i))) for all i) + O_src       
+# + (M_opt * (v) + O_opt) where v is some value based on opt choice of user. 
+#
 # where :                
 # M_xxx is multiplier for record type xxx            
 # O_xxx is offset for record type xxx            
-# D_xxx is date decay multiplier for each instance of record type xxx (in days)        
+# D_xxx is date decay multiplier for each instance of record type xxx (in days)    
 #                 
 # The first record of this file should be the default values record    
-#<jp id>, M_p, O_p, D_p, M_ord, O_ord, D_ord, M_opt, O_opt, D_opt, M_lnk, O_lnk, D_lnk
-default, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.1, 0.0, 0.0
+#<jp id>, M_ord, O_ord, D_ord, M_opt, O_opt, D_opt, M_lnk, O_lnk, D_lnk, M_src, O_src, D_src
+default, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.1, 0.0, 0.0, 1.0, 0.0, 0.0
 #
 #--add additional, jp-specific, weightings below following the format given above for default, but using jp instead of 'default'
 # the expected format of these records is :  (add more sources such as link at the end) 
-#<jp id>, M_p, O_p, D_p, M_ord, O_ord, D_ord, M_opt, O_opt, D_opt, M_lnk, O_lnk, D_lnk
+#<jp id>,M_ord, O_ord, D_ord, M_opt, O_opt, D_opt, M_lnk, O_lnk, D_lnk, M_src, O_src, D_src
 #
+

@@ -457,6 +457,7 @@ class mapTestDataToBMUs implements Callable<Boolean>{
 		//for every example find closest map node
 		//the function call at the end is ignored by product examples
 		mapMgr.dispMessage("mapTestDataToBMUs", "Run Thread : " +thdIDX, "Starting Test Data to BMU mapping using " + ftrTypeDesc + " Features and including all features in distance.", MsgCodes.info5);
+		if(exs.length == 0) {return true;}
 		if (useChiSqDist) {		for (int i=stIdx;i<endIdx;++i) {exs[i].findBMUFromNodes_ChiSq_Excl(mapMgr.MapNodes, curMapFtrType);}} 
 		else {					for (int i=stIdx;i<endIdx;++i) {exs[i].findBMUFromNodes_Excl(mapMgr.MapNodes,  curMapFtrType); }}		
 		mapMgr.dispMessage("mapTestDataToBMUs", "Run Thread : " +thdIDX, "Finished Test Data to BMU mapping", MsgCodes.info5);		
@@ -629,9 +630,11 @@ class straffCSVDataLoader implements Callable<Boolean>{
 	private String fileName, dispYesStr, dispNoStr;
 	private int thdIDX;
 	private FileIOManager fileIO;
-	
-	public straffCSVDataLoader(SOMMapManager _mapMgr, int _thdIDX, String _fileName, String _yStr, String _nStr) {	
+	//ref to map to add to, either prospects or validation records
+	private ConcurrentSkipListMap<String, ProspectExample> mapToAddTo;
+	public straffCSVDataLoader(SOMMapManager _mapMgr, int _thdIDX, String _fileName, String _yStr, String _nStr, ConcurrentSkipListMap<String, ProspectExample> _mapToAddTo) {	
 		mapMgr=_mapMgr;thdIDX=_thdIDX;fileName=_fileName;dispYesStr=_yStr;dispNoStr=_nStr; 
+		mapToAddTo = _mapToAddTo;
 		fileIO = new FileIOManager(mapMgr,"straffCSVDataLoader TH_IDX_"+thdIDX);
 	}	
 	@Override
@@ -643,7 +646,8 @@ class straffCSVDataLoader implements Callable<Boolean>{
 			int pos = str.indexOf(',');
 			String oid = str.substring(0, pos);
 			ProspectExample ex = new ProspectExample(mapMgr, oid, str);
-			ProspectExample oldEx = mapMgr.putInProspectMap(ex);//mapMgr.prospectMap.put(ex.OID, ex);	
+			//ProspectExample oldEx = mapMgr.putInProspectMap(ex);//mapMgr.prospectMap.put(ex.OID, ex);	
+			ProspectExample oldEx = mapToAddTo.put(ex.OID, ex);	//mapMgr.prospectMap.put(ex.OID, ex);	
 			if(oldEx != null) {mapMgr.dispMessage("straffCSVDataLoader", "call thd : " + thdIDX, "ERROR : "+thdIDX+" : Attempt to add duplicate record to prospectMap w/OID : " + oid, MsgCodes.error2);	}
 		}		
 		return true;
