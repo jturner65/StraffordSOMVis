@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 //this class will monitor presence and counts of jpgroups and jps
 //in training data for map
 public class MonitorJpJpgrp {
-	public static SOMMapManager mapMgr;
+	public static StraffSOMMapManager mapMgr;
 	//manage IO in this object
 	private FileIOManager fileIO;
 	////////////////////////////////////////
@@ -38,7 +38,7 @@ public class MonitorJpJpgrp {
 	private TreeMap<Integer, String> jpNamesRaw, jpGrpNamesRaw;	//these are all the names known from reading all the data in - not all may be represented in actual data
 	private TreeMap<Integer, String> jpNames, jpGrpNames;	
 	
-	public MonitorJpJpgrp(SOMMapManager _mapMgr) {
+	public MonitorJpJpgrp(StraffSOMMapManager _mapMgr) {
 		mapMgr=_mapMgr;
 		fileIO = new FileIOManager(mapMgr,"MonitorJpJpgrp");
 		initAllStructs();
@@ -109,10 +109,10 @@ public class MonitorJpJpgrp {
 	}//dbgShowNames
 	
 	//find counts of each kind of event reference for each jp
-	private void buildJpPresentMaps(ConcurrentSkipListMap<String, ProspectExample> map,HashSet<Tuple<Integer,Integer>> tmpSetAllJpsJpgs) {
+	private void buildJpPresentMaps(ConcurrentSkipListMap<String, prospectExample> map,HashSet<Tuple<Integer,Integer>> tmpSetAllJpsJpgs) {
 		int numEventTypes = EvtDataType.getNumVals();
 		//for every prospect, look at every jp
-		for (ProspectExample ex : map.values()) {
+		for (prospectExample ex : map.values()) {
 			HashSet<Tuple<Integer,Integer>> tmpExSet = ex.getSetOfAllJpgJpData(); //tmpExSet is set of all jps/jpgs in ex
 			for (Tuple<Integer,Integer> jpgJp : tmpExSet) {
 				Integer jpg = jpgJp.x, jp=jpgJp.y;
@@ -132,7 +132,7 @@ public class MonitorJpJpgrp {
 	//When acquiring new data, this must be performed after all data is loaded, but before
 	//the prospect data is finalized and actual map is built due to the data finalization 
 	//requiring a knowledge of the entire dataset to build weights appropriately
-	public void setJPDataFromExampleData(ConcurrentSkipListMap<String, ProspectExample> customerMap, ConcurrentSkipListMap<String, ProspectExample> prospectMap, ConcurrentSkipListMap<String, ProductExample> prdctMap) {
+	public void setJPDataFromExampleData(ConcurrentSkipListMap<String, prospectExample> customerMap, ConcurrentSkipListMap<String, prospectExample> prospectMap, ConcurrentSkipListMap<String, ProductExample> prdctMap) {
 		initAllStructs();
 		mapMgr.dispMessage("MonitorJpJpgrp","setJPDataFromExampleData","State after init : " + this.toString(), MsgCodes.info1);
 		//rebuild all jp->jpg mappings based on customer and prospect data
@@ -250,17 +250,20 @@ public class MonitorJpJpgrp {
 		return jpgToIDX.get(jpgrp);		
 	}
 	//this will return the first(lowest) jp for a particular jpgrp
-	public int getUI_FirstJPFromJPG(int jpgIdx, Integer curVal) {
-		if(jpgsToJps.size() < jpgIdx) {return curVal;}
-		mapMgr.dispMessage("MonitorJpJpgrp","getUI_FirstJPFromJPG",  "jpgIDX : " + jpgIdx + " Curval : " + curVal, MsgCodes.info1);
+	public int getUI_FirstJPFromJPG(int jpgIdx, Integer curJPVal) {
+		if(jpgsToJps.size() < jpgIdx) {return curJPVal;}
+		String msg = "Requested Job Practice Group : " + jpgIdx + " Cur JP : " + curJPVal;
+		
 		TreeSet <Integer> jpList = jpgsToJps.get(jpgrpsByIdx[jpgIdx]);
-		if (jpList.contains(jpByIdx[curVal])) {			
-			mapMgr.dispMessage("MonitorJpJpgrp","getUI_FirstJPFromJPG",  "contains curVal : jpgIDX : " + jpgIdx + " Curval : " + curVal, MsgCodes.info1);			
-			return curVal;		}//if in current jpgrp already, then return current value
-		else {
-			mapMgr.dispMessage("MonitorJpJpgrp","getUI_FirstJPFromJPG",  "doesn't contain curVal : jpgIDX : " + jpgIdx + " Curval : " + curVal, MsgCodes.info1);			
-			return jpToFtrIDX.get(jpList.first());		}
-	}
+		if (jpList.contains(jpByIdx[curJPVal])) {			
+			mapMgr.dispMessage("MonitorJpJpgrp","getUI_FirstJPFromJPG", msg+ " : JP Group contains current JP.", MsgCodes.info1);			
+		}//if in current jpgrp already, then return current value
+		else {//swapping to new jpgroup
+			curJPVal = jpToFtrIDX.get(jpList.first());
+			mapMgr.dispMessage("MonitorJpJpgrp","getUI_FirstJPFromJPG", msg+ " : JP Group doesn't contain current JP val; JP changed to : " + curJPVal, MsgCodes.info1);			
+		}
+		return curJPVal;	
+	}//getUI_FirstJPFromJPG
 	
 	/////////////////////////////
 	//Save this object's data

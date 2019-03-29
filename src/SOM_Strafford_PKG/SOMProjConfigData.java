@@ -1,20 +1,17 @@
 package SOM_Strafford_PKG;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.*;
 import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.*;
 
+
 //structure to hold all the file names, file configurations and general program configurations required to run the SOM project
 //will manage that all file names need to be reset when any are changed
 public class SOMProjConfigData {
 	//owning map manager
-	protected SOMMapManager mapMgr;
+	protected StraffSOMMapManager mapMgr;
 	//manage IO in this object
 	private FileIOManager fileIO;
 	
@@ -102,7 +99,7 @@ public class SOMProjConfigData {
 	//separately from calls to setSOM_ExpFileNames because experimental parameters can change between the saving of training data and the running of the experiment
 	private String SOMOutExpSffx;
 	
-	public SOMProjConfigData(SOMMapManager _map) {
+	public SOMProjConfigData(StraffSOMMapManager _map) {
 		mapMgr=_map;
 		try {
 			straff_QualifedBaseDir = new File(_baseDir).getCanonicalPath() + File.separator ;
@@ -331,15 +328,15 @@ public class SOMProjConfigData {
 		if (expNumTrain > 0) {//save training data
 			if (useSparseTrainingData) {
 				saveFileName = getSOMMapSVMFileName();
-				straffSOMDataWrite.add(new straffDataWriter(mapMgr, curMapFtrType, SOMMapManager.sparseTrainDataSavedIDX, saveFileName, "sparseSVMData", mapMgr.trainData));	
+				straffSOMDataWrite.add(new straffDataWriter(mapMgr, curMapFtrType, StraffSOMMapManager.sparseTrainDataSavedIDX, saveFileName, "sparseSVMData", mapMgr.trainData));	
 			} else {
 				saveFileName = getSOMMapLRNFileName();
-				straffSOMDataWrite.add(new straffDataWriter(mapMgr, curMapFtrType, SOMMapManager.denseTrainDataSavedIDX, saveFileName, "denseLRNData", mapMgr.trainData));	
+				straffSOMDataWrite.add(new straffDataWriter(mapMgr, curMapFtrType, StraffSOMMapManager.denseTrainDataSavedIDX, saveFileName, "denseLRNData", mapMgr.trainData));	
 			}
 		}
 		if (expNumTest > 0) {//save testing data
 			saveFileName = getSOMMapTestFileName();
-			straffSOMDataWrite.add(new straffDataWriter(mapMgr, curMapFtrType, SOMMapManager.testDataSavedIDX, saveFileName, useSparseTestingData ? "sparseSVMData" : "denseLRNData", mapMgr.testData));
+			straffSOMDataWrite.add(new straffDataWriter(mapMgr, curMapFtrType, StraffSOMMapManager.testDataSavedIDX, saveFileName, useSparseTestingData ? "sparseSVMData" : "denseLRNData", mapMgr.testData));
 		}
 		try {straffSOMDataWriteFutures = th_exec.invokeAll(straffSOMDataWrite);for(Future<Boolean> f: straffSOMDataWriteFutures) { f.get(); }} catch (Exception e) { e.printStackTrace(); }		
 		
@@ -617,11 +614,11 @@ public class SOMProjConfigData {
 //this class will manage file io
 class FileIOManager{
 	//owning map manager
-	protected SOMMapManager mapMgr;
+	protected StraffSOMMapManager mapMgr;
 	//name of owning class of the instance of this object, for display
 	protected String owner;
 	
-	public FileIOManager(SOMMapManager _mapMgr, String _owner) {mapMgr = _mapMgr; owner=_owner;}	
+	public FileIOManager(StraffSOMMapManager _mapMgr, String _owner) {mapMgr = _mapMgr; owner=_owner;}	
 	
 	private String buildClrStr(ConsoleCLR bk, ConsoleCLR clr, String str) {return bk.toString() + clr.toString() + str + ConsoleCLR.RESET.toString();	}
 	private String _processMsgCode(String src, MsgCodes useCode) {
@@ -648,12 +645,14 @@ class FileIOManager{
 		}
 		return src;
 	}//_processMsgCode	
-	
-	private void dispMessage(String srcClass, String srcMethod, String msgText, MsgCodes useCode) {_dispMessage_base(mapMgr.getTimeStrFromProcStart() +"|" + srcClass,srcMethod,msgText, useCode);	}	
-	private void _dispMessage_base(String srcClass, String srcMethod, String msgText, MsgCodes useCode) {		
+	private void dispMessage(String srcClass, String srcMethod, String msgText, MsgCodes useCode){_dispMessage_base(mapMgr.getTimeStrFromProcStart() +"|" + srcClass,srcMethod,msgText, useCode,true);	}	
+	private void dispMessage(String srcClass, String srcMethod, String msgText, MsgCodes useCode, boolean onlyConsole) {_dispMessage_base(mapMgr.getTimeStrFromProcStart() +"|" + srcClass,srcMethod,msgText, useCode,onlyConsole);	}	
+	private void _dispMessage_base(String srcClass, String srcMethod, String msgText, MsgCodes useCode, boolean onlyConsole) {		
 		String msg = _processMsgCode(srcClass + "::" + srcMethod + " : " + msgText, useCode);
-		if (mapMgr.pa == null) {System.out.println(msg);} else {mapMgr.pa.outStr2Scr(msg);}
+		if((onlyConsole) || (mapMgr.pa == null)) {		System.out.println(msg);	} else {		mapMgr.pa.outStr2Scr(msg);	}
 	}//dispMessage
+
+
 	
 	//write data to file
 	public void saveStrings(String fname, String[] data) {

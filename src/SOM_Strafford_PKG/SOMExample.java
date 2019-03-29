@@ -25,7 +25,7 @@ public abstract class SOMExample extends baseDataPtVis{
 	//magnitude of this feature vector
 	public float ftrVecMag;	
 	//keys for ftr map arrays
-	protected static final int ftrMapTypeKey = SOMMapManager.useUnmoddedDat, normFtrMapTypeKey = SOMMapManager.useNormedDat, stdFtrMapTypeKey = SOMMapManager.useScaledDat;	
+	protected static final int ftrMapTypeKey = StraffSOMMapManager.useUnmoddedDat, normFtrMapTypeKey = StraffSOMMapManager.useNormedDat, stdFtrMapTypeKey = StraffSOMMapManager.useScaledDat;	
 	protected static final Integer[] ftrMapTypeKeysAra = new Integer[] {ftrMapTypeKey, normFtrMapTypeKey, stdFtrMapTypeKey};
 
 	private int[] stFlags;						//state flags - bits in array holding relevant process info
@@ -54,18 +54,32 @@ public abstract class SOMExample extends baseDataPtVis{
 	//a map per feature type : unmodified, normalized, standardized, of ftr IDXs and their relative "rank" in this particular example, as determined by the weight calc
 	private TreeMap<Integer,Integer>[] mapOfFtrIDXVsWtRank;	
 	
-	public SOMExample(SOMMapManager _map, ExDataType _type, String _id) {
+	public SOMExample(StraffSOMMapManager _map, ExDataType _type, String _id) {
 		super(_map,_type);
 		OID = _id;
 		_sqDistToBMU = 0.0;
 		initFlags();	
 		ftrMaps = new TreeMap[ftrMapTypeKeysAra.length];
-		for (int i=0;i<ftrMaps.length;++i) {
-			ftrMaps[i] = new TreeMap<Integer, Float>(); 
-		}
+		for (int i=0;i<ftrMaps.length;++i) {			ftrMaps[i] = new TreeMap<Integer, Float>(); 		}
 		String tmp = OID + "" + type;
 		_hashCode = tmp.hashCode();
 	}//ctor
+	
+	//copy ctor - shallow copy of _otr - used to provide casting between nearly identical example types
+	//it is expected that _otr ref will be disposed
+	public SOMExample(SOMExample _otr) {
+		super(_otr);
+		OID = _otr.OID;
+		_sqDistToBMU = _otr._sqDistToBMU;
+		ftrMaps = _otr.ftrMaps;
+		ftrVecMag = _otr.ftrVecMag;
+		allNonZeroFtrIDXs = _otr.allNonZeroFtrIDXs;
+		mapOfWtsToFtrIDXs = _otr.mapOfWtsToFtrIDXs;
+		mapOfFtrIDXVsWtRank = _otr.mapOfFtrIDXVsWtRank;
+		mapNodeNghbrs = _otr.mapNodeNghbrs;
+		bmu = _otr.bmu;
+		stFlags = _otr.stFlags;		
+	}//copy ctor
 
 	//build feature vector
 	protected abstract void buildFeaturesMap();	
@@ -485,7 +499,7 @@ public abstract class SOMExample extends baseDataPtVis{
 	}//getDistFromFtrType	
 	
 	//this value corresponds to training data type - we want to check training data type counts at each node
-	private final int trainDataTypeIDX = ExDataType.ProspectTraining.getVal();
+	private final int trainDataTypeIDX = ExDataType.customerTraining.getVal();
 	//given a sqdistance-keyed map of lists of mapnodes, this will find the best matching unit (min distance), with favor given to units that have more examples
 	private void _setBMUFromMapNodeDistMap(TreeMap<Double, ArrayList<SOMMapNode>> mapNodes) {
 		ArrayList<Tuple<Integer,Integer>> bmuKeys = new ArrayList<Tuple<Integer,Integer>>();
@@ -592,9 +606,9 @@ public abstract class SOMExample extends baseDataPtVis{
 	////useUnmoddedDat = 0, useScaledDat = 1, useNormedDat
 	public String toCSVString(int _type) {
 		switch(_type){
-			case SOMMapManager.useUnmoddedDat : {return _toCSVString(ftrMaps[ftrMapTypeKey]); }
-			case SOMMapManager.useNormedDat  : {return _toCSVString(getFlag(normFtrsBuiltIDX) ? ftrMaps[normFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]);}
-			case SOMMapManager.useScaledDat  : {return _toCSVString(getFlag(stdFtrsBuiltIDX) ? ftrMaps[stdFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]); }
+			case StraffSOMMapManager.useUnmoddedDat : {return _toCSVString(ftrMaps[ftrMapTypeKey]); }
+			case StraffSOMMapManager.useNormedDat  : {return _toCSVString(getFlag(normFtrsBuiltIDX) ? ftrMaps[normFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]);}
+			case StraffSOMMapManager.useScaledDat  : {return _toCSVString(getFlag(stdFtrsBuiltIDX) ? ftrMaps[stdFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]); }
 			default : {return _toCSVString(ftrMaps[ftrMapTypeKey]); }
 		}
 	}//toCSVString
@@ -609,9 +623,9 @@ public abstract class SOMExample extends baseDataPtVis{
 	//return LRN-format (dense) string of this object's features, depending on which type is selected - check to make sure 2ndary features exist before attempting to build data strings
 	public String toLRNString(int _type, String sep) {
 		switch(_type){
-			case SOMMapManager.useUnmoddedDat : {return _toLRNString(ftrMaps[ftrMapTypeKey], sep); }
-			case SOMMapManager.useNormedDat   : {return _toLRNString(getFlag(normFtrsBuiltIDX) ? ftrMaps[normFtrMapTypeKey] : ftrMaps[ftrMapTypeKey], sep);}
-			case SOMMapManager.useScaledDat   : {return _toLRNString(getFlag(stdFtrsBuiltIDX) ? ftrMaps[stdFtrMapTypeKey] : ftrMaps[ftrMapTypeKey], sep); }
+			case StraffSOMMapManager.useUnmoddedDat : {return _toLRNString(ftrMaps[ftrMapTypeKey], sep); }
+			case StraffSOMMapManager.useNormedDat   : {return _toLRNString(getFlag(normFtrsBuiltIDX) ? ftrMaps[normFtrMapTypeKey] : ftrMaps[ftrMapTypeKey], sep);}
+			case StraffSOMMapManager.useScaledDat   : {return _toLRNString(getFlag(stdFtrsBuiltIDX) ? ftrMaps[stdFtrMapTypeKey] : ftrMaps[ftrMapTypeKey], sep); }
 			default : {return _toLRNString(ftrMaps[ftrMapTypeKey], sep); }
 		}		
 	}//toLRNString
@@ -625,9 +639,9 @@ public abstract class SOMExample extends baseDataPtVis{
 	//return LRN-format (dense) string of this object's features, depending on which type is selected - check to make sure 2ndary features exist before attempting to build data strings
 	public String toSVMString(int _type) {
 		switch(_type){
-			case SOMMapManager.useUnmoddedDat : {return _toSVMString(ftrMaps[ftrMapTypeKey]); }
-			case SOMMapManager.useNormedDat   : {return _toSVMString(getFlag(normFtrsBuiltIDX) ? ftrMaps[normFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]);}
-			case SOMMapManager.useScaledDat   : {return _toSVMString(getFlag(stdFtrsBuiltIDX) ? ftrMaps[stdFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]); }
+			case StraffSOMMapManager.useUnmoddedDat : {return _toSVMString(ftrMaps[ftrMapTypeKey]); }
+			case StraffSOMMapManager.useNormedDat   : {return _toSVMString(getFlag(normFtrsBuiltIDX) ? ftrMaps[normFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]);}
+			case StraffSOMMapManager.useScaledDat   : {return _toSVMString(getFlag(stdFtrsBuiltIDX) ? ftrMaps[stdFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]); }
 			default : {return _toSVMString(ftrMaps[ftrMapTypeKey]); }
 		}		
 	}//toLRNString
@@ -647,9 +661,9 @@ public abstract class SOMExample extends baseDataPtVis{
 	
 	public TreeMap<Integer, Float> getCurrentFtrMap(int _type){
 		switch(_type){
-			case SOMMapManager.useUnmoddedDat : {return ftrMaps[ftrMapTypeKey]; }
-			case SOMMapManager.useNormedDat   : {return (getFlag(normFtrsBuiltIDX) ? ftrMaps[normFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]);}
-			case SOMMapManager.useScaledDat   : {return (getFlag(stdFtrsBuiltIDX) ? ftrMaps[stdFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]); }
+			case StraffSOMMapManager.useUnmoddedDat : {return ftrMaps[ftrMapTypeKey]; }
+			case StraffSOMMapManager.useNormedDat   : {return (getFlag(normFtrsBuiltIDX) ? ftrMaps[normFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]);}
+			case StraffSOMMapManager.useScaledDat   : {return (getFlag(stdFtrsBuiltIDX) ? ftrMaps[stdFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]); }
 			default : {return ftrMaps[ftrMapTypeKey]; }
 		}		
 	}
@@ -722,7 +736,7 @@ public abstract class SOMExample extends baseDataPtVis{
 
 //this class holds functionality migrated from the DataPoint class for rendering on the map.  since this won't be always necessary, we're moving this code to different class so it can be easily ignored
 abstract class baseDataPtVis{
-	protected static SOMMapManager mapMgr;
+	protected static StraffSOMMapManager mapMgr;
 	//type of example data this is
 	protected ExDataType type;
 	//location in mapspace most closely matching this node - actual map location (most likely between 4 map nodes)
@@ -737,7 +751,7 @@ abstract class baseDataPtVis{
 	//array of color IDXs for specific color roles : idx 0 ==fill, idx 1 == strk, idx 2 == txt
 	protected int[] nodeClrs;		
 	
-	public baseDataPtVis(SOMMapManager _map, ExDataType _type) {
+	public baseDataPtVis(StraffSOMMapManager _map, ExDataType _type) {
 		mapMgr = _map;type=_type;
 		mapLoc = new myPointf();	
 		mapNodeLoc = new myPointf();
@@ -745,6 +759,13 @@ abstract class baseDataPtVis{
 		drawDet = 2;
 		nodeClrs = mapMgr.getClrVal(type);
 	}//ctor	
+	
+	//copy ctor
+	public baseDataPtVis(baseDataPtVis _otr) { 
+		this(_otr.mapMgr,_otr.type);	
+		mapLoc = _otr.mapLoc;
+		mapNodeLoc = _otr.mapNodeLoc;
+	}//
 	
 	protected void setRad(float _rad){
 		rad = _rad;//((float)(Math.log(2.0f*(_rad+1))));
@@ -912,14 +933,14 @@ abstract class SOMMapNode extends SOMExample{
 	private SOMMapSegment seg; 
 	
 	//build a map node from a float array of ftrs
-	public SOMMapNode(SOMMapManager _map, Tuple<Integer,Integer> _mapNode, float[] _ftrs) {
+	public SOMMapNode(StraffSOMMapManager _map, Tuple<Integer,Integer> _mapNode, float[] _ftrs) {
 		super(_map, ExDataType.MapNode,"Node_"+_mapNode.x+"_"+_mapNode.y);
 		if(_ftrs.length != 0){	setFtrsFromFloatAra(_ftrs);	}
 		initMapNode( _mapNode);
 	}
 	
 	//build a map node from a string array of features
-	public SOMMapNode(SOMMapManager _map,Tuple<Integer,Integer> _mapNode, String[] _strftrs) {
+	public SOMMapNode(StraffSOMMapManager _map,Tuple<Integer,Integer> _mapNode, String[] _strftrs) {
 		super(_map, ExDataType.MapNode, "Node_"+_mapNode.x+"_"+_mapNode.y);
 		if(_strftrs.length != 0){	
 			float[] _tmpFtrs = new float[_strftrs.length];		
@@ -1052,9 +1073,7 @@ abstract class SOMMapNode extends SOMExample{
 	//called by SOMDataLoader - these are standardized based on data mins and diffs seen in -map nodes- feature data, not in training data
 	public abstract void buildStdFtrsMapFromFtrData_MapNode(float[] minsAra, float[] diffsAra);		
 
-	public void clearBMUExs(int _typeIDX) {
-		BMUExampleNodes[_typeIDX].init();
-	}//addToBMUs
+	public void clearBMUExs(int _typeIDX) {		BMUExampleNodes[_typeIDX].init();	}//addToBMUs
 	
 	//add passed example to appropriate bmu construct depending on what type of example is passed (training, testing, product)
 	public void addExToBMUs(SOMExample ex) {
@@ -1070,48 +1089,32 @@ abstract class SOMMapNode extends SOMExample{
 	
 	//finalize all calculations for examples using this node as a bmu - this calculates quantities based on totals derived, used for visualizations
 	//MUST BE CALLED after adding all examples but before any visualizations will work
-	public void finalizeAllBmus(int _typeIDX) {
-		BMUExampleNodes[_typeIDX].finalize();
-	}
+	public void finalizeAllBmus(int _typeIDX) {		BMUExampleNodes[_typeIDX].finalize();	}
 	
 	//get # of requested type of examples mapping to this node
-	public int getNumExamples(int _typeIDX) {
-		return BMUExampleNodes[_typeIDX].getNumExamples();
-	}	
-	
+	public int getNumExamples(int _typeIDX) {	return BMUExampleNodes[_typeIDX].getNumExamples();	}		
 	//get a map of all examples of specified type near this bmu and the distances for the example
-	public HashMap<SOMExample, Double> getAllExsAndDist(int _typeIDX){
-		return BMUExampleNodes[_typeIDX].getExsAndDist();
-	}//getAllExsAndDist
-
-	
+	public HashMap<SOMExample, Double> getAllExsAndDist(int _typeIDX){	return BMUExampleNodes[_typeIDX].getExsAndDist();}//getAllExsAndDist	
 	//return string array of descriptions for the requested kind of examples mapped to this node
-	public String[] getAllExampleDescs(int _typeIDX) {
-		return BMUExampleNodes[_typeIDX].getAllExampleDescs();
-	}
+	public String[] getAllExampleDescs(int _typeIDX) {return BMUExampleNodes[_typeIDX].getAllExampleDescs();}
 	
-	public void drawMePopLbl(SOM_StraffordMain p, int _typeIDX) {
-		BMUExampleNodes[_typeIDX].drawMapNodeWithLabel(p);
-	}
+	//////////////////////////
+	// draw routines
 	
-	public void drawMePopNoLbl(SOM_StraffordMain p, int _typeIDX) {
-		BMUExampleNodes[_typeIDX].drawMapNodeNoLabel(p);
-	}
-	
+	public void drawMePopLbl(SOM_StraffordMain p, int _typeIDX) {		BMUExampleNodes[_typeIDX].drawMapNodeWithLabel(p);	}	
+	public void drawMePopNoLbl(SOM_StraffordMain p, int _typeIDX) {		BMUExampleNodes[_typeIDX].drawMapNodeNoLabel(p);	}	
 	public void drawMeSmallWt(SOM_StraffordMain p, int jpIDX){
 		p.pushMatrix();p.pushStyle();
 		Float wt = this.ftrMaps[stdFtrMapTypeKey].get(jpIDX);
 		if (wt==null) {wt=0.0f;}
 		p.show(mapLoc, 2, 2, nodeClrs, new String[] {this.OID+":",String.format("%.4f", wt)}); 
 		p.popStyle();p.popMatrix();		
-	}
-	
+	}	
 	public void drawMeSmall(SOM_StraffordMain p){
 		p.pushMatrix();p.pushStyle();
 		p.show(mapLoc, 2, 2, nodeClrs, new String[] {this.OID}); 
 		p.popStyle();p.popMatrix();		
 	}		
-
 	public void drawMeWithWt(SOM_StraffordMain p, float wt, String[] disp){
 		p.pushMatrix();p.pushStyle();	
 		p.show(mapLoc, wt, (int)wt+1, nodeClrs,  disp); 

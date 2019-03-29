@@ -17,7 +17,7 @@ import com.fasterxml.jackson.databind.*;
  */
 public abstract class StraffordDataLoader implements Callable<Boolean> {
 	//ref to owning object
-	protected static SOMMapManager mapMgr;
+	protected static StraffSOMMapManager mapMgr;
 	//key in destination map of data arrays where data should be loaded
 	protected String destAraDataKey;
 	//used to decipher json - need one per instance/thread
@@ -45,7 +45,7 @@ public abstract class StraffordDataLoader implements Callable<Boolean> {
 	//_flagsAra    : idx0 : if this is file/sql loader; idx1 : if the source data has json columns; idx2 : debug
 	//_isDOneIDX : boolean flag idx in SOMMapManager to mark that this data loader has finished
 
-	public void setLoadData(SOMMapManager _mapMgr, String _destAraDataKey, String _fileNameAndPath, boolean[] _flagsAra, int _isDoneIDX) {
+	public void setLoadData(StraffSOMMapManager _mapMgr, String _destAraDataKey, String _fileNameAndPath, boolean[] _flagsAra, int _isDoneIDX) {
 		mapMgr = _mapMgr;
 		BaseRawData.mapMgr = _mapMgr;
 		destAraDataKey = _destAraDataKey;		//must be -directory- where data is found
@@ -260,7 +260,7 @@ class JpDataLoader extends StraffordDataLoader{
 
 //base data object from strafford db - describes a prospect or event, keyed by OID
 abstract class BaseRawData {
-	protected static SOMMapManager mapMgr;
+	protected static StraffSOMMapManager mapMgr;
 	//format of dates in db records
 	public static final String dateFormatString = "yyyy-MM-dd HH:mm:ss";
 	//construction to keep track of count of seen jp ids : key is jp, val is count, for debugging
@@ -283,7 +283,7 @@ abstract class BaseRawData {
 	//index -1 holds array of jpgs in specified order of (assumed) decreasing significance
 	public TreeMap<Integer, ArrayList<Integer>> rawJpMapOfArrays;
 	
-	public BaseRawData(SOMMapManager _mapMgr, String _id, String _json, ObjectMapper _mapper, String _typ, boolean hasJson) {
+	public BaseRawData(StraffSOMMapManager _mapMgr, String _id, String _json, ObjectMapper _mapper, String _typ, boolean hasJson) {
 		mapMgr = _mapMgr;
 		OID=_id.trim().toLowerCase(); TypeOfData = _typ;
 		isBadRec = false;
@@ -454,7 +454,7 @@ class prospectData extends BaseRawData {
 	//if this prospect record is empty/lacking all info.  might not be bad
 	//public boolean isEmptyPrspctRec = false;
 
-	public prospectData(SOMMapManager _mapMgr,String _id, String _json, ObjectMapper _mapper, boolean hasJson) {
+	public prospectData(StraffSOMMapManager _mapMgr,String _id, String _json, ObjectMapper _mapper, boolean hasJson) {
 		super(_mapMgr,_id, _json, _mapper, "prospect", hasJson);
 		//String jpsList = dscrObject.mapOfRelevantJson.get("jp").toString();
 		String luDateStr = dscrObject.mapOfRelevantJson.get("lu").toString();
@@ -500,7 +500,7 @@ class prospectData extends BaseRawData {
 class TcTagData extends BaseRawData{
 	//doesn't use json so no list of keys, just following format used for events since jp lists follow same format in db
 	private static final String[] relevantExactKeys = {};
-	public TcTagData(SOMMapManager _mapMgr,String _id, String _json, ObjectMapper _mapper, boolean hasJson) {	
+	public TcTagData(StraffSOMMapManager _mapMgr,String _id, String _json, ObjectMapper _mapper, boolean hasJson) {	
 		//change to true if tc-taggings ever follows event format of having json to describe the jpg/jp lists
 		super(_mapMgr,_id, _json, _mapper, "TC_Tags", hasJson);		
 		//descr object not made in super if doesn't use json
@@ -544,7 +544,7 @@ abstract class jobPracticeData extends BaseRawData{
 	protected Integer ID;
 	protected String name;
 		
-	public jobPracticeData(SOMMapManager _mapMgr,String _id, String _json, ObjectMapper _mapper, String _typ, boolean hasJson) {
+	public jobPracticeData(StraffSOMMapManager _mapMgr,String _id, String _json, ObjectMapper _mapper, String _typ, boolean hasJson) {
 		super(_mapMgr,_id, _json, _mapper, _typ, hasJson);		
 		name = dscrObject.mapOfRelevantJson.get("name").toString().trim();
 		//0 length name for any record of this type is useless
@@ -577,7 +577,7 @@ class JpDescData extends jobPracticeData{
 	//keys in json relevant for this data
 	private static final String[] relevantExactKeys = {"name","job_practice_group"};
 	
-	public JpDescData(SOMMapManager _mapMgr,String _id, String _json, ObjectMapper _mapper, boolean hasJson) { 
+	public JpDescData(StraffSOMMapManager _mapMgr,String _id, String _json, ObjectMapper _mapper, boolean hasJson) { 
 		super(_mapMgr,_id, _json, _mapper,"jpDesc",hasJson);
 		String jpgrpString = "";
 		Object jpgrpJSon = dscrObject.mapOfRelevantJson.get("job_practice_group");		
@@ -609,7 +609,7 @@ class JpgrpDescData extends jobPracticeData{
 	//keys in json relevant for this data
 	private static final String[] relevantExactKeys = {"name"};
 	
-	public JpgrpDescData(SOMMapManager _mapMgr,String _id, String _json, ObjectMapper _mapper, boolean hasJson) { super(_mapMgr,_id, _json, _mapper,"jpgrpDesc",hasJson);}
+	public JpgrpDescData(StraffSOMMapManager _mapMgr,String _id, String _json, ObjectMapper _mapper, boolean hasJson) { super(_mapMgr,_id, _json, _mapper,"jpgrpDesc",hasJson);}
 	@Override
 	public String[] getRelevantExactKeys() {		return relevantExactKeys;}
 	@Override
@@ -632,7 +632,7 @@ abstract class EventRawData extends BaseRawData {
 	//event type
 	private String eventType;
 	
-	public EventRawData(SOMMapManager _mapMgr,String _id, String _json, ObjectMapper _mapper, String _typ, boolean hasJson) {
+	public EventRawData(StraffSOMMapManager _mapMgr,String _id, String _json, ObjectMapper _mapper, String _typ, boolean hasJson) {
 		super(_mapMgr,_id, _json, _mapper,_typ, hasJson);
 		String jpsList = dscrObject.mapOfRelevantJson.get("jps").toString();
 		rawJpMapOfArrays = dscrObject.convertToJpgJps(jpsList);
@@ -684,7 +684,7 @@ class OrderEvent extends EventRawData{
 	//these should all be lowercase - these are exact key substrings we wish to match in json, to keep and use to build training data - all the rest of json data is being tossed
 	private static final String[] relevantExactKeys = {"jps"};
 	
-	public OrderEvent(SOMMapManager _mapMgr,String _id, String _json, ObjectMapper _mapper, boolean hasJson) {super(_mapMgr,_id, _json, _mapper,"orders",hasJson); this.isBadRec = rawJpMapOfArrays.size() == 0;}
+	public OrderEvent(StraffSOMMapManager _mapMgr,String _id, String _json, ObjectMapper _mapper, boolean hasJson) {super(_mapMgr,_id, _json, _mapper,"orders",hasJson); this.isBadRec = rawJpMapOfArrays.size() == 0;}
 
 	//return the order event's relevant query keys for json
 	@Override
@@ -708,7 +708,7 @@ class LinkEvent extends EventRawData{
 	//these should all be lowercase - these are exact key substrings we wish to match in json, to keep and use to build training data - all the rest of json data is being tossed
 	private static final String[] relevantExactKeys = {"jps"};
 	
-	public LinkEvent(SOMMapManager _mapMgr,String _id, String _json, ObjectMapper _mapper, boolean hasJson) {super(_mapMgr,_id, _json, _mapper,"links",hasJson);this.isBadRec = rawJpMapOfArrays.size() == 0;}
+	public LinkEvent(StraffSOMMapManager _mapMgr,String _id, String _json, ObjectMapper _mapper, boolean hasJson) {super(_mapMgr,_id, _json, _mapper,"links",hasJson);this.isBadRec = rawJpMapOfArrays.size() == 0;}
 
 	//return the order event's relevant query keys for json
 	@Override
@@ -734,7 +734,7 @@ class OptEvent extends EventRawData{
 	//type of opt choice in event
 	private Integer optType;
 	
-	public OptEvent(SOMMapManager _mapMgr,String _id, String _json, ObjectMapper _mapper, boolean hasJson) {
+	public OptEvent(StraffSOMMapManager _mapMgr,String _id, String _json, ObjectMapper _mapper, boolean hasJson) {
 		super(_mapMgr,_id, _json, _mapper,"opts",hasJson);
 		optType = Integer.parseInt(dscrObject.mapOfRelevantJson.get("type").toString());	
 	}
@@ -765,7 +765,7 @@ class SourceEvent extends EventRawData{
 	//type of source record in event
 	private Integer sourceType;
 	
-	public SourceEvent(SOMMapManager _mapMgr,String _id, String _json, ObjectMapper _mapper, boolean hasJson) {
+	public SourceEvent(StraffSOMMapManager _mapMgr,String _id, String _json, ObjectMapper _mapper, boolean hasJson) {
 		super(_mapMgr,_id, _json, _mapper,"source",hasJson);
 		sourceType = Integer.parseInt(dscrObject.mapOfRelevantJson.get("type").toString());	
 	}
@@ -796,11 +796,11 @@ class SourceEvent extends EventRawData{
 
 //class to hold a data structure and functions that will parse the json descriptor
 abstract class jsonDescr{
-	protected static SOMMapManager mapMgr;
+	protected static StraffSOMMapManager mapMgr;
 	//just keep the objects that we need from the json based on keys to match exactly
 	protected Map<String,Object> mapOfRelevantJson;
 	
-	public jsonDescr(SOMMapManager _mapMgr,Map<String,Object> _mapOfJson, String[] _keysToMatchExact) {
+	public jsonDescr(StraffSOMMapManager _mapMgr,Map<String,Object> _mapOfJson, String[] _keysToMatchExact) {
 		mapMgr = _mapMgr;
 		mapOfRelevantJson= new HashMap<String,Object>();
 		for (String key : _keysToMatchExact) {
@@ -847,7 +847,7 @@ abstract class jsonDescr{
 
 //prospect records hold data with specific format, so needs a different convert method
 class prospectDescr extends jsonDescr{
-	public prospectDescr(SOMMapManager _mapMgr,Map<String, Object> _mapOfJson, String[] _keysToMatchExact) {super(_mapMgr,_mapOfJson,_keysToMatchExact);}
+	public prospectDescr(StraffSOMMapManager _mapMgr,Map<String, Object> _mapOfJson, String[] _keysToMatchExact) {super(_mapMgr,_mapOfJson,_keysToMatchExact);}
 
 	@Override
 	protected TreeMap<Integer, ArrayList<Integer>> convertToJpgJps(String jpRawDataStr) {	
@@ -877,13 +877,13 @@ class prospectDescr extends jsonDescr{
 
 class EventDescr extends jsonDescr{
 	public HashMap<Integer, ArrayList<Integer>> jpMap;
-	public EventDescr(SOMMapManager _mapMgr,Map<String, Object> _mapOfJson, String[] _keysToMatchExact) {super(_mapMgr,_mapOfJson,_keysToMatchExact);}
+	public EventDescr(StraffSOMMapManager _mapMgr,Map<String, Object> _mapOfJson, String[] _keysToMatchExact) {super(_mapMgr,_mapOfJson,_keysToMatchExact);}
 	@Override
 	protected TreeMap<Integer, ArrayList<Integer>> convertToJpgJps(String jpAras) {return decodeJPData(jpAras);}
 }//class EventDescr
 
 class jobPracDescr extends jsonDescr{
-	public jobPracDescr(SOMMapManager _mapMgr,Map<String, Object> _mapOfJson, String[] _keysToMatchExact) {super(_mapMgr,_mapOfJson, _keysToMatchExact);}
+	public jobPracDescr(StraffSOMMapManager _mapMgr,Map<String, Object> _mapOfJson, String[] _keysToMatchExact) {super(_mapMgr,_mapOfJson, _keysToMatchExact);}
 	@Override
 	protected TreeMap<Integer, ArrayList<Integer>> convertToJpgJps(String jpAras) {	return null;}//doesn't use this
 	
@@ -891,7 +891,7 @@ class jobPracDescr extends jsonDescr{
 
 //doesn't use json in db currently to describe data, just has string values in columns, but they follow the same format as event data
 class TCTagDescr extends jsonDescr{
-	public TCTagDescr(SOMMapManager _mapMgr,Map<String, Object> _mapOfJson, String[] _keysToMatchExact) {		super(_mapMgr,_mapOfJson, _keysToMatchExact);	}
+	public TCTagDescr(StraffSOMMapManager _mapMgr,Map<String, Object> _mapOfJson, String[] _keysToMatchExact) {		super(_mapMgr,_mapOfJson, _keysToMatchExact);	}
 	@Override
 	protected TreeMap<Integer, ArrayList<Integer>> convertToJpgJps(String jpAras){return decodeJPData(jpAras);}
 }//class TCTagDescr
