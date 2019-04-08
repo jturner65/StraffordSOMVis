@@ -13,7 +13,6 @@ public class myGUIObj {
 
 	public double val;
 	private double minVal, maxVal;
-	//public boolean treatAsInt;
 	
 	private int[] uiFlags;
 	public static final int 
@@ -42,7 +41,8 @@ public class myGUIObj {
 		//dispText = new String("UI Obj "+ID+" : "+name + " : ");
 		dispText = new String(""+name + " : ");
 		start = new myVector(_start); end = new myVector(_end);
-		minVal=_minMaxMod[0]; maxVal = _minMaxMod[1]; val = _initVal;modMult = _minMaxMod[2];
+		minVal=_minMaxMod[0]; maxVal = _minMaxMod[1]; modMult = _minMaxMod[2];
+		val = _initVal;
 		initFlags();
 		for(int i =0; i<_flags.length;++i){ 	setFlags(i+2,_flags[i]);	}
 		_cVal = p.gui_Black;
@@ -67,6 +67,8 @@ public class myGUIObj {
 	}//setFlag	
 	
 	public double getVal(){return val;}	
+	public double getMinVal() {return minVal;}
+	public double getMaxVal() {return maxVal;}
 	public void setNewMax(double _newval){	maxVal = _newval;val = ((val >= minVal)&&(val<=maxVal)) ? val : (val < minVal) ? minVal : maxVal;		}
 	public void setNewMin(double _newval){	minVal = _newval;val = ((val >= minVal)&&(val<=maxVal)) ? val : (val < minVal) ? minVal : maxVal;		}
 	
@@ -74,8 +76,6 @@ public class myGUIObj {
 		val = ((_newVal >= minVal)&&(_newVal<=maxVal)) ? _newVal : (_newVal < minVal) ? minVal : maxVal;		
 		return val;
 	}	
-	//make shift-click on lists move by mod value regardless of modMultSetting
-	public double clkModVal(double mod){return modVal (mod/modMult);}
 	public double modVal(double mod){
 		val += (mod*modMult);
 		if(getFlags(treatAsIntIDX)){val = Math.round(val);}

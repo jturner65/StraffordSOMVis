@@ -170,8 +170,6 @@ public class StraffWeightCalc {
 	}//calcFeatureVector
 	
 
-	
-
 	//calculate feature vector for this customer example
 	public TreeMap<Integer, Float> calcFeatureVector(prospectExample ex, HashSet<Integer> jps, 
 			TreeMap<Integer, jpOccurrenceData> orderOccs,TreeMap<Integer, jpOccurrenceData> linkOccs, 

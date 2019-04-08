@@ -74,6 +74,7 @@ public abstract class myDispWindow {
 	//GUI Objects
 	public myGUIObj[] guiObjs;	
 	public int msClkObj, msOvrObj;												//myGUIObj object that was clicked on  - for modification, object mouse moved over
+	public int msBtnClcked;														//mouse button clicked
 	public float[] uiClkCoords;												//subregion of window where UI objects may be found
 	public static final double uiWidthMult = 9;							//multipler of size of label for width of UI components, when aligning components horizontally
 	
@@ -177,8 +178,7 @@ public abstract class myDispWindow {
 		mseClickCrnr[0] = 0;
 		mseClickCrnr[1] = 0;		
 		if(getFlags(hasScrollBars)){scbrs = new myScrollBars[numSubScrInWin];	for(int i =0; i<numSubScrInWin;++i){scbrs[i] = new myScrollBars(pa, this);}}
-	}//initThisWin
-	
+	}//initThisWin	
 	
 	//final initialization stuff, after window made, but necessary to make sure window displays correctly
 	public void finalInit(boolean thisIs3D, boolean viewCanChange, myPoint _ctr, myVector _baseFcs) {
@@ -366,7 +366,7 @@ public abstract class myDispWindow {
 	//set a list of indexes in private flags array to be a specific value
 	public void setAllPrivFlags(int[] idxs, boolean val) { for(int idx =0;idx<idxs.length;++idx) {setPrivFlags(idxs[idx],val);}}
 
-	//for adding/deleting a screen programatically (loading a song) TODO
+	//for adding/deleting a screen programatically  TODO
 	//rebuild arrays of start locs whenever trajectory maps/arrays have changed - passed key is value modded in drwnTrajMap, 
 	//modVal is if this is a deleted screen's map(0), a new map (new screen) at this location (1), or a modified map (added or deleted trajectory) (2)
 	protected void rbldTrnsprtAras(int modScrKey, int modVal){
@@ -523,8 +523,30 @@ public abstract class myDispWindow {
 		setUIWinVals(uiIdx);//update window's values with UI construct's values
 	}//setValFromFileStr
 
-	//take loaded params and process - stIdx will be idx of this window's name - move forward 1 to start on objects
-	protected void hndlFileLoad(String[] vals, int[] stIdx){
+	public void loadFromFile(File file){
+		if (file == null) {
+		    pa.outStr2Scr("Load was cancelled.");
+		    return;
+		} 
+		String[] res = pa.loadStrings(file.getAbsolutePath());
+		int[] stIdx = {0};//start index for a particular window - make an array so it can be passed by ref and changed by windows
+		hndlFileLoad(res,stIdx);
+	}//loadFromFile
+	
+	public void saveToFile(File file){
+		if (file == null) {
+		    pa.outStr2Scr("Save was cancelled.");
+		    return;
+		} 
+		ArrayList<String> res = new ArrayList<String>();
+
+		res.addAll(hndlFileSave());	
+
+		pa.saveStrings(file.getAbsolutePath(), res.toArray(new String[0]));  
+	}//saveToFile	
+	
+	//manage loading pre-saved UI component values, if useful for this window's load/save (if so call from child window's implementation
+	protected void hndlFileLoad_GUI(String[] vals, int[] stIdx) {
 		++stIdx[0];
 		//set values for ui sliders
 		while(!vals[stIdx[0]].contains(name + "_custUIComps")){
@@ -532,23 +554,47 @@ public abstract class myDispWindow {
 			++stIdx[0];
 		}
 		++stIdx[0];		
-		//handle window-specific UI components, if any
-		this.hndlFileLoadIndiv(vals, stIdx);
-	}//hndlFileLoad
-	
-	//accumulate array of params to save
-	protected ArrayList<String> hndlFileSave(){
+		
+	}//hndlFileLoad_GUI
+	//manage saving this window's UI component values.  if needed call from child window's implementation
+	protected ArrayList<String> hndlFileSave_GUI(){
 		ArrayList<String> res = new ArrayList<String>();
 		res.add(name);
 		for(int i=0;i<guiObjs.length;++i){	res.add(getStrFromUIObj(i));}		
 		//bound for custom components
 		res.add(name + "_custUIComps");
-		//call indiv handler
-		res.addAll(hndlFileSaveIndiv());
 		//add blank space
 		res.add("");
 		return res;
 	}//
+	
+
+//	//take loaded params and process - stIdx will be idx of this window's name - move forward 1 to start on objects
+//	protected void hndlFileLoad(String[] vals, int[] stIdx){
+//		++stIdx[0];
+//		//set values for ui sliders
+//		while(!vals[stIdx[0]].contains(name + "_custUIComps")){
+//			if(vals[stIdx[0]].trim() != ""){	setValFromFileStr(vals[stIdx[0]]);	}
+//			++stIdx[0];
+//		}
+//		++stIdx[0];		
+//		//handle window-specific UI components, if any
+//		this.hndlFileLoadIndiv(vals, stIdx);
+//	}//hndlFileLoad
+//	
+//	//accumulate array of params to save
+//	protected ArrayList<String> hndlFileSave(){
+//		ArrayList<String> res = new ArrayList<String>();
+//		res.add(name);
+//		for(int i=0;i<guiObjs.length;++i){	res.add(getStrFromUIObj(i));}		
+//		//bound for custom components
+//		res.add(name + "_custUIComps");
+//		//call indiv handler
+//		res.addAll(hndlFileSaveIndiv());
+//		//add blank space
+//		res.add("");
+//		return res;
+//	}//
 	
 	public float calcOffsetScale(double val, float sc, float off){float res =(float)val - off; res *=sc; return res+=off;}
 	public double calcDBLOffsetScale(double val, float sc, double off){double res = val - off; res *=sc; return res+=off;}
@@ -994,12 +1040,14 @@ public abstract class myDispWindow {
 		if((getFlags(showIDX))&& (msePtInUIRect(mouseX, mouseY))){//in clickable region for UI interaction
 			for(int j=0; j<guiObjs.length; ++j){
 				if(guiObjs[j].checkIn(mouseX, mouseY)){	
-					if(pa.flags[pa.shiftKeyPressed]){//allows for click-mod
-						float mult = mseBtn * -2.0f + 1;	//+1 for left, -1 for right btn	
+					msBtnClcked = mseBtn;
+					if(pa.isClickModUIVal()){//allows for click-mod
+						setUIObjValFromClickAlone(j);
+						//float mult = msBtnClcked * -2.0f + 1;	//+1 for left, -1 for right btn	
 						//pa.outStr2Scr("Mult : " + (mult *pa.clickValModMult()));
-						guiObjs[j].clkModVal(mult * pa.clickValModMult());
+						//guiObjs[j].modVal(mult * pa.clickValModMult());
 						setFlags(uiObjMod,true);
-					} //else {										//has drag mod
+					} //else {										//has drag mod					
 					msClkObj=j;
 					//}
 					return true;	
@@ -1059,13 +1107,28 @@ public abstract class myDispWindow {
 		return mod;
 	}//handleMouseDrag
 	
+	//set all window values for UI objects
+	private void setAllUIWinVals() {for(int i=0;i<guiObjs.length;++i){if(guiObjs[i].getFlags(myGUIObj.usedByWinsIDX)){setUIWinVals(i);}}}
+	//set UI value for object based on non-drag modification such as click - either at initial click or when click is released
+	private void setUIObjValFromClickAlone(int j) {
+		float mult = msBtnClcked * -2.0f + 1;	//+1 for left, -1 for right btn	
+		//pa.outStr2Scr("Mult : " + (mult *pa.clickValModMult()));
+		guiObjs[j].modVal(mult * pa.clickValModMult());
+	}//setUIObjValFromClickAlone
+	
 	public void handleMouseRelease(){
 		if(!getFlags(showIDX)){return;}
 		if(getFlags(uiObjMod)){
-			for(int i=0;i<guiObjs.length;++i){if(guiObjs[i].getFlags(myGUIObj.usedByWinsIDX)){setUIWinVals(i);}}
+			setAllUIWinVals();
 			setFlags(uiObjMod, false);
 			msClkObj = -1;	
 		}//some object was clicked - pass the values out to all windows
+		else if(msClkObj != -1) {//means object was clicked in but not drag modified through drag or shift-clic - use this to modify by clicking
+			setUIObjValFromClickAlone(msClkObj);
+			setAllUIWinVals();
+			setFlags(uiObjMod, false);
+			msClkObj = -1;	
+		}
 		if (getFlags(editingTraj)){    this.tmpDrawnTraj.endEditObj();}    //this process assigns tmpDrawnTraj to owning window's traj array
 		if (getFlags(drawingTraj)){	this.tmpDrawnTraj.endDrawObj(getMsePoint(pa.Mouse()));}	//drawing curve
 		msClkObj = -1;	
@@ -1257,9 +1320,9 @@ public abstract class myDispWindow {
 	
 	//file io used from selectOutput/selectInput - 
 	//take loaded params and process
-	protected abstract void hndlFileLoadIndiv(String[] vals, int[] stIdx);
+	protected abstract void hndlFileLoad(String[] vals, int[] stIdx);
 	//accumulate array of params to save
-	protected abstract List<String> hndlFileSaveIndiv();	
+	protected abstract ArrayList<String> hndlFileSave();	
 	
 	protected abstract void initMe();
 	protected abstract void resizeMe(float scale);	
@@ -1669,12 +1732,13 @@ class mySideBarMenu extends myDispWindow{
 	@Override
 	protected void setCameraIndiv(float[] camVals){}
 	@Override
-	public void hndlFileLoadIndiv(String[] vals, int[] stIdx) {
+	public void hndlFileLoad(String[] vals, int[] stIdx) {
+		hndlFileLoad_GUI(vals, stIdx);
 		
 	}
 	@Override
-	public List<String> hndlFileSaveIndiv() {
-		List<String> res = new ArrayList<String>();
+	public ArrayList<String> hndlFileSave() {
+		ArrayList<String> res = hndlFileSave_GUI();
 
 		return res;
 	}

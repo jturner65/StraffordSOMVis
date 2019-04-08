@@ -254,8 +254,12 @@ public class SOM_StraffordMain extends PApplet {
 	//2d range checking of point
 	public boolean ptInRange(double x, double y, double minX, double minY, double maxX, double maxY){return ((x > minX)&&(x <= maxX)&&(y > minY)&&(y <= maxY));}	
 	//gives multiplier based on whether shift, alt or cntl (or any combo) is pressed
-	public double clickValModMult(){
-		return ((flags[altKeyPressed] ? .1 : 1.0) * (flags[cntlKeyPressed] ? 10.0 : 1.0));			
+	public double clickValModMult(){return ((flags[altKeyPressed] ? .1 : 1.0) * (flags[shiftKeyPressed] ? 10.0 : 1.0));}	
+	//keys/criteria are present that means UI objects are modified by set values based on clicks (as opposed to dragging for variable values)
+	//to facilitate UI interaction non-mouse computers, set these to be single keys
+	public boolean isClickModUIVal() {
+		//TODO change this to manage other key settings for situations where multiple simultaneous key presses are not optimal or conventient
+		return flags[altKeyPressed] || flags[shiftKeyPressed];		
 	}
 	public void mouseMoved(){for(int i =0; i<numDispWins; ++i){if (dispWinFrames[i].handleMouseMove(mouseX, mouseY)){return;}}}
 	public void mousePressed() {

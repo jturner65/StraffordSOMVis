@@ -1123,17 +1123,22 @@ public class mySOMMapUIWin extends myDispWindow {
 	@Override
 	protected void hndlMouseRelIndiv() {	}	
 	@Override
-	public void hndlFileLoadIndiv(String[] vals, int[] stIdx) {//TODO manage this directly in map manager
+	public void hndlFileLoad(String[] vals, int[] stIdx) {
+		//if wanting to load/save UI values, uncomment this call and similar in hndlFileSave 
+		//hndlFileLoad_GUI(vals, stIdx);
+		//loading in grade data from grade file - vals holds array of strings, expected to be comma sep values, for a single class, with student names and grades
+		
 		
 	}
-
 	@Override
-	public ArrayList<String> hndlFileSaveIndiv() {//TODO manage this directly in map manager
+	public ArrayList<String> hndlFileSave() {
 		ArrayList<String> res = new ArrayList<String>();
-
+		//if wanting to load/save UI values, uncomment this call and similar in hndlFileLoad 
+		//res = hndlFileSave_GUI();
+		//saving student grades to a file for a single class - vals holds array of strings, expected to be comma sep values, for a single class, with student names and grades
+		
 		return res;
 	}
-	
 	@Override
 	protected myPoint getMsePtAs3DPt(int mouseX, int mouseY){return pa.P(mouseX,mouseY,0);}
 	@Override
