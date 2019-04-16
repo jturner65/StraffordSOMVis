@@ -422,7 +422,6 @@ public class StraffSOMMapManager {
 		numTrainData=0;
 		numTestData=0;		
 		setFlag(rawPrspctEvDataProcedIDX, false);
-		setFlag(testTrainProdDataBuiltIDX, false);	
 		setFlag(custProspectDataLoadedIDX, false);
 		setAllTrainDatSaveFlags(false);
 	}//resetProspectMap
@@ -559,9 +558,9 @@ public class StraffSOMMapManager {
 		//load monitor first;save it last
 		dispMessage("SOMMapManager","loadMonitorJpJpgrp","Loading MonitorJpJpgrp data", MsgCodes.info1);
 		String[] loadSrcFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(subDir, false, "MonitorJpJpgrpData");
-		jpJpgrpMon.loadAllData(loadSrcFNamePrefixAra[0]+".csv");
+		jpJpgrpMon.loadAllData(loadSrcFNamePrefixAra[0],".csv");
 		dispMessage("SOMMapManager","loadMonitorJpJpgrp","Finished loading MonitorJpJpgrp data", MsgCodes.info1);
-		//dispMessage("SOMMapManager","loadMonitorJpJpgrp",jpJpgrpMon.toString(), MsgCodes.info1);
+		dispMessage("SOMMapManager","loadMonitorJpJpgrp",jpJpgrpMon.toString(), MsgCodes.info1);
 		//load customer prospect data
 		loadAllProspectData(subDir);		
 		
@@ -725,33 +724,45 @@ public class StraffSOMMapManager {
 		if ((null != exMap) && (exMap.size() > 0)) {
 			dispMessage("SOMMapManager","saveAllExampleMapData","Saving all "+mapType+" map data : " + exMap.size() + " examples to save.", MsgCodes.info5);
 			String[] saveDestFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(true, mapType+"MapSrcData");
-			ArrayList<ArrayList<String>> csvRes = new ArrayList<ArrayList<String>>();
+			//ArrayList<ArrayList<String>> csvRes = new ArrayList<ArrayList<String>>();
 			ArrayList<String> csvResTmp = new ArrayList<String>();		
 			int counter = 0;
 			prospectExample ex1 = exMap.get(exMap.firstKey());
 			String hdrStr = ex1.getRawDescColNamesForCSV();
 			csvResTmp.add( hdrStr);
-			int nameCounter = 0;
+			int nameCounter = 0, numFiles = (1+((int)((exMap.size()-1)/preProcDatPartSz)));
+			dispMessage("SOMMapManager","saveAllExampleMapData","Start Building "+mapType+" String Array : " +nameCounter + " of "+numFiles+".", MsgCodes.info1);
 			for (prospectExample ex : exMap.values()) {			
 				csvResTmp.add(ex.getRawDescrForCSV());
 				++counter;
 				if(counter % preProcDatPartSz ==0) {
-					dispMessage("SOMMapManager","saveAllExampleMapData","Done Building String Array : " +(nameCounter++), MsgCodes.info1);
-					counter = 0;
-					csvRes.add(csvResTmp); 
+					String fileName = saveDestFNamePrefixAra[0]+"_"+nameCounter+".csv";
+					dispMessage("SOMMapManager","saveAllExampleMapData","Done Building "+mapType+" String Array : " +nameCounter + " of "+numFiles+".  Saving to file : "+fileName, MsgCodes.info1);
+					//csvRes.add(csvResTmp); 
+					fileIO.saveStrings(fileName, csvResTmp);
 					csvResTmp = new ArrayList<String>();
 					csvResTmp.add( hdrStr);
+					counter = 0;
+					++nameCounter;
+					dispMessage("SOMMapManager","saveAllExampleMapData","Start Building "+mapType+" String Array : " +nameCounter + " of "+numFiles+".", MsgCodes.info1);
 				}
 			}
-			if(csvResTmp.size() > 1) {	csvRes.add(csvResTmp);dispMessage("SOMMapManager","saveAllExampleMapData","Done Building String Array : " +(nameCounter), MsgCodes.info1);}//add last result			
-			dispMessage("SOMMapManager","saveAllExampleMapData","Finished partitioning " + exMap.size()+ " "+mapType+" records into " + csvRes.size() + " "+mapType+" record files, each holding up to " + preProcDatPartSz + " records.  Start saving files.", MsgCodes.info1);
-			//save array of arrays of strings, partitioned and named so that no file is too large
-			nameCounter = 0;
-			for (ArrayList<String> csvResSubAra : csvRes) {		
-				dispMessage("SOMMapManager","saveAllExampleMapData","Saving Pre-procced "+mapType+" data String array : " +nameCounter, MsgCodes.info1);
-				fileIO.saveStrings(saveDestFNamePrefixAra[0]+"_"+nameCounter+".csv", csvResSubAra);
+			if(csvResTmp.size() > 1) {	
+				String fileName = saveDestFNamePrefixAra[0]+"_"+nameCounter+".csv";
+				dispMessage("SOMMapManager","saveAllExampleMapData","Done Building "+mapType+" String Array : " +nameCounter + " of "+numFiles+".  Saving to file : "+fileName, MsgCodes.info1);
+				//csvRes.add(csvResTmp);
+				fileIO.saveStrings(fileName, csvResTmp);
+				csvResTmp = new ArrayList<String>();
 				++nameCounter;
-			}
+			}			
+			dispMessage("SOMMapManager","saveAllExampleMapData","Finished partitioning " + exMap.size()+ " "+mapType+" records into " + nameCounter + " "+mapType+" record files, each holding up to " + preProcDatPartSz + " records and saving to files.", MsgCodes.info1);
+			//save array of arrays of strings, partitioned and named so that no file is too large
+//			nameCounter = 0;
+//			for (ArrayList<String> csvResSubAra : csvRes) {		
+//				dispMessage("SOMMapManager","saveAllExampleMapData","Saving Pre-procced "+mapType+" data String array : " +nameCounter, MsgCodes.info1);
+//				fileIO.saveStrings(saveDestFNamePrefixAra[0]+"_"+nameCounter+".csv", csvResSubAra);
+//				++nameCounter;
+//			}
 			//save the data in a format file
 			String[] data = new String[] {"Number of file partitions for " + saveDestFNamePrefixAra[1] +" data : "+ nameCounter + "\n"};
 			fileIO.saveStrings(saveDestFNamePrefixAra[0]+"_format.csv", data);		
@@ -781,7 +792,7 @@ public class StraffSOMMapManager {
 	private void saveMonitorJpJpgrp() {
 		dispMessage("SOMMapManager","saveMonitorJpJpgrp","Saving MonitorJpJpgrp data", MsgCodes.info5);
 		String[] saveDestFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(false, "MonitorJpJpgrpData");
-		jpJpgrpMon.saveAllData(saveDestFNamePrefixAra[0]+".csv");
+		jpJpgrpMon.saveAllData(saveDestFNamePrefixAra[0],".csv");
 		dispMessage("SOMMapManager","saveMonitorJpJpgrp","Finished saving MonitorJpJpgrp data", MsgCodes.info5);
 	}//saveMonitorJpJpgrp
 			
@@ -948,7 +959,7 @@ public class StraffSOMMapManager {
 		finalizeExMapNodes(_type);		
 	}//_finalizeBMUProcessing
 	
-	//build and save feature-based reports for all examples, products and map nodes
+	//build and save feature-based reports for all examples, products and map nodes TODO
 	public void buildFtrBasedRpt() {
 		if(!getFlag(testTrainProdDataBuiltIDX)) {return;}
 		dispMessage("SOMMapManager","buildFtrBasedRpt","Start Building feature weight reports for all examples --NOT YET IMPLEMENTED-- .", MsgCodes.info5);
@@ -1103,7 +1114,7 @@ public class StraffSOMMapManager {
 	//When acquiring new data, this must be performed after all data is loaded, but before
 	//the prospect data is finalized and actual map is built due to the data finalization 
 	//requiring a knowledge of the entire dataset to build weights appropriately
-	private void setJPDataFromExampleData(ConcurrentSkipListMap<String, prospectExample> map) {
+	private void _setJPDataFromExampleData(ConcurrentSkipListMap<String, prospectExample> map) {
 		//object to manage all jps and jpgroups seen in project
 		jpJpgrpMon.setJPDataFromExampleData(map, prospectExamples.get(prspctExKey), productMap);		
 		numFtrs = jpJpgrpMon.getNumFtrs();
@@ -1212,7 +1223,7 @@ public class StraffSOMMapManager {
 		//must rebuild this because we might not have same jp's
 		dispMessage("SOMMapManager",calledFromMethod+"->_finalizeProsProdJpJPGMon","End initial finalize of product map | Begin setJPDataFromExampleData from prospect map", MsgCodes.info1);
 		//we need the jp-jpg counts and relationships dictated by the data by here.
-		setJPDataFromExampleData(tmpProspectMap);
+		_setJPDataFromExampleData(tmpProspectMap);
 		dispMessage("SOMMapManager",calledFromMethod+"->_finalizeProsProdJpJPGMon","End setJPDataFromExampleData from "+ prospectMapName +" prospect map", MsgCodes.info1);
 	}//_finalizeProsProdJpJPGMon
 	
@@ -1260,7 +1271,7 @@ public class StraffSOMMapManager {
 		//whether or not to display total event membership counts across all examples to console
 		boolean dispDebugEventMembership = true, dispDebugProgress = true;
 		String prospectDesc = "";
-		
+		int numRecsToProc = tmpProspectMap.size();
 		int typeOfEventsForCustomer = projConfigData.getTypeOfEventsForCustAndProspect();
 
 		int[] countsOfBoolResOcc = new int[custProspectExample.eventMapTypeKeys.length+1],
@@ -1268,27 +1279,34 @@ public class StraffSOMMapManager {
 		ConcurrentSkipListMap<String, prospectExample> 
 			customerPrspctMap = prospectExamples.get(custExKey),			//map of customers to build
 			truePrspctMap = prospectExamples.get(prspctExKey);				//map of true prospects to build
-		int numEx = tmpProspectMap.size(), curEx=0, modSz = numEx/20;
+		int numEx = tmpProspectMap.size(), curEx=0, modSz = numEx/20, nonCustPrspctRecs = 0, noEventDataPrspctRecs = 0;
+		Set<String> keySet = tmpProspectMap.keySet();
 		switch(typeOfEventsForCustomer) {
 		case 0 : {		// cust has order event, prospect does not but has source and possibly other events
 			prospectDesc = "Records that do not have any order events";
-			for (String OID : tmpProspectMap.keySet()) {		
-				prospectExample ex = tmpProspectMap.get(OID);
+			for (String OID : keySet) {		
+				prospectExample ex = tmpProspectMap.remove(OID); 
 				if(dispDebugEventMembership) {dbgEventInExample(ex, countsOfBoolResOcc, countsOfBoolResEvt);}
 				if (ex.isTrainablePastCustomer()) {			customerPrspctMap.put(OID, ex);		} 			//training data - has valid feature vector and past order events
 				else if (ex.isTrueProspect()) {				handleTrueProspect(truePrspctMap,OID, ex);	} 				//no past order events but has valid source event data
-				
+				else {//should never happen - example is going nowhere - is neither true prospect or trainable past customer
+					//dispMessage("SOMMapManager","procRawLoadedData->_buildCustomerAndProspectMaps","Raw Rec " + ex.OID + " neither trainable customer nor true prospect.  Ignoring.", MsgCodes.info3);
+					if(ex.hasEventData()) {				++nonCustPrspctRecs;			} else {			++noEventDataPrspctRecs;		}					
+				}
 				if(dispDebugProgress) {	++curEx;	if(curEx % modSz == 0) {System.out.print(".");}}
 			}
 			break;}
 		case 1 : {		//cust has some non-source event, prospect does not have customer event but does have source event
 			prospectDesc = "Records that only have source events";
-			for (String OID : tmpProspectMap.keySet()) {		
-				prospectExample ex = tmpProspectMap.get(OID);
+			for (String OID : keySet) {		
+				prospectExample ex = tmpProspectMap.remove(OID);
 				if(dispDebugEventMembership) {dbgEventInExample(ex, countsOfBoolResOcc, countsOfBoolResEvt);}
 				if (ex.hasNonSourceEvents()) {					customerPrspctMap.put(OID, ex);		} 			//training data - has valid feature vector and any non-source event data
 				else if (ex.hasOnlySourceEvents()) {			handleTrueProspect(truePrspctMap,OID, ex);		} 				//only has source data
-
+				else {//should never happen - example is going nowhere - is neither true prospect or trainable past customer
+					//dispMessage("SOMMapManager","procRawLoadedData->_buildCustomerAndProspectMaps","Raw Rec " + ex.OID + " neither trainable customer nor true prospect.  Ignoring.", MsgCodes.info3);
+					if(ex.hasEventData()) {				++nonCustPrspctRecs;			} else {			++noEventDataPrspctRecs;		}					
+				}
 				if(dispDebugProgress) {	++curEx;	if(curEx % modSz == 0) {System.out.print(".");}}
 			}
 			break;}
@@ -1299,9 +1317,10 @@ public class StraffSOMMapManager {
 		//display debug info relating to counts of different types of events present in given examples
 		if(dispDebugEventMembership) {dispDebugEventPresenceData(countsOfBoolResOcc, countsOfBoolResEvt);}
 		//display customers and true prospects info
-		dispMessage("SOMMapManager","procRawLoadedData->_buildCustomerAndProspectMaps","Raw Records Unique OIDs presented : " + tmpProspectMap.size(), MsgCodes.info3);
-		dispMessage("SOMMapManager","procRawLoadedData->_buildCustomerAndProspectMaps","# true prospect records (" + prospectDesc +") : " + truePrspctMap.size(), MsgCodes.info1);	
-		dispMessage("SOMMapManager","procRawLoadedData->_buildCustomerAndProspectMaps","# customer prospect records found with trainable event-based info : " + customerPrspctMap.size(), MsgCodes.info3);
+		dispMessage("SOMMapManager","procRawLoadedData->_buildCustomerAndProspectMaps","Raw Records Unique OIDs presented : " + numRecsToProc, MsgCodes.info3);
+		dispMessage("SOMMapManager","procRawLoadedData->_buildCustomerAndProspectMaps","# True Prospect records (" + prospectDesc +") : " + truePrspctMap.size(), MsgCodes.info1);	
+		dispMessage("SOMMapManager","procRawLoadedData->_buildCustomerAndProspectMaps","# Customer Prospect records found with trainable event-based info : " + customerPrspctMap.size(), MsgCodes.info3);
+		dispMessage("SOMMapManager","procRawLoadedData->_buildCustomerAndProspectMaps","# Raw Records that are neither true prospects nor customers but has events : " + nonCustPrspctRecs + " and with no events : "+ noEventDataPrspctRecs, MsgCodes.info3);
 
 	}//_buildCustomerAndProspectMaps
 	
@@ -1340,7 +1359,8 @@ public class StraffSOMMapManager {
 	
 		//build actual customer and validation maps using rules defining what is a customer (probably means having an order event) and what is a "prospect" (probably not having an order event)
 		_buildCustomerAndProspectMaps(tmpProspectMap);
-		
+		//clear temp map to free up memory
+		tmpProspectMap = null;
 		//finalize - recalc all processed data in case new products have different JP's present, set flags and save to file
 		calcFtrsDiffsMinsAndSave();
 		

@@ -333,14 +333,14 @@ class JPWeightEquation {
 	private static final float optOutSntnlVal = -9999.0f;
 	
 	//mults and offsets are of the form (mult * x + offset), where x is output of membership function
-	public static int 						//idxs in eq coefficient arrays
+	public static final int 						//idxs in eq coefficient arrays
 			orderCoeffIDX = 0, 
 			optCoeffIDX = 1,
 			linkCoeffIDX = 2,
 			srcCoeffIDX = 3;
-	public static int numEqs = 4;
+	public static final int numEqs = 4;
 	//these names must match order and number of component idxs above
-	public static String[] calcNames = new String[] {"Order","Opt","Link","Source"};
+	public static final String[] calcNames = new String[] {"Order","Opt","Link","Source"};
 	
 	private final Float[] Mult;						//multiplier for membership functions
 	private final Float[] Offset;					//offsets for membership functions	

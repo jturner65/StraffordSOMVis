@@ -9,12 +9,20 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.*;
 
 /**
-* this class will load, and manage, the appropriate files containing the Strafford data used to build the SOM.  
-* ultimately this class will also execute the appropriate SQL commands to call db
- * 
- * @author john
- *
- */
+* this class will load, and manage, the appropriate files containing 
+* the Strafford data used to build the SOM.  Ultimately this class should 
+* also execute the appropriate SQL commands to call db and retrieve raw 
+* data directly
+* 
+* This raw data is used to build the preprocessed data that is then saved 
+* locally and used to build training, testing and verification examples
+* 
+* @author john
+*
+*/
+
+//mltemp.live_jps <--table holding jps found in tags (i.e. actual products).
+
 public abstract class StraffordDataLoader implements Callable<Boolean> {
 	//ref to owning object
 	protected static StraffSOMMapManager mapMgr;
@@ -59,6 +67,7 @@ public abstract class StraffordDataLoader implements Callable<Boolean> {
 	protected ArrayList<BaseRawData> execLoad(){	
 		ArrayList<BaseRawData> dataObjs = new ArrayList<BaseRawData>();
 		if (isFileLoader) {
+			mapMgr.dispMessage("StraffordDataLoader","execLoad","File Load Started for "+fileNameAndPath, MsgCodes.info5);
 			streamCSVDataAndBuildStructs(dataObjs, fileNameAndPath);
 			mapMgr.dispMessage("StraffordDataLoader","execLoad","File Load Finished for "+fileNameAndPath, MsgCodes.info5);
 		} else {//exec sql load for this file
@@ -143,7 +152,8 @@ public abstract class StraffordDataLoader implements Callable<Boolean> {
 		mapMgr.rawDataArrays.put(destAraDataKey, dataObjs);
 	}
 	@Override
-	public Boolean call() throws Exception {		
+	public Boolean call() throws Exception {	
+		mapMgr.dispMessage("StraffordDataLoader","call() : ","Start loading "+ fileNameAndPath, MsgCodes.info5);
 		//execute load, take load results and add to mapData.rawDataArrays
 		ArrayList<BaseRawData> dataObjs = execLoad();
 		//add to map - overridden by classes that have multiple source file names
@@ -290,7 +300,11 @@ abstract class BaseRawData {
 		Map<String, Object> jsonMap = null;
 		if (hasJson) {
 			try {jsonMap = _mapper.readValue(_json,new TypeReference<Map<String,Object>>(){});}
-			catch (Exception e) {e.printStackTrace(); 		}
+			catch (Exception e) {
+				mapMgr.dispMessage("BaseRawData","constructor","Bad " +TypeOfData +" record (corrupted JSON) with OID : " + OID +"!!!! Record will be ignored.", MsgCodes.error1);
+				//e.printStackTrace(); 
+				isBadRec = true;
+			}
 			if (jsonMap != null) {
 				dscrObject = buildDescrObjectFromJsonMap(jsonMap);
 			}
@@ -448,28 +462,39 @@ abstract class BaseRawData {
 class prospectData extends BaseRawData {
 	//these should all be lowercase - these are exact key substrings we wish to match, to keep and use to build training data - all the rest of json data is being tossed
 	//private static final String[] relevantExactKeys = {"jp","lu"};
-	private static final String[] relevantExactKeys = {"lu"};
+	private static final String dateKeyInJSON = "udate",scndryDateKeyInJSON = "cdate";
+	private static final String[] relevantExactKeys = {dateKeyInJSON,scndryDateKeyInJSON};
 	//lu date from json
-	private Date luDate;
+	private Date luDate ;
 	//if this prospect record is empty/lacking all info.  might not be bad
 	//public boolean isEmptyPrspctRec = false;
 
 	public prospectData(StraffSOMMapManager _mapMgr,String _id, String _json, ObjectMapper _mapper, boolean hasJson) {
 		super(_mapMgr,_id, _json, _mapper, "prospect", hasJson);
 		//String jpsList = dscrObject.mapOfRelevantJson.get("jp").toString();
-		String luDateStr = dscrObject.mapOfRelevantJson.get("lu").toString();
-		if(luDateStr.length() > 0) {luDate = BaseRawData.buildDateFromString(luDateStr);}
-		else {
-			mapMgr.dispMessage("prospectData","constructor"," No existing LU date for record id : " + _id + " json string " + _json, MsgCodes.error1);
-			//isEmptyPrspctRec = jpsList.length() - 2 == 0;//if jpsList is length 2, then no jps in this record, and no last update means this record has very little pertinent data-neither a date nor a jp associated with it
+		String luDateStr = "";
+		try {
+			luDateStr = dscrObject.mapOfRelevantJson.get(dateKeyInJSON).toString();
+			if(luDateStr.length() > 0) {luDate = BaseRawData.buildDateFromString(luDateStr);}
+			else {//try cdate
+				luDateStr = dscrObject.mapOfRelevantJson.get(scndryDateKeyInJSON).toString();
+				if(luDateStr.length() > 0) {luDate = BaseRawData.buildDateFromString(luDateStr);}
+				else {				
+					mapMgr.dispMessage("prospectData","constructor"," No existing appropriate date for record id : " + _id + " json string " + _json, MsgCodes.error1);
+					//isEmptyPrspctRec = jpsList.length() - 2 == 0;//if jpsList is length 2, then no jps in this record, and no last update means this record has very little pertinent data-neither a date nor a jp associated with it
+					isBadRec = true;
+				}
+			}
+			rawJpMapOfArrays = new TreeMap<Integer, ArrayList<Integer>>();
+		} catch (Exception e) {
+			isBadRec = true;
 		}
+
 //		if (null==jpsList) {
 //			mapMgr.dispMessage("prospectData","constructor"," Null jpsList for json string " + _json, MsgCodes.error1);
 //		} else {
 //			rawJpMapOfArrays = dscrObject.convertToJpgJps(jpsList);			
 //		}
-		
-		rawJpMapOfArrays = new TreeMap<Integer, ArrayList<Integer>>();
 	}//ctor
 	
 	//build descriptor object from json map
@@ -851,26 +876,7 @@ class prospectDescr extends jsonDescr{
 
 	@Override
 	protected TreeMap<Integer, ArrayList<Integer>> convertToJpgJps(String jpRawDataStr) {	
-		//NOT READING PROSPECT RECORD FOR JP/JPG anymore
-//		//split on label for jp id and jpg id
-//		String[] tmpStr1 = jpRawDataStr.split("id=");
-//		if (tmpStr1.length < 3) {return new TreeMap<Integer, ArrayList<Integer>>();}
-//		
-//		Integer jp = Integer.parseInt(tmpStr1[1].split(",")[0].trim());
-//		Integer jpgrp = 0;
-//		try {
-//			jpgrp = Integer.parseInt(tmpStr1[2].split(",")[0].trim());
-//			BaseRawData.RecordJPsJPGsSeen(jp, jpgrp, false);//to debug load of jp's seen
-//		} catch (Exception e){
-//			//jp 0, 800, 446
-//			mapMgr.dispMessage("prospectDescr","convertToJpgJps"," Poorly formatted jp breaks jpgrp query : " + jp + " | raw str : " + jpRawDataStr + ". Entry is ignored.", MsgCodes.error1);
-//			return new TreeMap<Integer, ArrayList<Integer>>();
-//		}
-//		TreeMap<Integer, ArrayList<Integer>> res = new TreeMap<Integer, ArrayList<Integer>>();
-//		ArrayList<Integer> tmp = new ArrayList<Integer>();
-//		tmp.add(jp);
-//		res.put(jpgrp, tmp);	
-//		return res;
+		//NOT READING PROSPECT RECORD FOR JP/JPG anymore so this should be ignored - this is replaced by using source data
 		return new TreeMap<Integer, ArrayList<Integer>>();
 	}	
 }//class prospectDescr

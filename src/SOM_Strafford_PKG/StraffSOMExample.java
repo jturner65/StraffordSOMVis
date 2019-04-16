@@ -21,6 +21,7 @@ import java.util.regex.Pattern;
  * @author john
  *
  */
+
 public abstract class StraffSOMExample extends SOMExample{
 	//reference to jp-jpg mapping/managing object
 	protected static MonitorJpJpgrp jpJpgMon;
@@ -88,16 +89,16 @@ public abstract class StraffSOMExample extends SOMExample{
 		map.put(addDate, objMap);
 	}//addDataToMap
 	
-	//return a hash set of the jps represented by non-zero values in this object's feature vector.
-	//needs to be governed by some threshold value
-	protected HashSet<Integer> buildJPsFromFtrAra(float[] _ftrAra, float thresh){
-		HashSet<Integer> jps = new HashSet<Integer>();
-		for (int i=0;i<_ftrAra.length;++i) {
-			Float ftr = ftrMaps[ftrMapTypeKey].get(i);
-			if ((ftr!= null) && (ftr > thresh)) {jps.add(jpJpgMon.getJpByIdx(i));			}
-		}
-		return jps;	
-	}//buildJPsFromFtrVec
+//	//return a hash set of the jps represented by non-zero values in this object's feature vector.
+//	//needs to be governed by some threshold value
+//	protected HashSet<Integer> buildJPsFromFtrAra(float[] _ftrAra, float thresh){
+//		HashSet<Integer> jps = new HashSet<Integer>();
+//		for (int i=0;i<_ftrAra.length;++i) {
+//			Float ftr = ftrMaps[ftrMapTypeKey].get(i);
+//			if ((ftr!= null) && (ftr > thresh)) {jps.add(jpJpgMon.getJpByIdx(i));			}
+//		}
+//		return jps;	
+//	}//buildJPsFromFtrVec
 	@Override
 	//this is called after an individual example's features are built
 	protected void _PostBuildFtrVec_Priv() {}		
@@ -133,7 +134,7 @@ public abstract class StraffSOMExample extends SOMExample{
 abstract class prospectExample extends StraffSOMExample{
 	//prospect last lookup date, if any specified
 	public Date prs_LUDate;
-	//structs to hold all event occurences   of each JP for this OID
+	//structs to hold all event occurences of each JP for this OID
 	protected TreeMap<String, TreeMap<Integer, jpOccurrenceData>> JpOccurrences;
 	//may have multiple events on same date/time, map by event ID 	
 	protected TreeMap<String, TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>>> eventsByDateMap;	
@@ -337,10 +338,10 @@ abstract class prospectExample extends StraffSOMExample{
 	//whether this record has any information to be used to train - presence of prospect jpg/jp can't be counted on
 	//isBadExample means resulting ftr data is all 0's for this example.  can't learn from this, so no need to keep it.
 	public final boolean hasNonSourceEvents() {return !getFlag(isBadTrainExIDX) && (hasRelelventTrainingEvents());}		
-	//whether this record should be used as validation record - if it has no past order events, but does have source data 
+	//whether this record should be used as validation record - if it has no past order events, but does have source data or other events 
 	
 	public final boolean isTrueProspect() {	
-		return  ((JpOccurrences.get("orders").size() == 0) && (JpOccurrences.get("sources").size() > 0));
+		return  ((JpOccurrences.get("orders").size() == 0) && ((JpOccurrences.get("sources").size() > 0) || (hasRelelventTrainingEvents())));
 	}//isTrueProspect()	
 	
 	//whether this record has any source events specified - if no other events then this record would be a legitimate validation record (a true prospect)
@@ -349,6 +350,12 @@ abstract class prospectExample extends StraffSOMExample{
 	//instancing class specific new object initialization
 	protected abstract void _initObjsIndiv();
 
+	//if this prospect has any events
+	public boolean hasEventData() {
+		for (String key : eventsByDateMap.keySet()) {if (eventsByDateMap.get(key).size() > 0) {return true;}	}
+		return false;
+	}
+	
 	//this prospect is an actual customer - use as training data
 	public abstract boolean isTrainablePastCustomer();
 	//get status of a particular jp
@@ -465,7 +472,6 @@ class custProspectExample extends prospectExample{
 		testTrainDataIDX = -1;
 	}//initObjsData
 
-
 	//any processing that must occur once all constituent data records are added to this example - must be called externally, before ftr vec is built
 	@Override
 	public void finalizeBuild() {
@@ -555,7 +561,7 @@ class custProspectExample extends prospectExample{
 	protected String[] getCSVSentinelLbls() {return CSVSentinelLbls;}
 	//this prospect is an actual customer - use as training data - not all custPropsects will have this true, since this is the initial class that is used to build the data
 	@Override
-	public boolean isTrainablePastCustomer() { return !getFlag(isBadTrainExIDX) && (JpOccurrences.get("orders").size() > 0) ;}
+	public boolean isTrainablePastCustomer() { return !getFlag(isBadTrainExIDX) && (JpOccurrences.get("orders").size() > 0);}
 	
 	//returns true if -any training-related- events are present in this record (i.e. not counting source "events")
 	@Override
@@ -584,8 +590,6 @@ class custProspectExample extends prospectExample{
 		}
 		return res;
 	}
-
-
 }//class prospectExample
 
 
@@ -1338,6 +1342,8 @@ class jpOccurrenceData{
  *
  */
 abstract class StraffTrainData{
+	
+	protected static final String jpgrpStTag = "JPG_St,", jpgrpEndTag = "JPG_End,";
 	//magic value for opt key field in map, to use for non-opt records. 
 	protected static final int FauxOptVal = 3;
 	//array of jpg/jp records for this training data example
@@ -1352,7 +1358,7 @@ abstract class StraffTrainData{
 		//boolean isOptEvent = ((-2 <= optKey) && (optKey <= 2));
 		listOfJpgsJps = new ArrayList<JpgJpDataRecord>(); 	//order of recs is priority of jpgs
 		String[] strAra1 = _csvDataStr.split("numJPGs,");//use idx 1
-		String[] strAraVals = strAra1[1].trim().split(",JPGJP_Start,");//1st element will be # of JPDataRecs, next elements will be Data rec vals
+		String[] strAraVals = strAra1[1].trim().split(","+jpgrpStTag);//1st element will be # of JPDataRecs, next elements will be Data rec vals
 		Integer numDataRecs = Integer.parseInt(strAraVals[0].trim());
 		for (int i=0;i<numDataRecs;++i) {
 			String csvString = strAraVals[i+1];
@@ -1472,7 +1478,7 @@ class TcTagTrainData extends StraffTrainData{
 	}//getJPOrderMap()
 	
 	@Override
-	protected String getRecCSVString(JpgJpDataRecord rec) {		return "JPGJP_Start,optKey,"+rec.getOptVal()+","+rec.getCSVString()+"JPGJP_End,";};
+	protected String getRecCSVString(JpgJpDataRecord rec) {		return jpgrpStTag+"optKey,"+rec.getOptVal()+","+rec.getCSVString()+jpgrpEndTag;};
 
 	
 	
@@ -1597,7 +1603,7 @@ class OrderEventTrainData extends StraffEvntTrainData{
 	public void addJPG_JPDataFromCSVString(String _csvDataStr) {super.addJPG_JPDataRecsFromCSVStr(FauxOptVal,_csvDataStr);	}//addJPG_JPDataFromCSVString
 	//get the output string holding the relevant info for an individual event record of this kind of data
 	@Override
-	protected String getRecCSVString(JpgJpDataRecord rec) {		return "JPGJP_Start,optKey,"+rec.getOptVal()+","+rec.getCSVString()+"JPGJP_End,";};
+	protected String getRecCSVString(JpgJpDataRecord rec) {		return jpgrpStTag+"optKey,"+rec.getOptVal()+","+rec.getCSVString()+jpgrpEndTag;};
 
 }//class OrderEventTrainData
 
@@ -1617,7 +1623,7 @@ class LinkEventTrainData extends StraffEvntTrainData{
 	public void addJPG_JPDataFromCSVString(String _csvDataStr) {	super.addJPG_JPDataRecsFromCSVStr(FauxOptVal,_csvDataStr);}//addJPG_JPDataFromCSVString
 	//get the output string holding the relevant info for an individual event record of this kind of data
 	@Override
-	protected String getRecCSVString(JpgJpDataRecord rec) {		return "JPGJP_Start,optKey,"+rec.getOptVal()+","+rec.getCSVString()+"JPGJP_End,";};
+	protected String getRecCSVString(JpgJpDataRecord rec) {		return jpgrpStTag+"optKey,"+rec.getOptVal()+","+rec.getCSVString()+jpgrpEndTag;};
 }//class LinkEventTrainData
 
 class OptEventTrainData extends StraffEvntTrainData{
@@ -1650,7 +1656,7 @@ class OptEventTrainData extends StraffEvntTrainData{
 	}
 	//get the output string holding the relevant info for an individual event record of this kind of data
 	@Override
-	protected String getRecCSVString(JpgJpDataRecord rec) {		return "JPGJP_Start,optKey,"+rec.getOptVal()+","+rec.getCSVString()+"JPGJP_End,";};
+	protected String getRecCSVString(JpgJpDataRecord rec) {		return jpgrpStTag+"optKey,"+rec.getOptVal()+","+rec.getCSVString()+jpgrpEndTag;};
 }//class OptEventTrainData
 
 
@@ -1684,7 +1690,7 @@ class SrcEventTrainData extends StraffEvntTrainData{
 	}
 	//get the output string holding the relevant info for an individual event record of this kind of data
 	@Override
-	protected String getRecCSVString(JpgJpDataRecord rec) {		return "JPGJP_Start,srcType,"+rec.getOptVal()+","+rec.getCSVString()+"JPGJP_End,";};
+	protected String getRecCSVString(JpgJpDataRecord rec) {		return jpgrpStTag+"srcType,"+rec.getOptVal()+","+rec.getCSVString()+jpgrpEndTag;};
 }//class SrcEventTrainData
 
 

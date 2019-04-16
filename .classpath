@@ -2,28 +2,28 @@
 <classpath>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
-	<classpathentry kind="lib" path="core.jar"/>
-	<classpathentry kind="lib" path="gluegen-rt-natives-linux-amd64.jar"/>
-	<classpathentry kind="lib" path="gluegen-rt-natives-linux-armv6hf.jar"/>
-	<classpathentry kind="lib" path="gluegen-rt-natives-linux-i586.jar"/>
-	<classpathentry kind="lib" path="gluegen-rt-natives-macosx-universal.jar"/>
-	<classpathentry kind="lib" path="gluegen-rt-natives-windows-amd64.jar"/>
-	<classpathentry kind="lib" path="gluegen-rt-natives-windows-i586.jar"/>
-	<classpathentry kind="lib" path="gluegen-rt.jar"/>
-	<classpathentry kind="lib" path="jogl-all-natives-linux-amd64.jar"/>
-	<classpathentry kind="lib" path="jogl-all-natives-linux-armv6hf.jar"/>
-	<classpathentry kind="lib" path="jogl-all-natives-linux-i586.jar"/>
-	<classpathentry kind="lib" path="jogl-all-natives-macosx-universal.jar"/>
-	<classpathentry kind="lib" path="jogl-all-natives-windows-amd64.jar"/>
-	<classpathentry kind="lib" path="jogl-all-natives-windows-i586.jar"/>
-	<classpathentry kind="lib" path="jogl-all.jar"/>
-	<classpathentry kind="lib" path="jl1.0.1.jar"/>
-	<classpathentry kind="lib" path="jackson-databind-2.9.7-javadoc.jar"/>
-	<classpathentry kind="lib" path="jackson-databind-2.9.7.jar"/>
-	<classpathentry kind="lib" path="jackson-annotations-2.9.7-javadoc.jar"/>
-	<classpathentry kind="lib" path="jackson-annotations-2.9.7.jar"/>
-	<classpathentry kind="lib" path="jackson-core-2.9.7-javadoc.jar"/>
-	<classpathentry kind="lib" path="jackson-core-2.9.7.jar"/>
 	<classpathentry kind="src" path="data"/>
+	<classpathentry kind="lib" path="libs/core.jar"/>
+	<classpathentry kind="lib" path="libs/gluegen-rt-natives-linux-amd64.jar"/>
+	<classpathentry kind="lib" path="libs/gluegen-rt-natives-linux-armv6hf.jar"/>
+	<classpathentry kind="lib" path="libs/gluegen-rt-natives-linux-i586.jar"/>
+	<classpathentry kind="lib" path="libs/gluegen-rt-natives-macosx-universal.jar"/>
+	<classpathentry kind="lib" path="libs/gluegen-rt-natives-windows-amd64.jar"/>
+	<classpathentry kind="lib" path="libs/gluegen-rt-natives-windows-i586.jar"/>
+	<classpathentry kind="lib" path="libs/gluegen-rt.jar"/>
+	<classpathentry kind="lib" path="libs/jackson-annotations-2.9.7-javadoc.jar"/>
+	<classpathentry kind="lib" path="libs/jackson-annotations-2.9.7.jar"/>
+	<classpathentry kind="lib" path="libs/jackson-core-2.9.7-javadoc.jar"/>
+	<classpathentry kind="lib" path="libs/jackson-core-2.9.7.jar"/>
+	<classpathentry kind="lib" path="libs/jackson-databind-2.9.7-javadoc.jar"/>
+	<classpathentry kind="lib" path="libs/jackson-databind-2.9.7.jar"/>
+	<classpathentry kind="lib" path="libs/jl1.0.1.jar"/>
+	<classpathentry kind="lib" path="libs/jogl-all-natives-linux-amd64.jar"/>
+	<classpathentry kind="lib" path="libs/jogl-all-natives-linux-armv6hf.jar"/>
+	<classpathentry kind="lib" path="libs/jogl-all-natives-linux-i586.jar"/>
+	<classpathentry kind="lib" path="libs/jogl-all-natives-macosx-universal.jar"/>
+	<classpathentry kind="lib" path="libs/jogl-all-natives-windows-amd64.jar"/>
+	<classpathentry kind="lib" path="libs/jogl-all-natives-windows-i586.jar"/>
+	<classpathentry kind="lib" path="libs/jogl-all.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
