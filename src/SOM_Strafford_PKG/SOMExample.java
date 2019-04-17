@@ -597,7 +597,8 @@ public abstract class SOMExample extends baseDataPtVis{
 
 	private String _toCSVString(TreeMap<Integer, Float> ftrs) {
 		String res = ""+OID+",";
-		for(int i=0;i<mapMgr.numFtrs;++i){
+		int numTrnFtrs = mapMgr.getNumTrainFtrs();
+		for(int i=0;i<numTrnFtrs;++i){
 			Float ftr = ftrs.get(i);			
 			res += String.format("%1.7g", (ftr==null ? 0 : ftr)) + ",";
 		}
@@ -615,7 +616,8 @@ public abstract class SOMExample extends baseDataPtVis{
 
 	private String _toLRNString(TreeMap<Integer, Float> ftrs, String sep) {
 		String res = ""+OID+sep;
-		for(int i=0;i<mapMgr.numFtrs;++i){
+		int numTrnFtrs = mapMgr.getNumTrainFtrs();
+		for(int i=0;i<numTrnFtrs;++i){
 			Float ftr = ftrs.get(i);			
 			res += String.format("%1.7g", (ftr==null ? 0 : ftr)) + sep;
 		}
@@ -645,19 +647,19 @@ public abstract class SOMExample extends baseDataPtVis{
 			default : {return _toSVMString(ftrMaps[ftrMapTypeKey]); }
 		}		
 	}//toLRNString
-
+	//build a feature vector from the map of ftr values
 	private float[] _getFtrsFromMap(TreeMap<Integer, Float> ftrMap) {
-		float[] ftrs = new float[mapMgr.numFtrs];
+		float[] ftrs = new float[mapMgr.getNumTrainFtrs()];
 		for (Integer ftrIdx : ftrMap.keySet()) {ftrs[ftrIdx]=ftrMap.get(ftrIdx);		}
 		return ftrs;
 	}
 	
 	//build feature vector on demand
-	public float[] getFtrs() {return _getFtrsFromMap(this.ftrMaps[ftrMapTypeKey]);}
+	public float[] getFtrs() {return _getFtrsFromMap(ftrMaps[ftrMapTypeKey]);}
 	//build stdfeature vector on demand
-	public float[] getStdFtrs() {return _getFtrsFromMap(this.ftrMaps[stdFtrMapTypeKey]);}
+	public float[] getStdFtrs() {return _getFtrsFromMap(ftrMaps[stdFtrMapTypeKey]);}
 	//build normfeature vector on demand
-	public float[] getNormFtrs() {return _getFtrsFromMap(this.ftrMaps[normFtrMapTypeKey]);}	
+	public float[] getNormFtrs() {return _getFtrsFromMap(ftrMaps[normFtrMapTypeKey]);}	
 	
 	public TreeMap<Integer, Float> getCurrentFtrMap(int _type){
 		switch(_type){
@@ -677,9 +679,11 @@ public abstract class SOMExample extends baseDataPtVis{
 	private String dispFtrs(TreeMap<Integer, Float> ftrs) {
 		String res = "";
 		if((ftrs==null) || (ftrs.size() == 0)){res+=" None\n";} 
-		else {res +="\n\t";for(int i=0;i<mapMgr.numFtrs;++i){
+		else {
+			int numFtrs = mapMgr.getNumTrainFtrs();
+			res +="\n\t";for(int i=0;i<numFtrs;++i){
 			Float ftr = ftrs.get(i);
-			res += String.format("%1.4g",  (ftr==null ? 0 : ftr)) + " | "; if((mapMgr.numFtrs > 40) && ((i+1)%30 == 0)){res +="\n\t";}}}
+			res += String.format("%1.4g",  (ftr==null ? 0 : ftr)) + " | "; if((numFtrs > 40) && ((i+1)%30 == 0)){res +="\n\t";}}}
 		return res;
 	}
 	protected String dispFtrMapVals(TreeMap<Integer, Float> ftrs) {
@@ -722,8 +726,9 @@ public abstract class SOMExample extends baseDataPtVis{
 	public String toString(){
 		String res = "Example OID# : "+OID ;
 		if(null!=mapLoc){res+="Location on SOM map : " + mapLoc.toStrBrf();}
-		if (mapMgr.numFtrs > 0) {
-			res += "\nUnscaled Features (" +mapMgr.numFtrs+ " ) :";
+		int numTrnFtrs = mapMgr.getNumTrainFtrs();
+		if (numTrnFtrs > 0) {
+			res += "\nUnscaled Features (" +numTrnFtrs+ " ) :";
 			res += dispFtrs(ftrMaps[ftrMapTypeKey]);
 			res +="\nScaled Features : ";
 			res += dispFtrs(ftrMaps[stdFtrMapTypeKey]);

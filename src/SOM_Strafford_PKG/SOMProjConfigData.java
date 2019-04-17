@@ -57,6 +57,7 @@ public class SOMProjConfigData {
 	private String straff_QualifedBaseDir;
 	//name of som executable
 	private final String SOMExeName_base = "straff_SOM";
+	//private final String SOMExeName_base = "straff_SOM_new";
 
 	//short name to be used in file names to denote this project
 	private final String SOMProjName = "straff";
@@ -320,7 +321,7 @@ public class SOMProjConfigData {
 	}//setExpConfigData	
 		
 	//save test/train data in multiple threads
-	public void launchTestTrainSaveThrds(ExecutorService th_exec, int curMapFtrType) {
+	public void launchTestTrainSaveThrds(ExecutorService th_exec, int curMapFtrType, int numTrainFtrs) {
 		String saveFileName = "";
 		List<Future<Boolean>> straffSOMDataWriteFutures = new ArrayList<Future<Boolean>>();
 		List<straffDataWriter> straffSOMDataWrite = new ArrayList<straffDataWriter>();
@@ -328,15 +329,15 @@ public class SOMProjConfigData {
 		if (expNumTrain > 0) {//save training data
 			if (useSparseTrainingData) {
 				saveFileName = getSOMMapSVMFileName();
-				straffSOMDataWrite.add(new straffDataWriter(mapMgr, curMapFtrType, StraffSOMMapManager.sparseTrainDataSavedIDX, saveFileName, "sparseSVMData", mapMgr.trainData));	
+				straffSOMDataWrite.add(new straffDataWriter(mapMgr, curMapFtrType, StraffSOMMapManager.sparseTrainDataSavedIDX, numTrainFtrs, saveFileName, "sparseSVMData", mapMgr.trainData));	
 			} else {
 				saveFileName = getSOMMapLRNFileName();
-				straffSOMDataWrite.add(new straffDataWriter(mapMgr, curMapFtrType, StraffSOMMapManager.denseTrainDataSavedIDX, saveFileName, "denseLRNData", mapMgr.trainData));	
+				straffSOMDataWrite.add(new straffDataWriter(mapMgr, curMapFtrType, StraffSOMMapManager.denseTrainDataSavedIDX, numTrainFtrs, saveFileName, "denseLRNData", mapMgr.trainData));	
 			}
 		}
 		if (expNumTest > 0) {//save testing data
 			saveFileName = getSOMMapTestFileName();
-			straffSOMDataWrite.add(new straffDataWriter(mapMgr, curMapFtrType, StraffSOMMapManager.testDataSavedIDX, saveFileName, useSparseTestingData ? "sparseSVMData" : "denseLRNData", mapMgr.testData));
+			straffSOMDataWrite.add(new straffDataWriter(mapMgr, curMapFtrType, StraffSOMMapManager.testDataSavedIDX, numTrainFtrs, saveFileName, useSparseTestingData ? "sparseSVMData" : "denseLRNData", mapMgr.testData));
 		}
 		try {straffSOMDataWriteFutures = th_exec.invokeAll(straffSOMDataWrite);for(Future<Boolean> f: straffSOMDataWriteFutures) { f.get(); }} catch (Exception e) { e.printStackTrace(); }		
 		
@@ -522,7 +523,7 @@ public class SOMProjConfigData {
 	public String getSOMMapMinsFileName(){	return SOMFileNamesAra[4];	}
 	public String getSOMMapDiffsFileName(){	return SOMFileNamesAra[5];	}	
 	
-	public String getSOMLocClrImgForJPFName(int jpIDX) {return "jp_"+mapMgr.jpJpgrpMon.getJpByIdx(jpIDX)+"_"+SOMFileNamesAra[6];}	
+	public String getSOMLocClrImgForJPFName(int jpIDX) {return "jp_"+mapMgr.jpJpgrpMon.getFtrJpByIdx(jpIDX)+"_"+SOMFileNamesAra[6];}	
 	//ref to file name for map configuration setup
 	public String getSOMMapConfigFileName() {return SOMFileNamesAra[7];	}	
 	//ref to file name for data and project configuration relevant for current SOM execution

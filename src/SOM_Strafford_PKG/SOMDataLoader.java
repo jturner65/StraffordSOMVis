@@ -109,6 +109,16 @@ public class SOMDataLoader implements Runnable {
 		return true;		
 	}//checkMapDim
 	
+	private float[]  _initMapMgrMeanMinVar(int numFtrs) {
+		mapMgr.map_ftrsMean = new float[numFtrs];
+		float[] tmpMapMaxs = new float[numFtrs];
+		mapMgr.map_ftrsMin = new float[numFtrs];
+		for(int l=0;l<mapMgr.map_ftrsMin.length;++l) {mapMgr.map_ftrsMin[l]=10000.0f;}//need to init to big number to get accurate min
+		mapMgr.map_ftrsVar = new float[numFtrs];
+		return tmpMapMaxs;
+	}//_initMapMgrMeanMinVar
+	
+	
 	//load map wts from file built by SOM_MAP - need to know format of original data used to train map	
 	//Map nodes are similar in format to training examples but scaled based on -their own- data
 	//consider actual map data to be feature data, scale map nodes based on min/max feature data seen in wts file
@@ -124,6 +134,9 @@ public class SOMDataLoader implements Runnable {
 		SOMMapNode dpt;	
 		int numEx = 0, mapX=1, mapY=1,numWtData = 0;
 		Tuple<Integer,Integer> mapLoc;
+		//# of training features in each map node
+		int numTrainFtrs = 0; 
+		
 		float[] tmpMapMaxs = null;
 		for (int i=0;i<strs.length;++i){//load in data 
 			if(i < 2){//first 2 lines are map description : line 0 is map row/col count; map 2 is # ftrs
@@ -131,15 +144,11 @@ public class SOMDataLoader implements Runnable {
 				//set map size in nodes
 				if(i==0){mapY = Integer.parseInt(tkns[0]);mapMgr.setMapNumRows(mapY);mapX = Integer.parseInt(tkns[1]);mapMgr.setMapNumCols(mapX);	} 
 				else {	//# ftrs in map
-					mapMgr.numFtrs = Integer.parseInt(tkns[0]);
-					ftrNames = new String[mapMgr.numFtrs];
-					for(int j=0;j<mapMgr.numFtrs;++j){ftrNames[j]=""+j;}			//build temporary names for each feature idx in feature vector					
+					numTrainFtrs = Integer.parseInt(tkns[0]);
+					ftrNames = new String[numTrainFtrs];
+					for(int j=0;j<ftrNames.length;++j){ftrNames[j]=""+j;}			//build temporary names for each feature idx in feature vector					
 					//mapMgr.dataHdr = new dataDesc(mapMgr, ftrNames);				//assign numbers to feature name data header 
-					mapMgr.map_ftrsMean = new float[mapMgr.numFtrs];
-					tmpMapMaxs = new float[mapMgr.numFtrs];
-					mapMgr.map_ftrsMin = new float[mapMgr.numFtrs];
-					for(int l=0;l<mapMgr.numFtrs;++l) {mapMgr.map_ftrsMin[l]=10000.0f;}//need to init to big number to get accurate min
-					mapMgr.map_ftrsVar = new float[mapMgr.numFtrs];
+					tmpMapMaxs = _initMapMgrMeanMinVar(ftrNames.length);
 				}	
 				continue;
 			}//if first 2 lines in wts file
@@ -150,7 +159,7 @@ public class SOMDataLoader implements Runnable {
 		
 			++numEx;
 			float[] ftrData = dpt.getFtrs();
-			for(int d = 0; d<mapMgr.numFtrs; ++d){
+			for(int d = 0; d<numTrainFtrs; ++d){
 				mapMgr.map_ftrsMean[d] += ftrData[d];
 				tmpMapMaxs[d] = (tmpMapMaxs[d] < ftrData[d] ? ftrData[d]  : tmpMapMaxs[d]);
 				mapMgr.map_ftrsMin[d] = (mapMgr.map_ftrsMin[d] > ftrData[d] ? ftrData[d]  : mapMgr.map_ftrsMin[d]);
@@ -160,15 +169,15 @@ public class SOMDataLoader implements Runnable {
 		}
 		//make sure both unmoddified features and std'ized features are built before determining map mean/var
 		//need to have all features built to scale features		
-		mapMgr.map_ftrsDiffs = new float[mapMgr.numFtrs];
+		mapMgr.map_ftrsDiffs = new float[numTrainFtrs];
 		//initialize array of images to display map of particular feature with
-		mapMgr.initMapAras();
+		mapMgr.initMapAras(numTrainFtrs);
 		
-		for(int d = 0; d<mapMgr.numFtrs; ++d){mapMgr.map_ftrsMean[d] /= 1.0f*numEx;mapMgr.map_ftrsDiffs[d]=tmpMapMaxs[d]-mapMgr.map_ftrsMin[d];}
+		for(int d = 0; d<mapMgr.map_ftrsMean.length; ++d){mapMgr.map_ftrsMean[d] /= 1.0f*numEx;mapMgr.map_ftrsDiffs[d]=tmpMapMaxs[d]-mapMgr.map_ftrsMin[d];}
 		//set stdftrs for map nodes and variance calc
 		float diff;
 		//reset this to manage all map nodes
-		mapMgr.initPerJPMapOfNodes();
+		mapMgr.initPerFtrMapOfNodes(numTrainFtrs);
 		float[] ftrData ;
 		//for every node, now build standardized features 
 		for(Tuple<Integer, Integer> key : mapMgr.MapNodes.keySet()){
@@ -176,13 +185,17 @@ public class SOMDataLoader implements Runnable {
 			tmp.buildStdFtrsMapFromFtrData_MapNode(mapMgr.map_ftrsMin, mapMgr.map_ftrsDiffs);
 			//accumulate map ftr moments
 			ftrData = tmp.getFtrs();
-			for(int d = 0; d<mapMgr.numFtrs; ++d){
+			for(int d = 0; d<mapMgr.map_ftrsMean.length; ++d){
 				diff = mapMgr.map_ftrsMean[d] - ftrData[d];
 				mapMgr.map_ftrsVar[d] += diff*diff;
 			}
 			mapMgr.setMapNodeFtrStr(tmp);
 		}
-		for(int d = 0; d<mapMgr.numFtrs; ++d){mapMgr.map_ftrsVar[d] /= 1.0f*numEx;}
+		for(int d = 0; d<mapMgr.map_ftrsVar.length; ++d){mapMgr.map_ftrsVar[d] /= 1.0f*numEx;}
+		
+		mapMgr.setNumTrainFtrs(numTrainFtrs); 
+		
+		
 		mapMgr.dispMessage("DataLoader","loadSOMWts","Finished Loading SOM weight data from file : " + getFName(wtsFileName), MsgCodes.info5 );
 		
 		return true;
@@ -692,11 +705,11 @@ class straffDataWriter implements Callable<Boolean>{
 	//manage IO in this object
 	private FileIOManager fileIO;
 	
-	public straffDataWriter(StraffSOMMapManager _mapData, int _dataFrmt, int _dataSavedIDX, String _fileName, String _savFileFrmt, SOMExample[] _exAra) {
+	public straffDataWriter(StraffSOMMapManager _mapData, int _dataFrmt, int _dataSavedIDX, int _numTrainFtrs, String _fileName, String _savFileFrmt, SOMExample[] _exAra) {
 		mapData = _mapData;
 		dataFrmt = _dataFrmt;		//either unmodified, standardized or normalized -> 0,1,2
 		exAra = _exAra;
-		numFtrs = mapData.numFtrs;
+		numFtrs = _numTrainFtrs;
 		numSmpls = exAra.length;
 		savFileFrmt = _savFileFrmt;
 		fileName = _fileName;

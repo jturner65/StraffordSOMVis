@@ -11,6 +11,7 @@ import java.util.Map.Entry;
  * @author john
  */
 public class StraffWeightCalc {
+	public MonitorJpJpgrp jpJpgMon;
 	public String fileName;
 	public StraffSOMMapManager mapMgr;
 	public final Date now;
@@ -33,9 +34,7 @@ public class StraffWeightCalc {
 			countBndIDX = 2,				//count of entries for each feature
 			diffBndIDX = 3; 				//max-min for each feature
 	private static int numBnds = 4;	
-	
-	public MonitorJpJpgrp jpJpgMon;
-	
+		
 	private int[] stFlags;						//state flags - bits in array holding relevant process/state info
 	public static final int
 			debugIDX 					= 0,
@@ -79,9 +78,19 @@ public class StraffWeightCalc {
 		//string record has jp in col 0, 3 mult values 1-3, 3 offset values 4-6 and 3 decay values 7-9.
 		Float[] dfltM = getFAraFromStrAra(strVals,mIdx), dfltO = getFAraFromStrAra(strVals,oIdx), dfltD = getFAraFromStrAra(strVals,dIdx);
 		//strVals holds default map configuration - config all weight calcs to match this
-		int numFtrs = jpJpgMon.getNumFtrs();
-		for (int i=0;i<numFtrs;++i) {
-			Integer jp = jpJpgMon.getJpByIdx(i);
+		
+//		//build this for _all_ jps found
+//		int ttlNumJps = jpJpgMon.getNumAllJpsFtrs();
+//		for (int i=0;i<ttlNumJps;++i) {
+//			Integer jp = jpJpgMon.getJpByAllIdx(i);
+//			JPWeightEquation eq = new JPWeightEquation(this,jpJpgMon.getJPNameFromJP(jp),jp, i, dfltM, dfltO, dfltD, true);
+//			eqs.put(jp, eq);
+//		}//
+		
+		//build this for product jps found
+		int ttlNumJps = jpJpgMon.getNumTrainFtrs();
+		for (int i=0;i<ttlNumJps;++i) {
+			Integer jp = jpJpgMon.getFtrJpByIdx(i);
 			JPWeightEquation eq = new JPWeightEquation(this,jpJpgMon.getJPNameFromJP(jp),jp, i, dfltM, dfltO, dfltD, true);
 			eqs.put(jp, eq);
 		}//
@@ -105,7 +114,7 @@ public class StraffWeightCalc {
 	//
 	private void initBnds() {//reinit bounds map, key of map is jp, array holds min (idx 0) and max (idx 1) of values seen in calculations		
 		bndsAra = new Float[numBnds][];		
-		int numFtrs = jpJpgMon.getNumFtrs();
+		int numFtrs = jpJpgMon.getNumTrainFtrs();
 		for (int i=0;i<bndsAra.length;++i) {
 			bndsAra[i]=fastCopyAra(numFtrs, initBnd[i]);
 		}		
@@ -138,6 +147,9 @@ public class StraffWeightCalc {
 		return res.toArray(new Float[0]);
 	}
 	
+	///////////////////////////
+	// calculate feature vectors - only works on product features!
+	
 	//calculate feature vector for true prospect example
 	public TreeMap<Integer, Float> calcFeatureVector(prospectExample ex, HashSet<Integer> jps,TreeMap<Integer, jpOccurrenceData> linkOccs, 
 			TreeMap<Integer, jpOccurrenceData> optOccs,TreeMap<Integer, jpOccurrenceData> srcOccs) {
@@ -167,8 +179,7 @@ public class StraffWeightCalc {
 		ex.ftrVecMag = (float) Math.sqrt(ftrVecSqMag);
 		ex.setIsBadExample(isZeroMagExample);
 		return res;
-	}//calcFeatureVector
-	
+	}//calcFeatureVector	
 
 	//calculate feature vector for this customer example
 	public TreeMap<Integer, Float> calcFeatureVector(prospectExample ex, HashSet<Integer> jps, 
@@ -201,6 +212,9 @@ public class StraffWeightCalc {
 		ex.setIsBadExample(isZeroMagExample);
 		return res;
 	}//calcFeatureVector
+	
+	//////////////////////////////////////////////////
+	//end feature vector calc
 	
 	//////////////////////////////////////////////////
 	// reporting functions
@@ -249,9 +263,11 @@ public class StraffWeightCalc {
 	}//getCalcAnalysisRes
 	
 	//draw res of all calcs as single rectangle of height ht and width barWidth*num eqs
-	public void drawAllCalcRes(SOM_StraffordMain p, float ht, float barWidth, int curJPIdx,int calcIDX) {		
+	public void drawAllCalcRes(SOM_StraffordMain p, float ht, float barWidth, int curJPIdx,int calcIDX, Integer[] jpsToDraw) {		
 		p.pushMatrix();p.pushStyle();		
-		for(JPWeightEquation jpEq:eqs.values()) {	
+		//for(JPWeightEquation jpEq:eqs.values()) {	
+		for(int i=0;i<jpsToDraw.length;++i) {
+			JPWeightEquation jpEq = eqs.get(jpsToDraw[i]);
 			//draw bar
 			jpEq.drawFtrVec(p, ht, barWidth, jpEq.jpIdx==curJPIdx,calcIDX);
 			//move over for next bar
@@ -298,8 +314,8 @@ public class StraffWeightCalc {
 	public String toString() {
 		String res  = "";
 		for (JPWeightEquation eq : eqs.values()) {
-			Integer numSeen = jpJpgMon.getCountJPSeen(eq.jp);
-			res+= eq.toString()+"  |# Calcs done : " + String.format("%6d", (Math.round(bndsAra[2][eq.jpIdx]))) + " ==  # of Occs : " +String.format("%6d", numSeen) + "\t| Min val : " +String.format("%6.4f", bndsAra[0][eq.jpIdx]) + "\t| Max val : " +String.format("%6.4f", bndsAra[1][eq.jpIdx]) + "\n";
+			Integer numSeen = jpJpgMon.getCountProdJPSeen(eq.jp);
+			res+= eq.toString()+"  | # Calcs done : " + String.format("%6d", (Math.round(bndsAra[2][eq.jpIdx]))) + " ==  # of Product Occs : " +String.format("%6d", numSeen) + "\t| Min val : " +String.format("%6.4f", bndsAra[0][eq.jpIdx]) + "\t| Max val : " +String.format("%6.4f", bndsAra[1][eq.jpIdx]) + "\n";
 		}
 		res += "# eqs : " + eqs.size() + "\t|Build from file : " + fileName+ "\t| Equation Configuration : \n";
 		res += "-- DLU : Days since prospect lookup\n";
@@ -350,8 +366,8 @@ class JPWeightEquation {
 	//analysis function for this eq component
 	public calcAnalysis[] calcStats;
 	public static final int 
-		custCalcObjIDX 		= 0,
-		tpCalcObjIDX 		= 1;
+		custCalcObjIDX 		= 0,		//customer
+		tpCalcObjIDX 		= 1;		//true prospect
 	public static final int numCalcObjs = 2;
 	
 			

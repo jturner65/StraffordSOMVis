@@ -1405,7 +1405,6 @@ class mySideBarMenu extends myDispWindow{
 	public float minBtnClkY;			//where buttons should start on side menu
 
 	public static final String[] guiBtnRowNames = new String[]{ 
-			//"Window",
 			"Raw Data/Ftr Processing","Post Proc Load And Map Config/Exec","DEBUG","File"};
 
 	public static final int 
@@ -1418,7 +1417,7 @@ class mySideBarMenu extends myDispWindow{
 	public final String[][] guiBtnNames = new String[][]{
 		//new String[]{pa.winTitles[1], pa.winTitles[2]},							//display specific windows - multi-select/ always on if sel
 		new String[]{"Func 1","Func 2","Func 3"},						//per-window user functions - momentary
-		new String[]{"Func 1","Func 2","Func 3","Func 4"},						//per-window user functions - momentary
+		new String[]{"Func 1","Func 2","Func 3","Func 4","Func 5"},						//per-window user functions - momentary
 		new String[]{"Dbg 1","Dbg 2","Dbg 3","Dbg 4","Dbg 5"},						//DEBUG - momentary
 		new String[]{"Load Txt File","Save Txt File"}							//load an existing score, save an existing score - momentary		
 	};
@@ -1426,7 +1425,7 @@ class mySideBarMenu extends myDispWindow{
 	public final String[][] defaultUIBtnNames = new String[][]{
 		//new String[]{pa.winTitles[1], pa.winTitles[2]},							//display specific windows - multi-select/ always on if sel
 		new String[]{"Func 1","Func 2","Func 3"},					//per-window user functions - momentary
-		new String[]{"Func 1","Func 2","Func 3","Func 4"},			//per-window user functions - momentary
+		new String[]{"Func 1","Func 2","Func 3","Func 4","Func 5"},			//per-window user functions - momentary
 		new String[]{"Dbg 1","Dbg 2","Dbg 3","Dbg 4","Dbg 5"},						//DEBUG - momentary
 		new String[]{"Load Txt File","Save Txt File"}							//load an existing score, save an existing score - momentary		
 	};

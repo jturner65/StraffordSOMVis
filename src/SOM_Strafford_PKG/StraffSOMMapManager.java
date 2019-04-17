@@ -67,7 +67,9 @@ public class StraffSOMMapManager {
 	//corresponds to these values : ProspectTraining(0),ProspectTesting(1),Product(2)
 	public static final String[] nodeBMUMapTypes = new String[] {"Training", "Testing", "Products"};
 	
-	public int numFtrs;
+	//# of training features (from "product" jp_jpg object); # of total jps seen (from "all" jp_jpg object)
+	private int numTrnFtrs,
+			numTtlJps;
 	public int numInputData, numTrainData, numTestData, numTrueProspectData;
 	
 	public Float[] diffsVals, minsVals;	//values to return scaled values to actual data points - multiply wts by diffsVals, add minsVals
@@ -237,7 +239,7 @@ public class StraffSOMMapManager {
 	}//buildNewSOMMap	
 	
 	@SuppressWarnings("unchecked")
-	public void initPerJPMapOfNodes() {
+	public void initPerFtrMapOfNodes(int numFtrs) {
 		PerJPHiWtMapNodes = new TreeMap[numFtrs];
 		for (int i=0;i<PerJPHiWtMapNodes.length; ++i) {PerJPHiWtMapNodes[i] = new TreeMap<Float,ArrayList<SOMMapNode>>(new Comparator<Float>() { @Override public int compare(Float o1, Float o2) {   return o2.compareTo(o1);}});}
 	}//
@@ -283,10 +285,10 @@ public class StraffSOMMapManager {
 	//only appropriate if using UI
 	public void setMapImgClrs(){if (win != null) {win.setMapImgClrs();} else {dispMessage("SOMMapManager","setMapImgClrs","Display window doesn't exist, can't build visualization images; ignoring.", MsgCodes.warning2);}}
 	//only appropriate if using UI
-	public void initMapAras() {
+	public void initMapAras(int numTrainFtrs) {
 		if (win != null) {
-			dispMessage("SOMMapManager","initMapAras","Initializing per-feature map display to hold : "+ numFtrs+" map images.", MsgCodes.info1);
-			win.initMapAras(numFtrs, jpJpgrpMon.getLenJpGrpByIdx());
+			dispMessage("SOMMapManager","initMapAras","Initializing per-feature map display to hold : "+ numTrainFtrs +" map images.", MsgCodes.info1);
+			win.initMapAras(numTrainFtrs, jpJpgrpMon.getLenFtrJpGrpByIdx());
 		} else {dispMessage("SOMMapManager","initMapAras","Display window doesn't exist, can't build map visualization image arrays; ignoring.", MsgCodes.warning2);}}
 	
 	//only appropriate if using UI
@@ -368,7 +370,8 @@ public class StraffSOMMapManager {
 			nodesWithNoEx.put(_type, new HashSet<SOMMapNode>());		
 		}
 		numTrainData = 0;
-		numFtrs = 0;
+		numTrnFtrs = 0;
+		numTtlJps = 0;
 		numInputData = 0;
 		dispMessage("SOMMapManager","initData","Init Finished", MsgCodes.info5);
 	}//initdata
@@ -444,14 +447,19 @@ public class StraffSOMMapManager {
 	public void addProductToJPProductMaps(ProductExample ex) {
 		//add to jp and jpg trees
 		HashSet<Integer> jpgs = new HashSet<Integer>();
-		for (Integer jp : ex.allJPs) {
+		//dispMessage("SOMMapManager","addProductToJPProductMaps","Starting to build productsByJp and productsByJpg maps : example's allProdJps size : "+ ex.allProdJPs.size()+"  | productsByJpg : " + productsByJpg.size()+ ".", MsgCodes.warning1);
+		for (Integer jp : ex.allProdJPs) {
 			ArrayList<ProductExample> exList = productsByJp.get(jp);
 			if(exList==null) {exList = new ArrayList<ProductExample>();}
 			exList.add(ex);
-			productsByJp.put(jp, exList);	
-			jpgs.add( jpJpgrpMon.getJpgFromJp(jp));	//record jp groups this product covers
+			productsByJp.put(jp, exList);
+			Integer jpg = jpJpgrpMon.getJpgFromJp(jp);
+			//dispMessage("SOMMapManager","addProductToJPProductMaps","Getting JPG : " + jpg +" for jp : " + jp+".", MsgCodes.warning1);
+			jpgs.add( jpg);	//record jp groups this product covers
 		}
+		//dispMessage("SOMMapManager","addProductToJPProductMaps","Size of jpgs : " + jpgs.size() + ".", MsgCodes.warning1);
 		for (Integer jpg : jpgs) {
+			//dispMessage("SOMMapManager","addProductToJPProductMaps","Get JPG : " + jpg +".", MsgCodes.warning1);
 			ArrayList<ProductExample> exList = productsByJpg.get(jpg);
 			if(exList==null) {exList = new ArrayList<ProductExample>();}
 			exList.add(ex);
@@ -608,6 +616,7 @@ public class StraffSOMMapManager {
 		setFlag(trueProspectDataLoadedIDX, true);
 		dispMessage("SOMMapManager","loadAllTrueProspectData","Finished loading preprocessed True Prospect data from " + subDir +  "directory.", MsgCodes.info5);
 	}//loadAllProspectData	
+	
 		
 	//load prospect mapped training data into StraffSOMExamples from disk
 	//must reset prospect/validation maps before this is called
@@ -627,18 +636,17 @@ public class StraffSOMMapManager {
 		if(canMultiThread) {			
 			List<Future<Boolean>> preProcLoadFtrs = new ArrayList<Future<Boolean>>();
 			List<straffCSVDataLoader> preProcLoaders = new ArrayList<straffCSVDataLoader>();
-			
 			if(mapType == custExKey) {			
-				for (int i=0; i<numPartitions;++i) {	preProcLoaders.add(new custCSVDataLoader(this, i, loadSrcFNamePrefixAra[0]+"_"+i+".csv", "Data file " + i +" loaded", "Data File " + i +" Failed to load", mapToBuild));}
+				for (int i=0; i<numPartitions;++i) {	preProcLoaders.add(new custCSVDataLoader(this, i, loadSrcFNamePrefixAra[0]+"_"+i+".csv",  mapType+ " Data file " + i +" of " +numPartitions + " loaded",  mapType+ " Data File " + i +" of " +numPartitions +" Failed to load", mapToBuild));}
 			} else {				
-				for (int i=0; i<numPartitions;++i) {	preProcLoaders.add(new prscpctCSVDataLoader(this, i, loadSrcFNamePrefixAra[0]+"_"+i+".csv", "Data file " + i +" loaded", "Data File " + i +" Failed to load", mapToBuild));}
+				for (int i=0; i<numPartitions;++i) {	preProcLoaders.add(new prscpctCSVDataLoader(this, i, loadSrcFNamePrefixAra[0]+"_"+i+".csv",  mapType+ " Data file " + i +" of " +numPartitions +" loaded",  mapType+ " Data File " + i +" of " +numPartitions +" Failed to load", mapToBuild));}
 			}
 			try {preProcLoadFtrs = th_exec.invokeAll(preProcLoaders);for(Future<Boolean> f: preProcLoadFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }					
 		} else {//load each file in its own csv
 			if(mapType == custExKey) {	
 				for (int i=numPartitions-1; i>=0;--i) {
 					String dataFile = loadSrcFNamePrefixAra[0]+"_"+i+".csv";
-					String[] csvLoadRes = fileIO.loadFileIntoStringAra(dataFile, "Data file " + i +" loaded", "Data File " + i +" Failed to load");
+					String[] csvLoadRes = fileIO.loadFileIntoStringAra(dataFile,  mapType+ " Data file " + i +" of " +numPartitions +" loaded",  mapType+ " Data File " + i +" of " +numPartitions +" Failed to load");
 					//ignore first entry - header
 					for (int j=1;j<csvLoadRes.length; ++j) {
 						String str = csvLoadRes[j];
@@ -651,7 +659,7 @@ public class StraffSOMMapManager {
 			} else {
 				for (int i=numPartitions-1; i>=0;--i) {
 					String dataFile = loadSrcFNamePrefixAra[0]+"_"+i+".csv";
-					String[] csvLoadRes = fileIO.loadFileIntoStringAra(dataFile, "Data file " + i +" loaded", "Data File " + i +" Failed to load");
+					String[] csvLoadRes = fileIO.loadFileIntoStringAra(dataFile, mapType+ " Data file " + i +" of " +numPartitions +" loaded",  mapType+ " Data File " + i +" of " +numPartitions +" Failed to load");
 					//ignore first entry - header
 					for (int j=1;j<csvLoadRes.length; ++j) {
 						String str = csvLoadRes[j];
@@ -714,10 +722,8 @@ public class StraffSOMMapManager {
 			dispMessage("SOMMapManager","saveProductToSOMMappings","Begin Saving prospect-to-product mappings to files.", MsgCodes.info1);	
 			prodMapper.saveAllProspectToProdMappings(trueProspectData, prspctExKey);
 			dispMessage("SOMMapManager","saveProspectsToProductsMappings","Finished Saving " + trueProspectData.length + " true prospect-to-product mappings to files", MsgCodes.info5);				
-		}
-		
+		}		
 	}//mapProductsToProspects
-
 		
 	//write all prospect map data to a csv to be able to be reloaded to build training data from, so we don't have to re-read database every time
 	private boolean saveAllExampleMapData(String mapType, ConcurrentSkipListMap<String, prospectExample> exMap) {
@@ -854,6 +860,8 @@ public class StraffSOMMapManager {
 	
 	//called to process analysis data
 	public void processCalcAnalysis(int _type) {	if (ftrCalcObj != null) {ftrCalcObj.finalizeCalcAnalysis(_type);}}
+	//return # of features for calc analysis type being displayed
+	public int numFtrsToShowForCalcAnalysis(int _type) {return jpJpgrpMon.getNumFtrsByType(_type);	} 
 	
 	//once map is built, find bmus on map for each product
 	public void setProductBMUs() {
@@ -1059,7 +1067,7 @@ public class StraffSOMMapManager {
 		if (isBuildingNewMap) {//will save results to new directory
 			projConfigData.buildDateTimeStrAraAndDType(getDataTypeNameFromCurFtrTrainType());
 			projConfigData.setSOM_ExpFileNames(inputData.length, numTrainData, numTestData);
-			projConfigData.launchTestTrainSaveThrds(th_exec, curMapTrainFtrType);				//save testing and training data
+			projConfigData.launchTestTrainSaveThrds(th_exec, curMapTrainFtrType, numTrnFtrs);				//save testing and training data
 		} //else {		//will load results from previously run experiment
 			//projConfigData.setSOM_UsePreBuilt();		
 		//}		
@@ -1117,12 +1125,17 @@ public class StraffSOMMapManager {
 	private void _setJPDataFromExampleData(ConcurrentSkipListMap<String, prospectExample> map) {
 		//object to manage all jps and jpgroups seen in project
 		jpJpgrpMon.setJPDataFromExampleData(map, prospectExamples.get(prspctExKey), productMap);		
-		numFtrs = jpJpgrpMon.getNumFtrs();
+		numTrnFtrs = jpJpgrpMon.getNumTrainFtrs();
+		numTtlJps = jpJpgrpMon.getNumAllJpsFtrs();
 		//rebuild calc object since feature terrain might have changed 
 		String calcFullFileName = projConfigData.getFullCalcInfoFileName(); 
 		//make/remake calc object - reads from calcFullFileName data file
 		ftrCalcObj = new StraffWeightCalc(this, calcFullFileName, jpJpgrpMon);
 	}//setJPDataFromProspectData	
+	
+	//# of features used to train SOM
+	public int getNumTrainFtrs() {return numTrnFtrs;}
+	public void setNumTrainFtrs(int _numTrnFtrs) {numTrnFtrs = _numTrnFtrs;}
 
 	//process all events into training examples
 	private void procRawEventData(ConcurrentSkipListMap<String, prospectExample> tmpProspectMap,ConcurrentSkipListMap<String, ArrayList<BaseRawData>> dataArrays, boolean saveBadRecs) {			
@@ -1210,7 +1223,7 @@ public class StraffSOMMapManager {
 		//finalize each customer - this will aggregate all the jp's that are seen, as well as finding all records that are bad due to having a 0 ftr vector
 		for (prospectExample ex : tmpProspectMap.values()) {			ex.finalizeBuild();		}		
 		ConcurrentSkipListMap<String, prospectExample> trueProspects = prospectExamples.get(prspctExKey);
-		if(trueProspects.size() != 0) {
+		if(trueProspects.size() != 0) {//if we have true prospects
 			dispMessage("SOMMapManager",calledFromMethod+"->_finalizeProsProdJpJPGMon","End initial finalize of "+ prospectMapName +" prospect map | Begin initial finalize of true prospects map to aggregate all JPs", MsgCodes.info1);			
 			Collection<prospectExample> truPspctExs = trueProspects.values();
 			for (prospectExample ex : truPspctExs) {			ex.finalizeBuild();		}		
@@ -1645,17 +1658,26 @@ public class StraffSOMMapManager {
 		pa.popStyle();pa.popMatrix();
 	}//drawProductNodes
 	
-	public void drawAnalysisAllJps(SOM_StraffordMain pa, float ht, float barWidth, int curJPIdx,int calcIDX) {
+	public void drawAnalysisAllJps(SOM_StraffordMain pa, float ht, float barWidth, int curJPIdx,int calcIDX, int _type) {
 		pa.pushMatrix();pa.pushStyle();
-		ftrCalcObj.drawAllCalcRes(pa, ht, barWidth, curJPIdx,calcIDX);
+		ftrCalcObj.drawAllCalcRes(pa, ht, barWidth, curJPIdx,calcIDX, jpJpgrpMon.getJpByIDXAra(_type));
 		pa.popStyle();pa.popMatrix();
 	}//drawAnalysisAllJps
 	
+	public void drawAnalysisOneFtrJp(SOM_StraffordMain pa,  float ht, float width, int curJPIdx,int calcIDX) {
+		pa.pushMatrix();pa.pushStyle();
+		ftrCalcObj.drawSingleFtr(pa, ht, width,jpJpgrpMon.getFtrJpByIdx(curJPIdx),calcIDX);		//Enable analysis 
+		pa.popStyle();pa.popMatrix();
+	}//drawAnalysisOneFtrJp	
+	
 	public void drawAnalysisOneJp(SOM_StraffordMain pa,  float ht, float width, int curJPIdx,int calcIDX) {
 		pa.pushMatrix();pa.pushStyle();
-		ftrCalcObj.drawSingleFtr(pa, ht, width,jpJpgrpMon.getJpByIdx(curJPIdx),calcIDX);
+		ftrCalcObj.drawSingleFtr(pa, ht, width,jpJpgrpMon.getFtrJpByIdx(curJPIdx),calcIDX);		//Enable analysis 
 		pa.popStyle();pa.popMatrix();
-	}//drawAnalysisOneJp	
+	}//drawAnalysisOneFtrJp	
+	
+	
+	
 	
 	public void drawAllNodesWted(SOM_StraffordMain pa, int curJPIdx) {//, int[] dpFillClr, int[] dpStkClr) {
 		pa.pushMatrix();pa.pushStyle();
@@ -1933,13 +1955,13 @@ public class StraffSOMMapManager {
 	public boolean getUseChiSqDist() {return useChiSqDist;}
 	public void setUseChiSqDist(boolean _useChiSq) {useChiSqDist=_useChiSq;}
 	
-	public String getJpByIdxStr(int idx) {return jpJpgrpMon.getJpByIdxStr(idx);}	
-	public String getJpGrpByIdxStr(int idx) {return jpJpgrpMon.getJpGrpByIdxStr(idx);}
+	public String getJpByIdxStr(int idx) {return jpJpgrpMon.getJpByIdxStr(MonitorJpJpgrp.allExJpsIDX ,idx);}	
+	public String getJpGrpByIdxStr(int idx) {return jpJpgrpMon.getJpGrpByIdxStr(MonitorJpJpgrp.allExJpsIDX ,idx);}
 		
-	public String getProdJpByIdxStr(int idx) {return jpJpgrpMon.getProdJpByIdxStr(idx);}	
-	public String getProdJpGrpByIdxStr(int idx) {return jpJpgrpMon.getProdJpGrpByIdxStr(idx);}
+	public String getProdJpByIdxStr(int idx) {return jpJpgrpMon.getJpByIdxStr(MonitorJpJpgrp.productExJpsIDX ,idx);}	
+	public String getProdJpGrpByIdxStr(int idx) {return jpJpgrpMon.getJpGrpByIdxStr(MonitorJpJpgrp.productExJpsIDX ,idx);}
 		
-	//this will return the appropriate jpgrp for the given jpIDX (ftr idx)
+	//this will return the appropriate jpgrp for the given jpIDX (list idx)
 	public int getUI_JPGrpFromJP(int jpIdx, int curVal) {		return jpJpgrpMon.getUI_JPGrpFromJP(jpIdx, curVal);}
 	//this will return the first(lowest) jp for a particular jpgrp
 	public int getUI_FirstJPFromJPG(int jpgIdx, int curJPVal) {	return jpJpgrpMon.getUI_FirstJPFromJPG(jpgIdx, curJPVal);}	

@@ -15,8 +15,8 @@ mapEndRad,1
 mapEpochs,40
 mapKType,2
 ### mapFloats descriptors
-mapStLrnRate,0.100000
-mapEndLrnRate,0.010000
+mapStLrnRate,1.000000
+mapEndLrnRate,0.0100000
 ### mapStrings descriptors
 mapBounds,toroid
 mapNHood,gaussian

@@ -42,8 +42,7 @@ public class SOM_MapDat{
 		curOS = _curOS;
 		mapInts = new HashMap<String, Integer>();			// mapCols (x), mapRows (y), mapEpochs, mapKType, mapStRad, mapEndRad;
 		mapFloats = new HashMap<String, Float>();			// mapStLrnRate, mapEndLrnRate;
-		mapStrings	= new HashMap<String, String>();		// mapGridShape, mapBounds, mapRadCool, mapNHood, mapLearnCool;	
-		
+		mapStrings	= new HashMap<String, String>();		// mapGridShape, mapBounds, mapRadCool, mapNHood, mapLearnCool;		
 	}//ctor
 		
 	//set all SOM data from UI values passed from map manager TODO this will be deprecated - these values should be set as UI input changes
@@ -114,7 +113,7 @@ public class SOM_MapDat{
 	private void init() {
 		execStrAra = buildExecStrAra();					//build execution string array used by processbuilder
 		dbgExecStr = execDir + execSOMStr;
-		for(int i=0;i<execStrAra.length;++i) {	dbgExecStr += execStrAra[i] + " ";}
+		for(int i=0;i<execStrAra.length;++i) {	dbgExecStr += " "+execStrAra[i];}
 	}//init
 		
 	//read string array into map of string-string key-value pairs.  idx passed as reference (in array)
@@ -181,7 +180,6 @@ public class SOM_MapDat{
 	public String getExename() {		return execSOMStr;}
 		
 	public boolean isToroidal(){return (mapStrings.get("mapBounds").equals("toroid"));}
-	
 		
 	@Override
 	public String toString(){
@@ -194,31 +192,3 @@ public class SOM_MapDat{
 	}
 	
 }//SOM_MapDat
-
-////describe data in SOM map, per feature. TODO not sure if this is necessary for this project.  Current only was built in data loading
-//class dataDesc{
-//	public SOMMapManager map;
-//	public String[] ftrNames;
-//	public int numFtrs;		
-//	
-//	public dataDesc(SOMMapManager _map,int _numFtrs){
-//		map=_map;
-//		numFtrs = _numFtrs;
-//		ftrNames = new String[numFtrs];		
-//	}
-//	
-//	public dataDesc(SOMMapManager _map,String [] tkns){
-//		this(_map, tkns.length);
-//		System.arraycopy(tkns, 0, ftrNames, 0, tkns.length);
-//	}
-//	
-//	//build the default header for this data descriptor
-//	public void buildDefHdr(){for(int i =0; i<numFtrs; ++i){ftrNames[i] = "ftr_"+i;}}//buildDefHdr
-//	
-//	public String toString(){
-//		String res = "";
-//		for(int i=0;i<ftrNames.length;++i){res += ftrNames[i] + ",";}
-//		return res;
-//	}
-//	
-//}//class dataDesc

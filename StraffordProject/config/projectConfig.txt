@@ -53,5 +53,5 @@ custTruePrsTypeEvents, "0"
 #preBuiltMapDir,"StraffSOM_2019_03_25_10_10"
 #preBuiltMapDir,"StraffSOM_2019_03_25_16_02"
 #built using "WeightEqConfig_allDecay_p01_optWt_p01_srcWt_p01.txt"
-preBuiltMapDir,"StraffSOM_2019_03_28_10_41"
+preBuiltMapDir,"StraffSOM_2019_04_17_12_29"
 #END MISC GLOBAL VARS
