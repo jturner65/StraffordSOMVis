@@ -1,0 +1,1395 @@
+package UI;
+
+import java.io.File;
+import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadLocalRandom;
+
+import Utils.*;
+import processing.core.PApplet;
+import processing.core.PConstants;
+import processing.event.MouseEvent;
+
+public abstract class my_procApplet extends PApplet {
+	
+	public int glblStartSimFrameTime,			//begin of draw
+		glblLastSimFrameTime,					//begin of last draw
+		glblStartProgTime;					//start of program
+	
+	//static variables - put obj constructor counters here
+	public static int GUIObjID = 0;										//counter variable for gui objs
+
+	public int drawnTrajEditWidth = 10; //TODO make ui component			//width in cntl points of the amount of the drawn trajectory deformed by dragging
+	
+	//individual display/HUD windows for gui/user interaction
+	public myDispWindow[] dispWinFrames;
+	//set in instancing class - must be > 1
+	public int numDispWins;
+	//always idx 0
+	public static final int dispMenuIDX = 0;	
+	//which myDispWindow currently has focus
+	public int curFocusWin;		
+	//need 1 per display window
+	public String[] winTitles,winDescr;
+
+	//whether or not the display windows will accept a drawn trajectory
+	public boolean[] canDrawInWin,canShow3DBox, canMoveView;	
+	public boolean[] dispWinIs3D;
+	
+	public int[][] winFillClrs;
+	public int[][] winStrkClrs;
+	
+	public int[] winTrajFillClrs = new int []{0,0};		//set to color constants for each window
+	public int[] winTrajStrkClrs = new int []{0,0};		//set to color constants for each window
+	
+
+	//specify windows that cannot be shown simultaneously here and their flags
+	public int[] winFlagsXOR;	
+	public int[] winDispIdxXOR;
+	
+	//unblocked window dimensions - location and dim of window if window is one\
+	public float[][] winRectDimOpen;// = new float[][]{new float[]{0,0,0,0},new float[]{0,0,0,0},new float[]{0,0,0,0},new float[]{0,0,0,0}};
+	//window dimensions if closed -location and dim of all windows if this window is closed
+	public float[][] winRectDimClose;// = new float[][]{new float[]{0,0,0,0},new float[]{0,0,0,0},new float[]{0,0,0,0},new float[]{0,0,0,0}};
+
+	//used to manage current time
+	public Calendar now;
+	//data being printed to console - show on screen
+	public ArrayDeque<String> consoleStrings;							
+
+	public int[] rgbClrs = new int[]{gui_Red,gui_Green,gui_Blue};
+	
+	protected final int cnslStrDecay = 10;			//how long a message should last before it is popped from the console strings deque (how many frames)
+	
+	public int scrWidth, scrHeight;			//set to be applet.width and applet.height unless otherwise specified below
+	public final int scrWidthMod = 200, 
+			scrHeightMod = 0;
+	public final float frate = 120;			//frame rate - # of playback updates per second
+	
+	//size of printed text (default is 12)
+	public static final int txtSz = 11;
+	//mouse wheel sensitivity
+	public static final float mouseWhlSens = 1.0f;
+	//constant path strings for different file types
+	public static final String fileDelim = "\\";	
+	//display-related size variables
+	public final int grid2D_X=800, grid2D_Y=800;	
+	public final int gridDimX = 800, gridDimY = 800, gridDimZ = 800;				//dimensions of 3d region
+	//boundary regions for enclosing cube - given as min and difference of min and max
+	public float[][] cubeBnds = new float[][]{//idx 0 is min, 1 is diffs
+		new float[]{-gridDimX/2.0f,-gridDimY/2.0f,-gridDimZ/2.0f},//mins
+		new float[]{gridDimX,gridDimY,gridDimZ}};			//diffs
+	
+	public final float
+	//PopUpWinOpenFraction = .40f,				//fraction of screen not covered by popwindow
+	wScale = frameRate/5.0f,					//velocity drag scaling	
+	trajDragScaleAmt = 100.0f;					//amt of displacement when dragging drawn trajectory to edit
+	
+	// path and filename to save pictures for animation
+	public int animCounter, runCounter;	
+	public final int scrMsgTime = 50;									//5 seconds to delay a message 60 fps (used against draw count)
+	
+	public int drawCount,simCycles;												// counter for draw cycles		
+	public float menuWidth,menuWidthMult = .15f, hideWinWidth, hideWinWidthMult = .03f, hidWinHeight, hideWinHeightMult = .05f;			//side menu is 15% of screen grid2D_X, 
+	
+	public ArrayList<String> DebugInfoAra;										//enable drawing dbug info onto screen
+	public String debugInfoString;
+	
+	//animation control variables	
+	public final float maxAnimCntr = PI*1000.0f, baseAnimSpd = 1.0f;
+	public float msSclX, msSclY;											//scaling factors for mouse movement		
+	public my3DCanvas c;												//3d interaction stuff and mouse tracking
+	
+	private float dz=0, rx=-0.06f*TWO_PI, ry=-0.04f*TWO_PI;		// distance to camera. Manipulated with wheel or when,view angles manipulated when space pressed but not mouse	
+	public final float camInitialDist = -200,		//initial distance camera is from scene - needs to be negative
+			camInitRy = ry,
+			camInitRx = rx;
+	public float[] camVals;		
+	
+	
+	public String dateStr, timeStr;								//used to build directory and file names for screencaps
+	
+	public double eps = .000000001, msClkEps = 40;				//calc epsilon, distance within which to check if clicked from a point
+	public float feps = .000001f;
+	public float SQRT2 = sqrt(2.0f);
+	
+	//visualization variables
+	// boolean flags used to control various elements of the program 
+	private int[] baseFlags;
+	//dev/debug flags
+	private final int debugMode 	= 0,			//whether we are in debug mode or not	
+			 finalInitDone		= 1,			//used only to call final init in first draw loop, to avoid stupid timeout error processing 3.x's setup introduced
+			 saveAnim 			= 2,			//whether we are saving or not
+	//interface flags	                   ,
+			 shiftKeyPressed 	= 3,			//shift pressed
+			 altKeyPressed  	= 4,			//alt pressed
+			 cntlKeyPressed  	= 5,			//cntrl pressed
+			 mouseClicked 		= 6,			//mouse left button is held down	
+			 drawing			= 7, 			//currently drawing  showSOMMapUI
+			 modView	 		= 8,			//shift+mouse click+mouse move being used to modify the view
+	//simulation
+			 runSim				= 9,			//run simulation
+			 singleStep			= 10,			//run single sim step
+			 showRtSideMenu		= 11,			//display the right side info menu for the current window, if it supports that display
+			 flipDrawnTraj  	= 12;			//whether or not to flip the direction of the drawn trajectory
+			
+	public final int numBaseFlags = 13;
+	
+	public final int numDebugVisFlags = 6;
+	//flags to actually display in menu as clickable text labels - order does matter
+	public List<Integer> flagsToShow = Arrays.asList( 
+		debugMode, 			
+		saveAnim,
+		runSim,
+		singleStep,
+		showRtSideMenu
+		);
+	
+	public final int numFlagsToShow = flagsToShow.size();
+	
+	public List<Integer> stateFlagsToShow = Arrays.asList( 
+		shiftKeyPressed,			//shift pressed
+		altKeyPressed,				//alt pressed
+		cntlKeyPressed,				//cntrl pressed
+		mouseClicked,				//mouse left button is held down	
+		drawing, 					//currently drawing
+		modView	 					//shift+mouse click+mouse move being used to modify the view					
+			);
+	public final int numStFlagsToShow = stateFlagsToShow.size();	
+	
+	
+
+	//3dbox stuff
+	public myVector[] boxNorms = new myVector[] {new myVector(1,0,0),new myVector(-1,0,0),new myVector(0,1,0),new myVector(0,-1,0),new myVector(0,0,1),new myVector(0,0,-1)};//normals to 3 d bounding boxes
+	protected final float hGDimX = gridDimX/2.0f, hGDimY = gridDimY/2.0f, hGDimZ = gridDimZ/2.0f;
+	protected final float tGDimX = gridDimX*10, tGDimY = gridDimY*10, tGDimZ = gridDimZ*20;
+	public myPoint[][] boxWallPts = new myPoint[][] {//pts to check if intersection with 3D bounding box happens
+			new myPoint[] {new myPoint(hGDimX,tGDimY,tGDimZ), new myPoint(hGDimX,-tGDimY,tGDimZ), new myPoint(hGDimX,tGDimY,-tGDimZ)  },
+			new myPoint[] {new myPoint(-hGDimX,tGDimY,tGDimZ), new myPoint(-hGDimX,-tGDimY,tGDimZ), new myPoint(-hGDimX,tGDimY,-tGDimZ) },
+			new myPoint[] {new myPoint(tGDimX,hGDimY,tGDimZ), new myPoint(-tGDimX,hGDimY,tGDimZ), new myPoint(tGDimX,hGDimY,-tGDimZ) },
+			new myPoint[] {new myPoint(tGDimX,-hGDimY,tGDimZ),new myPoint(-tGDimX,-hGDimY,tGDimZ),new myPoint(tGDimX,-hGDimY,-tGDimZ) },
+			new myPoint[] {new myPoint(tGDimX,tGDimY,hGDimZ), new myPoint(-tGDimX,tGDimY,hGDimZ), new myPoint(tGDimX,-tGDimY,hGDimZ)  },
+			new myPoint[] {new myPoint(tGDimX,tGDimY,-hGDimZ),new myPoint(-tGDimX,tGDimY,-hGDimZ),new myPoint(tGDimX,-tGDimY,-hGDimZ)  }
+	};
+	//for multithreading 
+	public ExecutorService th_exec;
+	public int numThreadsAvail;	
+	
+	////////////////////////
+	// code
+	
+	///////////////////////////////////
+	/// generic graphics functions and classes
+	///////////////////////////////////
+		//1 time initialization of things that won't change
+	public void initVisOnce(){	
+		//date and time of program launch
+		dateStr = "_"+day() + "-"+ month()+ "-"+year();
+		timeStr = "_"+hour()+"-"+minute()+"-"+second();
+		now = Calendar.getInstance();
+		scrWidth = width + scrWidthMod;
+		scrHeight = height + scrHeightMod;		//set to be applet.width and applet.height unless otherwise specified below
+		
+		msSclX = PI/width;
+		msSclY = PI/height;
+
+		consoleStrings = new ArrayDeque<String>();				//data being printed to console		
+		menuWidth = width * menuWidthMult;						//grid2D_X of menu region	
+		hideWinWidth = width * hideWinWidthMult;				//dims for hidden windows
+		hidWinHeight = height * hideWinHeightMult;
+		c = new my3DCanvas(this);			
+		strokeCap(SQUARE);//makes the ends of stroke lines squared off
+		initVisOnce_Priv();
+		
+		initBaseFlags();
+		
+		colorMode(RGB, 255, 255, 255, 255);
+		
+		//camVals = new float[]{width/2.0f, height/2.0f, (height/2.0f) / tan(PI/6.0f), width/2.0f, height/2.0f, 0, 0, 1, 0};
+		camVals = new float[]{0, 0, (height/2.0f) / tan(PI/6.0f), 0, 0, 0, 0,1,0};
+		
+		textSize(txtSz);
+		outStr2Scr("Current sketchPath " + sketchPath());
+		textureMode(NORMAL);			
+		rectMode(CORNER);	
+		sphereDetail(4);
+		simCycles = 0;
+		glblStartProgTime = millis();
+		glblStartSimFrameTime = glblStartProgTime;
+		glblLastSimFrameTime =  glblStartProgTime;	
+
+		initCamView();
+		simCycles = 0;
+
+	}//	initVisOnce
+	
+	
+	
+	//called by sidebar menu to display current window's UI components
+	public void drawWindowGuiObjs(){
+		if(curFocusWin != -1){
+			pushMatrix();pushStyle();
+			dispWinFrames[curFocusWin].drawGUIObjs();					//draw what user-modifiable fields are currently available
+			dispWinFrames[curFocusWin].drawClickableBooleans();					//draw what user-modifiable fields are currently available
+			dispWinFrames[curFocusWin].drawCustMenuObjs();					//customizable menu objects for each window
+			//also launch custom function here
+			dispWinFrames[curFocusWin].checkCustMenuUIObjs();			
+			popStyle();	popMatrix();	
+		}
+	}//
+	
+		
+	protected abstract void initVisOnce_Priv();
+	
+	public abstract void initVisFlags();
+	public abstract void setVisFlag(int idx, boolean val);
+	//this will not execute the code in setVisFlag, which might cause a loop
+	public abstract void forceVisFlag(int idx, boolean val);
+	public abstract boolean getVisFlag(int idx);
+	
+	//base class flags init
+	private void initBaseFlags(){baseFlags = new int[1 + numBaseFlags/32];for(int i =0; i<numBaseFlags;++i){forceBaseFlag(i,false);}}		
+	//set baseclass flags  //setBaseFlag(showIDX, 
+	public void setBaseFlag(int idx, boolean val){
+		int flIDX = idx/32, mask = 1<<(idx%32);
+		baseFlags[flIDX] = (val ?  baseFlags[flIDX] | mask : baseFlags[flIDX] & ~mask);
+		switch(idx){
+			case debugMode 			: { break;}//anything special for debugMode 	
+			case finalInitDone		: {break;}//flag to handle long setup - processing seems to time out if setup takes too long, so this will continue setup in the first draw loop
+			case saveAnim 			: { break;}//anything special for saveAnim 			
+			case altKeyPressed 		: { break;}//anything special for altKeyPressed 	
+			case shiftKeyPressed 	: { break;}//anything special for shiftKeyPressed 	
+			case cntlKeyPressed		: {break;}
+			case mouseClicked 		: { break;}//anything special for mouseClicked 		
+			case modView	 		: { break;}//anything special for modView	 	
+			case drawing			: { break;}
+			case runSim			: {break;}// handleTrnsprt((val ? 2 : 1) ,(val ? 1 : 0),false); break;}		//anything special for runSim	
+			case showRtSideMenu		: {	for(int i =1; i<dispWinFrames.length;++i){dispWinFrames[i].setRtSideInfoWinSt(val);}break;}	//set value for every window - to show or not to show info window
+			case flipDrawnTraj		: { for(int i =1; i<dispWinFrames.length;++i){dispWinFrames[i].rebuildAllDrawnTrajs();}break;}						//whether or not to flip the drawn melody trajectory, width-wise
+			case singleStep 		: { break;}
+		}				
+	}//setBaseFlag
+	//force base flag - bypass any window setting
+	private void forceBaseFlag(int idx, boolean val) {		
+		int flIDX = idx/32, mask = 1<<(idx%32);
+		baseFlags[flIDX] = (val ?  baseFlags[flIDX] | mask : baseFlags[flIDX] & ~mask);
+	}
+	//get baseclass flag
+	public final boolean getBaseFlag(int idx){int bitLoc = 1<<(idx%32);return (baseFlags[idx/32] & bitLoc) == bitLoc;}	
+	public void clearBaseFlags(int[] idxs){		for(int idx : idxs){setBaseFlag(idx,false);}	}			
+
+	public final boolean isDebugMode() {return getBaseFlag(debugMode);}
+	
+	public final boolean isFinalInitDone() {return getBaseFlag(finalInitDone);}
+	public final boolean isRunSim() {return getBaseFlag(runSim);}
+	public final boolean isSingleStep() {return getBaseFlag(singleStep);}
+	public final boolean doSaveAnim() {return getBaseFlag(saveAnim);}
+	public final boolean doFlipTraj() {return getBaseFlag(flipDrawnTraj);}
+	public final boolean doShowRtSideMenu() {return getBaseFlag(showRtSideMenu);}	
+	
+	public final boolean shiftIsPressed() {return getBaseFlag(shiftKeyPressed);}
+	public final boolean altIsPressed() {return getBaseFlag(altKeyPressed);}
+	public final boolean cntlIsPressed() {return getBaseFlag(cntlKeyPressed);}
+	public final boolean mouseIsClicked() {return getBaseFlag(mouseClicked);}
+	public final boolean IsModView() {return getBaseFlag(modView);}
+	public final boolean IsDrawing() {return getBaseFlag(drawing);}
+	
+	public final void setSimIsRunning(boolean val) {setBaseFlag(runSim,val);}
+	public final void toggleSimIsRunning() {setBaseFlag(runSim, !getBaseFlag(runSim));}
+	public final void setSimIsSingleStep(boolean val) {setBaseFlag(singleStep,val);}
+	public final void setShowRtSideMenu(boolean val) {setBaseFlag(showRtSideMenu,val);}
+	
+	public final void setShiftPressed(boolean val) {setBaseFlag(shiftKeyPressed,val);}
+	public final void setAltPressed(boolean val) {setBaseFlag(altKeyPressed,val);}
+	public final void setCntlPressed(boolean val) {setBaseFlag(cntlKeyPressed,val);}
+	public final void setMouseClicked(boolean val) {setBaseFlag(mouseClicked,val);}
+	public final void setModView(boolean val) {setBaseFlag(modView,val);}
+	public final void setIsDrawing(boolean val) {setBaseFlag(drawing,val);}
+	public final void setFinalInitDone(boolean val) {setBaseFlag(finalInitDone, val);}	
+	public final void setSaveAnim(boolean val) {setBaseFlag(saveAnim, val);}
+	public final void toggleSaveAnim() {setBaseFlag(saveAnim, !getBaseFlag(saveAnim));}
+	
+	public void keyReleased(){
+		if(key==CODED) {
+			if((getBaseFlag(shiftKeyPressed)) && (keyCode == 16)){endShiftKey();}
+			if((getBaseFlag(cntlKeyPressed)) && (keyCode == 17)){endCntlKey();}
+			if((getBaseFlag(altKeyPressed)) && (keyCode == 18)){endAltKey();}
+		}
+	}		
+	public void endShiftKey(){
+		clearBaseFlags(new int []{shiftKeyPressed, modView});
+		for(int i =0; i<numDispWins; ++i){dispWinFrames[i].endShiftKey();}
+	}
+	public void endAltKey(){
+		clearBaseFlags(new int []{altKeyPressed});
+		for(int i =0; i<numDispWins; ++i){dispWinFrames[i].endAltKey();}			
+	}
+	public void endCntlKey(){
+		clearBaseFlags(new int []{cntlKeyPressed});
+		for(int i =0; i<numDispWins; ++i){dispWinFrames[i].endCntlKey();}			
+	}
+	
+	//gives multiplier based on whether shift, alt or cntl (or any combo) is pressed
+	public double clickValModMult(){return ((getBaseFlag(altKeyPressed) ? .1 : 1.0) * (getBaseFlag(shiftKeyPressed) ? 10.0 : 1.0));}	
+	//keys/criteria are present that means UI objects are modified by set values based on clicks (as opposed to dragging for variable values)
+	//to facilitate UI interaction non-mouse computers, set these to be single keys
+	public boolean isClickModUIVal() {
+		//TODO change this to manage other key settings for situations where multiple simultaneous key presses are not optimal or conventient
+		return getBaseFlag(altKeyPressed) || getBaseFlag(shiftKeyPressed);		
+	}
+	public void mouseMoved(){for(int i =0; i<numDispWins; ++i){if (dispWinFrames[i].handleMouseMove(mouseX, mouseY)){return;}}}
+	public void mousePressed() {
+		setBaseFlag(mouseClicked, true);
+		if(mouseButton == LEFT){			mouseClicked(0);} 
+		else if (mouseButton == RIGHT) {	mouseClicked(1);}
+		//for(int i =0; i<numDispWins; ++i){	if (dispWinFrames[i].handleMouseClick(mouseX, mouseY,c.getMseLoc(sceneCtrVals[sceneIDX]))){	return;}}
+	}// mousepressed	
+	
+	private void mouseClicked(int mseBtn){ for(int i =0; i<numDispWins; ++i){if (dispWinFrames[i].handleMouseClick(mouseX, mouseY,mseBtn)){return;}}}
+	public void mouseDragged(){
+		if(mouseButton == LEFT){			mouseDragged(0);}
+		else if (mouseButton == RIGHT) {	mouseDragged(1);}
+	}//mouseDragged()
+	//only for zooming
+	public void mouseWheel(MouseEvent event) {
+		if (dispWinFrames[curFocusWin].getFlags(myDispWindow.canChgView)) {// (canMoveView[curFocusWin]){	
+			float mult = (getBaseFlag(shiftKeyPressed)) ? 5.0f * mouseWhlSens : mouseWhlSens;
+			dispWinFrames[curFocusWin].handleViewChange(true,(mult * event.getCount()),0);
+		}
+	}
+	protected void mouseDragged(int mseBtn){
+		for(int i =0; i<numDispWins; ++i){if (dispWinFrames[i].handleMouseDrag(mouseX, mouseY, pmouseX, pmouseY,c.getMseDragVec(),mseBtn)) {return;}}		
+	}
+	
+	public void mouseReleased(){
+		clearBaseFlags(new int[]{mouseClicked, modView});
+		for(int i =0; i<numDispWins; ++i){dispWinFrames[i].handleMouseRelease();}
+		setBaseFlag(drawing, false);
+		//c.clearMsDepth();
+	}//mouseReleased
+	
+	//set the height of each window that is above the popup window, to move up or down when it changes size
+	public void setWinsHeight(int popUpWinIDX){
+		for(int i =0;i<winDispIdxXOR.length;++i){//skip first window - ui menu - and last window - InstEdit window
+			dispWinFrames[winDispIdxXOR[i]].setRectDimsY( dispWinFrames[popUpWinIDX].getRectDim(1));
+		}						
+	}			//specify mutually exclusive flags here
+	
+	public final void setWinFlagsXOR(int idx, boolean val){
+		//outStr2Scr("SetWinFlagsXOR : idx " + idx + " val : " + val);
+		if(val){//turning one on
+			//turn off not shown, turn on shown				
+			for(int i =0;i<winDispIdxXOR.length;++i){//check windows that should be mutually exclusive during display
+				if(winDispIdxXOR[i]!= idx){dispWinFrames[winDispIdxXOR[i]].setShow(false);handleShowWin(i ,0,false); forceVisFlag(winFlagsXOR[i], false);}
+				else {
+					dispWinFrames[idx].setShow(true);
+					handleShowWin(i ,1,false); 
+					forceVisFlag(winFlagsXOR[i], true);
+					curFocusWin = winDispIdxXOR[i];
+					//setCamView();	//camera now handled by individual windows
+					dispWinFrames[idx].setInitCamView();
+				}
+			}
+		} else {//if turning off a window - need a default uncloseable window - for now just turn on next window
+			//idx is dispXXXIDX idx of allowable windows (1+ since idx 0 is sidebar menu), so use idx-1 for mod function
+			//add 1 to (idx-1) to get next window index, modulo for range adherence, and then add 1 to move back to 1+ from 0+ result from mod		
+			//setWinFlagsXOR((((idx-1) + 1) % winFlagsXOR.length)+1, true);
+			setWinFlagsXOR((idx % winFlagsXOR.length)+1, true);
+		}			
+	}//setWinFlagsXOR
+
+	//get the ui rect values of the "master" ui region (another window) -> this is so ui objects of one window can be made, clicked, and shown displaced from those of the parent windwo
+	public abstract float[] getUIRectVals(int idx);
+	
+	//clear menu side bar buttons when window-specific processing is finished
+	//isSlowProc means original calling process lasted longer than mouse click release and so button state should be forced to be off
+	public void clearBtnState(int _type, int col, boolean isSlowProc) {
+		int row = _type;
+		mySideBarMenu win = (mySideBarMenu)dispWinFrames[dispMenuIDX];
+		win.guiBtnWaitForProc[row][col] = false;
+		if(isSlowProc) {win.guiBtnSt[row][col] = 0;}		
+	}//clearBtnState 
+	
+	public void setAllMenuBtnNames(String[][] btnNames) {
+		for(int _type = 0;_type<btnNames.length;++_type) {((mySideBarMenu)dispWinFrames[dispMenuIDX]).setAllBtnNames(_type,btnNames[_type]);}
+	}
+	
+	//these tie using the UI buttons to modify the window in with using the boolean tags - PITA but currently necessary
+	public final void handleShowWin(int btn, int val){handleShowWin(btn, val, true);}					//display specific windows - multi-select/ always on if sel
+	//these tie using the UI buttons to modify the window in with using the boolean tags - PITA but currently necessary
+	public abstract void handleShowWin(int btn, int val, boolean callFlags);
+	//process to handle file io	- TODO	
+	public void handleFileCmd(int btn, int val){handleFileCmd(btn, val, true);}					//display specific windows - multi-select/ always on if sel
+	public void handleFileCmd(int btn, int val, boolean callFlags){//{"Load","Save"},							//load an existing score, save an existing score - momentary	
+		if(!callFlags){
+			setMenuBtnState(mySideBarMenu.btnFileCmdIdx,btn, val);
+		} else {
+			switch(btn){
+				case 0 : {selectInput("Select a txt file to load parameters from : ", "loadFromFile");break;}
+				case 1 : {selectOutput("Select a txt file to save parameters to : ", "saveToFile");break;}
+			}
+			((mySideBarMenu)dispWinFrames[dispMenuIDX]).hndlMouseRelIndiv();
+		}
+	}//handleFileCmd
+	//turn off specific function button that might have been kept on during processing - btn must be in range of size of guiBtnSt[mySideBarMenu.btnAuxFuncIdx]
+	//isSlowProc means function this was waiting on is a slow process and escaped the click release in the window (i.e. if isSlowProc then we must force button to be off)
+	//public void clearFuncBtnSt(int btn, boolean isSlowProc) {clearBtnState(mySideBarMenu.btnAuxFuncIdx,btn, isSlowProc);}
+
+	public void handleMenuBtnSelCmp(int _type, int btn, int val){handleMenuBtnSelCmp(_type, btn, val, true);}					//display specific windows - multi-select/ always on if sel
+	public void handleMenuBtnSelCmp(int _type, int btn, int val, boolean callFlags){
+		if(!callFlags){
+			setMenuBtnState(_type,btn, val);
+		} else {
+			dispWinFrames[curFocusWin].clickSideMenuBtn(_type, btn);
+		}
+	}//handleAddDelSelCmp	
+	
+	
+	private void setMenuBtnState(int row, int col, int val) {
+		((mySideBarMenu)dispWinFrames[dispMenuIDX]).guiBtnSt[row][col] = val;	
+		if (val == 1) {
+			outStr2Scr("turning on button row : " + row + "  col " + col);
+			((mySideBarMenu)dispWinFrames[dispMenuIDX]).setWaitForProc(row,col);}//if programmatically (not through UI) setting button on, then set wait for proc value true 
+	}//setMenuBtnState
+	
+	
+	//2d range checking of point
+	public boolean ptInRange(double x, double y, double minX, double minY, double maxX, double maxY){return ((x > minX)&&(x <= maxX)&&(y > minY)&&(y <= maxY));}	
+	
+		//called every time re-initialized
+	public void initVisProg(){	drawCount = 0;		debugInfoString = "";		reInitInfoStr();}	
+	public void initCamView(){	dz=camInitialDist;	ry=camInitRy;	rx=camInitRx - ry;	}
+	public void reInitInfoStr(){		DebugInfoAra = new ArrayList<String>();		DebugInfoAra.add("");	}	
+	public int addInfoStr(String str){return addInfoStr(DebugInfoAra.size(), str);}
+	public int addInfoStr(int idx, String str){	
+		int lstIdx = DebugInfoAra.size();
+		if(idx >= lstIdx){		for(int i = lstIdx; i <= idx; ++i){	DebugInfoAra.add(i,"");	}}
+		setInfoStr(idx,str);	return idx;
+	}
+	public void setInfoStr(int idx, String str){DebugInfoAra.set(idx,str);	}
+	public void drawInfoStr(float sc, int clr){drawInfoStr(sc, getClr(clr,255));}
+	public void drawInfoStr(float sc, int[] fillClr){//draw text on main part of screen
+		pushMatrix();		pushStyle();
+			fill(fillClr[0],fillClr[1],fillClr[2],fillClr[3]);
+			translate((menuWidth),0);
+			scale(sc,sc);
+			for(int i = 0; i < DebugInfoAra.size(); ++i){		text((getBaseFlag(debugMode)?(i<10?"0":"")+i+":     " : "") +"     "+DebugInfoAra.get(i)+"\n\n",0,(10+(12*i)));	}
+		popStyle();	popMatrix();
+	}		
+	//vector and point functions to be compatible with earlier code from jarek's class or previous projects	
+	//draw bounding box for 3d
+	public void drawBoxBnds(){
+		pushMatrix();	pushStyle();
+		strokeWeight(3f);
+		noFill();
+		setColorValStroke(gui_TransGray);
+		
+		box(gridDimX,gridDimY,gridDimZ);
+		popStyle();	popMatrix();
+	}		
+	//drawsInitial setup for each draw
+	public void drawSetup(){
+		perspective(PI/3.0f, (1.0f*width)/(1.0f*height), .5f, camVals[2]*100.0f);
+	    turnOnLights();
+	    dispWinFrames[curFocusWin].drawSetupWin(camVals);
+	}//drawSetup		
+	
+	//turn on lights for this sketch
+	public void turnOnLights(){
+	    lights(); 		
+	}
+	public void setCamOrient(){rotateX(rx);rotateY(ry); rotateX(PI/(2.0f));		}//sets the rx, ry, pi/2 orientation of the camera eye	
+	public void unSetCamOrient(){rotateX(-PI/(2.0f)); rotateY(-ry);   rotateX(-rx); }//reverses the rx,ry,pi/2 orientation of the camera eye - paints on screen and is unaffected by camera movement
+	public void drawAxes(double len, float stW, myPoint ctr, int alpha, boolean centered){//axes using current global orientation
+		pushMatrix();pushStyle();
+			strokeWeight(stW);
+			stroke(255,0,0,alpha);
+			if(centered){
+				double off = len*.5f;
+				line(ctr.x-off,ctr.y,ctr.z,ctr.x+off,ctr.y,ctr.z);stroke(0,255,0,alpha);line(ctr.x,ctr.y-off,ctr.z,ctr.x,ctr.y+off,ctr.z);stroke(0,0,255,alpha);line(ctr.x,ctr.y,ctr.z-off,ctr.x,ctr.y,ctr.z+off);} 
+			else {		line(ctr.x,ctr.y,ctr.z,ctr.x+len,ctr.y,ctr.z);stroke(0,255,0,alpha);line(ctr.x,ctr.y,ctr.z,ctr.x,ctr.y+len,ctr.z);stroke(0,0,255,alpha);line(ctr.x,ctr.y,ctr.z,ctr.x,ctr.y,ctr.z+len);}
+		popStyle();	popMatrix();	
+	}//	drawAxes
+	public void drawAxes(double len, float stW, myPoint ctr, myVector[] _axis, int alpha, boolean drawVerts){//RGB -> XYZ axes
+		pushMatrix();pushStyle();
+		if(drawVerts){
+			show(ctr,3,gui_Black,gui_Black, false);
+			for(int i=0;i<_axis.length;++i){show(myPoint._add(ctr, myVector._mult(_axis[i],len)),3,rgbClrs[i],rgbClrs[i], false);}
+		}
+		strokeWeight(stW);
+		for(int i =0; i<3;++i){	setColorValStroke(rgbClrs[i]);	showVec(ctr,len, _axis[i]);	}
+		popStyle();	popMatrix();	
+	}//	drawAxes
+	public void drawAxes(double len, float stW, myPoint ctr, myVector[] _axis, int[] clr, boolean drawVerts){//all axes same color
+		pushMatrix();pushStyle();
+			if(drawVerts){
+				show(ctr,2,gui_Black,gui_Black, false);
+				for(int i=0;i<_axis.length;++i){show(myPoint._add(ctr, myVector._mult(_axis[i],len)),2,rgbClrs[i],rgbClrs[i], false);}
+			}
+			strokeWeight(stW);stroke(clr[0],clr[1],clr[2],clr[3]);
+			for(int i =0; i<3;++i){	showVec(ctr,len, _axis[i]);	}
+		popStyle();	popMatrix();	
+	}//	drawAxes
+	
+	public void drawText(String str, double x, double y, double z, int clr){
+		int[] c = getClr(clr);
+		pushMatrix();	pushStyle();
+			fill(c[0],c[1],c[2],c[3]);
+			unSetCamOrient();
+			translate((float)x,(float)y,(float)z);
+			text(str,0,0,0);		
+		popStyle();	popMatrix();	
+	}//drawText	
+	//save screenshot
+	public void savePic(){	
+		//if(!flags[this.runSim]) {return;}//don't save until actually running simulation
+		//idx 0 is directory, idx 1 is file name prefix
+		String[] ssName = dispWinFrames[curFocusWin].getSaveFileDirName();
+		//save(screenShotPath + prjNmShrt + ((animCounter < 10) ? "0000" : ((animCounter < 100) ? "000" : ((animCounter < 1000) ? "00" : ((animCounter < 10000) ? "0" : "")))) + animCounter + ".jpg");		
+		String saveDirAndSubDir = ssName[0] + //"run_"+String.format("%02d", runCounter)  + 
+				ssName[1] + File.separatorChar;		
+		save(saveDirAndSubDir + String.format("%06d", animCounter) + ".jpg");		
+		animCounter++;		
+	}
+	
+	public void line(double x1, double y1, double z1, double x2, double y2, double z2){line((float)x1,(float)y1,(float)z1,(float)x2,(float)y2,(float)z2 );}
+	public void line(myPoint p1, myPoint p2){line((float)p1.x,(float)p1.y,(float)p1.z,(float)p2.x,(float)p2.y,(float)p2.z);}
+	public void line(myPointf p1, myPointf p2){line(p1.x,p1.y,p1.z,p2.x,p2.y,p2.z);}
+	
+	public void rect(float[] a){rect(a[0],a[1],a[2],a[3]);}				//rectangle from array of floats : x, y, w, h	
+	//print out multiple-line text to screen
+	public void ml_text(String str, float x, float y){
+		String[] res = str.split("\\r?\\n");
+		float disp = 0;
+		for(int i =0; i<res.length; ++i){
+			text(res[i],x, y+disp);		//add console string output to screen display- decays over time
+			disp += 12;
+		}
+	}
+	//print out a string ara with perLine # of strings per line
+	public void outStr2ScrAra(String[] sAra, int perLine){
+		for(int i=0;i<sAra.length; i+=perLine){
+			String s = "";
+			for(int j=0; j<perLine; ++j){	s+= sAra[i+j]+ "\t";}
+			outStr2Scr(s,true);}
+	}
+	//print out string in display window
+	public void outStr2Scr(String str){outStr2Scr(str,true);}
+	//print informational string data to console, and to screen
+	public void outStr2Scr(String str, boolean showDraw){
+		if(trim(str) != ""){	System.out.println(str);}
+		String[] res = str.split("\\r?\\n");
+		if(showDraw){
+			for(int i =0; i<res.length; ++i){
+				consoleStrings.add(res[i]);		//add console string output to screen display- decays over time
+			}
+		}
+	}
+	//build a date with each component separated by token
+	public String getDateTimeString(){return getDateTimeString(true, false,".");}
+	public String getDateTimeString(boolean useYear, boolean toSecond, String token){
+		String result = "";
+		int val;
+		if(useYear){val = now.get(Calendar.YEAR);		result += ""+val+token;}
+		val = now.get(Calendar.MONTH)+1;				result += (val < 10 ? "0"+val : ""+val)+ token;
+		val = now.get(Calendar.DAY_OF_MONTH);			result += (val < 10 ? "0"+val : ""+val)+ token;
+		val = now.get(Calendar.HOUR_OF_DAY);					result += (val < 10 ? "0"+val : ""+val)+ token;
+		val = now.get(Calendar.MINUTE);					result += (val < 10 ? "0"+val : ""+val);
+		if(toSecond){val = now.get(Calendar.SECOND);	result += token + (val < 10 ? "0"+val : ""+val);}
+		return result;
+	}
+	//utilities
+	
+	//handle user-driven file load or save - returns a filename + filepath string
+	public String FileSelected(File selection){
+		if (null==selection){return null;}
+		return selection.getAbsolutePath();		
+	}//FileSelected
+	
+	//		//s-cut to print to console
+	public void pr(String str){outStr2Scr(str);}
+	
+	public String getFName(String fNameAndPath){
+		String[] strs = fNameAndPath.split("/");
+		return strs[strs.length-1];
+	}
+	
+	//load a file as text strings
+	public String[] loadFileIntoStringAra(String fileName, String dispYesStr, String dispNoStr){
+		String[] strs = null;
+		try{
+			strs = loadStrings(fileName);
+			System.out.println(dispYesStr+"\tLength : " + strs.length);
+		} catch (Exception e){System.out.println("!!"+dispNoStr);return null;}
+		return strs;		
+	}//loadFileIntoStrings
+	
+	//public void scribeHeaderRight(String s) {scribeHeaderRight(s, 20);} // writes black on screen top, right-aligned
+	//public void scribeHeaderRight(String s, float y) {fill(0); text(s,width-6*s.length(),y); noFill();} // writes black on screen top, right-aligned
+	public void displayHeader() { // Displays title and authors face on screen
+	    float stVal = 17;
+	    int idx = 1;	
+	    translate(0,10,0);
+	    fill(0); text("Shift-Click-Drag to change view.",width-190, stVal*idx++); noFill(); 
+	    fill(0); text("Shift-RClick-Drag to zoom.",width-160, stVal*idx++); noFill();
+	    fill(0); text("John Turner",width-75, stVal*idx++); noFill();	
+	    }
+	
+	//project passed point onto box surface based on location - to help visualize the location in 3d
+	public void drawProjOnBox(myPoint p){
+		//myPoint[]  projOnPlanes = new myPoint[6];
+		myPoint prjOnPlane;
+		//public myPoint intersectPl(myPoint E, myVector T, myPoint A, myPoint B, myPoint C) { // if ray from E along T intersects triangle (A,B,C), return true and set proposal to the intersection point
+		pushMatrix();
+		translate(-p.x,-p.y,-p.z);
+		for(int i  = 0; i< 6; ++i){				
+			prjOnPlane = bndChkInCntrdBox3D(intersectPl(p, boxNorms[i], boxWallPts[i][0],boxWallPts[i][1],boxWallPts[i][2]));				
+			show(prjOnPlane,5,rgbClrs[i/2],rgbClrs[i/2], false);				
+		}
+		popMatrix();
+	}//drawProjOnBox
+	private static final double third = 1.0/3.0;
+	public myVectorf getRandPosInSphere(double rad, myVectorf ctr){
+		myVectorf pos = new myVectorf();
+		do{
+			double u = ThreadLocalRandom.current().nextDouble(0,1), r = rad * Math.pow(u, third),
+					cosTheta = ThreadLocalRandom.current().nextDouble(-1,1), sinTheta =  Math.sin(Math.acos(cosTheta)),
+					phi = ThreadLocalRandom.current().nextDouble(0,PConstants.TWO_PI);
+			pos.set(sinTheta * Math.cos(phi), sinTheta * Math.sin(phi),cosTheta);
+			pos._mult(r);
+			pos._add(ctr);
+		} while (pos.z < 0);
+		return pos;
+	}
+	
+	public myVectorf getRandPosOnSphere(double rad, myVectorf ctr){
+		myVectorf pos = new myVectorf();
+		//do{
+			double 	cosTheta = ThreadLocalRandom.current().nextDouble(-1,1), sinTheta =  Math.sin(Math.acos(cosTheta)),
+					phi = ThreadLocalRandom.current().nextDouble(0,PConstants.TWO_PI);
+			pos.set(sinTheta * Math.cos(phi), sinTheta * Math.sin(phi),cosTheta);
+			pos._mult(rad);
+			pos._add(ctr);
+		//} while (pos.z < 0);
+		return pos;
+	}
+	//very fast mechanism for setting an array of doubles to a specific val - takes advantage of caching
+	public void dAraFill(double[] ara, double val){
+		int len = ara.length;
+		if (len > 0){ara[0] = val; }
+		for (int i = 1; i < len; i += i){  System.arraycopy(ara, 0, ara, i, ((len - i) < i) ? (len - i) : i);  }		
+	}
+	
+	//convert a world location within the bounded cube region to be a 4-int color array
+	public int[] getClrFromCubeLoc(float[] t){
+		return new int[]{(int)(255*(t[0]-cubeBnds[0][0])/cubeBnds[1][0]),(int)(255*(t[1]-cubeBnds[0][1])/cubeBnds[1][1]),(int)(255*(t[2]-cubeBnds[0][2])/cubeBnds[1][2]),255};
+	}
+	
+	//performs shuffle
+	public String[] shuffleStrList(String[] _list, String type){
+		String tmp = "";
+		ThreadLocalRandom tr = ThreadLocalRandom.current();
+		for(int i=(_list.length-1);i>0;--i){
+			int j = (int)(tr.nextDouble(0,(i+1))) ;
+			tmp = _list[i];
+			_list[i] = _list[j];
+			_list[j] = tmp;
+		//	outStr2Scr("From i : " + i + " to j : " + j);
+		}
+		outStr2Scr("String list of Sphere " + type + " shuffled");
+		return _list;
+	}//shuffleStrList
+	
+	//random location within coords[0] and coords[1] extremal corners of a cube - bnds is to give a margin of possible random values
+	public myVectorf getRandPosInCube(float[][] coords, float bnds){
+		ThreadLocalRandom tr = ThreadLocalRandom.current();
+		return new myVectorf(
+				tr.nextDouble(coords[0][0]+bnds,(coords[0][0] + coords[1][0] - bnds)),
+				tr.nextDouble(coords[0][1]+bnds,(coords[0][1] + coords[1][1] - bnds)),
+				tr.nextDouble(coords[0][2]+bnds,(coords[0][2] + coords[1][2] - bnds)));}		
+	public myPoint getScrLocOf3dWrldPt(myPoint pt){	return new myPoint(screenX((float)pt.x,(float)pt.y,(float)pt.z),screenY((float)pt.x,(float)pt.y,(float)pt.z),screenZ((float)pt.x,(float)pt.y,(float)pt.z));}
+	
+	public myPoint bndChkInBox2D(myPoint p){p.set(Math.max(0,Math.min(p.x,grid2D_X)),Math.max(0,Math.min(p.y,grid2D_Y)),0);return p;}
+	public myPoint bndChkInBox3D(myPoint p){p.set(Math.max(0,Math.min(p.x,gridDimX)), Math.max(0,Math.min(p.y,gridDimY)),Math.max(0,Math.min(p.z,gridDimZ)));return p;}	
+	public myPoint bndChkInCntrdBox3D(myPoint p){
+		p.set(Math.max(-hGDimX,Math.min(p.x,hGDimX)), 
+				Math.max(-hGDimY,Math.min(p.y,hGDimY)),
+				Math.max(-hGDimZ,Math.min(p.z,hGDimZ)));return p;}	
+	 
+	public void translate(myPoint p){translate((float)p.x,(float)p.y,(float)p.z);}
+	public void translate(myPointf p){translate(p.x,p.y,p.z);}
+	public void translate(myVector p){translate((float)p.x,(float)p.y,(float)p.z);}
+	public void translate(double x, double y, double z){translate((float)x,(float)y,(float)z);}
+	public void translate(double x, double y){translate((float)x,(float)y);}
+	public void rotate(float thet, myPoint axis){rotate(thet, (float)axis.x,(float)axis.y,(float)axis.z);}
+	public void rotate(float thet, double x, double y, double z){rotate(thet, (float)x,(float)y,(float)z);}
+	//************************************************************************
+	//**** SPIRAL
+	//************************************************************************
+	//3d rotation - rotate P by angle a around point G and axis normal to plane IJ
+	public myPoint R(myPoint P, double a, myVector I, myVector J, myPoint G) {
+		double x= myVector._dot(new myVector(G,P),U(I)), y=myVector._dot(new myVector(G,P),U(J)); 
+		double c=Math.cos(a), s=Math.sin(a); 
+		double iXVal = x*c-x-y*s, jYVal= x*s+y*c-y;			
+		return myPoint._add(P,iXVal,I,jYVal,J); }; 
+		
+	public cntlPt R(cntlPt P, double a, myVector I, myVector J, myPoint G) {
+		double x= myVector._dot(new myVector(G,P),U(I)), y=myVector._dot(new myVector(G,P),U(J)); 
+		double c=Math.cos(a), s=Math.sin(a); 
+		double iXVal = x*c-x-y*s, jYVal= x*s+y*c-y;		
+		return new cntlPt(this, P(P,iXVal,I,jYVal,J), P.r, P.w); };
+		
+	public myPoint PtOnSpiral(myPoint A, myPoint B, myPoint C, double t) {
+		//center is coplanar to A and B, and coplanar to B and C, but not necessarily coplanar to A, B and C
+		//so center will be coplanar to mp(A,B) and mp(B,C) - use mpCA midpoint to determine plane mpAB-mpBC plane?
+		myPoint mAB = new myPoint(A,.5f, B);
+		myPoint mBC = new myPoint(B,.5f, C);
+		myPoint mCA = new myPoint(C,.5f, A);
+		myVector mI = U(mCA,mAB);
+		myVector mTmp = myVector._cross(mI,U(mCA,mBC));
+		myVector mJ = U(mTmp._cross(mI));	//I and J are orthonormal
+		double a =spiralAngle(A,B,B,C); 
+		double s =spiralScale(A,B,B,C);
+		
+		//myPoint G = spiralCenter(a, s, A, B, mI, mJ); 
+		myPoint G = spiralCenter(A, mAB, B, mBC); 
+		return new myPoint(G, Math.pow(s,t), R(A,t*a,mI,mJ,G));
+	  }
+	public double spiralAngle(myPoint A, myPoint B, myPoint C, myPoint D) {return myVector._angleBetween(new myVector(A,B),new myVector(C,D));}
+	public double spiralScale(myPoint A, myPoint B, myPoint C, myPoint D) {return myPoint._dist(C,D)/ myPoint._dist(A,B);}
+	
+	public myPoint R(myPoint Q, myPoint C, myPoint P, myPoint R) { // returns rotated version of Q by angle(CP,CR) parallel to plane (C,P,R)
+		myVector I0=U(C,P), I1=U(C,R), V=new myVector(C,Q); 
+		double c=myPoint._dist(I0,I1), s=Math.sqrt(1.-(c*c)); 
+		if(Math.abs(s)<0.00001) return Q;
+		myVector J0=V(1./s,I1,-c/s,I0);  
+		myVector J1=V(-s,I0,c,J0);  
+		double x=V._dot(I0), y=V._dot(J0);  
+		return P(Q,x,M(I1,I0),y,M(J1,J0)); 
+	} 	
+	// spiral given 4 points, AB and CD are edges corresponding through rotation
+	public myPoint spiralCenter(myPoint A, myPoint B, myPoint C, myPoint D) {         // new spiral center
+		myVector AB=V(A,B), CD=V(C,D), AC=V(A,C);
+		double m=CD.magn/AB.magn, n=CD.magn*AB.magn;		
+		myVector rotAxis = U(AB._cross(CD));		//expect ab and ac to be coplanar - this is the axis to rotate around to find f
+		
+		myVector rAB = myVector._rotAroundAxis(AB, rotAxis, PConstants.HALF_PI);
+		double c=AB._dot(CD)/n, 
+				s=rAB._dot(CD)/n;
+		double AB2 = AB._dot(AB), a=AB._dot(AC)/AB2, b=rAB._dot(AC)/AB2;
+		double x=(a-m*( a*c+b*s)), y=(b-m*(-a*s+b*c));
+		double d=1+m*(m-2*c);  if((c!=1)&&(m!=1)) { x/=d; y/=d; };
+		return P(P(A,x,AB),y,rAB);
+	  }
+	
+	
+	public void cylinder(myPoint A, myPoint B, float r, int c1, int c2) {
+		myPoint P = A;
+		myVector V = V(A,B);
+		myVector I = c.drawSNorm;//U(Normal(V));
+		myVector J = U(N(I,V));
+		float da = TWO_PI/36;
+		beginShape(QUAD_STRIP);
+			for(float a=0; a<=TWO_PI+da; a+=da) {fill(c1); gl_vertex(P(P,r*cos(a),I,r*sin(a),J,0,V)); fill(c2); gl_vertex(P(P,r*cos(a),I,r*sin(a),J,1,V));}
+		endShape();
+	}
+	
+	//point functions
+	public myPoint P() {return new myPoint(); };                                                                          // point (x,y,z)
+	public myPoint P(double x, double y, double z) {return new myPoint(x,y,z); };                                            // point (x,y,z)
+	public myPoint P(myPoint A) {return new myPoint(A.x,A.y,A.z); };                                                           // copy of point P
+	public myPoint P(myPoint A, double s, myPoint B) {return new myPoint(A.x+s*(B.x-A.x),A.y+s*(B.y-A.y),A.z+s*(B.z-A.z)); };        // A+sAB
+	public myPoint L(myPoint A, double s, myPoint B) {return new myPoint(A.x+s*(B.x-A.x),A.y+s*(B.y-A.y),A.z+s*(B.z-A.z)); };        // A+sAB
+	public myPoint P(myPoint A, myPoint B) {return P((A.x+B.x)/2.0,(A.y+B.y)/2.0,(A.z+B.z)/2.0); }                             // (A+B)/2
+	public myPoint P(myPoint A, myPoint B, myPoint C) {return new myPoint((A.x+B.x+C.x)/3.0,(A.y+B.y+C.y)/3.0,(A.z+B.z+C.z)/3.0); };     // (A+B+C)/3
+	public myPoint P(myPoint A, myPoint B, myPoint C, myPoint D) {return P(P(A,B),P(C,D)); };                                            // (A+B+C+D)/4
+	public myPoint P(double s, myPoint A) {return new myPoint(s*A.x,s*A.y,s*A.z); };                                            // sA
+	public myPoint A(myPoint A, myPoint B) {return new myPoint(A.x+B.x,A.y+B.y,A.z+B.z); };                                         // A+B
+	public myPoint P(double a, myPoint A, double b, myPoint B) {return A(P(a,A),P(b,B));}                                        // aA+bB 
+	public myPoint P(double a, myPoint A, double b, myPoint B, double c, myPoint C) {return A(P(a,A),P(b,B,c,C));}                     // aA+bB+cC 
+	public myPoint P(double a, myPoint A, double b, myPoint B, double c, myPoint C, double d, myPoint D){return A(P(a,A,b,B),P(c,C,d,D));}   // aA+bB+cC+dD
+	public myPoint P(myPoint P, myVector V) {return new myPoint(P.x + V.x, P.y + V.y, P.z + V.z); }                                 // P+V
+	public myPoint P(myPoint P, double s, myVector V) {return new myPoint(P.x+s*V.x,P.y+s*V.y,P.z+s*V.z);}                           // P+sV
+	public myPoint P(myPoint O, double x, myVector I, double y, myVector J) {return P(O.x+x*I.x+y*J.x,O.y+x*I.y+y*J.y,O.z+x*I.z+y*J.z);}  // O+xI+yJ
+	public myPoint P(myPoint O, double x, myVector I, double y, myVector J, double z, myVector K) {return P(O.x+x*I.x+y*J.x+z*K.x,O.y+x*I.y+y*J.y+z*K.y,O.z+x*I.z+y*J.z+z*K.z);}  // O+xI+yJ+kZ
+	void makePts(myPoint[] C) {for(int i=0; i<C.length; i++) C[i]=P();}
+	
+	//draw a circle - JT
+	public void circle(myPoint P, float r, myVector I, myVector J, int n) {myPoint[] pts = new myPoint[n];pts[0] = P(P,r,U(I));float a = (2*PI)/(1.0f*n);for(int i=1;i<n;++i){pts[i] = R(pts[i-1],a,J,I,P);}pushMatrix(); pushStyle();noFill(); show(pts);popStyle();popMatrix();}; // render sphere of radius r and center P
+	
+	public void circle(myPoint p, float r){ellipse((float)p.x, (float)p.y, r, r);}
+	void circle(float x, float y, float r1, float r2){ellipse(x,y, r1, r2);}
+	
+	void noteArc(float[] dims, int[] noteClr){
+		noFill();
+		setStroke(noteClr);
+		strokeWeight(1.5f*dims[3]);
+		arc(0,0, dims[2], dims[2], dims[0] - this.HALF_PI, dims[1] - this.HALF_PI);
+	}
+	//draw a ring segment from alphaSt in radians to alphaEnd in radians
+	void noteArc(myPoint ctr, float alphaSt, float alphaEnd, float rad, float thickness, int[] noteClr){
+		noFill();
+		setStroke(noteClr);
+		strokeWeight(thickness);
+		arc((float)ctr.x, (float)ctr.y, rad, rad, alphaSt - this.HALF_PI, alphaEnd- this.HALF_PI);
+	}
+	
+	
+	void bezier(myPoint A, myPoint B, myPoint C, myPoint D) {bezier((float)A.x,(float)A.y,(float)A.z,(float)B.x,(float)B.y,(float)B.z,(float)C.x,(float)C.y,(float)C.z,(float)D.x,(float)D.y,(float)D.z);} // draws a cubic Bezier curve with control points A, B, C, D
+	void bezier(myPoint [] C) {bezier(C[0],C[1],C[2],C[3]);} // draws a cubic Bezier curve with control points A, B, C, D
+	myPoint bezierPoint(myPoint[] C, float t) {return P(bezierPoint((float)C[0].x,(float)C[1].x,(float)C[2].x,(float)C[3].x,(float)t),bezierPoint((float)C[0].y,(float)C[1].y,(float)C[2].y,(float)C[3].y,(float)t),bezierPoint((float)C[0].z,(float)C[1].z,(float)C[2].z,(float)C[3].z,(float)t)); }
+	myVector bezierTangent(myPoint[] C, float t) {return V(bezierTangent((float)C[0].x,(float)C[1].x,(float)C[2].x,(float)C[3].x,(float)t),bezierTangent((float)C[0].y,(float)C[1].y,(float)C[2].y,(float)C[3].y,(float)t),bezierTangent((float)C[0].z,(float)C[1].z,(float)C[2].z,(float)C[3].z,(float)t)); }
+	
+	
+	public myPoint Mouse() {return new myPoint(mouseX, mouseY,0);}                                          			// current mouse location
+	public myVector MouseDrag() {return new myVector(mouseX-pmouseX,mouseY-pmouseY,0);};                     			// vector representing recent mouse displacement
+	
+	//public int color(myPoint p){return color((int)p.x,(int)p.z,(int)p.y);}	//needs to be x,z,y for some reason - to match orientation of color frames in z-up 3d geometry
+	public int color(myPoint p){return color((int)p.x,(int)p.y,(int)p.z);}	
+	
+	// =====  vector functions
+	public myVector V() {return new myVector(); };                                                                          // make vector (x,y,z)
+	public myVector V(double x, double y, double z) {return new myVector(x,y,z); };                                            // make vector (x,y,z)
+	public myVector V(myVector V) {return new myVector(V.x,V.y,V.z); };                                                          // make copy of vector V
+	public myVector A(myVector A, myVector B) {return new myVector(A.x+B.x,A.y+B.y,A.z+B.z); };                                       // A+B
+	public myVector A(myVector U, float s, myVector V) {return V(U.x+s*V.x,U.y+s*V.y,U.z+s*V.z);};                               // U+sV
+	public myVector M(myVector U, myVector V) {return V(U.x-V.x,U.y-V.y,U.z-V.z);};                                              // U-V
+	public myVector M(myVector V) {return V(-V.x,-V.y,-V.z);};                                                              // -V
+	public myVector V(myVector A, myVector B) {return new myVector((A.x+B.x)/2.0,(A.y+B.y)/2.0,(A.z+B.z)/2.0); }                      // (A+B)/2
+	public myVector V(myVector A, float s, myVector B) {return new myVector(A.x+s*(B.x-A.x),A.y+s*(B.y-A.y),A.z+s*(B.z-A.z)); };      // (1-s)A+sB
+	public myVector V(myVector A, myVector B, myVector C) {return new myVector((A.x+B.x+C.x)/3.0,(A.y+B.y+C.y)/3.0,(A.z+B.z+C.z)/3.0); };  // (A+B+C)/3
+	public myVector V(myVector A, myVector B, myVector C, myVector D) {return V(V(A,B),V(C,D)); };                                         // (A+B+C+D)/4
+	public myVector V(double s, myVector A) {return new myVector(s*A.x,s*A.y,s*A.z); };                                           // sA
+	public myVector V(double a, myVector A, double b, myVector B) {return A(V(a,A),V(b,B));}                                       // aA+bB 
+	public myVector V(double a, myVector A, double b, myVector B, double c, myVector C) {return A(V(a,A,b,B),V(c,C));}                   // aA+bB+cC
+	public myVector V(myPoint P, myPoint Q) {return new myVector(P,Q);};                                          // PQ
+	public myVector N(myVector U, myVector V) {return V( U.y*V.z-U.z*V.y, U.z*V.x-U.x*V.z, U.x*V.y-U.y*V.x); };                  // UxV cross product (normal to both)
+	public myVector N(myPoint A, myPoint B, myPoint C) {return N(V(A,B),V(A,C)); };                                                   // normal to triangle (A,B,C), not normalized (proportional to area)
+	public myVector B(myVector U, myVector V) {return U(N(N(U,V),U)); }        
+	
+	
+	public double d(myVector U, myVector V) {return U.x*V.x+U.y*V.y+U.z*V.z; };                                            //U*V dot product
+	public double dot(myVector U, myVector V) {return U.x*V.x+U.y*V.y+U.z*V.z; };                                            //U*V dot product
+	public double det2(myVector U, myVector V) {return -U.y*V.x+U.x*V.y; };                                       		// U|V det product
+	public double det3(myVector U, myVector V) {double dist = d(U,V); return Math.sqrt(d(U,U)*d(V,V) - (dist*dist)); };                                // U|V det product
+	public double m(myVector U, myVector V, myVector W) {return d(U,N(V,W)); };                                                 // (UxV)*W  mixed product, determinant - measures 6x the volume of the parallelapiped formed by myVectortors
+	public double m(myPoint E, myPoint A, myPoint B, myPoint C) {return m(V(E,A),V(E,B),V(E,C));}                                    // det (EA EB EC) is >0 when E sees (A,B,C) clockwise
+	public double n2(myVector V) {return (V.x*V.x)+(V.y*V.y)+(V.z*V.z);};                                                   // V*V    norm squared
+	public double n(myVector V) {return  Math.sqrt(n2(V));};                                                                // ||V||  norm
+	public double d(myPoint P, myPoint Q) {return  myPoint._dist(P, Q); };                            // ||AB|| distance
+	public double area(myPoint A, myPoint B, myPoint C) {return n(N(A,B,C))/2; };                                               // area of triangle 
+	public double volume(myPoint A, myPoint B, myPoint C, myPoint D) {return m(V(A,B),V(A,C),V(A,D))/6; };                           // volume of tet 
+	public boolean parallel (myVector U, myVector V) {return n(N(U,V))<n(U)*n(V)*0.00001; }                              // true if U and V are almost parallel
+	public double angle(myPoint A, myPoint B, myPoint C){return angle(V(A,B),V(A,C));}												//angle between AB and AC
+	public double angle(myPoint A, myPoint B, myPoint C, myPoint D){return angle(U(A,B),U(C,D));}							//angle between AB and CD
+	public double angle(myVector U, myVector V){double angle = Math.atan2(n(N(U,V)),d(U,V)),sign = m(U,V,V(0,0,1));if(sign<0){    angle=-angle;}	return angle;}
+	public boolean cw(myVector U, myVector V, myVector W) {return m(U,V,W)>0; };                                               // (UxV)*W>0  U,V,W are clockwise
+	public boolean cw(myPoint A, myPoint B, myPoint C, myPoint D) {return volume(A,B,C,D)>0; };                                     // tet is oriented so that A sees B, C, D clockwise 
+	public boolean projectsBetween(myPoint P, myPoint A, myPoint B) {return dot(V(A,P),V(A,B))>0 && dot(V(B,P),V(B,A))>0 ; };
+	public double distToLine(myPoint P, myPoint A, myPoint B) {double res = det3(U(A,B),V(A,P)); return Double.isNaN(res) ? 0 : res; };		//MAY RETURN NAN IF point P is on line
+	public myPoint projectionOnLine(myPoint P, myPoint A, myPoint B) {return P(A,dot(V(A,B),V(A,P))/dot(V(A,B),V(A,B)),V(A,B));}
+	public boolean isSame(myPoint A, myPoint B) {return (A.x==B.x)&&(A.y==B.y)&&(A.z==B.z) ;}                                         // A==B
+	public boolean isSame(myPoint A, myPoint B, double e) {return ((Math.abs(A.x-B.x)<e)&&(Math.abs(A.y-B.y)<e)&&(Math.abs(A.z-B.z)<e));}                   // ||A-B||<e
+	
+	public myVector W(double s,myVector V) {return V(s*V.x,s*V.y,s*V.z);}                                                      // sV
+	
+	public myVector U(myVector v){myVector u = new myVector(v); return u._normalize(); }
+	public myVector U(myVector v, float d, myVector u){myVector r = new myVector(v,d,u); return r._normalize(); }
+	public myVector Upt(myPoint v){myVector u = new myVector(v); return u._normalize(); }
+	public myVector U(myPoint a, myPoint b){myVector u = new myVector(a,b); return u._normalize(); }
+	public myVectorf Uf(myPoint a, myPoint b){myVectorf u = new myVectorf(a,b); return u._normalize(); }
+	public myVector U(double x, double y, double z) {myVector u = new myVector(x,y,z); return u._normalize();}
+	
+	public myVector normToPlane(myPoint A, myPoint B, myPoint C) {return myVector._cross(new myVector(A,B),new myVector(A,C)); };   // normal to triangle (A,B,C), not normalized (proportional to area)
+	
+	public void gl_normal(myVector V) {normal((float)V.x,(float)V.y,(float)V.z);}                                          // changes normal for smooth shading
+	public void gl_vertex(myPoint P) {vertex((float)P.x,(float)P.y,(float)P.z);}                                           // vertex for shading or drawing
+	public void gl_normal(myVectorf V) {normal(V.x,V.y,V.z);}                                          // changes normal for smooth shading
+	public void gl_vertex(myPointf P) {vertex(P.x,P.y,P.z);}                                           // vertex for shading or drawing
+	///show functions
+	public void showVec( myPoint ctr, double len, myVector v){line(ctr.x,ctr.y,ctr.z,ctr.x+(v.x)*len,ctr.y+(v.y)*len,ctr.z+(v.z)*len);}
+	public void show(myPoint P, double r,int fclr, int sclr, boolean flat) {//TODO make flat circles for points if flat
+		pushMatrix(); pushStyle(); 
+		if((fclr!= -1) && (sclr!= -1)){setColorValFill(fclr); setColorValStroke(sclr);}
+		if(!flat){
+			translate((float)P.x,(float)P.y,(float)P.z); 
+			sphereDetail(5);
+			sphere((float)r);
+		} else {
+			translate((float)P.x,(float)P.y,0); 
+			this.circle(0,0,(float)r,(float)r);				
+		}
+		popStyle(); popMatrix();} // render sphere of radius r and center P)
+	
+	public void show(myPoint P, double rad, int fclr, int sclr, int tclr, String txt) {
+		pushMatrix(); pushStyle(); 
+		if((fclr!= -1) && (sclr!= -1)){setColorValFill(fclr); setColorValStroke(sclr);}
+		sphereDetail(5);
+		translate((float)P.x,(float)P.y,(float)P.z); 
+		setColorValFill(tclr);setColorValStroke(tclr);
+		showOffsetText(1.2f * (float)rad,tclr, txt);
+		popStyle(); popMatrix();} // render sphere of radius r and center P)
+	
+	public void show(myPoint P, double r, int fclr, int sclr) {
+		pushMatrix(); pushStyle(); 
+		if((fclr!= -1) && (sclr!= -1)){setColorValFill(fclr); setColorValStroke(sclr);}
+		sphereDetail(5);
+		translate((float)P.x,(float)P.y,(float)P.z); 
+		sphere((float)r); 
+		popStyle(); popMatrix();} // render sphere of radius r and center P)
+	
+	public void show(myPoint P, double r){show(P,r, gui_Black, gui_Black, false);}
+	public void show(myPoint P, String s) {text(s, (float)P.x, (float)P.y, (float)P.z); } // prints string s in 3D at P
+	public void show(myPoint P, String s, myVector D) {text(s, (float)(P.x+D.x), (float)(P.y+D.y), (float)(P.z+D.z));  } // prints string s in 3D at P+D
+	public void show(myPoint P, double r, String s, myVector D){show(P,r, gui_Black, gui_Black, false);pushStyle();setColorValFill(gui_Black);show(P,s,D);popStyle();}
+	public void show(myPoint P, double r, String s, myVector D, int clr, boolean flat){show(P,r, clr, clr, flat);pushStyle();setColorValFill(clr);show(P,s,D);popStyle();}
+	public void show(myPoint[] ara) {beginShape(); for(int i=0;i<ara.length;++i){gl_vertex(ara[i]);} endShape(CLOSE);};                     
+	public void show(myPoint[] ara, myVector norm) {beginShape();gl_normal(norm); for(int i=0;i<ara.length;++i){gl_vertex(ara[i]);} endShape(CLOSE);};   
+	public void showVec( myPointf ctr, float len, myVectorf v){line(ctr.x,ctr.y,ctr.z,ctr.x+(v.x)*len,ctr.y+(v.y)*len,ctr.z+(v.z)*len);}
+	
+	public void showOffsetText(float d, int tclr, String txt){
+		setColorValFill(tclr, 255);setColorValStroke(tclr, 255);
+		text(txt, d, d,d); 
+	}	
+	public void showOffsetText2D(float d, int tclr, String txt){
+		setColorValFill(tclr, 255);setColorValStroke(tclr, 255);
+		text(txt, d, d,0); 
+	}
+	public void showOffsetTextAra(float d, int tclr, String[] txtAra){
+		setColorValFill(tclr, 255);setColorValStroke(tclr, 255);
+		float y = d;
+		for (String txt : txtAra) {
+			text(txt, d, y, d);
+			y+=10;
+		}
+	}
+		
+	public void show(myPointf P, float r,int fclr, int sclr, boolean flat) {//TODO make flat circles for points if flat
+		pushMatrix(); pushStyle(); 
+		if((fclr!= -1) && (sclr!= -1)){setColorValFill(fclr); setColorValStroke(sclr);}
+		if(!flat){
+			translate(P.x,P.y,P.z); 
+			sphereDetail(5);
+			sphere(r);
+		} else {
+			translate(P.x,P.y,0); 
+			circle(0,0,r,r);				
+		}
+		popStyle(); popMatrix();
+	} // render sphere of radius r and center P)		
+	
+	
+	//this will translate the passed box dimensions to keep them on the screen
+	//using p as start point and dims[2] and dims[3] as width and height
+	public void transToStayOnScreen(myPointf P, float[] rectDims) {
+		float xLocSt = P.x + rectDims[0], xLocEnd = xLocSt + rectDims[2];
+		float yLocSt = P.y + rectDims[1], yLocEnd = yLocSt + rectDims[3];
+		float transX = 0.0f, transY = 0.0f;
+		if (xLocSt < 0) {	transX = -1.0f * xLocSt;	} else if (xLocEnd > width) {transX = width - xLocEnd - 20;}
+		if (yLocSt < 0) {	transY = -1.0f * yLocSt;	} else if (yLocEnd > height) {transY = height - yLocEnd - 20;}
+		translate(transX,transY);		
+	}
+	
+	/////////////
+	// show functions using full clr arrays for colors	
+	public void showBox_ClrAra(myPointf P, float rad, int det, int[] fclr, int[] strkclr, int tclr, String txt) {
+		pushMatrix(); pushStyle(); 
+		translate(P.x,P.y,P.z);
+		fill(255,255,255,150);
+		stroke(0,0,0,255);
+		rect(0,6.0f,txt.length()*7.8f,-15);
+		tclr = gui_Black;		
+		setFill(fclr,255); setStroke(strkclr,255);			
+		sphereDetail(det);
+		sphere(rad); 
+		showOffsetText(1.2f * rad,tclr, txt);
+		popStyle(); popMatrix();} // render sphere of radius r and center P)
+	//inRect means draw inside rectangle
+	public void showNoBox_ClrAra(myPointf P, float rad, int det, int[] fclr, int[] strkclr, int tclr, String txt) {
+		pushMatrix(); pushStyle(); 
+		translate(P.x,P.y,P.z); 
+		setFill(fclr,255); setStroke(strkclr,255);			
+		sphereDetail(det);
+		sphere(rad); 
+		showOffsetText(1.2f * rad,tclr, txt);
+		popStyle(); popMatrix();} // render sphere of radius r and center P)
+	//show sphere of certain radius
+	public void show_ClrAra(myPointf P, float rad, int det, int[] fclr, int[] strkclr) {
+		pushMatrix(); pushStyle(); 
+		if((fclr!= null) && (strkclr!= null)){setFill(fclr,255); setStroke(strkclr,255);}
+		sphereDetail(det);
+		translate(P.x,P.y,P.z); 
+		sphere(rad); 
+		popStyle(); popMatrix();} // render sphere of radius r and center P)
+	
+	/////////////
+	// show functions using color idxs 
+	public void showBox(myPointf P, float rad, int det, int[] clrs, String[] txtAra, float[] rectDims) {
+		pushMatrix(); pushStyle(); 
+			translate(P.x,P.y,P.z);
+			setColorValFill(clrs[0],255); 
+			setColorValStroke(clrs[1],255);
+			sphereDetail(det);
+			sphere(rad); 
+			pushMatrix(); pushStyle();
+			//make sure box doesn't extend off screen
+				transToStayOnScreen(P,rectDims);
+				fill(255,255,255,150);
+				stroke(0,0,0,255);
+				strokeWeight(2.5f);
+				rect(rectDims);
+				translate(rectDims[0],0,0);
+				showOffsetTextAra(1.2f * rad, clrs[2], txtAra);
+			popStyle(); popMatrix();
+		popStyle(); popMatrix();} // render sphere of radius r and center P)
+	
+	public void show(myPointf P, float rad, int det, int[] clrs) {//only call with set fclr and sclr - idx0 == fill, idx 1 == strk
+		pushMatrix(); pushStyle(); 
+		setColorValFill(clrs[0],255); 
+		setColorValStroke(clrs[1],255);
+		sphereDetail(det);
+		translate(P.x,P.y,P.z); 
+		sphere(rad); 
+		popStyle(); popMatrix();} // render sphere of radius r and center P)
+	
+	public void show(myPointf P, float rad, int det, int[] clrs, String[] txtAra) {//only call with set fclr and sclr - idx0 == fill, idx 1 == strk, idx2 == txtClr
+		pushMatrix(); pushStyle(); 
+		setColorValFill(clrs[0],255); 
+		setColorValStroke(clrs[1],255);
+		sphereDetail(det);
+		translate(P.x,P.y,P.z); 
+		sphere(rad); 
+		showOffsetTextAra(1.2f * rad, clrs[2], txtAra);
+		popStyle(); popMatrix();} // render sphere of radius r and center P)
+	
+	/////////////
+	//base show function
+	public void show(myPointf P, float rad, int det){			
+		pushMatrix(); pushStyle(); 
+		fill(0,0,0,255); 
+		stroke(0,0,0,255);
+		sphereDetail(det);
+		translate(P.x,P.y,P.z); 
+		sphere(rad); 
+		popStyle(); popMatrix();
+	}
+	
+	public void show(myPointf P, String s) {text(s, P.x, P.y, P.z); } // prints string s in 3D at P
+	public void show(myPointf P, String s, myVectorf D) {text(s, (P.x+D.x), (P.y+D.y),(P.z+D.z));  } // prints string s in 3D at P+D
+	public void show(myPointf P, float r, String s, myVectorf D){show(P,r, gui_Black, gui_Black, false);pushStyle();setColorValFill(gui_Black);show(P,s,D);popStyle();}
+	public void show(myPointf P, float r, String s, myVectorf D, int clr, boolean flat){show(P,r, clr, clr, flat);pushStyle();setColorValFill(clr);show(P,s,D);popStyle();}
+	public void show(myPointf[] ara) {beginShape(); for(int i=0;i<ara.length;++i){gl_vertex(ara[i]);} endShape(CLOSE);};                     
+	public void show(myPointf[] ara, myVectorf norm) {beginShape();gl_normal(norm); for(int i=0;i<ara.length;++i){gl_vertex(ara[i]);} endShape(CLOSE);};                     
+	
+	public void showNoClose(myPoint[] ara) {beginShape(); for(int i=0;i<ara.length;++i){gl_vertex(ara[i]);} endShape();};                     
+	public void showNoClose(myPointf[] ara) {beginShape(); for(int i=0;i<ara.length;++i){gl_vertex(ara[i]);} endShape();};                     
+	///end show functions
+	
+	public void curveVertex(myPoint P) {curveVertex((float)P.x,(float)P.y);};                                           // curveVertex for shading or drawing
+	public void curve(myPoint[] ara) {if(ara.length == 0){return;}beginShape(); curveVertex(ara[0]);for(int i=0;i<ara.length;++i){curveVertex(ara[i]);} curveVertex(ara[ara.length-1]);endShape();};                      // volume of tet 	
+	
+	public boolean intersectPl(myPoint E, myVector T, myPoint A, myPoint B, myPoint C, myPoint X) { // if ray from E along T intersects triangle (A,B,C), return true and set proposal to the intersection point
+		myVector EA=new myVector(E,A), AB=new myVector(A,B), AC=new myVector(A,C); 		double t = (float)(myVector._mixProd(EA,AC,AB) / myVector._mixProd(T,AC,AB));		X.set(myPoint._add(E,t,T));		return true;
+	}	
+	public myPoint intersectPl(myPoint E, myVector T, myPoint A, myPoint B, myPoint C) { // if ray from E along T intersects triangle (A,B,C), return true and set proposal to the intersection point
+		myVector EA=new myVector(E,A), AB=new myVector(A,B), AC=new myVector(A,C); 		
+		double t = (float)(myVector._mixProd(EA,AC,AB) / myVector._mixProd(T,AC,AB));		
+		return (myPoint._add(E,t,T));		
+	}	
+	// if ray from E along V intersects sphere at C with radius r, return t when intersection occurs
+	public double intersectPt(myPoint E, myVector V, myPoint C, double r) { 
+		myVector Vce = V(C,E);
+		double CEdCE = Vce._dot(Vce), VdV = V._dot(V), VdVce = V._dot(Vce), b = 2 * VdVce, c = CEdCE - (r*r),
+				radical = (b*b) - 4 *(VdV) * c;
+		if(radical < 0) return -1;
+		double t1 = (b + Math.sqrt(radical))/(2*VdV), t2 = (b - Math.sqrt(radical))/(2*VdV);			
+		return ((t1 > 0) && (t2 > 0) ? Math.min(t1, t2) : ((t1 < 0 ) ? ((t2 < 0 ) ? -1 : t2) : t1) );
+		
+	}	
+	
+	
+	
+	
+	
+	/////////////////////		
+	///color utils
+	/////////////////////
+	//		public final int  // set more colors using Menu >  Tools > Color Selector
+	//		  black=0xff000000, 
+	//		  white=0xffFFFFFF,
+	//		  red=0xffFF0000, 
+	//		  green=0xff00FF00, 
+	//		  blue=0xff0000FF, 
+	//		  yellow=0xffFFFF00, 
+	//		  cyan=0xff00FFFF, 
+	//		  magenta=0xffFF00FF,
+	//		  grey=0xff818181, 
+	//		  orange=0xffFFA600, 
+	//		  brown=0xffB46005, 
+	//		  metal=0xffB5CCDE, 
+	//		  dgreen=0xff157901;
+	//set color based on passed point r= x, g = z, b=y
+	public void fillAndShowLineByRBGPt(myPoint p, float x,  float y, float w, float h){
+		fill((int)p.x,(int)p.y,(int)p.z);
+		stroke((int)p.x,(int)p.y,(int)p.z);
+		rect(x,y,w,h);
+		//show(p,r,-1);
+	}	
+	public myPoint WrldToScreen(myPoint wPt){return new myPoint(screenX((float)wPt.x,(float)wPt.y,(float)wPt.z),screenY((float)wPt.x,(float)wPt.y,(float)wPt.z),screenZ((float)wPt.x,(float)wPt.y,(float)wPt.z));}
+	public int[][] triColors = new int[][] {{gui_DarkMagenta,gui_DarkBlue,gui_DarkGreen,gui_DarkCyan}, {gui_LightMagenta,gui_LightBlue,gui_LightGreen,gui_TransCyan}};
+	public void setFill(int[] clr){setFill(clr,clr[3]);}
+	public void setStroke(int[] clr){setStroke(clr,clr[3]);}		
+	public void setFill(int[] clr, int alpha){fill(clr[0],clr[1],clr[2], alpha);}
+	public void setStroke(int[] clr, int alpha){stroke(clr[0],clr[1],clr[2], alpha);}
+	public void setColorValFill(int colorVal){ setColorValFill(colorVal,255);}
+	public void setColorValFill(int colorVal, int alpha){
+		switch (colorVal){
+			case gui_rnd				: { fill(random(255),random(255),random(255),alpha);break;}
+			case gui_White  			: { fill(255,255,255,alpha);break; }
+			case gui_Gray   			: { fill(120,120,120,alpha); break;}
+			case gui_Yellow 			: { fill(255,255,0,alpha);break; }
+			case gui_Cyan   			: { fill(0,255,255,alpha);  break; }
+			case gui_Magenta			: { fill(255,0,255,alpha);break; }
+			case gui_Red    			: { fill(255,0,0,alpha); break; }
+			case gui_Blue				: { fill(0,0,255,alpha); break; }
+			case gui_Green				: { fill(0,255,0,alpha);  break; } 
+			case gui_DarkGray   		: { fill(80,80,80,alpha); break;}
+			case gui_DarkRed    		: { fill(120,0,0,alpha);break;}
+			case gui_DarkBlue   		: { fill(0,0,120,alpha); break;}
+			case gui_DarkGreen  		: { fill(0,120,0,alpha); break;}
+			case gui_DarkYellow 		: { fill(120,120,0,alpha); break;}
+			case gui_DarkMagenta		: { fill(120,0,120,alpha); break;}
+			case gui_DarkCyan   		: { fill(0,120,120,alpha); break;}	   
+			case gui_LightGray   		: { fill(200,200,200,alpha); break;}
+			case gui_LightRed    		: { fill(255,110,110,alpha); break;}
+			case gui_LightBlue   		: { fill(110,110,255,alpha); break;}
+			case gui_LightGreen  		: { fill(110,255,110,alpha); break;}
+			case gui_LightYellow 		: { fill(255,255,110,alpha); break;}
+			case gui_LightMagenta		: { fill(255,110,255,alpha); break;}
+			case gui_LightCyan   		: { fill(110,255,255,alpha); break;}    	
+			case gui_Black			 	: { fill(0,0,0,alpha);break;}//
+			case gui_TransBlack  	 	: { fill(0x00010100);  break;}//	have to use hex so that alpha val is not lost    	
+			case gui_FaintGray 		 	: { fill(77,77,77,alpha/3); break;}
+			case gui_FaintRed 	 	 	: { fill(110,0,0,alpha/2);  break;}
+			case gui_FaintBlue 	 	 	: { fill(0,0,110,alpha/2);  break;}
+			case gui_FaintGreen 	 	: { fill(0,110,0,alpha/2);  break;}
+			case gui_FaintYellow 	 	: { fill(110,110,0,alpha/2); break;}
+			case gui_FaintCyan  	 	: { fill(0,110,110,alpha/2); break;}
+			case gui_FaintMagenta  	 	: { fill(110,0,110,alpha/2); break;}
+			case gui_TransGray 	 	 	: { fill(120,120,120,alpha/8); break;}//
+			case gui_TransRed 	 	 	: { fill(255,0,0,alpha/2);  break;}
+			case gui_TransBlue 	 	 	: { fill(0,0,255,alpha/2);  break;}
+			case gui_TransGreen 	 	: { fill(0,255,0,alpha/2);  break;}
+			case gui_TransYellow 	 	: { fill(255,255,0,alpha/2);break;}
+			case gui_TransCyan  	 	: { fill(0,255,255,alpha/2);break;}
+			case gui_TransMagenta  	 	: { fill(255,0,255,alpha/2);break;}
+			case gui_OffWhite			: { fill(248,248,255,alpha);break; }
+			default         			: { fill(255,255,255,alpha);break;}  	    	
+		}//switch	
+	}//setcolorValFill
+	public void setColorValStroke(int colorVal){ setColorValStroke(colorVal, 255);}
+	public void setColorValStroke(int colorVal, int alpha){
+		switch (colorVal){
+			case gui_White  	 	    : { stroke(255,255,255,alpha); break; }
+			case gui_Gray   	 	    : { stroke(120,120,120,alpha); break;}
+			case gui_Yellow      	    : { stroke(255,255,0,alpha); break; }
+			case gui_Cyan   	 	    : { stroke(0,255,255,alpha); break; }
+			case gui_Magenta	 	    : { stroke(255,0,255,alpha);  break; }
+			case gui_Red    	 	    : { stroke(255,120,120,alpha); break; }
+			case gui_Blue		 	    : { stroke(120,120,255,alpha); break; }
+			case gui_Green		 	    : { stroke(120,255,120,alpha); break; }
+			case gui_DarkGray    	    : { stroke(80,80,80,alpha); break; }
+			case gui_DarkRed     	    : { stroke(120,0,0,alpha); break; }
+			case gui_DarkBlue    	    : { stroke(0,0,120,alpha); break; }
+			case gui_DarkGreen   	    : { stroke(0,120,0,alpha); break; }
+			case gui_DarkYellow  	    : { stroke(120,120,0,alpha); break; }
+			case gui_DarkMagenta 	    : { stroke(120,0,120,alpha); break; }
+			case gui_DarkCyan    	    : { stroke(0,120,120,alpha); break; }	   
+			case gui_LightGray   	    : { stroke(200,200,200,alpha); break;}
+			case gui_LightRed    	    : { stroke(255,110,110,alpha); break;}
+			case gui_LightBlue   	    : { stroke(110,110,255,alpha); break;}
+			case gui_LightGreen  	    : { stroke(110,255,110,alpha); break;}
+			case gui_LightYellow 	    : { stroke(255,255,110,alpha); break;}
+			case gui_LightMagenta	    : { stroke(255,110,255,alpha); break;}
+			case gui_LightCyan   		: { stroke(110,255,255,alpha); break;}		   
+			case gui_Black				: { stroke(0,0,0,alpha); break;}
+			case gui_TransBlack  		: { stroke(1,1,1,1); break;}	    	
+			case gui_FaintGray 			: { stroke(120,120,120,250); break;}
+			case gui_FaintRed 	 		: { stroke(110,0,0,alpha); break;}
+			case gui_FaintBlue 	 		: { stroke(0,0,110,alpha); break;}
+			case gui_FaintGreen 		: { stroke(0,110,0,alpha); break;}
+			case gui_FaintYellow 		: { stroke(110,110,0,alpha); break;}
+			case gui_FaintCyan  		: { stroke(0,110,110,alpha); break;}
+			case gui_FaintMagenta  		: { stroke(110,0,110,alpha); break;}
+			case gui_TransGray 	 		: { stroke(150,150,150,alpha/4); break;}
+			case gui_TransRed 	 		: { stroke(255,0,0,alpha/2); break;}
+			case gui_TransBlue 	 		: { stroke(0,0,255,alpha/2); break;}
+			case gui_TransGreen 		: { stroke(0,255,0,alpha/2); break;}
+			case gui_TransYellow 		: { stroke(255,255,0,alpha/2); break;}
+			case gui_TransCyan  		: { stroke(0,255,255,alpha/2); break;}
+			case gui_TransMagenta  		: { stroke(255,0,255,alpha/2); break;}
+			case gui_OffWhite			: { stroke(248,248,255,alpha);break; }
+			default         			: { stroke(55,55,255,alpha); break; }
+		}//switch	
+	}//setcolorValStroke	
+	
+	public void setColorValFillAmb(int colorVal){ setColorValFillAmb(colorVal,255);}
+	public void setColorValFillAmb(int colorVal, int alpha){
+		switch (colorVal){
+			case gui_rnd				: { fill(random(255),random(255),random(255),alpha); ambient(120,120,120);break;}
+			case gui_White  			: { fill(255,255,255,alpha); ambient(255,255,255); break; }
+			case gui_Gray   			: { fill(120,120,120,alpha); ambient(120,120,120); break;}
+			case gui_Yellow 			: { fill(255,255,0,alpha); ambient(255,255,0); break; }
+			case gui_Cyan   			: { fill(0,255,255,alpha); ambient(0,255,alpha); break; }
+			case gui_Magenta			: { fill(255,0,255,alpha); ambient(255,0,alpha); break; }
+			case gui_Red    			: { fill(255,0,0,alpha); ambient(255,0,0); break; }
+			case gui_Blue				: { fill(0,0,255,alpha); ambient(0,0,alpha); break; }
+			case gui_Green				: { fill(0,255,0,alpha); ambient(0,255,0); break; } 
+			case gui_DarkGray   		: { fill(80,80,80,alpha); ambient(80,80,80); break;}
+			case gui_DarkRed    		: { fill(120,0,0,alpha); ambient(120,0,0); break;}
+			case gui_DarkBlue   		: { fill(0,0,120,alpha); ambient(0,0,120); break;}
+			case gui_DarkGreen  		: { fill(0,120,0,alpha); ambient(0,120,0); break;}
+			case gui_DarkYellow 		: { fill(120,120,0,alpha); ambient(120,120,0); break;}
+			case gui_DarkMagenta		: { fill(120,0,120,alpha); ambient(120,0,120); break;}
+			case gui_DarkCyan   		: { fill(0,120,120,alpha); ambient(0,120,120); break;}		   
+			case gui_LightGray   		: { fill(200,200,200,alpha); ambient(200,200,200); break;}
+			case gui_LightRed    		: { fill(255,110,110,alpha); ambient(255,110,110); break;}
+			case gui_LightBlue   		: { fill(110,110,255,alpha); ambient(110,110,alpha); break;}
+			case gui_LightGreen  		: { fill(110,255,110,alpha); ambient(110,255,110); break;}
+			case gui_LightYellow 		: { fill(255,255,110,alpha); ambient(255,255,110); break;}
+			case gui_LightMagenta		: { fill(255,110,255,alpha); ambient(255,110,alpha); break;}
+			case gui_LightCyan   		: { fill(110,255,255,alpha); ambient(110,255,alpha); break;}	    	
+			case gui_Black			 	: { fill(0,0,0,alpha); ambient(0,0,0); break;}//
+			case gui_TransBlack  	 	: { fill(0x00010100); ambient(0,0,0); break;}//	have to use hex so that alpha val is not lost    	
+			case gui_FaintGray 		 	: { fill(77,77,77,alpha/3); ambient(77,77,77); break;}//
+			case gui_FaintRed 	 	 	: { fill(110,0,0,alpha/2); ambient(110,0,0); break;}//
+			case gui_FaintBlue 	 	 	: { fill(0,0,110,alpha/2); ambient(0,0,110); break;}//
+			case gui_FaintGreen 	 	: { fill(0,110,0,alpha/2); ambient(0,110,0); break;}//
+			case gui_FaintYellow 	 	: { fill(110,110,0,alpha/2); ambient(110,110,0); break;}//
+			case gui_FaintCyan  	 	: { fill(0,110,110,alpha/2); ambient(0,110,110); break;}//
+			case gui_FaintMagenta  	 	: { fill(110,0,110,alpha/2); ambient(110,0,110); break;}//
+			case gui_TransGray 	 	 	: { fill(120,120,120,alpha/8); ambient(120,120,120); break;}//
+			case gui_TransRed 	 	 	: { fill(255,0,0,alpha/2); ambient(255,0,0); break;}//
+			case gui_TransBlue 	 	 	: { fill(0,0,255,alpha/2); ambient(0,0,alpha); break;}//
+			case gui_TransGreen 	 	: { fill(0,255,0,alpha/2); ambient(0,255,0); break;}//
+			case gui_TransYellow 	 	: { fill(255,255,0,alpha/2); ambient(255,255,0); break;}//
+			case gui_TransCyan  	 	: { fill(0,255,255,alpha/2); ambient(0,255,alpha); break;}//
+			case gui_TransMagenta  	 	: { fill(255,0,255,alpha/2); ambient(255,0,alpha); break;}//   	
+			case gui_OffWhite			: { fill(248,248,255,alpha);ambient(248,248,255); break; }
+			default         			: { fill(255,255,255,alpha); ambient(255,255,alpha); break; }	    
+		
+		}//switch	
+	}//setcolorValFill
+	
+	//returns one of 30 predefined colors as an array (to support alpha)
+	public int[] getClr(int colorVal){		return getClr(colorVal, 255);	}//getClr
+	public int[] getClr(int colorVal, int alpha){
+		switch (colorVal){
+			case gui_Gray   		         : { return new int[] {120,120,120,alpha}; }
+			case gui_White  		         : { return new int[] {255,255,255,alpha}; }
+			case gui_Yellow 		         : { return new int[] {255,255,0,alpha}; }
+			case gui_Cyan   		         : { return new int[] {0,255,255,alpha};} 
+			case gui_Magenta		         : { return new int[] {255,0,255,alpha};}  
+			case gui_Red    		         : { return new int[] {255,0,0,alpha};} 
+			case gui_Blue			         : { return new int[] {0,0,255,alpha};}
+			case gui_Green			         : { return new int[] {0,255,0,alpha};}  
+			case gui_DarkGray   	         : { return new int[] {80,80,80,alpha};}
+			case gui_DarkRed    	         : { return new int[] {120,0,0,alpha};}
+			case gui_DarkBlue  	 	         : { return new int[] {0,0,120,alpha};}
+			case gui_DarkGreen  	         : { return new int[] {0,120,0,alpha};}
+			case gui_DarkYellow 	         : { return new int[] {120,120,0,alpha};}
+			case gui_DarkMagenta	         : { return new int[] {120,0,120,alpha};}
+			case gui_DarkCyan   	         : { return new int[] {0,120,120,alpha};}	   
+			case gui_LightGray   	         : { return new int[] {200,200,200,alpha};}
+			case gui_LightRed    	         : { return new int[] {255,110,110,alpha};}
+			case gui_LightBlue   	         : { return new int[] {110,110,255,alpha};}
+			case gui_LightGreen  	         : { return new int[] {110,255,110,alpha};}
+			case gui_LightYellow 	         : { return new int[] {255,255,110,alpha};}
+			case gui_LightMagenta	         : { return new int[] {255,110,255,alpha};}
+			case gui_LightCyan   	         : { return new int[] {110,255,255,alpha};}
+			case gui_Black			         : { return new int[] {0,0,0,alpha};}
+			case gui_FaintGray 		         : { return new int[] {110,110,110,alpha};}
+			case gui_FaintRed 	 	         : { return new int[] {110,0,0,alpha};}
+			case gui_FaintBlue 	 	         : { return new int[] {0,0,110,alpha};}
+			case gui_FaintGreen 	         : { return new int[] {0,110,0,alpha};}
+			case gui_FaintYellow 	         : { return new int[] {110,110,0,alpha};}
+			case gui_FaintCyan  	         : { return new int[] {0,110,110,alpha};}
+			case gui_FaintMagenta  	         : { return new int[] {110,0,110,alpha};}    	
+			case gui_TransBlack  	         : { return new int[] {1,1,1,alpha/2};}  	
+			case gui_TransGray  	         : { return new int[] {110,110,110,alpha/2};}
+			case gui_TransLtGray  	         : { return new int[] {180,180,180,alpha/2};}
+			case gui_TransRed  	         	 : { return new int[] {110,0,0,alpha/2};}
+			case gui_TransBlue  	         : { return new int[] {0,0,110,alpha/2};}
+			case gui_TransGreen  	         : { return new int[] {0,110,0,alpha/2};}
+			case gui_TransYellow  	         : { return new int[] {110,110,0,alpha/2};}
+			case gui_TransCyan  	         : { return new int[] {0,110,110,alpha/2};}
+			case gui_TransMagenta  	         : { return new int[] {110,0,110,alpha/2};}	
+			case gui_TransWhite  	         : { return new int[] {220,220,220,alpha/2};}	
+			case gui_OffWhite				 : { return new int[] {255,255,235,alpha};}
+			default         		         : { return new int[] {255,255,255,alpha};}    
+		}//switch
+	}//getClr
+	
+	public int getRndClrInt(){return (int)random(0,23);}		//return a random color flag value from below
+	public int[] getRndClr(int alpha){return new int[]{(int)random(0,255),(int)random(0,255),(int)random(0,255),alpha};	}
+	public int[] getRndClr2(){return new int[]{(int)random(50,255),(int)random(25,200),(int)random(80,255),255};	}
+	public int[] getRndClr2(int alpha){return new int[]{(int)random(50,255),(int)random(25,200),(int)random(80,255),alpha};	}
+	public int[] getRndClr(){return getRndClr(255);	}		
+	public Integer[] getClrMorph(int a, int b, double t){return getClrMorph(getClr(a), getClr(b), t);}    
+	public Integer[] getClrMorph(int[] a, int[] b, double t){
+		if(t==0){return new Integer[]{a[0],a[1],a[2],a[3]};} else if(t==1){return new Integer[]{b[0],b[1],b[2],b[3]};}
+		return new Integer[]{(int)(((1.0f-t)*a[0])+t*b[0]),(int)(((1.0f-t)*a[1])+t*b[1]),(int)(((1.0f-t)*a[2])+t*b[2]),(int)(((1.0f-t)*a[3])+t*b[3])};
+	}
+
+	//used to generate random color
+	public static final int gui_rnd = -1;
+	//color indexes
+	public static final int gui_Black 	= 0;
+	public static final int gui_White 	= 1;	
+	public static final int gui_Gray 	= 2;
+	
+	public static final int gui_Red 	= 3;
+	public static final int gui_Blue 	= 4;
+	public static final int gui_Green 	= 5;
+	public static final int gui_Yellow 	= 6;
+	public static final int gui_Cyan 	= 7;
+	public static final int gui_Magenta = 8;
+	
+	public static final int gui_LightRed = 9;
+	public static final int gui_LightBlue = 10;
+	public static final int gui_LightGreen = 11;
+	public static final int gui_LightYellow = 12;
+	public static final int gui_LightCyan = 13;
+	public static final int gui_LightMagenta = 14;
+	public static final int gui_LightGray = 15;
+	
+	public static final int gui_DarkCyan = 16;
+	public static final int gui_DarkYellow = 17;
+	public static final int gui_DarkGreen = 18;
+	public static final int gui_DarkBlue = 19;
+	public static final int gui_DarkRed = 20;
+	public static final int gui_DarkGray = 21;
+	public static final int gui_DarkMagenta = 22;
+	
+	public static final int gui_FaintGray = 23;
+	public static final int gui_FaintRed = 24;
+	public static final int gui_FaintBlue = 25;
+	public static final int gui_FaintGreen = 26;
+	public static final int gui_FaintYellow = 27;
+	public static final int gui_FaintCyan = 28;
+	public static final int gui_FaintMagenta = 29;
+	
+	public static final int gui_TransBlack = 30;
+	public static final int gui_TransGray = 31;
+	public static final int gui_TransMagenta = 32;	
+	public static final int gui_TransLtGray = 33;
+	public static final int gui_TransRed = 34;
+	public static final int gui_TransBlue = 35;
+	public static final int gui_TransGreen = 36;
+	public static final int gui_TransYellow = 37;
+	public static final int gui_TransCyan = 38;	
+	public static final int gui_TransWhite = 39;	
+	public static final int gui_OffWhite = 40;
+	
+
+}//my_procApplet

@@ -4,6 +4,9 @@ import java.io.File;
 import java.util.*;
 import java.util.concurrent.*;
 
+import SOM_Base.*;
+import UI.*;
+import Utils.*;
 import processing.core.PImage;
 
 
@@ -78,22 +81,21 @@ public class mySOMMapUIWin extends myDispWindow {
 		uiMapLrnEndIDX				= 14,			//end learning rate
 		uiMapRadStIDX				= 15,			//start radius
 		uiMapRadEndIDX				= 16,			//end radius
-		uiJPGToDispIDX				= 17,			//which group of jp's (a single jpg) to display on map
-		uiJPToDispIDX				= 18,			//which JP Ftr IDX to display as map
-		uiProdJpgToDispIDX			= 19,			//display products of this jpg
-		uiProdJpToDispIDX			= 20,			//display products with this jp
+		uiFtrJPGToDispIDX			= 17,			//which group of jp's (a single jpg) to display on map
+		uiFtrJPToDispIDX			= 18,			//which JP Ftr IDX to display as map
+		uiAllJpgSeenToDispIDX		= 19,			//display products of this jpg
+		uiAllJpSeenToDispIDX		= 20,			//display products with this jp
 		uiMapNodeBMUTypeToDispIDX 	= 21,			//type of examples mapping to a particular node to display in visualization
 		uiNodeWtDispThreshIDX 		= 22,			//threshold for display of map nodes on individual weight maps
 		uiNodeInSegThreshIDX		= 23,			//threshold of u-matrix weight for nodes to belong to same segment
 		uiProdZoneDistThreshIDX		= 24,			//max distance a from a product that a map node should be considered to be covered by that product
-		uiMseRegionSensIDX			= 25;			//senstivity threshold for mouse-over, to determine membership to a particular jp (amount a query on the map per feature needs to be to be considered part of the JP that feature represents)		
+		uiMseRegionSensIDX			= 25;			//senstivity threshold for mouse-over, to determine membership to a particular jp (amount a query on the map per feature needs to be to be considered part of the JP that feature represents)	
 	
-	//types of data that can be used for calc analysis
-	private int[] calcAnalysisTypes = new int[] {MonitorJpJpgrp.allExJpsIDX,MonitorJpJpgrp.custExJpsIDX};
-	private int curCalcAnalysisTypeIDX = MonitorJpJpgrp.custExJpsIDX;
+	public final int numGUIObjs = 26;
 	
-	
-	public final int numGUIObjs = 26;	
+	//types of data that can be used for calc analysis 
+	//private int[] calcAnalysisTypes = new int[] {StraffSOMMapManager.jps_FtrIDX,StraffSOMMapManager.jps_AllIDX};
+	private int curCalcAnalysisTypeIDX = StraffSOMMapManager.jps_AllIDX;
 	
 	private double[] uiVals;				//raw values from ui components
 	//threshold of wt value to display map node
@@ -195,7 +197,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		setVisScreenWidth(rectDim[2]);
 		//only set for visualization
 		mapMgr.win=this;
-		mapMgr.pa = pa;
+		mapMgr.pa = (SOM_StraffordMain)pa;
 		
 		//based on width of map
 		analysisHt = (SOM_mapDims[1]*.45f);
@@ -238,11 +240,11 @@ public class mySOMMapUIWin extends myDispWindow {
 	//per jp bar width ~= total width / # of jps
 	protected void setAnalysisDimWidth() {analysisAllJPBarWidth = (curVisScrDims[0]/(1.0f+mapMgr.numFtrsToShowForCalcAnalysis(curCalcAnalysisTypeIDX)))*.98f;	}
 	
-	protected void initMapAras(int numJPVals, int numJPGVals) {
+	public void initMapAras(int numFtrVals, int numJPGVals) {
 		curMapImgIDX = 0;
 		int format = pa.RGB; 
 		int w = (int) (SOM_mapDims[0]/mapScaleVal), h = (int) (SOM_mapDims[1]/mapScaleVal);
-		mapPerFtrWtImgs = new PImage[numJPVals];
+		mapPerFtrWtImgs = new PImage[numFtrVals];
 		for(int i=0;i<mapPerFtrWtImgs.length;++i) {
 			mapPerFtrWtImgs[i] = pa.createImage(w, h, format);
 		}		
@@ -279,7 +281,7 @@ public class mySOMMapUIWin extends myDispWindow {
 				mapMgr.setUseChiSqDist(val);
 				break;}							
 			case mapExclProdZeroFtrIDX		: {//whether or not distances between two datapoints assume that absent features in smaller-length datapoints are 0, or to ignore the values in the larger datapoints
-				mapMgr.setFlag(mapMgr.mapExclProdZeroFtrIDX, val);
+				mapMgr.setPrivFlag(mapMgr.mapExclProdZeroFtrIDX, val);
 				break;}							
 			case mapDrawTrainDatIDX		: {//draw training examples
 				break;}							
@@ -312,15 +314,15 @@ public class mySOMMapUIWin extends myDispWindow {
 			
 			case mapDrawCustAnalysisVisIDX	: {//whether or not to draw feature calc analysis graphs  
 				if (val) {//if setting to true then aggregate data
-					curCalcAnalysisTypeIDX = MonitorJpJpgrp.custExJpsIDX;
-					mapMgr.processCalcAnalysis(JPWeightEquation.custCalcObjIDX);	
+					curCalcAnalysisTypeIDX = StraffSOMMapManager.jps_FtrIDX;
+					mapMgr.processCalcAnalysis(StraffWeightCalc.custCalcObjIDX);	
 					setAnalysisDimWidth();
 				}
 				break;}
 			case mapDrawTPAnalysisVisIDX	: {//whether or not to draw feature calc analysis graphs  
 				if (val) {//if setting to true then aggregate data
-					curCalcAnalysisTypeIDX = MonitorJpJpgrp.allExJpsIDX;
-					mapMgr.processCalcAnalysis(JPWeightEquation.tpCalcObjIDX);	
+					curCalcAnalysisTypeIDX = StraffSOMMapManager.jps_AllIDX;
+					mapMgr.processCalcAnalysis(StraffWeightCalc.tpCalcObjIDX);	
 					setAnalysisDimWidth();
 				}
 				break;}
@@ -358,11 +360,11 @@ public class mySOMMapUIWin extends myDispWindow {
 	//first verify that new .lrn file exists, then
 	//build new SOM_MAP map using UI-entered values, then load resultant data
 	protected void buildNewSOMMap(){
-		mapMgr.dispMessage("mySOMMapUIWin","buildNewSOMMap","Starting Map Build", MsgCodes.info5);
+		mapMgr.msgObj.dispMessage("mySOMMapUIWin","buildNewSOMMap","Starting Map Build", MsgCodes.info5);
 		int kVal = (int)this.guiObjs[uiMapKTypIDX].getVal();
 		//verify sphere train/test data exists, otherwise save it
 		if(!mapMgr.mapCanBeTrained(kVal)){
-			mapMgr.dispMessage("mySOMMapUIWin","buildNewSOMMap","No Training Data Found, unable to build SOM", MsgCodes.warning2);
+			mapMgr.msgObj.dispMessage("mySOMMapUIWin","buildNewSOMMap","No Training Data Found, unable to build SOM", MsgCodes.warning2);
 			setPrivFlags(buildSOMExe, false);
 			return;
 		}
@@ -376,24 +378,24 @@ public class mySOMMapUIWin extends myDispWindow {
 		mapInts.put("mapKType", kVal);
 		mapInts.put("mapStRad", (int)this.guiObjs[uiMapRadStIDX].getVal());
 		mapInts.put("mapEndRad", (int)this.guiObjs[uiMapRadEndIDX].getVal());
-		for (String key : mapInts.keySet()) {mapMgr.dispMessage("mySOMMapUIWin","buildNewSOMMap","mapInts["+key+"] = "+mapInts.get(key), MsgCodes.info1);}		
+		for (String key : mapInts.keySet()) {mapMgr.msgObj.dispMessage("mySOMMapUIWin","buildNewSOMMap","mapInts["+key+"] = "+mapInts.get(key), MsgCodes.info1);}		
 		HashMap<String, Float> mapFloats = new HashMap<String, Float>(); 
 		mapFloats.put("mapStLrnRate",(float)this.guiObjs[uiMapLrnStIDX].getVal());
 		mapFloats.put("mapEndLrnRate",(float)this.guiObjs[uiMapLrnEndIDX].getVal());
-		for (String key : mapFloats.keySet()) {mapMgr.dispMessage("mySOMMapUIWin","buildNewSOMMap","mapFloats["+key+"] = "+ String.format("%.4f",mapFloats.get(key)), MsgCodes.info1);}		
+		for (String key : mapFloats.keySet()) {mapMgr.msgObj.dispMessage("mySOMMapUIWin","buildNewSOMMap","mapFloats["+key+"] = "+ String.format("%.4f",mapFloats.get(key)), MsgCodes.info1);}		
 		HashMap<String, String> mapStrings = new HashMap<String, String> ();
 		mapStrings.put("mapGridShape", getUIListValStr(uiMapShapeIDX, (int)this.guiObjs[uiMapShapeIDX].getVal()));	
 		mapStrings.put("mapBounds", getUIListValStr(uiMapBndsIDX, (int)this.guiObjs[uiMapBndsIDX].getVal()));	
 		mapStrings.put("mapRadCool", getUIListValStr(uiMapRadCoolIDX, (int)this.guiObjs[uiMapRadCoolIDX].getVal()));	
 		mapStrings.put("mapNHood", getUIListValStr(uiMapNHdFuncIDX, (int)this.guiObjs[uiMapNHdFuncIDX].getVal()));	
 		mapStrings.put("mapLearnCool", getUIListValStr(uiMapLrnCoolIDX, (int)this.guiObjs[uiMapLrnCoolIDX].getVal()));	
-		for (String key : mapStrings.keySet()) {mapMgr.dispMessage("mySOMMapUIWin","buildNewSOMMap","mapStrings["+key+"] = "+mapStrings.get(key), MsgCodes.info1);}
+		for (String key : mapStrings.keySet()) {mapMgr.msgObj.dispMessage("mySOMMapUIWin","buildNewSOMMap","mapStrings["+key+"] = "+mapStrings.get(key), MsgCodes.info1);}
 		
 		//call map data object to build and execute map call
 		boolean returnCode = mapMgr.buildNewSOMMap(mapInts, mapFloats, mapStrings);
 		//returnCode is whether map was built and trained successfully
 		setFlagsDoneMapBuild();
-		mapMgr.dispMessage("mySOMMapUIWin","buildNewSOMMap","Map Build " + (returnCode ? "Completed Successfully." : "Failed due to error."), MsgCodes.info5);
+		mapMgr.msgObj.dispMessage("mySOMMapUIWin","buildNewSOMMap","Map Build " + (returnCode ? "Completed Successfully." : "Failed due to error."), MsgCodes.info5);
 		setPrivFlags(buildSOMExe, false);
 	}//buildNewSOMMap	
 
@@ -481,8 +483,8 @@ public class mySOMMapUIWin extends myDispWindow {
 			"End Cool Radius", 			//uiMapRadEndIDX	
 			"JPGrp Ftrs Shown",     	//uiJPGToDispIDX
 			"JP Ftr Shown", 			//uiJPToDispIDX
-			"Prod JPG to Show", 		//uiProdJpgToDispIDX  
-			"Prod JP to Show",   		//uiProdJpToDispIDX
+			"All JPG to Show", 			//uiProdJpgToDispIDX  
+			"All JP to Show",   		//uiProdJpToDispIDX
 			"Ex Type For Node BMU",		//uiMapNodeBMUTypeToDispIDX
 			"Map Node Disp Wt Thresh",	//uiMapNodeWtDispThreshIDX
 			"Segment UDist Thresh",		//uiNodeInSegThreshIDX//threshold of u-matrix weight for nodes to belong to same segment
@@ -554,28 +556,28 @@ public class mySOMMapUIWin extends myDispWindow {
 	public void resetUIVals(){
 		for(int i=0; i<guiStVals.length;++i){	
 			guiObjs[i].setVal(guiStVals[i]);
-			//mapMgr.dispMessage("mySOMMapUIWin","resetUIVals","i:"+i+" st obj val: " + guiStVals[i]);
+			//mapMgr.msgObj.dispMessage("mySOMMapUIWin","resetUIVals","i:"+i+" st obj val: " + guiStVals[i]);
 		}
 	}
 	//if any ui values have a string behind them for display
 	@Override
 	public String getUIListValStr(int UIidx, int validx) {		
-		//mapMgr.dispMessage("mySOMMapUIWin","getUIListValStr","UIidx : " + UIidx + "  Val : " + validx );
+		//mapMgr.msgObj.dispMessage("mySOMMapUIWin","getUIListValStr","UIidx : " + UIidx + "  Val : " + validx );
 		switch(UIidx){//pa.score.staffs.size()
-			case uiRawDataSourceIDX : {return uiRawDataSourceList[validx % uiRawDataSourceList.length];}
-			case uiTrainDataFrmtIDX : {return uiMapTrainFtrTypeList[validx % uiMapTrainFtrTypeList.length];}
-			case uiTestDataFrmtIDX	: {return uiMapTestFtrTypeList[validx % uiMapTestFtrTypeList.length];}
-			case uiMapShapeIDX		: {return uiMapShapeList[validx % uiMapShapeList.length]; }
-			case uiMapBndsIDX		: {return uiMapBndsList[validx % uiMapBndsList.length]; }
-			case uiMapKTypIDX		: {return uiMapKTypList[validx % uiMapKTypList.length]; }
-			case uiMapNHdFuncIDX	: {return uiMapNHoodList[validx % uiMapNHoodList.length]; }
-			case uiMapRadCoolIDX	: {return uiMapRadClList[validx % uiMapRadClList.length]; }
-			case uiMapLrnCoolIDX	: {return uiMapLrnClList[validx % uiMapLrnClList.length]; }	
-			case uiMapNodeBMUTypeToDispIDX : {return StraffSOMMapManager.nodeBMUMapTypes[validx %  StraffSOMMapManager.nodeBMUMapTypes.length];}
-			case uiJPGToDispIDX		: {			return mapMgr.getJpGrpByIdxStr(validx); 		}	
-			case uiJPToDispIDX		: {			return mapMgr.getJpByIdxStr(validx); 		}	
-			case uiProdJpgToDispIDX		: {		return mapMgr.getProdJpGrpByIdxStr(validx); 	}	
-			case uiProdJpToDispIDX		: {		return mapMgr.getProdJpByIdxStr(validx); 	}	
+			case uiRawDataSourceIDX 			: {return uiRawDataSourceList[validx % uiRawDataSourceList.length];}
+			case uiTrainDataFrmtIDX 			: {return uiMapTrainFtrTypeList[validx % uiMapTrainFtrTypeList.length];}
+			case uiTestDataFrmtIDX				: {return uiMapTestFtrTypeList[validx % uiMapTestFtrTypeList.length];}
+			case uiMapShapeIDX					: {return uiMapShapeList[validx % uiMapShapeList.length]; }
+			case uiMapBndsIDX					: {return uiMapBndsList[validx % uiMapBndsList.length]; }
+			case uiMapKTypIDX					: {return uiMapKTypList[validx % uiMapKTypList.length]; }
+			case uiMapNHdFuncIDX				: {return uiMapNHoodList[validx % uiMapNHoodList.length]; }
+			case uiMapRadCoolIDX				: {return uiMapRadClList[validx % uiMapRadClList.length]; }
+			case uiMapLrnCoolIDX				: {return uiMapLrnClList[validx % uiMapLrnClList.length]; }	
+			case uiMapNodeBMUTypeToDispIDX 		: {return StraffSOMMapManager.nodeBMUMapTypes[validx %  StraffSOMMapManager.nodeBMUMapTypes.length];}
+			case uiFtrJPGToDispIDX					: {return mapMgr.getFtrJpGrpByIdxStr(validx); 	}	
+			case uiFtrJPToDispIDX					: {return mapMgr.getFtrJpByIdxStr(validx); 	}	
+			case uiAllJpgSeenToDispIDX			: {return mapMgr.getAllJpGrpByIdxStr(validx); 		}	
+			case uiAllJpSeenToDispIDX			: {return mapMgr.getAllJpByIdxStr(validx); 		}	
 		}
 		return "";
 	}//getUIListValStr
@@ -601,10 +603,16 @@ public class mySOMMapUIWin extends myDispWindow {
 		return -1;
 	}//getIdxFromListString
 	
-	public void setUI_JPListMaxVals(int jpGrpLen, int jpLen) {
+	public void setUI_JPFtrListMaxVals(int jpGrpLen, int jpLen) {
 		//refresh max size of guiobj - heavy handed, these values won't change often, and this is called -every draw frame-.
-		guiObjs[uiJPToDispIDX].setNewMax(jpLen-1);
-		guiObjs[uiJPGToDispIDX].setNewMax(jpGrpLen-1);	
+		guiObjs[uiFtrJPToDispIDX].setNewMax(jpLen-1);
+		guiObjs[uiFtrJPGToDispIDX].setNewMax(jpGrpLen-1);	
+	}//setUI_JPListMaxVals
+	
+	public void setUI_JPAllSeenListMaxVals(int jpGrpLen, int jpLen) {
+		//refresh max size of guiobj - heavy handed, these values won't change often, and this is called -every draw frame-.
+		guiObjs[uiAllJpSeenToDispIDX].setNewMax(jpLen-1);
+		guiObjs[uiAllJpgSeenToDispIDX].setNewMax(jpGrpLen-1);	
 	}//setUI_JPListMaxVals
 	
 	private boolean settingJPGFromJp = false, settingJPFromJPG = false;
@@ -636,50 +644,50 @@ public class mySOMMapUIWin extends myDispWindow {
 			case uiMapRadEndIDX	    : {
 				if(val >= guiObjs[uiMapRadStIDX].getVal()-guiMinMaxModVals[UIidx][2]) { guiObjs[UIidx].setVal(guiObjs[uiMapRadStIDX].getVal()-guiMinMaxModVals[UIidx][2]);}
 				break;}
-			case uiJPGToDispIDX : {//highlight display of different region of SOM map corresponding to group of JPs (jpg)
-				//mapMgr.dispMessage("\nSOM WIN","setUIWinVals::uiJPGToDispIDX", "Click : settingJPGFromJp : " + settingJPGFromJp);
+			case uiFtrJPGToDispIDX : {//highlight display of different region of SOM map corresponding to group of JPs (jpg)
+				//mapMgr.msgObj.dispMessage("\nSOM WIN","setUIWinVals::uiJPGToDispIDX", "Click : settingJPGFromJp : " + settingJPGFromJp);
 				if(!settingJPGFromJp) {
-					int curJPVal = (int)guiObjs[uiJPToDispIDX].getVal();
+					int curJPVal = (int)guiObjs[uiFtrJPToDispIDX].getVal();
 					//int jpToSet = mapMgr.getUI_FirstJPFromJPG((int)val, curJPVal);
-					//mapMgr.dispMessage("SOM WIN","setUIWinVals:uiJPGToDispIDX", "Attempt to modify uiJPToDispIDX : curJPVal : "  +curJPVal + " | jpToSet : " + jpToSet);
+					//mapMgr.msgObj.dispMessage("SOM WIN","setUIWinVals:uiJPGToDispIDX", "Attempt to modify uiJPToDispIDX : curJPVal : "  +curJPVal + " | jpToSet : " + jpToSet);
 					//settingJPFromJPG = true;
 					//guiObjs[uiJPToDispIDX].setVal(jpToSet);	
 					//setUIWinVals(uiJPToDispIDX);
 					//settingJPFromJPG = false;
 				}
 				break;}
-			case uiJPToDispIDX : {//highlight display of different region of SOM map corresponding to selected JP				
+			case uiFtrJPToDispIDX : {//highlight display of different region of SOM map corresponding to selected JP				
 				curMapImgIDX = (int)val;
-				//mapMgr.dispMessage("\nSOM WIN","setUIWinVals::uiJPToDispIDX", "Click : settingJPFromJPG : " + settingJPFromJPG);
+				//mapMgr.msgObj.dispMessage("\nSOM WIN","setUIWinVals::uiJPToDispIDX", "Click : settingJPFromJPG : " + settingJPFromJPG);
 				if(!settingJPFromJPG) {
-					int curJPGVal = (int)guiObjs[uiJPGToDispIDX].getVal();
+					int curJPGVal = (int)guiObjs[uiFtrJPGToDispIDX].getVal();
 					//int jpgToSet = mapMgr.getUI_JPGrpFromJP(curMapImgIDX, curJPGVal);
-					//mapMgr.dispMessage("SOM WIN","setUIWinVals::uiJPToDispIDX", "Attempt to modify uiJPGToDispIDX : cur JPG val : "+ curJPGVal + " | jpgToSet : " + jpgToSet);					
+					//mapMgr.msgObj.dispMessage("SOM WIN","setUIWinVals::uiJPToDispIDX", "Attempt to modify uiJPGToDispIDX : cur JPG val : "+ curJPGVal + " | jpgToSet : " + jpgToSet);					
 					//settingJPGFromJp = true;
 					//guiObjs[uiJPGToDispIDX].setVal(jpgToSet);
 					//setUIWinVals(uiJPGToDispIDX);
 					//settingJPGFromJp = false;
 				}
-				//mapMgr.dispMessage("mySOMMapUIWin","setUIWinVals","uiJPToDispIDX : Setting UI JP Map to display to be idx :" + curMapImgIDX + " Corresponding to JP : " + mapMgr.getJpByIdxStr(curMapImgIDX) );					
+				//mapMgr.msgObj.dispMessage("mySOMMapUIWin","setUIWinVals","uiJPToDispIDX : Setting UI JP Map to display to be idx :" + curMapImgIDX + " Corresponding to JP : " + mapMgr.getJpByIdxStr(curMapImgIDX) );					
 				break;}
 			
-			case uiProdJpgToDispIDX		: {
+			case uiAllJpgSeenToDispIDX		: {
 				if(!settingProdJPGFromJp) {
-					int curJPVal = (int)guiObjs[uiProdJpToDispIDX].getVal();
+					int curJPVal = (int)guiObjs[uiAllJpSeenToDispIDX].getVal();
 					//int jpToSet = mapMgr.getUI_FirstJPFromJPG((int)val, curJPVal);
-					//mapMgr.dispMessage("SOM WIN","setUIWinVals:uiJPGToDispIDX", "Attempt to modify uiJPToDispIDX : curJPVal : "  +curJPVal + " | jpToSet : " + jpToSet);
+					//mapMgr.msgObj.dispMessage("SOM WIN","setUIWinVals:uiJPGToDispIDX", "Attempt to modify uiJPToDispIDX : curJPVal : "  +curJPVal + " | jpToSet : " + jpToSet);
 					//settingProdJPFromJPG = true;
 					//guiObjs[uiProdJpToDispIDX].setVal(jpToSet);	
 					//setUIWinVals(uiProdJpToDispIDX);
 					//settingProdJPFromJPG = false;
 				}
 				break;}			
-			case uiProdJpToDispIDX		: {
+			case uiAllJpSeenToDispIDX		: {
 				curProdToShowIDX = (int)val;
 				if(!settingProdJPFromJPG) {
-					int curJPGVal = (int)guiObjs[uiProdJpgToDispIDX].getVal();
+					int curJPGVal = (int)guiObjs[uiAllJpgSeenToDispIDX].getVal();
 					//int jpgToSet = mapMgr.getUI_JPGrpFromJP(curMapImgIDX, curJPGVal);
-					//mapMgr.dispMessage("SOM WIN","setUIWinVals::uiJPToDispIDX", "Attempt to modify uiJPGToDispIDX : cur JPG val : "+ curJPGVal + " | jpgToSet : " + jpgToSet);					
+					//mapMgr.msgObj.dispMessage("SOM WIN","setUIWinVals::uiJPToDispIDX", "Attempt to modify uiJPGToDispIDX : cur JPG val : "+ curJPGVal + " | jpgToSet : " + jpgToSet);					
 					//settingProdJPGFromJp = true;
 					//guiObjs[uiProdJpgToDispIDX].setVal(jpgToSet);
 					//setUIWinVals(uiProdJpgToDispIDX);
@@ -697,7 +705,7 @@ public class mySOMMapUIWin extends myDispWindow {
 				rawDataSource = (int)(this.guiObjs[uiRawDataSourceIDX].getVal());
 				//change button display
 				setCustMenuBtnNames();
-				mapMgr.dispMessage("mySOMMapUIWin","setUIWinVals","uiRawDataSourceIDX : rawDataSource : " + rawDataSource, MsgCodes.info1);
+				mapMgr.msgObj.dispMessage("mySOMMapUIWin","setUIWinVals","uiRawDataSourceIDX : rawDataSource : " + rawDataSource, MsgCodes.info1);
 				break;}			
 			case uiMapNodeBMUTypeToDispIDX : {//type of examples being mapped to each map node to display
 				mapNodeDispType = ExDataType.getVal((int)(this.guiObjs[uiMapNodeBMUTypeToDispIDX].getVal()));
@@ -739,10 +747,10 @@ public class mySOMMapUIWin extends myDispWindow {
 		float mapMseX = getSOMRelX(mouseX), mapMseY = getSOMRelY(mouseY);//, mapLocX = mapX * mapMseX/mapDims[2],mapLocY = mapY * mapMseY/mapDims[3] ;
 		if((mapMseX >= 0) && (mapMseY >= 0) && (mapMseX < SOM_mapDims[0]) && (mapMseY < SOM_mapDims[1])){
 			float[] mapNLoc=getMapNodeLocFromPxlLoc(mapMseX,mapMseY, 1.0f);
-			//mapMgr.dispMessage("In Map : Mouse loc : " + mouseX + ","+mouseY+ "\tRel to upper corner ("+  mapMseX + ","+mapMseY +") | mapNLoc : ("+mapNLoc[0]+","+ mapNLoc[1]+")" );
+			//mapMgr.msgObj.dispMessage("In Map : Mouse loc : " + mouseX + ","+mouseY+ "\tRel to upper corner ("+  mapMseX + ","+mapMseY +") | mapNLoc : ("+mapNLoc[0]+","+ mapNLoc[1]+")" );
 			mseOvrData = getDataPointAtLoc(mapNLoc[0], mapNLoc[1], new myPointf(mapMseX, mapMseY,0));
 //			int[] tmp = getDataClrAtLoc(mapNLoc[0], mapNLoc[1]);
-//			mapMgr.dispMessage("Color at mouse map loc :("+mapNLoc[0] + "," +mapNLoc[1]+") : " + tmp[0]+"|"+ tmp[1]+"|"+ tmp[2]);
+//			mapMgr.msgObj.dispMessage("Color at mouse map loc :("+mapNLoc[0] + "," +mapNLoc[1]+") : " + tmp[0]+"|"+ tmp[1]+"|"+ tmp[2]);
 			return true;
 		} else {
 			mseOvrData = null;
@@ -820,14 +828,14 @@ public class mySOMMapUIWin extends myDispWindow {
 	protected void drawRightSideInfoBarPriv(float modAmtMillis) {
 		pa.pushMatrix();pa.pushStyle();
 		//display current simulation variables - call sim world through sim exec
-		mapMgr.drawResultBar(pa, yOff);
+		mapMgr.drawResultBar((SOM_StraffordMain)pa, yOff);
 		pa.popStyle();pa.popMatrix();					
 	}//drawOnScreenStuff
 
 	@Override
 	protected void drawMe(float animTimeMod) {
-		setPrivFlags(custExCalcedIDX, mapMgr.isFtrCalcDone(JPWeightEquation.custCalcObjIDX));
-		setPrivFlags(tpExCalcedIDX, mapMgr.isFtrCalcDone(JPWeightEquation.tpCalcObjIDX));
+		setPrivFlags(custExCalcedIDX, mapMgr.isFtrCalcDone(StraffWeightCalc.custCalcObjIDX));
+		setPrivFlags(tpExCalcedIDX, mapMgr.isFtrCalcDone(StraffWeightCalc.tpCalcObjIDX));
 		
 		
 		setPrivFlags(mapDataLoadedIDX,mapMgr.isMapDrawable());
@@ -838,18 +846,19 @@ public class mySOMMapUIWin extends myDispWindow {
 	private void drawMseLocWts() {
 		pa.pushMatrix();pa.pushStyle();
 			pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
-			mseOvrData.drawMeLblMap(pa);
+			mseOvrData.drawMeLblMap((SOM_StraffordMain)pa);
 		pa.popStyle();pa.popMatrix();		
 	}
 	private void drawMseLocJPs() {
 		pa.pushMatrix();pa.pushStyle();
 			pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
-			mseOvrData.drawMeLblMap(pa);
+			mseOvrData.drawMeLblMap((SOM_StraffordMain)pa);
 		pa.popStyle();pa.popMatrix();		
 	}
 		
 	//draw map rectangle and map nodes
 	private void drawMapRectangle() {
+		
 		pa.pushMatrix();pa.pushStyle();
 			pa.noLights();
 			pa.scale(mapScaleVal);
@@ -868,30 +877,31 @@ public class mySOMMapUIWin extends myDispWindow {
 		//not drawing any analysis currently
 		boolean notDrawAnalysis = !(getPrivFlags(mapDrawCustAnalysisVisIDX) || getPrivFlags(mapDrawTPAnalysisVisIDX));
 		pa.pushMatrix();pa.pushStyle();
+		
 			pa.translate(SOM_mapLoc[0],SOM_mapLoc[1],0);	
-			if(getPrivFlags(mapDrawTrainDatIDX)){			mapMgr.drawTrainData(pa);}	
-			if(getPrivFlags(mapDrawTestDatIDX)) {			mapMgr.drawTestData(pa);}
-			if(getPrivFlags(mapDrawTruePspctIDX)){			mapMgr.drawTruPrspctData(pa);}
+			if(getPrivFlags(mapDrawTrainDatIDX)){			mapMgr.drawTrainData((SOM_StraffordMain)pa);}	
+			if(getPrivFlags(mapDrawTestDatIDX)) {			mapMgr.drawTestData((SOM_StraffordMain)pa);}
+			if(getPrivFlags(mapDrawTruePspctIDX)){			mapMgr.drawTruPrspctData((SOM_StraffordMain)pa);}
 			if(getPrivFlags(mapDrawNodeLblIDX)) {
-				if(getPrivFlags(mapDrawAllMapNodesIDX)){	mapMgr.drawAllNodes(pa);		} 		
-				if(getPrivFlags(mapDrawPopMapNodesIDX)) {	mapMgr.drawExMapNodes(pa, mapNodeDispType);}
+				if(getPrivFlags(mapDrawAllMapNodesIDX)){	mapMgr.drawAllNodes((SOM_StraffordMain)pa);		} 		
+				if(getPrivFlags(mapDrawPopMapNodesIDX)) {	mapMgr.drawExMapNodes((SOM_StraffordMain)pa, mapNodeDispType);}
 			} else {
-				if(getPrivFlags(mapDrawAllMapNodesIDX)){	mapMgr.drawAllNodesNoLbl(pa);		} 		
-				if(getPrivFlags(mapDrawPopMapNodesIDX)) {	mapMgr.drawExMapNodesNoLbl(pa, mapNodeDispType);}				
+				if(getPrivFlags(mapDrawAllMapNodesIDX)){	mapMgr.drawAllNodesNoLbl((SOM_StraffordMain)pa);		} 		
+				if(getPrivFlags(mapDrawPopMapNodesIDX)) {	mapMgr.drawExMapNodesNoLbl((SOM_StraffordMain)pa, mapNodeDispType);}				
 			}
 			//draw nodes
 			if (curImgNum > -1) {
 				if (notDrawAnalysis && (mseOvrData != null)){	drawMseLocJPs();}//draw mouse-over info if not showing calc analysis				
-				if(getPrivFlags(mapDrawPrdctNodesIDX)){		mapMgr.drawProductNodes(pa, curMapImgIDX, true);}
-				if(getPrivFlags(mapDrawWtMapNodesIDX)){		mapMgr.drawNodesWithWt(pa, mapNodeWtDispThresh, curMapImgIDX);} 
+				if(getPrivFlags(mapDrawPrdctNodesIDX)){		mapMgr.drawProductNodes((SOM_StraffordMain)pa, curMapImgIDX, true);}
+				if(getPrivFlags(mapDrawWtMapNodesIDX)){		mapMgr.drawNodesWithWt((SOM_StraffordMain)pa, mapNodeWtDispThresh, curMapImgIDX);} 
 			} else {//draw all products				
 				if (notDrawAnalysis && (mseOvrData != null)){	drawMseLocWts();}
-				if(getPrivFlags(mapDrawPrdctNodesIDX)){		mapMgr.drawAllProductNodes(pa);}
+				if(getPrivFlags(mapDrawPrdctNodesIDX)){		mapMgr.drawAllProductNodes((SOM_StraffordMain)pa);}
 			}
 			
-			if (getPrivFlags( mapDrawCurProdZoneIDX)){		mapMgr.drawProductRegion(pa,curProdToShowIDX,prodZoneDistThresh);}
-			//if(getPrivFlags(mapDrawUMatrixIDX)) {		mapMgr.drawUMatrixVals(pa);}//shows U Matrix as large blocks around nodes
-			if(getPrivFlags(mapDrawSegMembersIDX)) {		mapMgr.drawSegments(pa);}
+			if (getPrivFlags( mapDrawCurProdZoneIDX)){		mapMgr.drawProductRegion((SOM_StraffordMain)pa,curProdToShowIDX,prodZoneDistThresh);}
+			//if(getPrivFlags(mapDrawUMatrixIDX)) {		mapMgr.drawUMatrixVals((SOM_StraffordMain)pa);}//shows U Matrix as large blocks around nodes
+			if(getPrivFlags(mapDrawSegMembersIDX)) {		mapMgr.drawSegments((SOM_StraffordMain)pa);}
 			pa.lights();
 		pa.popStyle();pa.popMatrix();		
 	}//drawMapRectangle
@@ -900,8 +910,8 @@ public class mySOMMapUIWin extends myDispWindow {
 		//draw map rectangle
 		pa.pushMatrix();pa.pushStyle();
 		
-		if (getPrivFlags(mapDrawCustAnalysisVisIDX)){	_drawAnalysis(custExCalcedIDX, mapDrawCustAnalysisVisIDX, JPWeightEquation.custCalcObjIDX);	} 
-		else if (getPrivFlags(mapDrawTPAnalysisVisIDX)){_drawAnalysis(tpExCalcedIDX, mapDrawTPAnalysisVisIDX, JPWeightEquation.tpCalcObjIDX);}
+		if (getPrivFlags(mapDrawCustAnalysisVisIDX)){	_drawAnalysis(custExCalcedIDX, mapDrawCustAnalysisVisIDX, StraffWeightCalc.custCalcObjIDX);	} 
+		else if (getPrivFlags(mapDrawTPAnalysisVisIDX)){_drawAnalysis(tpExCalcedIDX, mapDrawTPAnalysisVisIDX, StraffWeightCalc.tpCalcObjIDX);}
 		
 		if(getPrivFlags(mapDataLoadedIDX)){drawMapRectangle();}	
 		pa.popStyle();pa.popMatrix();
@@ -913,14 +923,15 @@ public class mySOMMapUIWin extends myDispWindow {
 			pa.translate(calcAnalysisLocs[0],SOM_mapLoc[1]*calcScale + 10,0.0f);
 			//pa.setFill(new int[] {0,255,0}, 255);
 //			pa.rect(0,0,analysisPerJPWidth,analysisHt);
-			mapMgr.drawAnalysisOneJp(pa,analysisHt, analysisPerJPWidth,curMapImgIDX, calcAnalysisIDX);	
+			mapMgr.drawAnalysisOneJp((SOM_StraffordMain)pa,analysisHt, analysisPerJPWidth,curMapImgIDX, calcAnalysisIDX);	
 			pa.popStyle();pa.popMatrix();
 			
 			pa.pushMatrix();pa.pushStyle();
 			pa.translate(rectDim[0]+5,calcAnalysisLocs[1],0.0f);
 //			pa.setFill(new int[] {255,0,0}, 255);
 //			pa.rect(0,0,analysisAllJPBarWidth*mapMgr.numFtrs,analysisHt);
-			mapMgr.drawAnalysisAllJps(pa, analysisHt, analysisAllJPBarWidth, curMapImgIDX, calcAnalysisIDX,curCalcAnalysisTypeIDX);
+			if(curCalcAnalysisTypeIDX == StraffSOMMapManager.jps_AllIDX) {		mapMgr.drawAnalysisAllJps((SOM_StraffordMain)pa, analysisHt, analysisAllJPBarWidth, curMapImgIDX, calcAnalysisIDX);}
+			else if(curCalcAnalysisTypeIDX == StraffSOMMapManager.jps_FtrIDX)  {		mapMgr.drawAnalysisFtrJps((SOM_StraffordMain)pa, analysisHt, analysisAllJPBarWidth, curMapImgIDX, calcAnalysisIDX);}
 			pa.popStyle();pa.popMatrix();
 			pa.scale(calcScale);				//scale here so that if we are drawing calc analysis, ftr map image will be shrunk
 		} else {
@@ -979,18 +990,18 @@ public class mySOMMapUIWin extends myDispWindow {
 			int numXPerPart = mapPerFtrWtImgs[0].width / numPartitions;			
 			int numXLastPart = (mapPerFtrWtImgs[0].width - (numXPerPart*numPartitions)) + numXPerPart;
 			List<Future<Boolean>> mapImgFtrs = new ArrayList<Future<Boolean>>();
-			List<straffMapVisImgBuilder> mapImgBuilders = new ArrayList<straffMapVisImgBuilder>();
+			List<SOMFtrMapVisImgBuilder> mapImgBuilders = new ArrayList<SOMFtrMapVisImgBuilder>();
 			int[] xVals = new int[] {0,0};
 			int[] yVals = new int[] {0,mapPerFtrWtImgs[0].height};
 			
 			for (int i=0; i<numPartitions-1;++i) {	
 				xVals[1] += numXPerPart;
-				mapImgBuilders.add(new straffMapVisImgBuilder(mapMgr, mapPerFtrWtImgs, xVals, yVals, mapScaleVal));
+				mapImgBuilders.add(new SOMFtrMapVisImgBuilder(mapMgr, mapPerFtrWtImgs, xVals, yVals, mapScaleVal));
 				xVals[0] = xVals[1];				
 			}
 			//last one
 			xVals[1] += numXLastPart;
-			mapImgBuilders.add(new straffMapVisImgBuilder(mapMgr, mapPerFtrWtImgs, xVals, yVals, mapScaleVal));
+			mapImgBuilders.add(new SOMFtrMapVisImgBuilder(mapMgr, mapPerFtrWtImgs, xVals, yVals, mapScaleVal));
 			try {mapImgFtrs = pa.th_exec.invokeAll(mapImgBuilders);for(Future<Boolean> f: mapImgFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }					
 		} else {
 			//single threaded exec
@@ -1005,7 +1016,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		}
 		for (int i=0;i<mapPerFtrWtImgs.length;++i) {	mapPerFtrWtImgs[i].updatePixels();		}
 		int endTime = pa.millis();
-		mapMgr.dispMessage("mySOMMapUIWin", "setMapImgClrs", "Time to build all vis imgs : "  + ((endTime-stTime)/1000.0f) + "s | Threading : " + (mtCapable ? "Multi ("+numThds+")" : "Single" ), MsgCodes.info5);
+		mapMgr.msgObj.dispMessage("mySOMMapUIWin", "setMapImgClrs", "Time to build all vis imgs : "  + ((endTime-stTime)/1000.0f) + "s | Threading : " + (mtCapable ? "Multi ("+numThds+")" : "Single" ), MsgCodes.info5);
 	}//setMapImgClrs
 		
 	//return strings for directory names and for individual file names that describe the data being saved.  used for screenshots, and potentially other file saving
@@ -1021,11 +1032,11 @@ public class mySOMMapUIWin extends myDispWindow {
 	//if launching threads for custom functions or debug, need to remove resetButtonState call in function below and call resetButtonState (with slow proc==true) when thread ends
 	@Override
 	protected void launchMenuBtnHndlr() {
-		mapMgr.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Begin requested action", MsgCodes.info4);
+		mapMgr.msgObj.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Begin requested action", MsgCodes.info4);
 		int btn = curCustBtn[curCustBtnType];
 		switch(curCustBtnType) {
 		case mySideBarMenu.btnAuxFunc1Idx : {
-			mapMgr.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Click Functions 1 in "+name+" : btn : " + btn, MsgCodes.info4);
+			mapMgr.msgObj.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Click Functions 1 in "+name+" : btn : " + btn, MsgCodes.info4);
 			switch(btn){
 				case 0 : {	
 					//load all data from raw local csvs or sql from db
@@ -1042,12 +1053,12 @@ public class mySOMMapUIWin extends myDispWindow {
 					resetButtonState();
 					break;}
 				default : {
-					mapMgr.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Unknown Functions 1 btn : "+btn, MsgCodes.warning2);
+					mapMgr.msgObj.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Unknown Functions 1 btn : "+btn, MsgCodes.warning2);
 					break;}
 			}	
 			break;}//row 1 of menu side bar buttons
 		case mySideBarMenu.btnAuxFunc2Idx : {
-			mapMgr.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Click Functions 2 in "+name+" : btn : " + btn, MsgCodes.info4);//{"Ld&Bld SOM Data", "Load SOM Config", "Ld & Make Map", "Ld Prebuilt Map"},	//row 2
+			mapMgr.msgObj.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Click Functions 2 in "+name+" : btn : " + btn, MsgCodes.info4);//{"Ld&Bld SOM Data", "Load SOM Config", "Ld & Make Map", "Ld Prebuilt Map"},	//row 2
 			//{"Ld Train data","Ld Prspcts", "Ld SOM Cfg", "Func 13", "Ld Prblt Map"},	//row 2
 			switch(btn){
 				case 0 : {	
@@ -1070,12 +1081,12 @@ public class mySOMMapUIWin extends myDispWindow {
 					mapMgr.loadPretrainedExistingMap();//runs in thread, button state reset there
 					break;}
 				default : {
-					mapMgr.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Unknown Functions 2 btn : "+btn, MsgCodes.warning2);
+					mapMgr.msgObj.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Unknown Functions 2 btn : "+btn, MsgCodes.warning2);
 					break;}	
 			}
 			break;}//row 2 of menu side bar buttons
 		case mySideBarMenu.btnDBGSelCmpIdx : {
-			mapMgr.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Click Debug in "+name+" : btn : " + btn, MsgCodes.info4);
+			mapMgr.msgObj.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Click Debug in "+name+" : btn : " + btn, MsgCodes.info4);
 			switch(btn){
 				case 0 : {	
 					mapMgr.dbgShowAllRawData();
@@ -1097,12 +1108,12 @@ public class mySOMMapUIWin extends myDispWindow {
 					resetButtonState();
 					break;}
 				default : {
-					mapMgr.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Unknown Debug btn : "+btn, MsgCodes.warning2);
+					mapMgr.msgObj.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Unknown Debug btn : "+btn, MsgCodes.warning2);
 					break;}
 			}				
 			break;}//row 3 of menu side bar buttons (debug)			
 		}		
-		mapMgr.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","End requested action (multithreaded actions may still be working).", MsgCodes.info4);
+		mapMgr.msgObj.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","End requested action (multithreaded actions may still be working).", MsgCodes.info4);
 	}//launchMenuBtnHndlr
 	
 		

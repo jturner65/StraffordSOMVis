@@ -1,5 +1,0 @@
-only put actual source csvs in the subdirectories of this directory; the specific format will be expected and not checked for.  non-csv files will cause issues.
-
-File name is irrelevant in these directories - all files in directories will be read and assumed to be holding relevant data for the directory's data type.
-
-

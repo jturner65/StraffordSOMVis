@@ -9,6 +9,12 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
+import SOM_Base.SOMExample;
+import SOM_Base.SOMMapNode;
+import Utils.FileIOManager;
+import Utils.MsgCodes;
+import Utils.messageObject;
+
 /**
  * Instances of this object will load a desired set of product IDs and compare them to the constructed SOM to derive appropriate prospects.
  * Listings of these prospects will then be saved to disk
@@ -16,6 +22,7 @@ import java.util.concurrent.Future;
  *
  */
 public class StraffProdMapOutputBuilder {
+	private messageObject msgObj;
 	public static final String fileComment = "#";
 	public String fileName;
 	public StraffSOMMapManager mapMgr;
@@ -30,8 +37,8 @@ public class StraffProdMapOutputBuilder {
 	private double prodZoneDistThresh;
 
 	public StraffProdMapOutputBuilder(StraffSOMMapManager _mapMgr, String _fileName, ExecutorService _th_exec, int _pDistType, double _pZnDistThresh) {
-		mapMgr = _mapMgr;
-		fileIO = new FileIOManager(mapMgr,"StraffProdMapOutputBuilder");
+		mapMgr = _mapMgr; msgObj = _mapMgr.msgObj;
+		fileIO = new FileIOManager(msgObj,"StraffProdMapOutputBuilder");
 		projConfigData = mapMgr.projConfigData;th_exec = _th_exec;
 		prodDistType = _pDistType; prodZoneDistThresh = _pZnDistThresh;
 		isMT = mapMgr.isMTCapable();
@@ -39,7 +46,7 @@ public class StraffProdMapOutputBuilder {
 	}//ctor
 	
 	private void loadConfigAndSetVars(String _fileName) {
-		mapMgr.dispMessage("StraffProdMapOutputBuilder", "loadConfigAndSetVars","Start loading product-to-prospect mapping configurations.", MsgCodes.info5);
+		msgObj.dispMessage("StraffProdMapOutputBuilder", "loadConfigAndSetVars","Start loading product-to-prospect mapping configurations.", MsgCodes.info5);
 		fileName = _fileName;
 		String[] configDatList = fileIO.loadFileIntoStringAra(fileName, "Products-To-Map File Loaded", "Products-To-Map File Not Loaded Due To Error");
 		String[] strVals = new String[0];
@@ -62,24 +69,24 @@ public class StraffProdMapOutputBuilder {
 		ArrayList<ProductExample> prodsToMapLst = new ArrayList<ProductExample>();
 		for (String pId : prodIDsToMapInit) {
 			ProductExample ex = mapMgr.getProductByID(pId);
-			if(ex == null) {mapMgr.dispMessage("StraffProdMapper", "loadConfigAndSetVars", "Error! Product ID : " + pId + " is not present in currently loaded product listings.  Ignoring this product.", MsgCodes.warning2);}
+			if(ex == null) {msgObj.dispMessage("StraffProdMapper", "loadConfigAndSetVars", "Error! Product ID : " + pId + " is not present in currently loaded product listings.  Ignoring this product.", MsgCodes.warning2);}
 			else {				prodsToMapLst.add(ex);			}
 		}				
 		prodsToMap = prodsToMapLst.toArray(new ProductExample[0]);
 		fullQualOutPerProdDirs = new String[prodsToMap.length];
-		mapMgr.dispMessage("StraffProdMapOutputBuilder", "loadConfigAndSetVars","Found "+prodsToMap.length+" products to aggregate prospect suggestions for.", MsgCodes.info1);
+		msgObj.dispMessage("StraffProdMapOutputBuilder", "loadConfigAndSetVars","Found "+prodsToMap.length+" products to aggregate prospect suggestions for.", MsgCodes.info1);
 		String zoneDistThreshStr = String.format("_distThresh_%8f", prodZoneDistThresh);
 		zoneDistThreshStr.replace('.', '-');
 		String sfx = String.format("dTyp_%1d", prodDistType) + zoneDistThreshStr;
 		
 		fullQualOutPerProspectDir = projConfigData.getFullProdOutMapperBaseDir(sfx);
 		for (int i=0;i<prodsToMap.length;++i) {			fullQualOutPerProdDirs[i]=projConfigData.getPerProdOutSubDirName(fullQualOutPerProspectDir, prodsToMap[i].OID);}	
-		mapMgr.dispMessage("StraffProdMapOutputBuilder", "loadConfigAndSetVars","Finished loading product-to-prospect mapping configurations.", MsgCodes.info5);
+		msgObj.dispMessage("StraffProdMapOutputBuilder", "loadConfigAndSetVars","Finished loading product-to-prospect mapping configurations.", MsgCodes.info5);
 	}//loadConfigAndSetVars	
 	
 	//save mapping results either through multiple threads or in a single thread
 	public void saveAllSpecifiedProdMappings() {//launch in either a single thread or multiples
-		mapMgr.dispMessage("StraffProdMapOutputBuilder", "saveAllSpecifiedProdMappings", "Starting Saving " +prodsToMap.length + " Product data to file.", MsgCodes.info5);
+		msgObj.dispMessage("StraffProdMapOutputBuilder", "saveAllSpecifiedProdMappings", "Starting Saving " +prodsToMap.length + " Product data to file.", MsgCodes.info5);
 		//all mappings are known by here - perhaps load balance?
 		int numUsableThreads = mapMgr.getNumUsableThreads();
 		int numProdsToMap = prodsToMap.length;
@@ -111,7 +118,7 @@ public class StraffProdMapOutputBuilder {
 				fileIO.saveStrings(fileNameToSave, strRes);
 			}
 		}
-		mapMgr.dispMessage("StraffProdMapOutputBuilder", "saveAllSpecifiedProdMappings", "Finished Saving Product data to file.", MsgCodes.info5);		
+		msgObj.dispMessage("StraffProdMapOutputBuilder", "saveAllSpecifiedProdMappings", "Finished Saving Product data to file.", MsgCodes.info5);		
 	}//mapAllSpecifiedProds
 	
 	
@@ -128,7 +135,7 @@ public class StraffProdMapOutputBuilder {
 			csvResTmp.add(s);
 			++counter;
 			if(counter % numProspectsPerFile ==0) {
-				mapMgr.dispMessage("StraffProdMapOutputBuilder","saveAllProspectToProdMappings","Done Building String Array : " +(nameCounter++), MsgCodes.info1);
+				msgObj.dispMessage("StraffProdMapOutputBuilder","saveAllProspectToProdMappings","Done Building String Array : " +(nameCounter++), MsgCodes.info1);
 				counter = 0;
 				csvRes.add(csvResTmp); 
 				csvResTmp = new ArrayList<String>();
@@ -139,19 +146,19 @@ public class StraffProdMapOutputBuilder {
 		//save array of arrays of strings, partitioned and named so that no file is too large
 		nameCounter = 0;
 		for (ArrayList<String> csvResSubAra : csvRes) {		
-			mapMgr.dispMessage("StraffProdMapOutputBuilder","saveAllProspectToProdMappings","Saving Per-Prospect Product Mapping suggestions : " +nameCounter, MsgCodes.info1);
+			msgObj.dispMessage("StraffProdMapOutputBuilder","saveAllProspectToProdMappings","Saving Per-Prospect Product Mapping suggestions : " +nameCounter, MsgCodes.info1);
 			fileIO.saveStrings(fullQualOutPerProspectDir + "Prospect_mappingResults_" + nameCounter+".csv", csvResSubAra);
 			++nameCounter;
 		}
 	}
 	
 	//pass input data array?
-	public void saveAllProspectToProdMappings(prospectExample[] prospectsToMap, String typeOfProspect) {
+	public void saveAllProspectToProdMappings(SOMExample[] prospectsToMap, String typeOfProspect) {
 		if(prospectsToMap.length == 0) {
-			mapMgr.dispMessage("StraffProdMapOutputBuilder", "saveAllProspectToProdMappings", "No prospects of type : " + typeOfProspect + " to save mapping for.  Aborting.", MsgCodes.warning2);
+			msgObj.dispMessage("StraffProdMapOutputBuilder", "saveAllProspectToProdMappings", "No prospects of type : " + typeOfProspect + " to save mapping for.  Aborting.", MsgCodes.warning2);
 			return;
 		}
-		mapMgr.dispMessage("StraffProdMapOutputBuilder", "saveAllProspectToProdMappings", "Starting Saving " + typeOfProspect + " Prospects to Product mappings to file.", MsgCodes.info5);
+		msgObj.dispMessage("StraffProdMapOutputBuilder", "saveAllProspectToProdMappings", "Starting Saving " + typeOfProspect + " Prospects to Product mappings to file.", MsgCodes.info5);
 		HashMap<ProductExample, HashMap<SOMMapNode, Double>> prodToMapNodes = new HashMap<ProductExample, HashMap<SOMMapNode, Double>>();
 		//build for every product to be mapped, HashMap keyed by map node that holds confidences that are within specified distances from product, using specified distance measure
 		for (ProductExample ex : prodsToMap) {		//map result below contains map nodes that have >0 confidence for product ex
@@ -169,12 +176,12 @@ public class StraffProdMapOutputBuilder {
 			int stIDX = 0;
 			int endIDX = numForEachThrd;				
 			for (int i=0; i<(numUsableThreads-1);++i) {		
-				prdcttMappers.add(new StraffProspectOutMapper(mapMgr, stIDX, endIDX, i, typeOfProspect, prospectsToMap, prodToMapNodes, fullQualOutPerProspectDir));
+				prdcttMappers.add(new StraffProspectOutMapper(msgObj, stIDX, endIDX, i, typeOfProspect, prospectsToMap, prodToMapNodes, fullQualOutPerProspectDir));
 				stIDX = endIDX;
 				endIDX += numForEachThrd;
 			}
 			//last one probably won't end at endIDX, so use length
-			prdcttMappers.add(new StraffProspectOutMapper(mapMgr,stIDX, prospectsToMap.length, numUsableThreads-1, typeOfProspect, prospectsToMap, prodToMapNodes, fullQualOutPerProspectDir));
+			prdcttMappers.add(new StraffProspectOutMapper(msgObj,stIDX, prospectsToMap.length, numUsableThreads-1, typeOfProspect, prospectsToMap, prodToMapNodes, fullQualOutPerProspectDir));
 			try {prdcttMapperFtrs = th_exec.invokeAll(prdcttMappers);for(Future<Boolean> f: prdcttMapperFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }	
 			
 		} else {//save prospect 			 
@@ -182,12 +189,12 @@ public class StraffProdMapOutputBuilder {
 			TreeMap<Double, String> resCalcData = new TreeMap<Double, String> (new Comparator<Double>() { @Override public int compare(Double o1, Double o2) {   return o2.compareTo(o1);}});//descending key order
 			String outRes;
 			for (int i=0; i<prospectsToMap.length;++i) {
-				prospectExample ex = prospectsToMap[i];
-				String exOutStr = ""+ex.OID + ","+String.format("%.6f",ex._sqDistToBMU)+",";
+				SOMExample ex = prospectsToMap[i];
+				String exOutStr = ""+ex.OID + ","+String.format("%.6f",ex.get_sqDistToBMU())+",";
 				resCalcData.clear();
 				for (ProductExample prod : prodToMapNodes.keySet()) {
 					HashMap<SOMMapNode, Double> nodeConfsToProds = prodToMapNodes.get(prod);					
-					Double conf = nodeConfsToProds.get(ex.bmu);//now find confidence of prod in this node's bmu
+					Double conf = nodeConfsToProds.get(ex.getBmu());//now find confidence of prod in this node's bmu
 					if(conf == 0.0) {continue;}
 					outRes = resCalcData.get(conf);
 					if(outRes == null) {outRes = "";}
@@ -209,7 +216,7 @@ public class StraffProdMapOutputBuilder {
 			_saveStrAraToFile(strListNoMaps, hdrStr, typeOfProspect+"_WithoutMappings_");
 			
 		}
-		mapMgr.dispMessage("StraffProdMapOutputBuilder", "saveAllProspectToProdMappings", "Finished Saving " + typeOfProspect + " Prospect to Product data to file.", MsgCodes.info5);
+		msgObj.dispMessage("StraffProdMapOutputBuilder", "saveAllProspectToProdMappings", "Finished Saving " + typeOfProspect + " Prospect to Product data to file.", MsgCodes.info5);
 		
 	}//saveAllProspectToProdMappings
 	
@@ -217,7 +224,7 @@ public class StraffProdMapOutputBuilder {
 }//class StraffProdMapOutputBuilder
 
 class StraffProdOutMapper implements Callable<Boolean>{
-	private StraffSOMMapManager mapMgr;
+	private messageObject msgObj;
 	private FileIOManager fileIO;
 	private ProductExample[] prodsToMap;
 	private String[] fullQualOutDirs;
@@ -226,17 +233,16 @@ class StraffProdOutMapper implements Callable<Boolean>{
 	private SOMProjConfigData projConfigData;
 	
 	public StraffProdOutMapper(StraffSOMMapManager _mapMgr, int _stIDX, int _endIDX, int _thdIDX, int _pDistType, double _pZnDistThresh, ProductExample[] _prodsToMap, String[] _fullQualOutDirs) {
-		mapMgr = _mapMgr;		projConfigData = mapMgr.projConfigData;
+		msgObj = _mapMgr.msgObj;		projConfigData = _mapMgr.projConfigData;
 		prodsToMap = _prodsToMap;	fullQualOutDirs = _fullQualOutDirs;	
 		stIDX = _stIDX;		endIDX = _endIDX;		thdIDX = _thdIDX;		prodDistType = _pDistType; prodZoneDistThresh = _pZnDistThresh;
-		fileIO = new FileIOManager(mapMgr,"StraffProdOutMapper_"+thdIDX);
+		fileIO = new FileIOManager(msgObj,"StraffProdOutMapper_"+thdIDX);
 	}//ctor
-	
 
 	@Override
 	public Boolean call() throws Exception {
 		//save all products from stIDX to endIDX
-		mapMgr.dispMessage("StraffProdOutMapper", "Run Thread : " +thdIDX, "Starting Saving Product mappings data to file from " +stIDX +" to "+ endIDX+".", MsgCodes.info5);
+		msgObj.dispMessage("StraffProdOutMapper", "Run Thread : " +thdIDX, "Starting Saving Product mappings data to file from " +stIDX +" to "+ endIDX+".", MsgCodes.info5);
 		for (int i=stIDX; i<endIDX;++i) {
 			ProductExample ex = prodsToMap[i];
 			String[] strRes = ex.getAllExmplsPerProdStrAra(prodDistType,prodZoneDistThresh);
@@ -245,45 +251,45 @@ class StraffProdOutMapper implements Callable<Boolean>{
 			String fileNameToSave = outDir + OID +"_mappingResults.csv";
 			fileIO.saveStrings(fileNameToSave, strRes);
 		}		
-		mapMgr.dispMessage("StraffProdOutMapper", "Run Thread : " +thdIDX, "Finished Product data to BMU mapping", MsgCodes.info5);	
+		msgObj.dispMessage("StraffProdOutMapper", "Run Thread : " +thdIDX, "Finished Product data to BMU mapping", MsgCodes.info5);	
 		return true;
 	}//call
 }//StraffProdOutMapper
 
 class StraffProspectOutMapper implements Callable<Boolean>{
-	private StraffSOMMapManager mapMgr;
+	private messageObject msgObj;
 	private FileIOManager fileIO;
-	private prospectExample[] prospectsToMap;
+	private SOMExample[] prospectsToMap;
 	private int stIDX, endIDX, thdIDX;
 	private HashMap<ProductExample, HashMap<SOMMapNode, Double>> prodToMapNodes;
 	private String fileNameToSave, fileNameBadProspectsToSave;
 	TreeMap<Double, String> resCalcData;		//declare here to hopefully speed up calc
-	public StraffProspectOutMapper(StraffSOMMapManager _mapMgr, int _stIDX, int _endIDX, int _thdIDX, String _prspctType,  prospectExample[] _prospectsToMap, HashMap<ProductExample, HashMap<SOMMapNode, Double>> _prodToMapNodes,String _fullQualOutDir) {
-		mapMgr = _mapMgr;		
+	public StraffProspectOutMapper(messageObject _msgObj, int _stIDX, int _endIDX, int _thdIDX, String _prspctType,  SOMExample[] _prospectsToMap, HashMap<ProductExample, HashMap<SOMMapNode, Double>> _prodToMapNodes,String _fullQualOutDir) {
+		msgObj = _msgObj;	
 		stIDX = _stIDX;		endIDX = _endIDX;		thdIDX = _thdIDX;	
 		prospectsToMap = _prospectsToMap;	
 		prodToMapNodes = _prodToMapNodes;
 		resCalcData = new TreeMap<Double, String> (new Comparator<Double>() { @Override public int compare(Double o1, Double o2) {   return o2.compareTo(o1);}});//descending key order
 		fileNameToSave = _fullQualOutDir + _prspctType + "_mappingResults_" + thdIDX+".csv";
 		fileNameBadProspectsToSave = _fullQualOutDir + _prspctType + "Prospect_WithoutMappings_" + thdIDX+".csv";
-		fileIO = new FileIOManager(mapMgr, "StraffProspectOutMapper_"+thdIDX);
+		fileIO = new FileIOManager(msgObj, "StraffProspectOutMapper_"+thdIDX);
 	}//ctor
 	
 	@Override
 	public Boolean call() throws Exception {
 		//save all products from stIDX to endIDX
-		mapMgr.dispMessage("StraffProspectOutMapper", "Run Thread : " +thdIDX, "Starting Prospect data to Product data to file from prospect IDs " +stIDX +" to "+ endIDX+".", MsgCodes.info5);
+		msgObj.dispMessage("StraffProspectOutMapper", "Run Thread : " +thdIDX, "Starting Prospect data to Product data to file from prospect IDs " +stIDX +" to "+ endIDX+".", MsgCodes.info5);
 		ArrayList<String> strList = new ArrayList<String>(), strListNoMaps = new ArrayList<String>();	
 		strList.add("Prospect OID,Prospect BMU Dist,Product OID, Product Confidence,...");
 		strListNoMaps.add("Prospect OID,Prospect BMU Dist,<these prospects have no product mappings among specified products>");
 		String outRes;
 		for (int i=stIDX; i<endIDX;++i) {
-			prospectExample ex = prospectsToMap[i];
+			SOMExample ex = prospectsToMap[i];
 			resCalcData.clear();
-			String exOutStr = ""+ex.OID + ","+String.format("%.6f",ex._sqDistToBMU)+",";
+			String exOutStr = ""+ex.OID + ","+String.format("%.6f",ex.get_sqDistToBMU())+",";
 			for (ProductExample prod : prodToMapNodes.keySet()) {//for every product
 				HashMap<SOMMapNode, Double> nodeConfsToProds = prodToMapNodes.get(prod);				
-				Double conf = nodeConfsToProds.get(ex.bmu);//now find confidence of prod in this node's bmu
+				Double conf = nodeConfsToProds.get(ex.getBmu());//now find confidence of prod in this node's bmu
 				if((conf == null) || (conf == 0.0)) {continue;}
 				outRes = resCalcData.get(conf);
 				if(outRes == null) {outRes = "";}
@@ -298,10 +304,10 @@ class StraffProspectOutMapper implements Callable<Boolean>{
 				strListNoMaps.add(exOutStr);
 			}
 		}		
-		mapMgr.dispMessage("StraffProdMapOutputBuilder","saveAllProspectToProdMappings","Saving Per-Prospect Product Mapping suggestions : " +thdIDX, MsgCodes.info1);
+		msgObj.dispMessage("StraffProdMapOutputBuilder","saveAllProspectToProdMappings","Saving Per-Prospect Product Mapping suggestions : " +thdIDX, MsgCodes.info1);
 		fileIO.saveStrings(fileNameToSave, strList);
 		fileIO.saveStrings(fileNameBadProspectsToSave, strListNoMaps);
-		mapMgr.dispMessage("StraffProspectOutMapper", "Run Thread : " +thdIDX, "Finished Prospect data to Product BMU mapping", MsgCodes.info5);	
+		msgObj.dispMessage("StraffProspectOutMapper", "Run Thread : " +thdIDX, "Finished Prospect data to Product BMU mapping", MsgCodes.info5);	
 		return true;
 	}//call
 }//StraffProspectOutMapper

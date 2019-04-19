@@ -6,12 +6,22 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.*;
 
+import SOM_Base.SOMExample;
+import SOM_Base.SOMMapManager;
+import SOM_Base.SOM_MapDat;
+import Utils.FileIOManager;
+import Utils.MsgCodes;
+import Utils.messageObject;
+
+
 
 //structure to hold all the file names, file configurations and general program configurations required to run the SOM project
 //will manage that all file names need to be reset when any are changed
 public class SOMProjConfigData {
 	//owning map manager
-	protected StraffSOMMapManager mapMgr;
+	//protected SOMMapManager mapMgr;
+	//object to manage screen and log output
+	protected messageObject msgObj;
 	//manage IO in this object
 	private FileIOManager fileIO;
 	
@@ -100,17 +110,17 @@ public class SOMProjConfigData {
 	//separately from calls to setSOM_ExpFileNames because experimental parameters can change between the saving of training data and the running of the experiment
 	private String SOMOutExpSffx;
 	
-	public SOMProjConfigData(StraffSOMMapManager _map) {
-		mapMgr=_map;
+	public SOMProjConfigData(SOMMapManager _map) {
+		msgObj = new messageObject(_map);
 		try {
 			straff_QualifedBaseDir = new File(_baseDir).getCanonicalPath() + File.separator ;
 		} catch (Exception e) {
 			straff_QualifedBaseDir = _baseDir;
-			mapMgr.dispMessage("SOMProjConfigData","Constructor","Failed to find base application directory "+ straff_QualifedBaseDir + " due to : " + e + ". Exiting program.", MsgCodes.error1);
+			msgObj.dispMessage("SOMProjConfigData","Constructor","Failed to find base application directory "+ straff_QualifedBaseDir + " due to : " + e + ". Exiting program.", MsgCodes.error1);
 			System.exit(1);
 		}
-		mapMgr.dispMessage("SOMProjConfigData","Constructor","Canonical Path to application directory : " + straff_QualifedBaseDir, MsgCodes.info1);
-		fileIO = new FileIOManager(mapMgr,"SOMProjConfigData");		
+		msgObj.dispMessage("SOMProjConfigData","Constructor","Canonical Path to application directory : " + straff_QualifedBaseDir, MsgCodes.info1);
+		fileIO = new FileIOManager(msgObj,"SOMProjConfigData");		
 		//----accumulate and manage OS info ----//
 		//find platform this is executing on supportsANSITerm
 		OSUsed = System.getProperty("os.name");
@@ -118,26 +128,26 @@ public class SOMProjConfigData {
 		String execStr = SOMExeName_base;
 		if (OSUsed.toLowerCase().contains("windows")) {			execStr += ".exe";			} 
 		supportsANSITerm = (System.console() != null && System.getenv().get("TERM") != null);		
-		mapMgr.dispMessage("SOMProjConfigData","Constructor","OS this application is running on : "  + OSUsed + " | Supports ANSI Terminal colors : " + supportsANSITerm, MsgCodes.info5);		
+		msgObj.dispMessage("SOMProjConfigData","Constructor","OS this application is running on : "  + OSUsed + " | Supports ANSI Terminal colors : " + supportsANSITerm, MsgCodes.info5);		
 		SOM_Map_EXECSTR = execStr;				
 		//----end accumulate and manage OS info ----//		
 		//load project configuration
 		loadProjectConfig();
 		
-		SOMOutExpSffx = "x-1_y-1_k-1";//illegal values, needs to be set
+		SOMOutExpSffx = "x-1_y-1_k-1";//illegal values, needs to be set by config
 		dataType = "NONE";
 		//get current time
 		instancedNow = Calendar.getInstance();
 		fnames = new String[numFiles];
 		for(int i=0;i<numFiles;++i){fnames[i]="";}
 		initFlags();
-		SOMExeDat = new SOM_MapDat(getOSUsed());	
+		SOMExeDat = new SOM_MapDat(buildMsgObj(),getOSUsed());	
 		dateTimeStrAra = getDateTimeString(false, "_");
 	}//ctor
 	
 	//this will load the project config file and set initial project-wide settings
 	private void loadProjectConfig() {
-		mapMgr.dispMessage("SOMProjConfigData","loadProjectConfig","Start loading project configuration.", MsgCodes.info5);
+		msgObj.dispMessage("SOMProjConfigData","loadProjectConfig","Start loading project configuration.", MsgCodes.info5);
 		//build config file name and load config data
 		String configFileName = getDirNameAndBuild(configDir) + projectConfigFile;
 		String[] fileStrings = fileIO.loadFileIntoStringAra(configFileName, "SOMProjConfigData Main Project Config File loaded", "SOMProjConfigData Main Project Config File Failed to load");
@@ -149,17 +159,17 @@ public class SOMProjConfigData {
 		while (!found && (idx < fileStrings.length)){if(fileStrings[idx].contains(fileComment)) {++idx; } else {found=true;}}
 		// CONFIG FILE NAMES
 		idx = _loadProjConfigData(fileStrings, configFileNames, idx, false);//returns next idx, fills config variables
-			if(idx == -1) {mapMgr.dispMessage("SOMProjConfigData","loadProjectConfig","Error after _loadProjConfigData with configFileNames : idx == -1", MsgCodes.error2); return;}
+			if(idx == -1) {msgObj.dispMessage("SOMProjConfigData","loadProjectConfig","Error after _loadProjConfigData with configFileNames : idx == -1", MsgCodes.error2); return;}
 		// SUBDIR DEFS
 		idx = _loadProjConfigData(fileStrings, subDirLocs, idx, true);//returns next idx, fills subdir variables
-			if(idx == -1) {mapMgr.dispMessage("SOMProjConfigData","loadProjectConfig","Error after _loadProjConfigData with subDirLocs : idx == -1", MsgCodes.error2); return;}
+			if(idx == -1) {msgObj.dispMessage("SOMProjConfigData","loadProjectConfig","Error after _loadProjConfigData with subDirLocs : idx == -1", MsgCodes.error2); return;}
 		
 		// MISC GLOBAL VARS
 		//read through individual config vars
 		idx = _loadIndivConfigVars(fileStrings, idx); 
-		mapMgr.dispMessage("SOMProjConfigData","loadProjectConfig","preBuiltMapDir set to be : " + preBuiltMapDir, MsgCodes.info3);
-			if(idx == -1) {mapMgr.dispMessage("SOMProjConfigData","loadProjectConfig","Error after _loadIndivConfigVars : idx == -1", MsgCodes.error2); return;}
-		mapMgr.dispMessage("SOMProjConfigData","loadProjectConfig","Finished loading project configuration.", MsgCodes.info5);
+		msgObj.dispMessage("SOMProjConfigData","loadProjectConfig","preBuiltMapDir set to be : " + preBuiltMapDir, MsgCodes.info3);
+			if(idx == -1) {msgObj.dispMessage("SOMProjConfigData","loadProjectConfig","Error after _loadIndivConfigVars : idx == -1", MsgCodes.error2); return;}
+		msgObj.dispMessage("SOMProjConfigData","loadProjectConfig","Finished loading project configuration.", MsgCodes.info5);
 	}//loadProjectConfig
 	
 	//load all file name/value pairs in config file into passed map; return idx of next section
@@ -169,11 +179,11 @@ public class SOMProjConfigData {
 			String s = fileStrings[i];		
 			if(s.contains("END")) {return i+1;}//move to next line, should be "begin" tag
 			if((s.contains(fileComment))|| (s.trim().length() == 0)) {continue;}
-			String[] tkns = s.trim().split(mapMgr.csvFileToken);
+			String[] tkns = s.trim().split(SOMMapManager.csvFileToken);
 			//map has keys that describe what the values are
 			String key = tkns[0].trim(), val= tkns[1].trim().replace("\"", "")+sfx;
 			map.put(key,val);	
-			mapMgr.dispMessage("SOMProjConfigData","_loadProjConfigData","Key : "+key+" | Val : " + val, MsgCodes.info3);
+			msgObj.dispMessage("SOMProjConfigData","_loadProjConfigData","Key : "+key+" | Val : " + val, MsgCodes.info3);
 		}		
 		return -1;	
 	}//_loadProjConfigData
@@ -184,7 +194,7 @@ public class SOMProjConfigData {
 			String s = fileStrings[stIDX];
 			if(s.contains("END")) {return stIDX+1;}//move to next line, should be "begin" tag
 			if((s.contains(fileComment)) || (s.trim().length() == 0)){++stIDX; continue;}
-			String[] tkns = s.trim().split(mapMgr.csvFileToken);
+			String[] tkns = s.trim().split(SOMMapManager.csvFileToken);
 			switch (tkns[0].trim()) {
 				case "preBuiltMapDir" : { 		preBuiltMapDir = tkns[1].trim().replace("\"", "") + File.separator; break;}
 				case "custTruePrsTypeEvents": {	custTruePrsTypeEvents = Integer.parseInt(tkns[1].trim().replace("\"", ""));		break;}
@@ -195,7 +205,7 @@ public class SOMProjConfigData {
 	}//_loadIndivConfigVars
 	
 	public TreeMap<String, String[]> buildFileNameMap(String[] dataDirNames) {
-		mapMgr.dispMessage("SOMProjConfigData","buildFileNameMap","Begin building list of raw data file names for each type of data.", MsgCodes.info3);
+		msgObj.dispMessage("SOMProjConfigData","buildFileNameMap","Begin building list of raw data file names for each type of data.", MsgCodes.info3);
 		TreeMap<String, String[]> straffDataFileNames = new TreeMap<String, String[]>();
 		//for each directory, find all file names present, stripping ".csv" from name
 		for (int dIdx = 0; dIdx < dataDirNames.length;++dIdx) {
@@ -217,9 +227,11 @@ public class SOMProjConfigData {
 			}//for each dir/file in list
 			straffDataFileNames.put(dataDirNames[dIdx], resList.toArray(new String[0]));
 		}//		
-		mapMgr.dispMessage("SOMProjConfigData","buildFileNameMap","Finished building list of raw data file names for each type of data.", MsgCodes.info3);
+		msgObj.dispMessage("SOMProjConfigData","buildFileNameMap","Finished building list of raw data file names for each type of data.", MsgCodes.info3);
 		return straffDataFileNames;
 	}//buildFileNameMap
+	
+	public messageObject buildMsgObj() {return new messageObject(msgObj);}
 	
 	//return int representing type of events that should be used to define a prospect as a customer (generally has a order event in history) and a true prospect (lacks orders but has sources)
 	public int getTypeOfEventsForCustAndProspect(){		return custTruePrsTypeEvents;}//getTypeOfEventsForCustAndProspect()
@@ -227,19 +239,19 @@ public class SOMProjConfigData {
 	//this will save all essential information for a SOM-based experimental run, to make duplication of experiment easier
 	//Info saved : SOM_MapData; 
 	public void saveSOM_Exp() {
-		mapMgr.dispMessage("SOMProjConfigData","saveSOM_Map Config","Saving SOM Exe Map config data.", MsgCodes.info5);
+		msgObj.dispMessage("SOMProjConfigData","saveSOM_Map Config","Saving SOM Exe Map config data.", MsgCodes.info5);
 		//build file describing experiment and put at this location
 		String mapConfigFileName = getSOMMapConfigFileName();
 		//get array of data describing SOM training exec info
 		ArrayList<String> SOMDescAra = SOMExeDat.buildStringDescAra();
 		fileIO.saveStrings(mapConfigFileName,SOMDescAra);
-		mapMgr.dispMessage("SOMProjConfigData","saveSOM_Exp","Finished saving SOM Exe Map config data.", MsgCodes.info5);
-		mapMgr.dispMessage("SOMProjConfigData","saveSOM_Exp","Saving project configuration data for current SOM execution.", MsgCodes.info5);
+		msgObj.dispMessage("SOMProjConfigData","saveSOM_Exp","Finished saving SOM Exe Map config data.", MsgCodes.info5);
+		msgObj.dispMessage("SOMProjConfigData","saveSOM_Exp","Saving project configuration data for current SOM execution.", MsgCodes.info5);
 		String configFileName = getProjConfigForSOMExeFileName();
 		//get array of data describing config info
 		ArrayList<String> ConfigDescAra = getExpConfigData();
 		fileIO.saveStrings(configFileName,ConfigDescAra);		
-		mapMgr.dispMessage("SOMProjConfigData","saveSOM_Exp","Finished saving project configuration data for current SOM execution.", MsgCodes.info5);
+		msgObj.dispMessage("SOMProjConfigData","saveSOM_Exp","Finished saving project configuration data for current SOM execution.", MsgCodes.info5);
 	}//saveSOM_Exp
 		
 	//save configuration data describing
@@ -263,29 +275,29 @@ public class SOMProjConfigData {
 	
 	//SOM_EXP_Format_default
 	//this will load all essential information for a SOM-based experimental run, from loading preprocced data, configuring map
-	public void loadDefaultSOMExp_Config() {
+	public void loadDefaultSOMExp_Config(SOMMapManager mapMgr) {
 		String dfltSOMConfigFName = getDirNameAndBuild(configDir) + configFileNames.get("SOMDfltConfigFileName"); 
-		mapMgr.dispMessage("SOMProjConfigData","loadDefaultSOMExp_Config","Default file name  :" + dfltSOMConfigFName, MsgCodes.info1);
-		loadSOMMap_Config(dfltSOMConfigFName);
+		msgObj.dispMessage("SOMProjConfigData","loadDefaultSOMExp_Config","Default file name  :" + dfltSOMConfigFName, MsgCodes.info1);
+		loadSOMMap_Config(mapMgr,dfltSOMConfigFName);
 	}
-	public void loadSOMMap_Config() {loadSOMMap_Config(getSOMMapConfigFileName());}  
-	public void loadSOMMap_Config(String expFileName) {
-		mapMgr.dispMessage("SOMProjConfigData","loadSOMMap_Config","Start loading SOM Exe config data from " + expFileName, MsgCodes.info5);
+	public void loadSOMMap_Config(SOMMapManager mapMgr) {loadSOMMap_Config(mapMgr,getSOMMapConfigFileName());}  
+	public void loadSOMMap_Config(SOMMapManager mapMgr, String expFileName) {
+		msgObj.dispMessage("SOMProjConfigData","loadSOMMap_Config","Start loading SOM Exe config data from " + expFileName, MsgCodes.info5);
 		//build file describing experiment and put at this location
 		//NOTE! if running a debug run, be sure to have the line dateTimeStrAra[0],<date_time_value>_DebugRun in proj config file, otherwise will crash
 		String[] expStrAra = fileIO.loadFileIntoStringAra(expFileName, "SOM_MapDat Config File loaded", "SOM_MapDat Config File Failed to load");
 		SOMExeDat.buildFromStringArray(expStrAra);
 		mapMgr.setUIValsFromLoad(SOMExeDat);
-		mapMgr.dispMessage("SOMProjConfigData","loadSOMMap_Config","Finished loading SOM Exe config data from " + expFileName, MsgCodes.info5);
+		msgObj.dispMessage("SOMProjConfigData","loadSOMMap_Config","Finished loading SOM Exe config data from " + expFileName, MsgCodes.info5);
 	}//loadSOM_Exp
 	//load a specific configuration based on a previously run experiment
 	public void loadProjConfigForSOMExe() {	loadProjConfigForSOMExe( getProjConfigForSOMExeFileName());}
 	private void loadProjConfigForSOMExe(String configFileName) {
-		mapMgr.dispMessage("SOMProjConfigData","loadProjConfigForSOMExe","Start loading project config data for SOM Execution : "+ configFileName, MsgCodes.info5);
+		msgObj.dispMessage("SOMProjConfigData","loadProjConfigForSOMExe","Start loading project config data for SOM Execution : "+ configFileName, MsgCodes.info5);
 		//NOTE! if running a debug run, be sure to have the line dateTimeStrAra[0],<date_time_value>_DebugRun in proj config file, otherwise will crash
 		String[] configStrAra = fileIO.loadFileIntoStringAra(configFileName, "SOMProjConfigData project config data for SOM Execution File loaded", "SOMProjConfigData project config data for SOM Execution Failed to load");
 		setExpConfigData(configStrAra);
-		mapMgr.dispMessage("SOMProjConfigData","loadProjConfigForSOMExe","Finished loading project config data for SOM Execution", MsgCodes.info5);				
+		msgObj.dispMessage("SOMProjConfigData","loadProjConfigForSOMExe","Finished loading project config data for SOM Execution", MsgCodes.info5);				
 	}//loadProg_Congfig
 		
 	//set experiment vars based on data saved in config file
@@ -294,7 +306,7 @@ public class SOMProjConfigData {
 		ArrayList<String> somFileNamesAraTmp = new ArrayList<String>();
 		for (int i=0;i<dataAra.length;++i) {
 			String str = dataAra[i];
-			String[] strToks = str.trim().split(mapMgr.csvFileToken);
+			String[] strToks = str.trim().split(SOMMapManager.csvFileToken);
 			if(strToks[0].trim().contains("SOMFileNamesAra")){//read in pre-saved directory and file names
 				String[] araStrToks_1 = str.trim().split("\\[");
 				String[] araStrToks_2 = araStrToks_1[1].trim().split("\\]");
@@ -321,7 +333,7 @@ public class SOMProjConfigData {
 	}//setExpConfigData	
 		
 	//save test/train data in multiple threads
-	public void launchTestTrainSaveThrds(ExecutorService th_exec, int curMapFtrType, int numTrainFtrs) {
+	public void launchTestTrainSaveThrds(ExecutorService th_exec, SOMMapManager mapMgr, int curMapFtrType, int numTrainFtrs, SOMExample[] trainData, SOMExample[] testData) {
 		String saveFileName = "";
 		List<Future<Boolean>> straffSOMDataWriteFutures = new ArrayList<Future<Boolean>>();
 		List<straffDataWriter> straffSOMDataWrite = new ArrayList<straffDataWriter>();
@@ -329,15 +341,15 @@ public class SOMProjConfigData {
 		if (expNumTrain > 0) {//save training data
 			if (useSparseTrainingData) {
 				saveFileName = getSOMMapSVMFileName();
-				straffSOMDataWrite.add(new straffDataWriter(mapMgr, curMapFtrType, StraffSOMMapManager.sparseTrainDataSavedIDX, numTrainFtrs, saveFileName, "sparseSVMData", mapMgr.trainData));	
+				straffSOMDataWrite.add(new straffDataWriter(mapMgr, curMapFtrType, numTrainFtrs, saveFileName, "sparseSVMData", trainData));	
 			} else {
 				saveFileName = getSOMMapLRNFileName();
-				straffSOMDataWrite.add(new straffDataWriter(mapMgr, curMapFtrType, StraffSOMMapManager.denseTrainDataSavedIDX, numTrainFtrs, saveFileName, "denseLRNData", mapMgr.trainData));	
+				straffSOMDataWrite.add(new straffDataWriter(mapMgr, curMapFtrType, numTrainFtrs, saveFileName, "denseLRNData", trainData));	
 			}
 		}
 		if (expNumTest > 0) {//save testing data
 			saveFileName = getSOMMapTestFileName();
-			straffSOMDataWrite.add(new straffDataWriter(mapMgr, curMapFtrType, StraffSOMMapManager.testDataSavedIDX, numTrainFtrs, saveFileName, useSparseTestingData ? "sparseSVMData" : "denseLRNData", mapMgr.testData));
+			straffSOMDataWrite.add(new straffDataWriter(mapMgr, curMapFtrType, numTrainFtrs, saveFileName, useSparseTestingData ? "sparseSVMData" : "denseLRNData", testData));
 		}
 		try {straffSOMDataWriteFutures = th_exec.invokeAll(straffSOMDataWrite);for(Future<Boolean> f: straffSOMDataWriteFutures) { f.get(); }} catch (Exception e) { e.printStackTrace(); }		
 		
@@ -367,14 +379,14 @@ public class SOMProjConfigData {
 	//dataFrmt : format used to train SOM == 0:unmodded; 1:std'ized; 2:normed
 	public void setSOM_ExpFileNames(int _numSmpls, int _numTrain, int _numTest){
 		//enable these to be set manually based on passed "now"		
-		mapMgr.dispMessage("SOMProjConfigData","setSOM_ExpFileNames","Start setting file names and example counts", MsgCodes.info5);
+		msgObj.dispMessage("SOMProjConfigData","setSOM_ExpFileNames","Start setting file names and example counts", MsgCodes.info5);
 		expNumSmpls = _numSmpls;
 		expNumTrain = _numTrain;
 		expNumTest = _numTest;
 		String nowDir = getDirNameAndBuild(subDirLocs.get("straffSOMProc") + "StraffSOM_"+dateTimeStrAra[0]+File.separator);
 		String fileNow = dateTimeStrAra[1];
 		setSOM_ExpFileNames( fileNow, nowDir);		
-		mapMgr.dispMessage("SOMProjConfigData","setSOM_ExpFileNames","Finished setting file names and example counts", MsgCodes.info5);
+		msgObj.dispMessage("SOMProjConfigData","setSOM_ExpFileNames","Finished setting file names and example counts", MsgCodes.info5);
 	}//setSOM_ExpFileNames
 	
 	//file names used specifically for SOM data
@@ -393,7 +405,7 @@ public class SOMProjConfigData {
 		for(int i =0; i<SOMFileNamesAra.length;++i){	
 			//build dir as well
 			SOMFileNamesAra[i] = nowDir + tmp[i];
-			mapMgr.dispMessage("SOMProjConfigData","setSOM_ExpFileNames","Built Dir : " + SOMFileNamesAra[i], MsgCodes.info3);
+			msgObj.dispMessage("SOMProjConfigData","setSOM_ExpFileNames","Built Dir : " + SOMFileNamesAra[i], MsgCodes.info3);
 		}				
 	}//setSOM_ExpFileNames	
 
@@ -408,7 +420,7 @@ public class SOMProjConfigData {
 	public String getFullCalcInfoFileName(){ return getDirNameAndBuild(configDir) + configFileNames.get("calcWtFileName");}
 	public String getFullProdOutMapperInfoFileName(){ return getDirNameAndBuild(configDir) + configFileNames.get("reqProdConfigFileName");}
 	//call this to set up debug map call - TODO replace this with just loading from a default config file
-	public void setSOM_UsePreBuilt() {		//TOOD replace this when saved file with appropriate format
+	public void setSOM_UsePreBuilt(SOMMapManager mapMgr) {		//TOOD replace this when saved file with appropriate format
 		//load map values from pre-trained map using this data - IGNORES VALUES SET IN UI	
 		//setSOMNamesDBG(_DBG_Map_numSmpls, _DBG_Map_numTrain, _DBG_Map_numTest, _DBG_Map_fileNow, mapMgr.getDataTypeNameFromInt(_DBG_dataFrmt));
 //		dateTimeStrAra = new String[] {_DBG_Map_fldrNow, _DBG_Map_fileNow};
@@ -422,7 +434,7 @@ public class SOMProjConfigData {
 		//load project config for this SOM execution
 		loadProjConfigForSOMExe(configFileName);		
 		//load and map config
-		loadSOMMap_Config();
+		loadSOMMap_Config(mapMgr);
 		//structure holding SOM_MAP specific cmd line args and file names and such
 		SOMExeDat.setAllDirs(this);
 		//now load new map data and configure SOMMapManager obj to hold all appropriate data
@@ -431,10 +443,10 @@ public class SOMProjConfigData {
 	}//setSOM_UseDBGMap
 	
 	//call this before running SOM experiment
-	public boolean setSOM_ExperimentRun(HashMap<String, Integer> mapInts, HashMap<String, Float> mapFloats, HashMap<String, String> mapStrings) {		
+	public boolean setSOM_ExperimentRun(SOMMapManager mapMgr, HashMap<String, Integer> mapInts, HashMap<String, Float> mapFloats, HashMap<String, String> mapStrings) {		
 		boolean res = true;
 		SOMExeDat.setArgsMapData(this, mapInts, mapFloats, mapStrings);		
-		mapMgr.dispMessage("SOMProjConfigData","setSOM_ExperimentRun","SOM map descriptor : \n" + SOMExeDat.toString() + "SOMOutExpSffx str : " + SOMOutExpSffx, MsgCodes.info5);		
+		msgObj.dispMessage("SOMProjConfigData","setSOM_ExperimentRun","SOM map descriptor : \n" + SOMExeDat.toString() + "SOMOutExpSffx str : " + SOMOutExpSffx, MsgCodes.info5);		
 		//save configuration data
 		saveSOM_Exp();
 		//launch in a thread? - needs to finish to be able to proceed, so not necessary
@@ -462,7 +474,7 @@ public class SOMProjConfigData {
 			dataLocStrData = straff_QualifedBaseDir + subDirLocs.get("straffSourceCSV") + baseDirName + File.separator + baseFName+".csv";
 		} else {//SQL connection configuration needs to be determined/designed
 			dataLocStrData = straff_QualifedBaseDir + subDirLocs.get("straffSQLProc") + "sqlConnData_"+baseDirName+".csv";
-			mapMgr.dispMessage("SOMProjConfigData","getLoadRawDataStrs","Need to construct appropriate sql connection info and put in text config file : " + dataLocStrData, MsgCodes.warning2);
+			msgObj.dispMessage("SOMProjConfigData","getLoadRawDataStrs","Need to construct appropriate sql connection info and put in text config file : " + dataLocStrData, MsgCodes.warning2);
 		}
 		return dataLocStrData;
 	}//getRawDataLoadInfo
@@ -523,7 +535,7 @@ public class SOMProjConfigData {
 	public String getSOMMapMinsFileName(){	return SOMFileNamesAra[4];	}
 	public String getSOMMapDiffsFileName(){	return SOMFileNamesAra[5];	}	
 	
-	public String getSOMLocClrImgForJPFName(int jpIDX) {return "jp_"+mapMgr.jpJpgrpMon.getFtrJpByIdx(jpIDX)+"_"+SOMFileNamesAra[6];}	
+	public String getSOMLocClrImgForJPFName(int jp) {return "jp_"+jp+"_"+SOMFileNamesAra[6];}	
 	//ref to file name for map configuration setup
 	public String getSOMMapConfigFileName() {return SOMFileNamesAra[7];	}	
 	//ref to file name for data and project configuration relevant for current SOM execution
@@ -540,7 +552,7 @@ public class SOMProjConfigData {
 	//sets all file names to be loaded - assumes names to be valid
 	private void setAllFileNames(){
 		String _somResBaseFName = getSOMMapOutFileBase();
-		mapMgr.dispMessage("SOMProjConfigData","setAllFileNames","Names being set using SOMOutExpSffx str : " + SOMOutExpSffx, MsgCodes.info1);
+		msgObj.dispMessage("SOMProjConfigData","setAllFileNames","Names being set using SOMOutExpSffx str : " + SOMOutExpSffx, MsgCodes.info1);
 		String somCSVBaseFName = _somResBaseFName + "_outCSV";
 		
 		String diffsFileName = getSOMMapDiffsFileName(),	//diffs data percol .csv file
@@ -612,141 +624,3 @@ public class SOMProjConfigData {
 }//class SOMProjConfigData
 
 
-//this class will manage file io
-class FileIOManager{
-	//owning map manager
-	protected StraffSOMMapManager mapMgr;
-	//name of owning class of the instance of this object, for display
-	protected String owner;
-	
-	public FileIOManager(StraffSOMMapManager _mapMgr, String _owner) {mapMgr = _mapMgr; owner=_owner;}	
-	
-	private String buildClrStr(ConsoleCLR bk, ConsoleCLR clr, String str) {return bk.toString() + clr.toString() + str + ConsoleCLR.RESET.toString();	}
-	private String _processMsgCode(String src, MsgCodes useCode) {
-		if (!SOMProjConfigData.supportsANSITerm) {return src;}
-		switch(useCode) {//add background + letter color for messages
-			//info messages
-			case info1 : {		return  buildClrStr(ConsoleCLR.BLACK_BACKGROUND, ConsoleCLR.WHITE, src);}		//basic informational printout
-			case info2 : {		return  buildClrStr(ConsoleCLR.BLACK_BACKGROUND, ConsoleCLR.CYAN, src);}
-			case info3 : {		return  buildClrStr(ConsoleCLR.BLACK_BACKGROUND, ConsoleCLR.YELLOW, src);}		//informational output from som EXE
-			case info4 : {		return  buildClrStr(ConsoleCLR.BLACK_BACKGROUND, ConsoleCLR.GREEN, src);}
-			case info5 : {		return  buildClrStr(ConsoleCLR.BLACK_BACKGROUND, ConsoleCLR.CYAN_BOLD, src);}	//beginning or ending of processing chuck/function
-			//warning messages                                                 , 
-			case warning1 : {	return  buildClrStr(ConsoleCLR.WHITE_BACKGROUND, ConsoleCLR.BLACK_BOLD, src);}
-			case warning2 : {	return  buildClrStr(ConsoleCLR.WHITE_BACKGROUND, ConsoleCLR.BLUE_BOLD, src);}	//warning info re: ui does not exist
-			case warning3 : {	return  buildClrStr(ConsoleCLR.WHITE_BACKGROUND, ConsoleCLR.BLACK_UNDERLINED, src);}
-			case warning4 : {	return  buildClrStr(ConsoleCLR.WHITE_BACKGROUND, ConsoleCLR.BLUE_UNDERLINED, src);}	//info message about unexpected behavior
-			case warning5 : {	return  buildClrStr(ConsoleCLR.WHITE_BACKGROUND, ConsoleCLR.BLUE_BRIGHT, src);}
-			//error messages                                                   , 
-			case error1 : {		return  buildClrStr(ConsoleCLR.BLACK_BACKGROUND, ConsoleCLR.RED_UNDERLINED, src);}//try/catch error
-			case error2 : {		return  buildClrStr(ConsoleCLR.BLACK_BACKGROUND, ConsoleCLR.RED_BOLD, src);}		//code-based error
-			case error3 : {		return  buildClrStr(ConsoleCLR.RED_BACKGROUND_BRIGHT, ConsoleCLR.BLACK_BOLD, src);}	//file load error
-			case error4 : {		return  buildClrStr(ConsoleCLR.WHITE_BACKGROUND_BRIGHT, ConsoleCLR.RED_BRIGHT, src);}	//error message thrown by som executable
-			case error5 : {		return  buildClrStr(ConsoleCLR.BLACK_BACKGROUND, ConsoleCLR.RED_BOLD_BRIGHT, src);}
-		}
-		return src;
-	}//_processMsgCode	
-	private void dispMessage(String srcClass, String srcMethod, String msgText, MsgCodes useCode){_dispMessage_base(mapMgr.getTimeStrFromProcStart() +"|" + srcClass,srcMethod,msgText, useCode,true);	}	
-	private void dispMessage(String srcClass, String srcMethod, String msgText, MsgCodes useCode, boolean onlyConsole) {_dispMessage_base(mapMgr.getTimeStrFromProcStart() +"|" + srcClass,srcMethod,msgText, useCode,onlyConsole);	}	
-	private void _dispMessage_base(String srcClass, String srcMethod, String msgText, MsgCodes useCode, boolean onlyConsole) {		
-		String msg = _processMsgCode(srcClass + "::" + srcMethod + " : " + msgText, useCode);
-		if((onlyConsole) || (mapMgr.pa == null)) {		System.out.println(msg);	} else {		mapMgr.pa.outStr2Scr(msg);	}
-	}//dispMessage
-
-
-	
-	//write data to file
-	public void saveStrings(String fname, String[] data) {
-		PrintWriter pw = null;
-		try {
-		     File file = new File(fname);
-		     FileWriter fw = new FileWriter(file, false);
-		     pw = new PrintWriter(fw);
-		     for (int i=0;i<data.length;++i) { pw.println(data[i]);}
-		     
-		} catch (IOException e) {	e.printStackTrace();}
-		finally {			if (pw != null) {pw.close();}}
-	}//saveStrings
-
-	public void saveStrings(String fname, ArrayList<String> data) {
-		PrintWriter pw = null;
-		try {
-		     File file = new File(fname);
-		     FileWriter fw = new FileWriter(file, false);
-		     pw = new PrintWriter(fw);
-		     for (int i=0;i<data.size();++i) { pw.println(data.get(i));}
-		     
-		} catch (IOException e) {	e.printStackTrace();}
-		finally {			if (pw != null) {pw.close();}}
-	}//saveStrings
-	
-	public String[] loadFileIntoStringAra(String fileName, String dispYesStr, String dispNoStr) {try {return _loadFileIntoStringAra(fileName, dispYesStr, dispNoStr);} catch (Exception e) {e.printStackTrace(); } return new String[0];}
-	//stream read the csv file and build the data objects
-	private String[] _loadFileIntoStringAra(String fileName, String dispYesStr, String dispNoStr) throws IOException {		
-		FileInputStream inputStream = null;
-		Scanner sc = null;
-		List<String> lines = new ArrayList<String>();
-		String[] res = null;
-	    //int line = 1, badEntries = 0;
-		try {
-		    inputStream = new FileInputStream(fileName);
-		    sc = new Scanner(inputStream);
-		    while (sc.hasNextLine()) {lines.add(sc.nextLine()); }
-		    //Scanner suppresses exceptions
-		    if (sc.ioException() != null) { throw sc.ioException(); }
-		    dispMessage("fileIOManager:"+owner, "_loadFileIntoStringAra",dispYesStr+"\tLength : " +  lines.size(), MsgCodes.info3);
-		    res = lines.toArray(new String[0]);		    
-		} catch (Exception e) {	
-			e.printStackTrace();
-			mapMgr.dispMessage("fileIOManager:"+owner, "_loadFileIntoStringAra","!!"+dispNoStr, MsgCodes.error3);
-			res= new String[0];
-		} 
-		finally {
-		    if (inputStream != null) {inputStream.close();		    }
-		    if (sc != null) { sc.close();		    }
-		}
-		return res;
-	}//loadFileContents	
-	
-	//load into multiple arrays for multi-threaded processing
-	public String[][] loadFileIntoStringAra_MT(String fileName, String dispYesStr, String dispNoStr, int numHdrLines, int numThds) {
-		try {return _loadFileIntoStringAra_MT(fileName, dispYesStr, dispNoStr, numHdrLines, numThds);} 
-		catch (Exception e) {e.printStackTrace(); } 
-		return new String[0][];
-	}
-	//load files into multiple arrays for multi-threaded processing
-	private String[][] _loadFileIntoStringAra_MT(String fileName, String dispYesStr, String dispNoStr, int numHdrLines, int numThds) throws IOException {		
-		FileInputStream inputStream = null;
-		Scanner sc = null;
-		List<String>[] lines = new ArrayList[numThds];
-		for (int i=0;i<numThds;++i) {lines[i]=new ArrayList<String>();	}
-		String[][] res = new String[numThds+1][];
-		String[] hdrRes = new String[numHdrLines];
-		int idx = 0, count = 0;
-		try {
-		    inputStream = new FileInputStream(fileName);
-		    sc = new Scanner(inputStream);
-		    for(int i=0;i<numHdrLines;++i) {    	hdrRes[i]=sc.nextLine();   }		    
-		    while (sc.hasNextLine()) {
-		    	lines[idx].add(sc.nextLine()); 
-		    	idx = (idx + 1)%numThds;
-		    	++count;
-		    }
-		    //Scanner suppresses exceptions
-		    if (sc.ioException() != null) { throw sc.ioException(); }
-		    mapMgr.dispMessage("fileIOManager:"+owner, "_loadFileIntoStringAra_MT",dispYesStr+"\tLength : " +  count + " distributed into "+lines.length+" arrays.", MsgCodes.info1);
-		    for (int i=0;i<lines.length;++i) {res[i] = lines[i].toArray(new String[0]);	 }
-		    res[res.length-1]=hdrRes;
-		} catch (Exception e) {	
-			e.printStackTrace();
-			mapMgr.dispMessage("fileIOManager:"+owner, "_loadFileIntoStringAra_MT","!!"+dispNoStr, MsgCodes.error2);
-			res= new String[0][];
-		} 
-		finally {
-		    if (inputStream != null) {inputStream.close();		    }
-		    if (sc != null) { sc.close();		    }
-		}
-		return res;
-	}//_loadFileIntoStringAra_MT
-
-}//class fileIOManager

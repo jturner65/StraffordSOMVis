@@ -5,15 +5,15 @@
 #
 #BEGIN CONFIG FILE NAMES
 #
-#	name of file holding config for calc object
+#	name of file holding configs (_train and _compare) for calc object - do not include .txt extension!
 #no date decay
-#calcWtFileName,"WeightEqConfig.txt"
+#calcWtFileName,"WeightEqConfig"
 #
 #calc with .01 decay all event dates and weight .01 opts
-#calcWtFileName,"WeightEqConfig_allDecay_p01_optWt_p01.txt"
+#calcWtFileName,"WeightEqConfig_allDecay_p01_optWt_p01"
 #
 #calc with .01 decay all event dates and weight .01 opts and .01 source weights
-calcWtFileName,"WeightEqConfig_allDecay_p01_optWt_p01_srcWt_p01.txt"
+calcWtFileName,"WeightEqConfig_allDecay_p01_optWt_p01_srcWt_p01"
 #
 #	file name of requested products to map to prospects
 reqProdConfigFileName,"ProductsToMap_Test.txt"
@@ -49,9 +49,6 @@ custTruePrsTypeEvents, "0"
 #Directory for prebuilt map : 
 #all the following use the new data as of 3/25/19
 #
-#built using "WeightEqConfig_allDecay_p01_optWt_p01.txt"
-#preBuiltMapDir,"StraffSOM_2019_03_25_10_10"
-#preBuiltMapDir,"StraffSOM_2019_03_25_16_02"
-#built using "WeightEqConfig_allDecay_p01_optWt_p01_srcWt_p01.txt"
-preBuiltMapDir,"StraffSOM_2019_04_17_12_29"
+#built using "WeightEqConfig_allDecay_p01_optWt_p01_srcWt_p01"
+preBuiltMapDir,"StraffSOM_2019_04_19_10_56"
 #END MISC GLOBAL VARS

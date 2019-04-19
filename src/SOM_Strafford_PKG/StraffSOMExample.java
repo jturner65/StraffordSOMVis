@@ -4,6 +4,14 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
+import SOM_Base.ExDataType;
+import SOM_Base.SOMExample;
+import SOM_Base.SOMMapManager;
+import SOM_Base.SOMMapNode;
+import Utils.MsgCodes;
+import Utils.Tuple;
+import Utils.myPointf;
+
 
 /**
  * NOTE : None of the data types in this file are thread safe so do not allow for opportunities for concurrent modification
@@ -29,27 +37,37 @@ public abstract class StraffSOMExample extends SOMExample{
 	//protected HashSet<Integer> allJPs;
 	
 	//all jps in this example that correspond to actual products.
-	//products are used for training vectors
+	//products are used for training vectors - these will be used to build feature vector used by SOM
 	protected HashSet<Integer> allProdJPs;
+	
 	//all jps in this example that do not correspond to actual products - these are for intra-jpgroup comparisons, 
 	//and for matching true prospects (who may have "virtual" and "venn" jps) to products - 
-	//uses jpgjp tuple since actual comparison will be to jp group
-	protected HashSet<Tuple<Integer,Integer>> nonProdJpgJps;
+	//uses jpgjp tuple since actual comparison will be build by jp group 
+	//these will only be seen in source event records
+	protected HashSet<Tuple<Integer,Integer>> nonProdJpgJps; 
+	
+	//alternate comparison structure - used in conjunction with ftrVec of chosen format
+	//use a map to hold only sparse data of each frmt for feature vector
+	protected TreeMap<Integer, Float>[] compValMaps;	
 	
 
 	//idxs corresponding to types of events
 	
-	public StraffSOMExample(StraffSOMMapManager _map, ExDataType _type, String _id) {
+	public StraffSOMExample(SOMMapManager _map, ExDataType _type, String _id) {
 		super(_map, _type, _id);
-		jpJpgMon = mapMgr.jpJpgrpMon;
+		jpJpgMon = ((StraffSOMMapManager) mapMgr).jpJpgrpMon;
 		allProdJPs = new HashSet<Integer> ();	
 		nonProdJpgJps = new HashSet<Tuple<Integer,Integer>>();
+		compValMaps = new TreeMap[ftrMapTypeKeysAra.length];
+		for (int i=0;i<ftrMaps.length;++i) {			compValMaps[i] = new TreeMap<Integer, Float>(); 		}
+
 	}//ctor
 	
 	public StraffSOMExample(StraffSOMExample _otr) {
 		super(_otr);	
 		allProdJPs = _otr.allProdJPs;		
 		nonProdJpgJps = _otr.nonProdJpgJps;
+		compValMaps = _otr.compValMaps;
 	}//copy ctor
 	
 	////////////////
@@ -61,7 +79,7 @@ public abstract class StraffSOMExample extends SOMExample{
 		case Order 	: {		return new OrderEventTrainData((OrderEvent) _evntObj);	}//order event object
 		case Opt 	: {		return new OptEventTrainData((OptEvent) _evntObj);}//opt event  object
 		case Link 	: { 	return new LinkEventTrainData((LinkEvent) _evntObj);}//link event
-		case Source : { 	return new SrcEventTrainData((SourceEvent) _evntObj);}//link event
+		case Source : { 	return new SrcEventTrainData((SourceEvent) _evntObj);}//source event
 		default : {			return new OrderEventTrainData((OrderEvent) _evntObj);	}//default to order event object - probably will fail.  need to make sure type is accurately specified.
 		}//switch
 	}//buildNewTrainData
@@ -71,8 +89,8 @@ public abstract class StraffSOMExample extends SOMExample{
 		switch (eventtype) {
 		case Order 	: { 	return new OrderEventTrainData(_evIDStr, _evTypeStr, _evDateStr, _evntStr);	}//order event object
 		case Opt 	: {		return new OptEventTrainData(_evIDStr, _evTypeStr, _evDateStr, _evntStr);}//opt event  object
-		case Link 	: {		return new LinkEventTrainData(_evIDStr, _evTypeStr, _evDateStr, _evntStr);}//opt event  object
-		case Source : {		return new SrcEventTrainData(_evIDStr, _evTypeStr, _evDateStr, _evntStr);}//opt event  object
+		case Link 	: {		return new LinkEventTrainData(_evIDStr, _evTypeStr, _evDateStr, _evntStr);}//link event  object
+		case Source : {		return new SrcEventTrainData(_evIDStr, _evTypeStr, _evDateStr, _evntStr);}//source event  object
 		default : {			return new OrderEventTrainData(_evIDStr, _evTypeStr, _evDateStr, _evntStr);	}//default to order event object - probably will fail.  need to make sure type is accurately specified.
 		}//switch
 	}//buildNewTrainData		
@@ -109,7 +127,7 @@ public abstract class StraffSOMExample extends SOMExample{
 		allNonZeroFtrIDXs = new ArrayList<Integer>();
 		for(Integer jp : allProdJPs) {
 			Integer jpIDX = jpJpgMon.getJpToFtrIDX(jp);
-			if(jpIDX==null) {mapMgr.dispMessage("StraffSOMExample","buildAllNonZeroFtrIDXs","ERROR!  null value in jpJpgMon.getJpToFtrIDX("+jp+")", MsgCodes.error2 ); }
+			if(jpIDX==null) {mapMgr.msgObj.dispMessage("StraffSOMExample","buildAllNonZeroFtrIDXs","ERROR!  null value in jpJpgMon.getJpToFtrIDX("+jp+")", MsgCodes.error2 ); }
 			else {allNonZeroFtrIDXs.add(jpIDX);}
 		}
 	}//buildAllNonZeroFtrIDXs (was buildAllJPFtrIDXsJPs)
@@ -142,14 +160,14 @@ abstract class prospectExample extends StraffSOMExample{
 	private jpOccurrenceData posOptAllEventObj = null, negOptAllEventObj = null;
 
 	//build this object based on prospectData object from raw data
-	public prospectExample(StraffSOMMapManager _map, ExDataType _type, prospectData _prspctData) {
+	public prospectExample(SOMMapManager _map, ExDataType _type, prospectData _prspctData) {
 		super(_map,_type,_prspctData.OID);	
 		initObjsData();
 		prs_LUDate = _prspctData.getDate();
 	}//prospectData ctor
 	
 	//build this object based on csv string - rebuild data from csv string columns 4+
-	public prospectExample(StraffSOMMapManager _map, ExDataType _type, String _OID, String _csvDataStr) {
+	public prospectExample(SOMMapManager _map, ExDataType _type, String _OID, String _csvDataStr) {
 		super(_map,_type,_OID);		
 		initObjsData();	
 		String[] dataAra = _csvDataStr.split(",");
@@ -219,9 +237,9 @@ abstract class prospectExample extends StraffSOMExample{
 	}//buildEventTrainDataFromCsvStr
 	
 	@Override
-	//standardize this feature vector
+	//standardize this feature vector - across each feature, set value to be between 0 and 1
 	protected void buildStdFtrsMap() {		
-		if (allNonZeroFtrIDXs.size() > 0) {ftrMaps[stdFtrMapTypeKey] = calcStdFtrVector(ftrMaps[ftrMapTypeKey], allNonZeroFtrIDXs);}
+		if (allNonZeroFtrIDXs.size() > 0) {ftrMaps[stdFtrMapTypeKey] = calcStdFtrVector(ftrMaps[ftrMapTypeKey], allNonZeroFtrIDXs, mapMgr.getTrainFtrMins(), mapMgr.getTrainFtrDiffs());}
 		else {ftrMaps[stdFtrMapTypeKey] = new TreeMap<Integer, Float>();}
 		setFlag(stdFtrsBuiltIDX,true);
 	}//buildStdFtrsMap
@@ -315,7 +333,7 @@ abstract class prospectExample extends StraffSOMExample{
 	//return occurence map
 	public TreeMap<Integer, jpOccurrenceData> getOcccurenceMap(String key) {
 		TreeMap<Integer, jpOccurrenceData> res = JpOccurrences.get(key);
-		if (res==null) {mapMgr.dispMessage("ProspectExample","getOcccurenceMap","JpOccurrences map does not have key : " + key, MsgCodes.warning2); return null;}
+		if (res==null) {mapMgr.msgObj.dispMessage("ProspectExample","getOcccurenceMap","JpOccurrences map does not have key : " + key, MsgCodes.warning2); return null;}
 		return res;
 	}
 	
@@ -362,10 +380,6 @@ abstract class prospectExample extends StraffSOMExample{
 	
 	public abstract boolean[] getExampleStatusOcc();
 	public abstract boolean[] getExampleStatusEvt();
-	
-	//whether this record was used to train the current map or not, and where it exists within the test or train array (idx)
-	public abstract boolean getIsTrainingData();
-	public abstract int getTestTrainIDX();	
 
 	//returns true if -any training-related- events are present in this record (i.e. not counting source "events")
 	protected abstract boolean hasRelelventTrainingEvents();
@@ -440,15 +454,11 @@ class custProspectExample extends prospectExample{
 	private static final boolean[] eventMapUseOccData = new boolean[] {false,true,false,true};
 	//csv labels
 	private static final String[] CSVSentinelLbls = new String[] {"ORD|,","OPT|,", "LNK|,", "SRC|," };	
-	//is this datapoint used for training; whether this record has a source "event" attached to it
-	private boolean isTrainingData;
-	//this is index for this data point in training/testing data array; original index in preshuffled array (reflecting build order)
-	private int testTrainDataIDX;
 	
 	//build this object based on prospectData object from raw data
-	public custProspectExample(StraffSOMMapManager _map,prospectData _prspctData) {	super(_map,ExDataType.customerTraining, _prspctData);}//prospectData ctor	
+	public custProspectExample(SOMMapManager _map,prospectData _prspctData) {	super(_map,ExDataType.Training, _prspctData);}//prospectData ctor	
 	//build this object based on csv string - rebuild data from csv string columns 4+
-	public custProspectExample(StraffSOMMapManager _map,String _OID, String _csvDataStr) {super(_map,ExDataType.customerTraining, _OID,_csvDataStr);	}//csv string ctor
+	public custProspectExample(SOMMapManager _map,String _OID, String _csvDataStr) {super(_map,ExDataType.Training, _OID,_csvDataStr);	}//csv string ctor
 	
 	public custProspectExample(prospectExample ex) {
 		super(ex);
@@ -536,27 +546,21 @@ class custProspectExample extends prospectExample{
 	//add event data to this customer prospect
 	public void addEventObj(BaseRawData obj, int type) {
 		switch(type) {
-		case StraffSOMMapManager.prspctIDX 	: 	{mapMgr.dispMessage("custProspectExample","addObj","ERROR attempting to add prospect raw data as event data. Ignored", MsgCodes.error2);return;}
+		case StraffSOMMapManager.prspctIDX 	: 	{mapMgr.msgObj.dispMessage("custProspectExample","addObj","ERROR attempting to add prospect raw data as event data. Ignored", MsgCodes.error2);return;}
 		case StraffSOMMapManager.orderEvntIDX : 	{		addDataToTrainMap((OrderEvent)obj,eventsByDateMap.get(eventMapTypeKeys[0]), EvtDataType.Order); 		return;}
 		case StraffSOMMapManager.optEvntIDX 	: 	{		addDataToTrainMap((OptEvent)obj,eventsByDateMap.get(eventMapTypeKeys[1]), EvtDataType.Opt); 		return;}
 		case StraffSOMMapManager.linkEvntIDX 	: 	{		addDataToTrainMap((LinkEvent)obj,eventsByDateMap.get(eventMapTypeKeys[2]), EvtDataType.Link); 		return;}
 		case StraffSOMMapManager.srcEvntIDX 	: 	{		addDataToTrainMap((SourceEvent)obj,eventsByDateMap.get(eventMapTypeKeys[3]), EvtDataType.Source); 		return;}
-		default :{mapMgr.dispMessage("custProspectExample","addObj","ERROR attempting to add unknown raw data type : " + type + " as event data. Ignored", MsgCodes.error2);return;}
+		default :{mapMgr.msgObj.dispMessage("custProspectExample","addObj","ERROR attempting to add unknown raw data type : " + type + " as event data. Ignored", MsgCodes.error2);return;}
 		}		
 	}//addObj
 	
-	public void setIsTrainingDataIDX(boolean val, int idx) {
-		isTrainingData=val; 
-		testTrainDataIDX=idx;
-		type= isTrainingData ? ExDataType.customerTraining : ExDataType.customerTesting;
+	@Override
+	public void setIsTrainingDataIDX_Priv() {
+		type= isTrainingData ? ExDataType.Training : ExDataType.Testing;
 		nodeClrs = mapMgr.getClrVal(type);
 	}//setIsTrainingDataIDX
-	//
-	//whether this record was used to train the current map or not
-	@Override
-	public boolean getIsTrainingData() {return isTrainingData;}
-	@Override
-	public int getTestTrainIDX() {return testTrainDataIDX;}
+
 	//column names for raw descriptorCSV output
 	@Override
 	public String getRawDescColNamesForCSV(){	return csvColDescrPrfx + ",";	}
@@ -583,7 +587,7 @@ class custProspectExample extends prospectExample{
 	protected void buildFeaturesMap() {
 		//access calc object
 		if (allProdJPs.size() > 0) {
-			ftrMaps[ftrMapTypeKey] = mapMgr.ftrCalcObj.calcFeatureVector(this,allProdJPs,JpOccurrences.get("orders"), JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"));
+			ftrMaps[ftrMapTypeKey] = ((StraffSOMMapManager)mapMgr).ftrCalcObj.calcTrainFtrVec(this,allProdJPs,JpOccurrences.get("orders"), JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"));
 		}
 		else {ftrMaps[ftrMapTypeKey] = new TreeMap<Integer, Float>();}
 		//now, if there's a non-null posOptAllEventObj then for all jps who haven't gotten an opt conribution to calculation, add positive opt-all result
@@ -621,18 +625,18 @@ class trueProspectExample extends prospectExample{
 	
 	//build this object based on prospectData object 
 	public trueProspectExample(StraffSOMMapManager _map,prospectData _prspctData) {
-		super(_map,ExDataType.trueProspect,_prspctData);
+		super(_map,ExDataType.Validation,_prspctData);
 	}//prospectData ctor
 	
 	//build this object based on csv string - rebuild data from csv string columns 4+
-	public trueProspectExample(StraffSOMMapManager _map,String _OID, String _csvDataStr) {
-		super(_map,ExDataType.trueProspect,_OID,_csvDataStr);	
+	public trueProspectExample(SOMMapManager _map,String _OID, String _csvDataStr) {
+		super(_map,ExDataType.Validation,_OID,_csvDataStr);	
 	}//csv string ctor
 	
 	public trueProspectExample(prospectExample ex) {
 		super(ex);		
 		//set this type
-		type = ExDataType.trueProspect;
+		type = ExDataType.Validation;
 		//provide shallow copy of jpOcc struct - only copying passed event type key values
 		JpOccurrences = ex.copyJPOccStruct(eventMapTypeKeys);		
 		//provide shallow copy of jpOcc struct - only copying passed event type key values
@@ -664,7 +668,7 @@ class trueProspectExample extends prospectExample{
 	protected void buildFeaturesMap() {	//TODO do we wish to modify this for prospects?  probably
 		//access calc object
 		if (allProdJPs.size() > 0) {//getting from orders should yield empty list, might yield null
-			ftrMaps[ftrMapTypeKey] = mapMgr.ftrCalcObj.calcFeatureVector(this,allProdJPs, JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"));
+			ftrMaps[ftrMapTypeKey] = ((StraffSOMMapManager)mapMgr).ftrCalcObj.calcTPFtrVec(this,allProdJPs, JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"));
 		}
 		else {ftrMaps[ftrMapTypeKey] = new TreeMap<Integer, Float>();}
 		//now, if there's a non-null posOptAllEventObj then for all jps who haven't gotten an opt conribution to calculation, add positive opt-all result
@@ -673,12 +677,11 @@ class trueProspectExample extends prospectExample{
 	@Override
 	protected void _initObjsIndiv() {	for (String key : eventMapTypeKeys) {eventsByDateMap.put(key, new TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>> ());	}	}//_initObjsIndiv()
 	
-	//is never training data
 	@Override
-	public boolean getIsTrainingData() {return false;}
-	//is never in test/train partition
-	@Override
-	public int getTestTrainIDX() { return -1;}	
+	protected void setIsTrainingDataIDX_Priv() {//this is never training data - its testTrainIDX will be the index it has in the validation data array;
+		isTrainingData=false; 
+	}//products are never going to be training examples
+
 	//this prospect is an actual customer - use as training data
 	@Override
 	public boolean isTrainablePastCustomer() { return false ;}
@@ -791,7 +794,7 @@ class ProductExample extends StraffSOMExample{
 	private static int numFtrCompVals = 2;
 	
 	//types to conduct similarity mapping
-	private static int[] prospectTypes_idxs = new int[] {ExDataType.customerTraining.getVal(), ExDataType.customerTesting.getVal()};
+	private static int[] prospectTypes_idxs = new int[] {ExDataType.Training.getVal(), ExDataType.Testing.getVal()};
 
 	//color to illustrate map (around bmu) region corresponding to this product - use distance as alpha value
 	private int[] prodClr;
@@ -839,6 +842,8 @@ class ProductExample extends StraffSOMExample{
 		for(Integer idx : wtMins.keySet()) {res[i++]=""+ idx + "\t" + String.format("%6.4f",wtMins.get(idx)) + "\t" + String.format("%6.4f",wtMaxs.get(idx)) + "\t" + String.format("%6.4f",wtDists.get(idx));}
 		return res;
 	}//getMinMaxDists
+	@Override
+	protected void setIsTrainingDataIDX_Priv() { mapMgr.msgObj.dispMessage("ProductExample","setIsTrainingDataIDX_Priv","Calling inappropriate setIsTrainingDataIDX_Priv for ProductExample - should never have training index set.", MsgCodes.warning2);	}//products are never going to be training examples
 
 	@Override
 	public void finalizeBuild() {		allProdJPs = trainPrdctData.getAllJpsInData();	}
@@ -1000,7 +1005,7 @@ class ProductExample extends StraffSOMExample{
 		int numJPs = orderMap.size();
 		//verify # of jps as expected
 		if (numJPs != allNonZeroFtrIDXs.size()) {	
-			mapMgr.dispMessage("ProductExample", "buildFeaturesMap", "Problem with size of expected jps from trainPrdctData vs. allJPFtrIDXs : trainPrdctData says # jps == " +numJPs + " | allJPFtrIDXs.size() == " +allNonZeroFtrIDXs.size(), MsgCodes.warning2);
+			mapMgr.msgObj.dispMessage("ProductExample", "buildFeaturesMap", "Problem with size of expected jps from trainPrdctData vs. allJPFtrIDXs : trainPrdctData says # jps == " +numJPs + " | allJPFtrIDXs.size() == " +allNonZeroFtrIDXs.size(), MsgCodes.warning2);
 		}
 		if(numJPs == 1) {
 			Integer ftrIDX = allNonZeroFtrIDXs.get(0);
@@ -1048,16 +1053,16 @@ class StraffSOMMapNode extends SOMMapNode{
 //	//a map per feature type : unmodified, normalized, standardized,  of jps and their relative "rank" in this particular example, as determined by the weight calc
 //	private TreeMap<Integer,Integer>[] mapOfJpsVsWtRank;
 	
-	public StraffSOMMapNode(StraffSOMMapManager _map, Tuple<Integer,Integer> _mapNode, float[] _ftrs) {
+	public StraffSOMMapNode(SOMMapManager _map, Tuple<Integer,Integer> _mapNode, float[] _ftrs) {
 		super(_map, _mapNode, _ftrs);
-		jpJpgMon = mapMgr.jpJpgrpMon;
+		jpJpgMon = ((StraffSOMMapManager)mapMgr).jpJpgrpMon;
 		_initDataFtrMappings();		
 	}//ctor w/float ftrs
 	
 	//build a map node from a string array of features
-	public StraffSOMMapNode(StraffSOMMapManager _map,Tuple<Integer,Integer> _mapNode, String[] _strftrs) {
+	public StraffSOMMapNode(SOMMapManager _map,Tuple<Integer,Integer> _mapNode, String[] _strftrs) {
 		super(_map, _mapNode, _strftrs);
-		jpJpgMon = mapMgr.jpJpgrpMon;
+		jpJpgMon = ((StraffSOMMapManager)mapMgr).jpJpgrpMon;
 		_initDataFtrMappings();
 	}//ctor w/str ftrs	
 	
@@ -1192,6 +1197,8 @@ class DispSOMMapExample extends StraffSOMExample{
 	public String getRawDescrForCSV() {	return "Should not save DispSOMMapExample to CSV";}
 	@Override
 	public String getRawDescColNamesForCSV() {return "Do not save DispSOMMapExample to CSV";}
+	@Override
+	protected void setIsTrainingDataIDX_Priv() {}
 
 	@Override
 	public void finalizeBuild() {}
@@ -1206,30 +1213,13 @@ class DispSOMMapExample extends StraffSOMExample{
 	}//drawLabel	
 
 	@Override
-	protected void buildStdFtrsMap() {	
-		ftrMaps[stdFtrMapTypeKey] = new TreeMap<Integer, Float>();
-		if (allNonZeroFtrIDXs.size() > 0) {ftrMaps[stdFtrMapTypeKey] = calcStdFtrVector(ftrMaps[ftrMapTypeKey], allNonZeroFtrIDXs);}
+	protected void buildStdFtrsMap() {			
+		if (allNonZeroFtrIDXs.size() > 0) {ftrMaps[stdFtrMapTypeKey] = calcStdFtrVector(ftrMaps[ftrMapTypeKey], allNonZeroFtrIDXs, mapMgr.getTrainFtrMins(), mapMgr.getTrainFtrDiffs());}
+		else {ftrMaps[stdFtrMapTypeKey] = new TreeMap<Integer, Float>();}
 		setFlag(stdFtrsBuiltIDX,true);
 	}
 
 }//DispSOMMapExample
-
-/**
- * enum used to specify each kind of example data point, primarily for visualization purposes
- * @author john
- */
-enum ExDataType {
-	customerTraining(0), customerTesting(1), trueProspect(2), Product(3), MapNode(4), MouseOver(5);
-	private int value; 
-	private static Map<Integer, ExDataType> map = new HashMap<Integer, ExDataType>(); 
-	static { for (ExDataType enumV : ExDataType.values()) { map.put(enumV.value, enumV);}}
-	private ExDataType(int _val){value = _val;} 
-	public int getVal(){return value;}
-	public static ExDataType getVal(int idx){return map.get(idx);}
-	public static int getNumVals(){return map.size();}						//get # of values in enum
-	@Override
-    public String toString() { return ""+value; }	
-}//enum ExDataType
 
 /**
  * enum used to specify the type of event responsible for data
@@ -1264,26 +1254,19 @@ class jpOccurrenceData{
 	private boolean usesOpt;
 	
 	public jpOccurrenceData(Integer _jp, Integer _jpg, boolean _usesOpt) {jp=_jp;jpg=_jpg; usesOpt=_usesOpt;occurrences = new TreeMap<Date, TreeMap<Integer, Integer>>();}	
-//	//add an occurence on date
-//	public void addOccurrence(Date date, int opt) {
-//		Tuple<Integer, Integer> oldTup = occurrences.get(date);
-//		
-//		//THIS MUST CHANGE - must support multiple values since source data is using this field to mark multiple sources
-//		//shouldn't have different opt values for same jp for same date; issue warning if this is the case
-//		if ((oldTup!=null) && (oldTup.y != opt)) {System.out.println("jpOccurrenceData::addOccurrence : !!!Warning!!! : JP : " + jp + " on Date : " + date + " has 2 different opt values set in data : " +  oldTup.y + " and "+ opt +" | Using :"+ opt);}
-//		if(oldTup==null) {oldTup = new Tuple<Integer,Integer>(0,0); }
-//		Tuple<Integer, Integer> newDatTuple = new Tuple<Integer,Integer>(1 + oldTup.x,opt);		
-//		occurrences.put(date, newDatTuple);
-//	}//addOccurence
 	
-	//add an occurence on date
-	public void addOccurrence(Date date, int val) {
+	//add an occurence on date - for a specific JP, for a specific Date, this builds either
+	//		a map of OptValue,count (which will be only 1 opt value, either a dummy (for non opt events) or an opt, and a count of those opt value events)
+	//			--note, this will support multiple opts for same jp for same date - old mechanism just overwrote previous opts regardless of value
+	// or
+	//		a map of srcValue,count (which will be potentially many sources with 1 or more counts, as recorded in source event records)
+	public void addOccurrence(Date date, int optOrSrc) {
 		TreeMap<Integer, Integer> valsAtDate = occurrences.get(date);
 		if(valsAtDate==null) {valsAtDate = new TreeMap<Integer, Integer>(); }
-		Integer count = valsAtDate.get(val);
+		Integer count = valsAtDate.get(optOrSrc);
 		if(count == null) {count = 0;}
 		++count;
-		valsAtDate.put(val, count);
+		valsAtDate.put(optOrSrc, count);
 		occurrences.put(date, valsAtDate);
 	}//addOccurence
 	//accessors

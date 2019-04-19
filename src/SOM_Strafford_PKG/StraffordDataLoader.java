@@ -8,6 +8,8 @@ import java.util.concurrent.Callable;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.*;
 
+import Utils.MsgCodes;
+
 /**
 * this class will load, and manage, the appropriate files containing 
 * the Strafford data used to build the SOM.  Ultimately this class should 
@@ -34,12 +36,14 @@ public abstract class StraffordDataLoader implements Callable<Boolean> {
 	protected String fileNameAndPath;
 	//whether is file loader (from csv files) or sql reader
 	protected boolean isFileLoader;
-	//flag index in owning map denoting the processing is finished
+	//flag index in owning map flag structure denoting the processing is finished
 	protected int isDoneMapDataIDX;
 	//# of columns used by the particular table being read - used to verify if all fields are present in table.  if not known, set to 2
 	protected boolean hasJson;
 	//set whether we want to debug this loader or not
 	protected boolean debug;
+	//thread index of this callable
+	protected int thdIDX;
 	
 	public StraffordDataLoader(boolean _isFileLoader, String _dataLocInfoStr) {
 		jsonMapper = new ObjectMapper();
@@ -53,7 +57,7 @@ public abstract class StraffordDataLoader implements Callable<Boolean> {
 	//_flagsAra    : idx0 : if this is file/sql loader; idx1 : if the source data has json columns; idx2 : debug
 	//_isDOneIDX : boolean flag idx in SOMMapManager to mark that this data loader has finished
 
-	public void setLoadData(StraffSOMMapManager _mapMgr, String _destAraDataKey, String _fileNameAndPath, boolean[] _flagsAra, int _isDoneIDX) {
+	public void setLoadData(StraffSOMMapManager _mapMgr, String _destAraDataKey, String _fileNameAndPath, boolean[] _flagsAra, int _isDoneIDX, int _thdIDX) {
 		mapMgr = _mapMgr;
 		BaseRawData.mapMgr = _mapMgr;
 		destAraDataKey = _destAraDataKey;		//must be -directory- where data is found
@@ -62,17 +66,18 @@ public abstract class StraffordDataLoader implements Callable<Boolean> {
 		hasJson = _flagsAra[1];
 		debug = _flagsAra[2];
 		isDoneMapDataIDX = _isDoneIDX;
+		thdIDX = _thdIDX;
 	}//setLoadData
 	
 	protected ArrayList<BaseRawData> execLoad(){	
 		ArrayList<BaseRawData> dataObjs = new ArrayList<BaseRawData>();
 		if (isFileLoader) {
-			mapMgr.dispMessage("StraffordDataLoader","execLoad","File Load Started for "+fileNameAndPath, MsgCodes.info5);
+			mapMgr.msgObj.dispMessage("StraffordDataLoader","execLoad","File Load Started for "+fileNameAndPath, MsgCodes.info5);
 			streamCSVDataAndBuildStructs(dataObjs, fileNameAndPath);
-			mapMgr.dispMessage("StraffordDataLoader","execLoad","File Load Finished for "+fileNameAndPath, MsgCodes.info5);
+			mapMgr.msgObj.dispMessage("StraffordDataLoader","execLoad","File Load Finished for "+fileNameAndPath, MsgCodes.info5);
 		} else {//exec sql load for this file
 			//TODO sql read/load here
-			mapMgr.dispMessage("StraffordDataLoader","execLoad","Sql Load NOT IMPLEMENTED using connection info at "+fileNameAndPath, MsgCodes.error1);
+			mapMgr.msgObj.dispMessage("StraffordDataLoader","execLoad","Sql Load NOT IMPLEMENTED using connection info at "+fileNameAndPath, MsgCodes.error1);
 		}
 		return dataObjs;
 	}//execLoad
@@ -82,7 +87,7 @@ public abstract class StraffordDataLoader implements Callable<Boolean> {
 	private void streamCSVDataAndBuildStructs(ArrayList<BaseRawData> dAra, String fileNameAndPath) {try {_strmCSVFileBuildObjs(dAra,fileNameAndPath);} catch (Exception e) {e.printStackTrace();}}
 	//stream read the csv file and build the data objects
 	private void _strmCSVFileBuildObjs(ArrayList<BaseRawData> dAra, String fileNameAndPath) throws IOException {
-		mapMgr.dispMessage("StraffordDataLoader","streamCSVDataAndBuildStructs","Start loading "+ fileNameAndPath, MsgCodes.info5);
+		mapMgr.msgObj.dispMessage("StraffordDataLoader","streamCSVDataAndBuildStructs","Start loading "+ fileNameAndPath, MsgCodes.info5);
 		FileInputStream inputStream = null;
 		Scanner sc = null;
 	    int line = 1, badEntries = 0;
@@ -91,7 +96,7 @@ public abstract class StraffordDataLoader implements Callable<Boolean> {
 		    inputStream = new FileInputStream(fileNameAndPath);
 		    sc = new Scanner(inputStream);
 		    if(!sc.hasNext()) {
-		    	mapMgr.dispMessage("StraffordDataLoader","streamCSVDataAndBuildStructs","No data found in "+ fileNameAndPath + " .  Aborting.", MsgCodes.warning1);
+		    	mapMgr.msgObj.dispMessage("StraffordDataLoader","streamCSVDataAndBuildStructs","No data found in "+ fileNameAndPath + " .  Aborting.", MsgCodes.warning1);
 			    if (inputStream != null) {inputStream.close();		    }
 			    if (sc != null) { sc.close();		    }
 		    	return;
@@ -105,7 +110,7 @@ public abstract class StraffordDataLoader implements Callable<Boolean> {
 		    	if (hasJson) {//jp and other relevant data is stored in payload/descirptor field holding json			    	
 			    	String [] strAras1 = datStr.split("\"\\{");		//split into string holding columns and string holding json 
 			    	if (strAras1.length < 2) {		    		
-				    		if(debug) {mapMgr.dispMessage("StraffordDataLoader","streamCSVDataAndBuildStructs","!!!!!!!!!" +destAraDataKey+ " has bad entry at "+line+" lacking required description/payload json : " + datStr, MsgCodes.warning1);}
+				    		if(debug) {mapMgr.msgObj.dispMessage("StraffordDataLoader","streamCSVDataAndBuildStructs","!!!!!!!!!" +destAraDataKey+ " has bad entry at "+line+" lacking required description/payload json : " + datStr, MsgCodes.warning1);}
 				    		++badEntries;			    	
 			    	} else {
 			    		String str = strAras1[1];
@@ -120,14 +125,14 @@ public abstract class StraffordDataLoader implements Callable<Boolean> {
 		    		//parse 2 entries and remove extraneous quotes - replace quote-comma-quote with apost-comma-apost, get rid of all quotes, then split on apost-comma-apost.  this retains jpg-jp list structure while splitting on columns properly
 			        String[] vals = datStr.replace("\",\"","','").replace("\"","").split("','");
 			        if(vals.length < 2) {
-			        	if(debug) {mapMgr.dispMessage("StraffordDataLoader","streamCSVDataAndBuildStructs","!!!!!!!!!" +destAraDataKey+ " has bad entry at "+line+" lacking required jp list : " + datStr, MsgCodes.warning1);}
+			        	if(debug) {mapMgr.msgObj.dispMessage("StraffordDataLoader","streamCSVDataAndBuildStructs","!!!!!!!!!" +destAraDataKey+ " has bad entry at "+line+" lacking required jp list : " + datStr, MsgCodes.warning1);}
 			    		++badEntries;			    				        	
 			        } else {
 			        	addObjToDAra(dAra, vals, "", hasJson);
 			        }
 		    	}
 		        ++line;		        
-		        if (line % 100000 == 0) {mapMgr.dispMessage("StraffordDataLoader","streamCSVDataAndBuildStructs","" +destAraDataKey+ " Finished line : "+line, MsgCodes.info3); 	}
+		        if (line % 100000 == 0) {mapMgr.msgObj.dispMessage("StraffordDataLoader","streamCSVDataAndBuildStructs","" +destAraDataKey+ " Finished line : "+line, MsgCodes.info3); 	}
 		    }
 		    //Scanner suppresses exceptions
 		    if (sc.ioException() != null) { throw sc.ioException(); }
@@ -136,13 +141,13 @@ public abstract class StraffordDataLoader implements Callable<Boolean> {
 		    if (inputStream != null) {inputStream.close();		    }
 		    if (sc != null) { sc.close();		    }
 		}
-		mapMgr.dispMessage("StraffordDataLoader","streamCSVDataAndBuildStructs","Finished loading "+ fileNameAndPath + " With "+badEntries+" bad/missing json entries and " + dAra.size() + " good records.", MsgCodes.info5);
+		mapMgr.msgObj.dispMessage("StraffordDataLoader","streamCSVDataAndBuildStructs","Finished loading "+ fileNameAndPath + " With "+badEntries+" bad/missing json entries and " + dAra.size() + " good records.", MsgCodes.info5);
 	}//loadFileContents
 
 	private void addObjToDAra(ArrayList<BaseRawData> dAra, String[] vals, String jsonStr, boolean hasJson) {
         BaseRawData obj = parseStringToObj(vals, jsonStr, hasJson);
         if (obj.isBadRec) {
-        	if(debug) {mapMgr.dispMessage("StraffordDataLoader","addObjToDAra","" +destAraDataKey+ " : " + obj.toString() + " is a useless record due to " + obj.getWhyBadRed() + ".  Record is Ignored.", MsgCodes.info3);}
+        	if(debug) {mapMgr.msgObj.dispMessage("StraffordDataLoader","addObjToDAra","" +destAraDataKey+ " : " + obj.toString() + " is a useless record due to " + obj.getWhyBadRed() + ".  Record is Ignored.", MsgCodes.info3);}
         } else {
         	dAra.add(obj);
         }		
@@ -153,13 +158,13 @@ public abstract class StraffordDataLoader implements Callable<Boolean> {
 	}
 	@Override
 	public Boolean call() throws Exception {	
-		mapMgr.dispMessage("StraffordDataLoader","call() : ","Start loading "+ fileNameAndPath, MsgCodes.info5);
+		mapMgr.msgObj.dispMessage("StraffordDataLoader","call() : ","Start loading "+ fileNameAndPath, MsgCodes.info5);
 		//execute load, take load results and add to mapData.rawDataArrays
 		ArrayList<BaseRawData> dataObjs = execLoad();
 		//add to map - overridden by classes that have multiple source file names
 		addResToMap(dataObjs);
 		//set boolean in mapData to mark that this is finished
-		mapMgr.setFlag(isDoneMapDataIDX, true);
+		mapMgr.setPrivFlag(isDoneMapDataIDX, true);
 		return true;
 	}//call launches this loader - when finished will return true
 		
@@ -301,7 +306,7 @@ abstract class BaseRawData {
 		if (hasJson) {
 			try {jsonMap = _mapper.readValue(_json,new TypeReference<Map<String,Object>>(){});}
 			catch (Exception e) {
-				mapMgr.dispMessage("BaseRawData","constructor","Bad " +TypeOfData +" record (corrupted JSON) with OID : " + OID +"!!!! Record will be ignored.", MsgCodes.error1);
+				mapMgr.msgObj.dispMessage("BaseRawData","constructor","Bad " +TypeOfData +" record (corrupted JSON) with OID : " + OID +"!!!! Record will be ignored.", MsgCodes.error1);
 				//e.printStackTrace(); 
 				isBadRec = true;
 			}
@@ -480,7 +485,7 @@ class prospectData extends BaseRawData {
 				luDateStr = dscrObject.mapOfRelevantJson.get(scndryDateKeyInJSON).toString();
 				if(luDateStr.length() > 0) {luDate = BaseRawData.buildDateFromString(luDateStr);}
 				else {				
-					mapMgr.dispMessage("prospectData","constructor"," No existing appropriate date for record id : " + _id + " json string " + _json, MsgCodes.error1);
+					mapMgr.msgObj.dispMessage("prospectData","constructor"," No existing appropriate date for record id : " + _id + " json string " + _json, MsgCodes.error1);
 					//isEmptyPrspctRec = jpsList.length() - 2 == 0;//if jpsList is length 2, then no jps in this record, and no last update means this record has very little pertinent data-neither a date nor a jp associated with it
 					isBadRec = true;
 				}
@@ -491,7 +496,7 @@ class prospectData extends BaseRawData {
 		}
 
 //		if (null==jpsList) {
-//			mapMgr.dispMessage("prospectData","constructor"," Null jpsList for json string " + _json, MsgCodes.error1);
+//			mapMgr.msgObj.dispMessage("prospectData","constructor"," Null jpsList for json string " + _json, MsgCodes.error1);
 //		} else {
 //			rawJpMapOfArrays = dscrObject.convertToJpgJps(jpsList);			
 //		}
@@ -830,13 +835,13 @@ abstract class jsonDescr{
 		mapOfRelevantJson= new HashMap<String,Object>();
 		for (String key : _keysToMatchExact) {
 			Object obj = _mapOfJson.get(key);
-			if (null == obj) {mapMgr.dispMessage("jsonDescr","constructor"," Key : " + key + " Not found in JSON Map", MsgCodes.error1); continue;}
+			if (null == obj) {mapMgr.msgObj.dispMessage("jsonDescr","constructor"," Key : " + key + " Not found in JSON Map", MsgCodes.error1); continue;}
 			mapOfRelevantJson.put(key,obj);
 		}		
 		//for (String key : _mapOfJson.keySet()) {if (isRelevantKeyExact(key,_keysToMatchExact)) {mapOfRelevantJson.put(key, _mapOfJson.get(key));}}		
 	}//ctor
 	
-	public void dbgDispJsonVals() {for (String key : mapOfRelevantJson.keySet()) {mapMgr.dispMessage("jsonDescr","dbgDispJsonVals","Relevant json entries : " + key + " | Val : --" + mapOfRelevantJson.get(key)+"--", MsgCodes.info1);}	}
+	public void dbgDispJsonVals() {for (String key : mapOfRelevantJson.keySet()) {mapMgr.msgObj.dispMessage("jsonDescr","dbgDispJsonVals","Relevant json entries : " + key + " | Val : --" + mapOfRelevantJson.get(key)+"--", MsgCodes.info1);}	}
 		
 	//convert will convert string to map of jpg-keyed arrays of jps
 	protected abstract TreeMap<Integer, ArrayList<Integer>> convertToJpgJps(String jpAras);
