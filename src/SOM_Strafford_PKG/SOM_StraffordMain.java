@@ -1,6 +1,5 @@
 package SOM_Strafford_PKG;
 
-import java.awt.event.KeyEvent;
 import java.io.File;
 import java.nio.file.*;
 import java.util.*;
@@ -9,8 +8,6 @@ import java.util.concurrent.*;			//used for threading
 import UI.*;
 import Utils.*;
 import processing.core.*;
-import processing.event.MouseEvent;
-import processing.opengl.*;
 /**
  * Testbed to visually inspect and verify results from Strafford prospect mapping to a SOM
  * 
@@ -38,6 +35,37 @@ public class SOM_StraffordMain extends my_procApplet {
 	//holds training data
 	public boolean init = false; 
 	
+	//2D, 3D
+	private myVector[] sceneFcsValsBase = new myVector[]{						//set these values to be different targets of focus
+			new myVector(-grid2D_X/2,-grid2D_Y/1.75f,0),
+			new myVector(0,0,0)
+	};
+	//2D, 3D
+	private myPoint[] sceneCtrValsBase = new myPoint[]{				//set these values to be different display center translations -
+		new myPoint(0,0,0),										// to be used to calculate mouse offset in world for pick
+		new myPoint(-gridDimX/2.0,-gridDimY/2.0,-gridDimZ/2.0)
+	};
+	
+	
+	public myVector[] cameraInitLocs = new myVector[]{						//set these values to be different initial camera locations based on 2d or 3d
+			new myVector(camInitRx,camInitRy,camInitialDist),
+			new myVector(camInitRx,camInitRy,camInitialDist),
+			new myVector(-0.47f,-0.61f,-gridDimZ*.25f)			
+	};
+	
+	private int[] visFlags;
+	public final int
+		showUIMenu = 0,
+		showSOMMapUI = 1;
+	public final int numVisFlags = 2;
+	
+	//idx's in dispWinFrames for each window - 0 is always left side menu window
+	public static final int	dispSOMMapIDX = 1;	
+																		//set array of vector values (sceneFcsVals) based on application
+	//private boolean cyclModCmp;										//comparison every draw of cycleModDraw			
+	public final int[] bground = new int[]{244,244,244,255};		//bground color
+	private PShape bgrndSphere;										//giant sphere encapsulating entire scene
+
 
 ///////////////
 //CODE STARTS
@@ -45,7 +73,7 @@ public class SOM_StraffordMain extends my_procApplet {
 	//////////////////////////////////////////////// code
 	public static void main(String[] passedArgs) {		
 		String[] appletArgs = new String[] { "SOM_Strafford_PKG.SOM_StraffordMain" };
-		    if (passedArgs != null) {PApplet.main(PApplet.concat(appletArgs, passedArgs)); } else {PApplet.main(appletArgs);		    }
+	    if (passedArgs != null) {PApplet.main(PApplet.concat(appletArgs, passedArgs)); } else {PApplet.main(appletArgs);		    }
 	}//main
 	public void settings(){
 		size((int)(displayWidth*.95f), (int)(displayHeight*.92f),P3D);
@@ -55,11 +83,8 @@ public class SOM_StraffordMain extends my_procApplet {
 	public void setup() {
 		colorMode(RGB, 255, 255, 255, 255);
 		frameRate(frate);
-		if(useSphereBKGnd) {
-			setBkgndSphere();
-		} else {
-			setBkgrnd();
-		}
+		if(useSphereBKGnd) {			setBkgndSphere();		} 
+		else {			setBkgrnd();		}
 		initVisOnce();
 		//call this in first draw loop?
 		initOnce();
@@ -165,17 +190,7 @@ public class SOM_StraffordMain extends my_procApplet {
 	
 	//if should show problem # i
 	public boolean isShowingWindow(int i){return getVisFlag((i+this.showUIMenu));}//showUIMenu is first flag of window showing flags
-	public void drawUI(float modAmtMillis){					
-		//for(int i =1; i<numDispWins; ++i){if ( !(dispWinFrames[i].dispFlags[myDispWindow.is3DWin])){dispWinFrames[i].draw(sceneCtrVals[sceneIDX]);}}
-		//dispWinFrames[0].draw(sceneCtrVals[sceneIDX]);
-		for(int i =1; i<numDispWins; ++i){dispWinFrames[i].drawHeader(modAmtMillis);}
-		//menu always idx 0
-		dispWinFrames[0].draw2D(modAmtMillis);
-		dispWinFrames[0].drawHeader(modAmtMillis);
-		drawOnScreenData();				//debug and on-screen data
-	}//drawUI	
-
-
+	
 	//handle pressing keys 0-9
 	//keyVal is actual value of key (screen character as int)
 	//keyPressed is actual key pressed (shift-1 gives keyVal 33 ('!') but keyPressed 49 ('1')) 
@@ -207,14 +222,23 @@ public class SOM_StraffordMain extends my_procApplet {
 					case 'a' :
 					case 'A' : {toggleSaveAnim();break;}						//start/stop saving every frame for making into animation
 					case 's' :
-					case 'S' : {save(sketchPath() +File.separatorChar+prjNmShrt+"_"+dateStr+File.separatorChar+prjNmShrt+"_img"+timeStr + ".jpg");break;}//save picture of current image			
+					case 'S' : {save(getScreenShotSaveName(prjNmShrt));break;}//save picture of current image			
 					default : {	}
 				}//switch	
 			}
 		}
+	}//keyPressed()
+
+	@Override
+	//gives multiplier based on whether shift, alt or cntl (or any combo) is pressed
+	public double clickValModMult(){return ((altIsPressed() ? .1 : 1.0) * (shiftIsPressed() ? 10.0 : 1.0));}	
+	//keys/criteria are present that means UI objects are modified by set values based on clicks (as opposed to dragging for variable values)
+	//to facilitate UI interaction non-mouse computers, set these to be single keys
+	@Override
+	public boolean isClickModUIVal() {
+		//TODO change this to manage other key settings for situations where multiple simultaneous key presses are not optimal or conventient
+		return altIsPressed() || shiftIsPressed();		
 	}
-
-
 	
 	@Override
 	//these tie using the UI buttons to modify the window in with using the boolean tags - PITA but currently necessary
@@ -296,40 +320,6 @@ public class SOM_StraffordMain extends my_procApplet {
 	//////////////////////////////////////////
 	/// graphics and base functionality utilities and variables
 	//////////////////////////////////////////
-	
-	
-	//2D, 3D
-	private myVector[] sceneFcsValsBase = new myVector[]{						//set these values to be different targets of focus
-			new myVector(-grid2D_X/2,-grid2D_Y/1.75f,0),
-			new myVector(0,0,0)
-	};
-	//2D, 3D
-	private myPoint[] sceneCtrValsBase = new myPoint[]{				//set these values to be different display center translations -
-		new myPoint(0,0,0),										// to be used to calculate mouse offset in world for pick
-		new myPoint(-gridDimX/2.0,-gridDimY/2.0,-gridDimZ/2.0)
-	};
-	
-	
-	public myVector[] cameraInitLocs = new myVector[]{						//set these values to be different initial camera locations based on 2d or 3d
-			new myVector(camInitRx,camInitRy,camInitialDist),
-			new myVector(camInitRx,camInitRy,camInitialDist),
-			new myVector(-0.47f,-0.61f,-gridDimZ*.25f)			
-	};
-	
-	private int[] visFlags;
-	public final int
-		showUIMenu = 0,
-		showSOMMapUI = 1;
-	public final int numVisFlags = 2;
-	
-	//idx's in dispWinFrames for each window - 0 is always left side menu window
-	public static final int	dispSOMMapIDX = 1;	
-
-	public boolean showInfo;										//whether or not to show start up instructions for code		
-																		//set array of vector values (sceneFcsVals) based on application
-	//private boolean cyclModCmp;										//comparison every draw of cycleModDraw			
-	public final int[] bground = new int[]{244,244,244,255};		//bground color
-	private PShape bgrndSphere;										//giant sphere encapsulating entire scene
 
 	@Override
 	protected  void initVisOnce_Priv() {
@@ -406,33 +396,6 @@ public class SOM_StraffordMain extends my_procApplet {
 	
 //	//set flags appropriately when only 1 can be true 
 //	public void setFlagsXOR(int tIdx, int[] fIdx){for(int i =0;i<fIdx.length;++i){if(tIdx != fIdx[i]){flags[fIdx[i]] =false;}}}						
-
-
-	//use current display window's fill color for text color
-	public void drawOnScreenData(){
-		if(isDebugMode()){
-			pushMatrix();pushStyle();			
-			reInitInfoStr();
-			addInfoStr(0,"mse loc on screen : " + new myPoint(mouseX, mouseY,0) + " mse loc in world :"+c.mseLoc +"  Eye loc in world :"+ c.eyeInWorld+ dispWinFrames[curFocusWin].getCamDisp());//" camera rx :  " + rx + " ry : " + ry + " dz : " + dz);
-			String[] res = ((mySideBarMenu)dispWinFrames[dispMenuIDX]).getDebugData();		//get debug data for each UI object
-			int numToPrint = min(res.length,80);
-			for(int s=0;s<numToPrint;++s) {	addInfoStr(res[s]);}				//add info to string to be displayed for debug
-			drawInfoStr(1.0f, dispWinFrames[curFocusWin].strkClr); 	
-			popStyle();	popMatrix();		
-		}
-		else if(showInfo){
-			pushMatrix();pushStyle();			
-			reInitInfoStr();	
-			String[] res = consoleStrings.toArray(new String[0]);
-			int dispNum = min(res.length, 80);
-			for(int i=0;i<dispNum;++i){addInfoStr(res[i]);}
-		    drawInfoStr(1.1f, dispWinFrames[curFocusWin].strkClr); 
-			popStyle();	popMatrix();	
-		}
-	}//drawOnScreenData
-		
-
-	
 
 
 }//class SOM_StraffordMain

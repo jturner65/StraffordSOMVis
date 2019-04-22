@@ -32,7 +32,7 @@ public class SOMDataLoader implements Runnable {
 	
 	public SOMDataLoader(SOMMapManager _mapMgr, SOMProjConfigData _configData) {
 		mapMgr = _mapMgr; 
-		msgObj = new messageObject(mapMgr);
+		msgObj = mapMgr.buildMsgObj();
 		fileIO = new FileIOManager(msgObj,"SOMDataLoader");
 		projConfigData = _configData;
 	}
@@ -250,7 +250,7 @@ public class SOMDataLoader implements Runnable {
 			List<Future<Boolean>> bmuDataBldFtrs;
 			List<SOMExBMULoader> bmuDataLoaders = new ArrayList<SOMExBMULoader>();
 			////////////////////
-			for(int i=0;i<numThds;++i) {bmuDataLoaders.add(new SOMExBMULoader(new messageObject(mapMgr),ftrTypeUsedToTrain,useChiSqDist, bmusToExs[i],i));	}
+			for(int i=0;i<numThds;++i) {bmuDataLoaders.add(new SOMExBMULoader(mapMgr.buildMsgObj(),ftrTypeUsedToTrain,useChiSqDist, bmusToExs[i],i));	}
 			try {bmuDataBldFtrs = mapMgr.getTh_Exec().invokeAll(bmuDataLoaders);for(Future<Boolean> f: bmuDataBldFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }		
 		} else {		
 			//below is the slowest section of this code - to improve performance this part should be multithreaded
@@ -440,7 +440,7 @@ class mapTestDataToBMUs implements Callable<Boolean>{
 
 	public mapTestDataToBMUs(SOMMapManager _mapMgr, int _stProdIDX, int _endProdIDX, SOMExample[] _exs, int _thdIDX, String _type, boolean _useChiSqDist) {
 		mapMgr = _mapMgr;
-		msgObj = new messageObject(mapMgr);
+		msgObj = mapMgr.buildMsgObj();
 		stIdx = _stProdIDX;
 		endIdx = _endProdIDX;
 		thdIDX= _thdIDX;
@@ -479,7 +479,7 @@ class mapProductDataToBMUs implements Callable<Boolean>{
 
 	public mapProductDataToBMUs(SOMMapManager _mapMgr, int _stProdIDX, int _endProdIDX, ProductExample[] _exs, int _thdIDX, boolean _useChiSqDist) {
 		mapMgr = _mapMgr;
-		msgObj = new messageObject(mapMgr);
+		msgObj = mapMgr.buildMsgObj();
 		stIdx = _stProdIDX;
 		endIdx = _endProdIDX;
 		thdIDX= _thdIDX;
@@ -525,7 +525,7 @@ class SOMFtrMapVisImgBuilder implements Callable<Boolean>{
 	private TreeMap<Tuple<Integer,Integer>, SOMMapNode> MapNodes;
 	private PImage[] mapLocClrImg;
 	public SOMFtrMapVisImgBuilder(SOMMapManager _mapMgr, PImage[] _mapLocClrImg, int[] _xVals, int[] _yVals,  float _mapScaleVal) {
-		msgObj= new messageObject(_mapMgr);
+		msgObj= _mapMgr.buildMsgObj();
 		MapNodes = _mapMgr.MapNodes;
 		ftrType = _mapMgr.getCurrentTrainDataFormat();
 		mapLocClrImg = _mapLocClrImg;
@@ -638,7 +638,7 @@ abstract class SOMExCSVDataLoader implements Callable<Boolean>{
 	protected String type;
 	public SOMExCSVDataLoader(SOMMapManager _mapMgr, int _thdIDX, String _fileName, String _yStr, String _nStr, ConcurrentSkipListMap<String, SOMExample> _mapToAddTo) {	
 		mapMgr=_mapMgr;
-		msgObj=new messageObject(_mapMgr);thdIDX=_thdIDX;fileName=_fileName;dispYesStr=_yStr;dispNoStr=_nStr; 
+		msgObj=mapMgr.buildMsgObj();thdIDX=_thdIDX;fileName=_fileName;dispYesStr=_yStr;dispNoStr=_nStr; 
 		mapToAddTo = _mapToAddTo;
 		fileIO = new FileIOManager(msgObj,"SOMExCSVDataLoader TH_IDX_"+thdIDX);
 		type="";
@@ -695,7 +695,7 @@ class straffDataWriter implements Callable<Boolean>{
 	private FileIOManager fileIO;
 	
 	public straffDataWriter(SOMMapManager _mapData, int _dataFrmt, int _numTrainFtrs, String _fileName, String _savFileFrmt, SOMExample[] _exAra) {
-		mapMgr = _mapData; msgObj = mapMgr.msgObj;
+		mapMgr = _mapData; msgObj = mapMgr.buildMsgObj();
 		dataFrmt = _dataFrmt;		//either unmodified, standardized or normalized -> 0,1,2
 		exAra = _exAra;
 		numFtrs = _numTrainFtrs;

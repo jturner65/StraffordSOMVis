@@ -16,7 +16,7 @@ import Utils.myPointf;
 /**
  * NOTE : None of the data types in this file are thread safe so do not allow for opportunities for concurrent modification
  * of any instanced object in this file. This decision was made for speed concerns - 
- * concurrency-protected objects have high overhead that proved greater than any gains in 10 execution threads.
+ * concurrency-protected objects have high overhead that proved greater penalty than any gains in 10 execution threads.
  * 
  * All multithreaded access of these objects should be designed such that any individual object is only accessed by 
  * a single thread.
@@ -33,8 +33,6 @@ import Utils.myPointf;
 public abstract class StraffSOMExample extends SOMExample{
 	//reference to jp-jpg mapping/managing object
 	protected static MonitorJpJpgrp jpJpgMon;
-	//all jps seen in all occurrence structures - NOT IDX IN FEATURE VECTOR!
-	//protected HashSet<Integer> allJPs;
 	
 	//all jps in this example that correspond to actual products.
 	//products are used for training vectors - these will be used to build feature vector used by SOM
@@ -48,8 +46,9 @@ public abstract class StraffSOMExample extends SOMExample{
 	
 	//alternate comparison structure - used in conjunction with ftrVec of chosen format
 	//use a map to hold only sparse data of each frmt for feature vector
-	protected TreeMap<Integer, Float>[] compValMaps;	
-	
+	//each array element map corresponds to a type of ftr map - ftr, norm and std
+	//each map has key == to _jpg_ and value == multiplier
+	protected TreeMap<Integer, Float>[] compValMaps;		
 
 	//idxs corresponding to types of events
 	
@@ -127,7 +126,7 @@ public abstract class StraffSOMExample extends SOMExample{
 		allNonZeroFtrIDXs = new ArrayList<Integer>();
 		for(Integer jp : allProdJPs) {
 			Integer jpIDX = jpJpgMon.getJpToFtrIDX(jp);
-			if(jpIDX==null) {mapMgr.msgObj.dispMessage("StraffSOMExample","buildAllNonZeroFtrIDXs","ERROR!  null value in jpJpgMon.getJpToFtrIDX("+jp+")", MsgCodes.error2 ); }
+			if(jpIDX==null) {msgObj.dispMessage("StraffSOMExample","buildAllNonZeroFtrIDXs","ERROR!  null value in jpJpgMon.getJpToFtrIDX("+jp+")", MsgCodes.error2 ); }
 			else {allNonZeroFtrIDXs.add(jpIDX);}
 		}
 	}//buildAllNonZeroFtrIDXs (was buildAllJPFtrIDXsJPs)
@@ -155,13 +154,18 @@ abstract class prospectExample extends StraffSOMExample{
 	protected TreeMap<String, TreeMap<Integer, jpOccurrenceData>> JpOccurrences;
 	//may have multiple events on same date/time, map by event ID 	
 	protected TreeMap<String, TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>>> eventsByDateMap;	
+	//sets of existing, production jps for jpgroups seen in non-prod jps (may be present in prod jps as well, in fact better be);
+	protected TreeMap<Integer, TreeSet<Integer>> prodJPsForNonProdJPGroups;
+
 	
 	//this object denotes a positive or non-positive opt-all event for a user (i.e. an opts occurrence with a jp of -9)
 	private jpOccurrenceData posOptAllEventObj = null, negOptAllEventObj = null;
-
+	
 	//build this object based on prospectData object from raw data
 	public prospectExample(SOMMapManager _map, ExDataType _type, prospectData _prspctData) {
 		super(_map,_type,_prspctData.OID);	
+		prodJPsForNonProdJPGroups = new TreeMap<Integer, TreeSet<Integer>>();
+
 		initObjsData();
 		prs_LUDate = _prspctData.getDate();
 	}//prospectData ctor
@@ -169,6 +173,8 @@ abstract class prospectExample extends StraffSOMExample{
 	//build this object based on csv string - rebuild data from csv string columns 4+
 	public prospectExample(SOMMapManager _map, ExDataType _type, String _OID, String _csvDataStr) {
 		super(_map,_type,_OID);		
+		prodJPsForNonProdJPGroups = new TreeMap<Integer, TreeSet<Integer>>();
+
 		initObjsData();	
 		String[] dataAra = _csvDataStr.split(",");
 		//idx 0 : OID; idx 1 : date
@@ -187,6 +193,7 @@ abstract class prospectExample extends StraffSOMExample{
 		eventsByDateMap = _otr.eventsByDateMap;
 		posOptAllEventObj = _otr.posOptAllEventObj;
 		negOptAllEventObj = _otr.negOptAllEventObj;
+		prodJPsForNonProdJPGroups = _otr.prodJPsForNonProdJPGroups;
 	}//copy ctor	
 	
 	//return configuration of expected counts of different events as stored in this example
@@ -333,7 +340,7 @@ abstract class prospectExample extends StraffSOMExample{
 	//return occurence map
 	public TreeMap<Integer, jpOccurrenceData> getOcccurenceMap(String key) {
 		TreeMap<Integer, jpOccurrenceData> res = JpOccurrences.get(key);
-		if (res==null) {mapMgr.msgObj.dispMessage("ProspectExample","getOcccurenceMap","JpOccurrences map does not have key : " + key, MsgCodes.warning2); return null;}
+		if (res==null) {msgObj.dispMessage("ProspectExample","getOcccurenceMap","JpOccurrences map does not have key : " + key, MsgCodes.warning2); return null;}
 		return res;
 	}
 	
@@ -401,11 +408,14 @@ abstract class prospectExample extends StraffSOMExample{
 		//build allprodJps from allJps
 		allProdJPs = new HashSet<Integer>();
 		nonProdJpgJps = new HashSet<Tuple<Integer,Integer>>();
+		prodJPsForNonProdJPGroups = new TreeMap<Integer, TreeSet<Integer>>();
 		for(Tuple<Integer,Integer> jpgJp : alljpgjps) {
 			Integer jp = jpgJp.y;
 			Integer jpIDX = jpJpgMon.getJpToFtrIDX(jp);
-			if(jpIDX==null) {nonProdJpgJps.add(jpgJp);}
-			else {allProdJPs.add(jp);}
+			if(jpIDX==null) {
+				nonProdJpgJps.add(jpgJp); 
+				prodJPsForNonProdJPGroups.put(jpgJp.x, jpJpgMon.getProdJPsforSpecifiedJpgrp(jpgJp.x));
+			} else {allProdJPs.add(jp);}
 		}		
 	}//buildJPListsAndSetBadExample
 
@@ -546,12 +556,12 @@ class custProspectExample extends prospectExample{
 	//add event data to this customer prospect
 	public void addEventObj(BaseRawData obj, int type) {
 		switch(type) {
-		case StraffSOMMapManager.prspctIDX 	: 	{mapMgr.msgObj.dispMessage("custProspectExample","addObj","ERROR attempting to add prospect raw data as event data. Ignored", MsgCodes.error2);return;}
-		case StraffSOMMapManager.orderEvntIDX : 	{		addDataToTrainMap((OrderEvent)obj,eventsByDateMap.get(eventMapTypeKeys[0]), EvtDataType.Order); 		return;}
-		case StraffSOMMapManager.optEvntIDX 	: 	{		addDataToTrainMap((OptEvent)obj,eventsByDateMap.get(eventMapTypeKeys[1]), EvtDataType.Opt); 		return;}
-		case StraffSOMMapManager.linkEvntIDX 	: 	{		addDataToTrainMap((LinkEvent)obj,eventsByDateMap.get(eventMapTypeKeys[2]), EvtDataType.Link); 		return;}
-		case StraffSOMMapManager.srcEvntIDX 	: 	{		addDataToTrainMap((SourceEvent)obj,eventsByDateMap.get(eventMapTypeKeys[3]), EvtDataType.Source); 		return;}
-		default :{mapMgr.msgObj.dispMessage("custProspectExample","addObj","ERROR attempting to add unknown raw data type : " + type + " as event data. Ignored", MsgCodes.error2);return;}
+		case StraffSOMRawDataLdrCnvrtr.prspctIDX 	: 	{msgObj.dispMessage("custProspectExample","addObj","ERROR attempting to add prospect raw data as event data. Ignored", MsgCodes.error2);return;}
+		case StraffSOMRawDataLdrCnvrtr.orderEvntIDX : 	{		addDataToTrainMap((OrderEvent)obj,eventsByDateMap.get(eventMapTypeKeys[0]), EvtDataType.Order); 		return;}
+		case StraffSOMRawDataLdrCnvrtr.optEvntIDX 	: 	{		addDataToTrainMap((OptEvent)obj,eventsByDateMap.get(eventMapTypeKeys[1]), EvtDataType.Opt); 		return;}
+		case StraffSOMRawDataLdrCnvrtr.linkEvntIDX 	: 	{		addDataToTrainMap((LinkEvent)obj,eventsByDateMap.get(eventMapTypeKeys[2]), EvtDataType.Link); 		return;}
+		case StraffSOMRawDataLdrCnvrtr.srcEvntIDX 	: 	{		addDataToTrainMap((SourceEvent)obj,eventsByDateMap.get(eventMapTypeKeys[3]), EvtDataType.Source); 		return;}
+		default :{msgObj.dispMessage("custProspectExample","addObj","ERROR attempting to add unknown raw data type : " + type + " as event data. Ignored", MsgCodes.error2);return;}
 		}		
 	}//addObj
 	
@@ -585,13 +595,24 @@ class custProspectExample extends prospectExample{
     //take loaded data and convert to feature data via calc object
 	@Override
 	protected void buildFeaturesMap() {
-		//access calc object
-		if (allProdJPs.size() > 0) {
-			ftrMaps[ftrMapTypeKey] = ((StraffSOMMapManager)mapMgr).ftrCalcObj.calcTrainFtrVec(this,allProdJPs,JpOccurrences.get("orders"), JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"));
+		//access calc object		
+		if (allProdJPs.size() > 0) {			
+			StraffWeightCalc calc = ((StraffSOMMapManager)mapMgr).ftrCalcObj;
+			ftrMaps[ftrMapTypeKey] = calc.calcTrainFtrVec(this,allProdJPs,JpOccurrences.get("orders"), JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"));			
 		}
 		else {ftrMaps[ftrMapTypeKey] = new TreeMap<Integer, Float>();}
 		//now, if there's a non-null posOptAllEventObj then for all jps who haven't gotten an opt conribution to calculation, add positive opt-all result
 	}//buildFeaturesMap
+	
+	@Override
+	//called after all features of this kind of object are built
+	public void postFtrVecBuild() {
+		if(nonProdJpgJps.size() > 0) {
+			StraffWeightCalc calc = ((StraffSOMMapManager)mapMgr).ftrCalcObj;
+			compValMaps[ftrMapTypeKey] = calc.calcTrainFtrCompareObj(this,allProdJPs,nonProdJpgJps,prodJPsForNonProdJPGroups, JpOccurrences.get("orders"), JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"));
+		} 
+		else {compValMaps[ftrMapTypeKey] =  new TreeMap<Integer, Float>(); }
+	}//postFtrVecBuild
 
 	@Override
 	public String toString() {	
@@ -667,10 +688,11 @@ class trueProspectExample extends prospectExample{
 	@Override
 	protected void buildFeaturesMap() {	//TODO do we wish to modify this for prospects?  probably
 		//access calc object
-		if (allProdJPs.size() > 0) {//getting from orders should yield empty list, might yield null
-			ftrMaps[ftrMapTypeKey] = ((StraffSOMMapManager)mapMgr).ftrCalcObj.calcTPFtrVec(this,allProdJPs, JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"));
+		if (allProdJPs.size() > 0) {//getting from orders should yield empty list, might yield null - has no order occurrences by definition	
+			StraffWeightCalc calc = ((StraffSOMMapManager)mapMgr).ftrCalcObj;
+			ftrMaps[ftrMapTypeKey] = calc.calcTruePrspctFtrVec(this,allProdJPs, JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"));			
 		}
-		else {ftrMaps[ftrMapTypeKey] = new TreeMap<Integer, Float>();}
+		else {ftrMaps[ftrMapTypeKey] = new TreeMap<Integer, Float>(); }
 		//now, if there's a non-null posOptAllEventObj then for all jps who haven't gotten an opt conribution to calculation, add positive opt-all result
 	}//buildFeaturesMap	
 
@@ -696,6 +718,18 @@ class trueProspectExample extends prospectExample{
 		//allprodjps holds all jps in this example based on occurences that will be used in training; will not reference jps implied by opt-all records
 		buildJPListsAndSetBadExample();
 	}//finalize
+	
+	@Override
+	//called after all features of this kind of object are built
+	public void postFtrVecBuild() {
+		if(nonProdJpgJps.size() > 0) {
+			StraffWeightCalc calc = ((StraffSOMMapManager)mapMgr).ftrCalcObj;
+			compValMaps[ftrMapTypeKey] = calc.calcTruePrspctCompareObj(this,allProdJPs,nonProdJpgJps, prodJPsForNonProdJPGroups, JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"));
+		} 
+		else {compValMaps[ftrMapTypeKey] =  new TreeMap<Integer, Float>(); }
+		
+	}//postFtrVecBuild
+
 
 	//column names for raw descriptorCSV output
 	@Override
@@ -843,7 +877,7 @@ class ProductExample extends StraffSOMExample{
 		return res;
 	}//getMinMaxDists
 	@Override
-	protected void setIsTrainingDataIDX_Priv() { mapMgr.msgObj.dispMessage("ProductExample","setIsTrainingDataIDX_Priv","Calling inappropriate setIsTrainingDataIDX_Priv for ProductExample - should never have training index set.", MsgCodes.warning2);	}//products are never going to be training examples
+	protected void setIsTrainingDataIDX_Priv() { msgObj.dispMessage("ProductExample","setIsTrainingDataIDX_Priv","Calling inappropriate setIsTrainingDataIDX_Priv for ProductExample - should never have training index set.", MsgCodes.warning2);	}//products are never going to be training examples
 
 	@Override
 	public void finalizeBuild() {		allProdJPs = trainPrdctData.getAllJpsInData();	}
@@ -859,6 +893,9 @@ class ProductExample extends StraffSOMExample{
 		//features and std ftrs should be the same, since we only assign a 1 to values that are present
 		buildStdFtrsMap();
 	}//_PostBuildFtrVec_Priv
+	@Override
+	//called after all features of this kind of object are built
+	public void postFtrVecBuild() {}
 
 	
 	//required info for this example to build feature data  - this is ignored. these objects can be rebuilt on demand.
@@ -1005,7 +1042,7 @@ class ProductExample extends StraffSOMExample{
 		int numJPs = orderMap.size();
 		//verify # of jps as expected
 		if (numJPs != allNonZeroFtrIDXs.size()) {	
-			mapMgr.msgObj.dispMessage("ProductExample", "buildFeaturesMap", "Problem with size of expected jps from trainPrdctData vs. allJPFtrIDXs : trainPrdctData says # jps == " +numJPs + " | allJPFtrIDXs.size() == " +allNonZeroFtrIDXs.size(), MsgCodes.warning2);
+			msgObj.dispMessage("ProductExample", "buildFeaturesMap", "Problem with size of expected jps from trainPrdctData vs. allJPFtrIDXs : trainPrdctData says # jps == " +numJPs + " | allJPFtrIDXs.size() == " +allNonZeroFtrIDXs.size(), MsgCodes.warning2);
 		}
 		if(numJPs == 1) {
 			Integer ftrIDX = allNonZeroFtrIDXs.get(0);
@@ -1104,7 +1141,10 @@ class StraffSOMMapNode extends SOMMapNode{
 
 	@Override
 	protected void _PostBuildFtrVec_Priv() {}
-	
+	@Override
+	//called after all features of this kind of object are built
+	public void postFtrVecBuild() {}
+
 
 	@Override
 	protected String dispFtrVal(TreeMap<Integer, Float> ftrs, Integer i) {
@@ -1202,6 +1242,9 @@ class DispSOMMapExample extends StraffSOMExample{
 
 	@Override
 	public void finalizeBuild() {}
+	@Override
+	//called after all features of this kind of object are built
+	public void postFtrVecBuild() {}
 
 	public void drawMeLblMap(SOM_StraffordMain p){
 		p.pushMatrix();p.pushStyle();

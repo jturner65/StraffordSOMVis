@@ -27,7 +27,7 @@ public abstract class SOMMapManager {
 	//struct maintaining complete project configuration and information from config files - all file name data and building needs to be done by this object
 	public SOMProjConfigData projConfigData;	
 	//object to manage messages for display and potentially logging
-	public messageObject msgObj;
+	protected messageObject msgObj;
 	//////////////////////////////
 	//map descriptors
 	
@@ -108,11 +108,12 @@ public abstract class SOMMapManager {
 
 	public SOMMapManager(mySOMMapUIWin _win, ExecutorService _th_exec, float[] _dims) {
 		pa=null;//assigned by win if it exists
-		win=_win;
-		//fileIO is used to load and save info from/to local files except for the raw data loading, which has its own handling
-		fileIO = new FileIOManager(new messageObject(this),"SOMMapManager");
+		win=_win;		
 		//message object manages displaying to screen and potentially to log files
-		msgObj = new messageObject(this);
+		long mapMgrBuiltTime  = Instant.now().toEpochMilli();
+		msgObj = new messageObject(this,mapMgrBuiltTime);
+		//fileIO is used to load and save info from/to local files except for the raw data loading, which has its own handling
+		fileIO = new FileIOManager(new messageObject(msgObj),"SOMMapManager");
 		//want # of usable background threads.  Leave 2 for primary process (and potential draw loop)
 		numUsableThreads = Runtime.getRuntime().availableProcessors() - 2;
 		th_exec = _th_exec;
@@ -208,7 +209,8 @@ public abstract class SOMMapManager {
 	//using the passed map, build the testing and training data partitions and save them to files
 	protected abstract void buildTestTrainFromProspectMap(float trainTestPartition, boolean isBuildingNewMap);
 	
-	//load preproc csv and build training and testing partitions
+	//load preproc customer csv and build training and testing partitions - testing partition not necessary 
+	public void loadPreprocAndBuildTestTrainPartitions() {loadPreprocAndBuildTestTrainPartitions(100.0f);}//100% training data
 	public void loadPreprocAndBuildTestTrainPartitions(float trainTestPartition) {
 		msgObj.dispMessage("StraffSOMMapManager","loadPreprocAndBuildTestTrainPartitions","Start Loading all CSV Build Data to train map.", MsgCodes.info5);
 		loadAllPreProccedData();
@@ -221,7 +223,7 @@ public abstract class SOMMapManager {
 	//load the data used to build a map as well as existing map results
 	//NOTE this may break if different data is used to build the map than the current data being loaded
 	public void loadPretrainedExistingMap() {
-		//load data into preproc  -this must be data used to build map
+		//load customer data into preproc  -this must be data used to build map
 		loadAllPreProccedData();
 		
 		projConfigData.setSOM_UsePreBuilt(this);	
@@ -230,7 +232,7 @@ public abstract class SOMMapManager {
 		//build data partitions - use partition size set via constants in debug
 		buildTestTrainFromProspectMap(projConfigData.getTrainTestPartition(), false);	
 		msgObj.dispMessage("StraffSOMMapManager","loadPretrainedExistingMap","Current projConfigData before dataLoader Call : " + projConfigData.toString(), MsgCodes.info3);
-		th_exec.execute(new SOMDataLoader(this,projConfigData));//fire and forget load task to load		
+		th_exec.execute(new SOMDataLoader(this,projConfigData));//fire and forget load task 
 	}//dbgBuildExistingMap
 	
 	
@@ -245,7 +247,6 @@ public abstract class SOMMapManager {
 		th_exec.execute(new SOMDataLoader(this, projConfigData));//fire and forget load task to load results from map building
 		return true;
 	}//buildNewSOMMap	
-
 	
 	//Build map from data by aggregating all training data, building SOM exec string from UI input, and calling OS cmd to run SOM_MAP
 	public boolean buildNewMap(SOM_MapDat mapExeDat){
@@ -723,7 +724,10 @@ public abstract class SOMMapManager {
 
 	//////////////////////////////
 	// getters/setters
-	//only appropriate if using UI
+	
+	//return a copy of the message object - making a copy so that multiple threads can consume without concurrency issues
+	public messageObject buildMsgObj() {return new messageObject(msgObj);}
+	
 	//this is called when map is loaded, to set all bmus - application specific as to what gets mapped to map nodes
 	public abstract void setAllBMUsFromMap();
 	

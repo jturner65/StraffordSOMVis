@@ -5,9 +5,7 @@ import java.util.Map.Entry;
 
 import SOM_Strafford_PKG.SOM_StraffordMain;
 import SOM_Strafford_PKG.StraffSOMMapManager;
-import Utils.MsgCodes;
-import Utils.Tuple;
-import Utils.myPointf;
+import Utils.*;
 
 
 /**
@@ -317,6 +315,8 @@ public abstract class SOMExample extends baseDataPtVis{
 		buildNormFtrData();//once ftr map is built can normalize easily
 		_PostBuildFtrVec_Priv();
 	}//buildFeatureVector
+	
+	public abstract void postFtrVecBuild();
 	
 	//these are called before and after an individual example's features are built
 	protected abstract void buildAllNonZeroFtrIDXs();
@@ -773,6 +773,8 @@ public abstract class SOMExample extends baseDataPtVis{
 //this class holds functionality migrated from the DataPoint class for rendering on the map.  since this won't be always necessary, we're moving this code to different class so it can be easily ignored
 abstract class baseDataPtVis{
 	protected static SOMMapManager mapMgr;
+	//message object manages logging/printing to screen
+	protected static messageObject msgObj;
 	//type of example data this is
 	protected ExDataType type;
 	//location in mapspace most closely matching this node - actual map location (most likely between 4 map nodes)

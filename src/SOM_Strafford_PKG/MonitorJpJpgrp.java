@@ -32,7 +32,7 @@ public class MonitorJpJpgrp {
 	private TreeMap<String, JP_JPG_Data> mapOfJPData;
 	
 	public MonitorJpJpgrp(StraffSOMMapManager _mapMgr) {
-		mapMgr=_mapMgr;msgObj = new messageObject(mapMgr);
+		mapMgr=_mapMgr;msgObj = mapMgr.buildMsgObj();
 		resetMapOfJPData();
 		initAllStructs();
 	}//ctor
@@ -155,6 +155,14 @@ public class MonitorJpJpgrp {
 	public Integer getProdJpByIdx(int idx) {return mapOfJPData.get(typeOfJpStrs[productExJpsIDX]).getJpByIdx(idx);}
 	//get jpg from index for product-specific jpgs - ui interaction for displaying products on map
 	public Integer getProdJpGrpByIdx(int idx) {return mapOfJPData.get(typeOfJpStrs[productExJpsIDX]).getJpgrpsByIdx(idx);}
+	
+	
+	//get set of jps for passed jpgroup in prod data
+	public TreeSet<Integer> getProdJPsforSpecifiedJpgrp(int jpg){
+		TreeSet<Integer> res = mapOfJPData.get(typeOfJpStrs[productExJpsIDX]).getJPsforSpecifiedJpgrp(jpg);
+		if(res==null) {return new TreeSet<Integer>();}
+		return res;
+	}	
 	
 	public int getCountProdJPSeen(int jp) {return mapOfJPData.get(typeOfJpStrs[productExJpsIDX]).getCountJPSeen(jp);}
 	
@@ -483,6 +491,9 @@ abstract class JP_JPG_Data{
 	
 	public Integer[] getJpByIDXAra() {return jpByIdx;}
 	public Integer[] getJpgrpByIDXAra() {return jpgrpsByIdx;}
+	
+	//return list of jp's for passed jpgroup
+	public TreeSet<Integer> getJPsforSpecifiedJpgrp(int jpg){return jpgsToJps.get(jpg);}
 	
 	//map from jpgroup to jps corresponding to this group.
 	public TreeMap<Integer, TreeSet <Integer>> getJpgsToJps(){return jpgsToJps;}

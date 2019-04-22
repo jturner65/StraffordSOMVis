@@ -37,7 +37,7 @@ public class StraffProdMapOutputBuilder {
 	private double prodZoneDistThresh;
 
 	public StraffProdMapOutputBuilder(StraffSOMMapManager _mapMgr, String _fileName, ExecutorService _th_exec, int _pDistType, double _pZnDistThresh) {
-		mapMgr = _mapMgr; msgObj = _mapMgr.msgObj;
+		mapMgr = _mapMgr; msgObj = _mapMgr.buildMsgObj();
 		fileIO = new FileIOManager(msgObj,"StraffProdMapOutputBuilder");
 		projConfigData = mapMgr.projConfigData;th_exec = _th_exec;
 		prodDistType = _pDistType; prodZoneDistThresh = _pZnDistThresh;
@@ -233,7 +233,7 @@ class StraffProdOutMapper implements Callable<Boolean>{
 	private SOMProjConfigData projConfigData;
 	
 	public StraffProdOutMapper(StraffSOMMapManager _mapMgr, int _stIDX, int _endIDX, int _thdIDX, int _pDistType, double _pZnDistThresh, ProductExample[] _prodsToMap, String[] _fullQualOutDirs) {
-		msgObj = _mapMgr.msgObj;		projConfigData = _mapMgr.projConfigData;
+		msgObj = _mapMgr.buildMsgObj();		projConfigData = _mapMgr.projConfigData;
 		prodsToMap = _prodsToMap;	fullQualOutDirs = _fullQualOutDirs;	
 		stIDX = _stIDX;		endIDX = _endIDX;		thdIDX = _thdIDX;		prodDistType = _pDistType; prodZoneDistThresh = _pZnDistThresh;
 		fileIO = new FileIOManager(msgObj,"StraffProdOutMapper_"+thdIDX);

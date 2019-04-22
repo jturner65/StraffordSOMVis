@@ -106,9 +106,6 @@ public abstract class my_procApplet extends PApplet {
 			camInitRx = rx;
 	public float[] camVals;		
 	
-	
-	public String dateStr, timeStr;								//used to build directory and file names for screencaps
-	
 	public double eps = .000000001, msClkEps = 40;				//calc epsilon, distance within which to check if clicked from a point
 	public float feps = .000001f;
 	public float SQRT2 = sqrt(2.0f);
@@ -157,8 +154,6 @@ public abstract class my_procApplet extends PApplet {
 			);
 	public final int numStFlagsToShow = stateFlagsToShow.size();	
 	
-	
-
 	//3dbox stuff
 	public myVector[] boxNorms = new myVector[] {new myVector(1,0,0),new myVector(-1,0,0),new myVector(0,1,0),new myVector(0,-1,0),new myVector(0,0,1),new myVector(0,0,-1)};//normals to 3 d bounding boxes
 	protected final float hGDimX = gridDimX/2.0f, hGDimY = gridDimY/2.0f, hGDimZ = gridDimZ/2.0f;
@@ -175,6 +170,10 @@ public abstract class my_procApplet extends PApplet {
 	public ExecutorService th_exec;
 	public int numThreadsAvail;	
 	
+	//whether or not to show start up instructions for code		
+	public boolean showInfo=false;										
+
+	
 	////////////////////////
 	// code
 	
@@ -183,9 +182,6 @@ public abstract class my_procApplet extends PApplet {
 	///////////////////////////////////
 		//1 time initialization of things that won't change
 	public void initVisOnce(){	
-		//date and time of program launch
-		dateStr = "_"+day() + "-"+ month()+ "-"+year();
-		timeStr = "_"+hour()+"-"+minute()+"-"+second();
 		now = Calendar.getInstance();
 		scrWidth = width + scrWidthMod;
 		scrHeight = height + scrHeightMod;		//set to be applet.width and applet.height unless otherwise specified below
@@ -198,12 +194,11 @@ public abstract class my_procApplet extends PApplet {
 		hideWinWidth = width * hideWinWidthMult;				//dims for hidden windows
 		hidWinHeight = height * hideWinHeightMult;
 		c = new my3DCanvas(this);			
-		strokeCap(SQUARE);//makes the ends of stroke lines squared off
+		strokeCap(SQUARE);//makes the ends of stroke lines squared off		
+		//instancing class version
 		initVisOnce_Priv();
-		
-		initBaseFlags();
-		
-		colorMode(RGB, 255, 255, 255, 255);
+		//init initernal state flags structure
+		initBaseFlags();		
 		
 		//camVals = new float[]{width/2.0f, height/2.0f, (height/2.0f) / tan(PI/6.0f), width/2.0f, height/2.0f, 0, 0, 1, 0};
 		camVals = new float[]{0, 0, (height/2.0f) / tan(PI/6.0f), 0, 0, 0, 0,1,0};
@@ -224,7 +219,6 @@ public abstract class my_procApplet extends PApplet {
 	}//	initVisOnce
 	
 	
-	
 	//called by sidebar menu to display current window's UI components
 	public void drawWindowGuiObjs(){
 		if(curFocusWin != -1){
@@ -238,6 +232,39 @@ public abstract class my_procApplet extends PApplet {
 		}
 	}//
 	
+	//use current display window's fill color for text color
+	private void drawOnScreenData(){
+		if(isDebugMode()){
+			pushMatrix();pushStyle();			
+			reInitInfoStr();
+			addInfoStr(0,"mse loc on screen : " + new myPoint(mouseX, mouseY,0) + " mse loc in world :"+c.mseLoc +"  Eye loc in world :"+ c.eyeInWorld+ dispWinFrames[curFocusWin].getCamDisp());//" camera rx :  " + rx + " ry : " + ry + " dz : " + dz);
+			String[] res = ((mySideBarMenu)dispWinFrames[dispMenuIDX]).getDebugData();		//get debug data for each UI object
+			int numToPrint = min(res.length,80);
+			for(int s=0;s<numToPrint;++s) {	addInfoStr(res[s]);}				//add info to string to be displayed for debug
+			drawInfoStr(1.0f, dispWinFrames[curFocusWin].strkClr); 	
+			popStyle();	popMatrix();		
+		}
+		else if(showInfo){
+			pushMatrix();pushStyle();			
+			reInitInfoStr();	
+			String[] res = consoleStrings.toArray(new String[0]);
+			int dispNum = min(res.length, 80);
+			for(int i=0;i<dispNum;++i){addInfoStr(res[i]);}
+		    drawInfoStr(1.1f, dispWinFrames[curFocusWin].strkClr); 
+			popStyle();	popMatrix();	
+		}
+	}//drawOnScreenData
+	
+	public void drawUI(float modAmtMillis){					
+		//for(int i =1; i<numDispWins; ++i){if ( !(dispWinFrames[i].dispFlags[myDispWindow.is3DWin])){dispWinFrames[i].draw(sceneCtrVals[sceneIDX]);}}
+		//dispWinFrames[0].draw(sceneCtrVals[sceneIDX]);
+		for(int i =1; i<numDispWins; ++i){dispWinFrames[i].drawHeader(modAmtMillis);}
+		//menu always idx 0
+		dispWinFrames[0].draw2D(modAmtMillis);
+		dispWinFrames[0].drawHeader(modAmtMillis);
+		drawOnScreenData();				//debug and on-screen data
+	}//drawUI	
+
 		
 	protected abstract void initVisOnce_Priv();
 	
@@ -255,15 +282,15 @@ public abstract class my_procApplet extends PApplet {
 		baseFlags[flIDX] = (val ?  baseFlags[flIDX] | mask : baseFlags[flIDX] & ~mask);
 		switch(idx){
 			case debugMode 			: { break;}//anything special for debugMode 	
-			case finalInitDone		: {break;}//flag to handle long setup - processing seems to time out if setup takes too long, so this will continue setup in the first draw loop
+			case finalInitDone		: { break;}//flag to handle long setup - processing seems to time out if setup takes too long, so this will continue setup in the first draw loop
 			case saveAnim 			: { break;}//anything special for saveAnim 			
 			case altKeyPressed 		: { break;}//anything special for altKeyPressed 	
 			case shiftKeyPressed 	: { break;}//anything special for shiftKeyPressed 	
-			case cntlKeyPressed		: {break;}
+			case cntlKeyPressed		: { break;}
 			case mouseClicked 		: { break;}//anything special for mouseClicked 		
 			case modView	 		: { break;}//anything special for modView	 	
 			case drawing			: { break;}
-			case runSim			: {break;}// handleTrnsprt((val ? 2 : 1) ,(val ? 1 : 0),false); break;}		//anything special for runSim	
+			case runSim				: { break;}// handleTrnsprt((val ? 2 : 1) ,(val ? 1 : 0),false); break;}		//anything special for runSim	
 			case showRtSideMenu		: {	for(int i =1; i<dispWinFrames.length;++i){dispWinFrames[i].setRtSideInfoWinSt(val);}break;}	//set value for every window - to show or not to show info window
 			case flipDrawnTraj		: { for(int i =1; i<dispWinFrames.length;++i){dispWinFrames[i].rebuildAllDrawnTrajs();}break;}						//whether or not to flip the drawn melody trajectory, width-wise
 			case singleStep 		: { break;}
@@ -316,40 +343,29 @@ public abstract class my_procApplet extends PApplet {
 			if((getBaseFlag(altKeyPressed)) && (keyCode == 18)){endAltKey();}
 		}
 	}		
-	public void endShiftKey(){
-		clearBaseFlags(new int []{shiftKeyPressed, modView});
-		for(int i =0; i<numDispWins; ++i){dispWinFrames[i].endShiftKey();}
-	}
-	public void endAltKey(){
-		clearBaseFlags(new int []{altKeyPressed});
-		for(int i =0; i<numDispWins; ++i){dispWinFrames[i].endAltKey();}			
-	}
-	public void endCntlKey(){
-		clearBaseFlags(new int []{cntlKeyPressed});
-		for(int i =0; i<numDispWins; ++i){dispWinFrames[i].endCntlKey();}			
-	}
+	//modview tied to shift key
+	private void endShiftKey(){	clearBaseFlags(new int []{shiftKeyPressed, modView});	for(int i =0; i<numDispWins; ++i){dispWinFrames[i].endShiftKey();}}
+	private void endAltKey(){	clearBaseFlags(new int []{altKeyPressed});				for(int i =0; i<numDispWins; ++i){dispWinFrames[i].endAltKey();}}
+	private void endCntlKey(){	clearBaseFlags(new int []{cntlKeyPressed});				for(int i =0; i<numDispWins; ++i){dispWinFrames[i].endCntlKey();}}
 	
-	//gives multiplier based on whether shift, alt or cntl (or any combo) is pressed
-	public double clickValModMult(){return ((getBaseFlag(altKeyPressed) ? .1 : 1.0) * (getBaseFlag(shiftKeyPressed) ? 10.0 : 1.0));}	
-	//keys/criteria are present that means UI objects are modified by set values based on clicks (as opposed to dragging for variable values)
-	//to facilitate UI interaction non-mouse computers, set these to be single keys
-	public boolean isClickModUIVal() {
-		//TODO change this to manage other key settings for situations where multiple simultaneous key presses are not optimal or conventient
-		return getBaseFlag(altKeyPressed) || getBaseFlag(shiftKeyPressed);		
-	}
+	public abstract double clickValModMult();
+	public abstract boolean isClickModUIVal();
+
 	public void mouseMoved(){for(int i =0; i<numDispWins; ++i){if (dispWinFrames[i].handleMouseMove(mouseX, mouseY)){return;}}}
 	public void mousePressed() {
 		setBaseFlag(mouseClicked, true);
-		if(mouseButton == LEFT){			mouseClicked(0);} 
-		else if (mouseButton == RIGHT) {	mouseClicked(1);}
+		if(mouseButton == LEFT){			myMouseClicked(0);} 
+		else if (mouseButton == RIGHT) {	myMouseClicked(1);}
 		//for(int i =0; i<numDispWins; ++i){	if (dispWinFrames[i].handleMouseClick(mouseX, mouseY,c.getMseLoc(sceneCtrVals[sceneIDX]))){	return;}}
-	}// mousepressed	
+	}// mousepressed		
+	private void myMouseClicked(int mseBtn){ 	for(int i =0; i<numDispWins; ++i){if (dispWinFrames[i].handleMouseClick(mouseX, mouseY,mseBtn)){return;}}}
 	
-	private void mouseClicked(int mseBtn){ for(int i =0; i<numDispWins; ++i){if (dispWinFrames[i].handleMouseClick(mouseX, mouseY,mseBtn)){return;}}}
 	public void mouseDragged(){
-		if(mouseButton == LEFT){			mouseDragged(0);}
-		else if (mouseButton == RIGHT) {	mouseDragged(1);}
+		if(mouseButton == LEFT){			myMouseDragged(0);}
+		else if (mouseButton == RIGHT) {	myMouseDragged(1);}
 	}//mouseDragged()
+	private void myMouseDragged(int mseBtn){	for(int i =0; i<numDispWins; ++i){if (dispWinFrames[i].handleMouseDrag(mouseX, mouseY, pmouseX, pmouseY,c.getMseDragVec(),mseBtn)) {return;}}}
+	
 	//only for zooming
 	public void mouseWheel(MouseEvent event) {
 		if (dispWinFrames[curFocusWin].getFlags(myDispWindow.canChgView)) {// (canMoveView[curFocusWin]){	
@@ -357,10 +373,7 @@ public abstract class my_procApplet extends PApplet {
 			dispWinFrames[curFocusWin].handleViewChange(true,(mult * event.getCount()),0);
 		}
 	}
-	protected void mouseDragged(int mseBtn){
-		for(int i =0; i<numDispWins; ++i){if (dispWinFrames[i].handleMouseDrag(mouseX, mouseY, pmouseX, pmouseY,c.getMseDragVec(),mseBtn)) {return;}}		
-	}
-	
+
 	public void mouseReleased(){
 		clearBaseFlags(new int[]{mouseClicked, modView});
 		for(int i =0; i<numDispWins; ++i){dispWinFrames[i].handleMouseRelease();}
@@ -370,10 +383,9 @@ public abstract class my_procApplet extends PApplet {
 	
 	//set the height of each window that is above the popup window, to move up or down when it changes size
 	public void setWinsHeight(int popUpWinIDX){
-		for(int i =0;i<winDispIdxXOR.length;++i){//skip first window - ui menu - and last window - InstEdit window
-			dispWinFrames[winDispIdxXOR[i]].setRectDimsY( dispWinFrames[popUpWinIDX].getRectDim(1));
-		}						
-	}			//specify mutually exclusive flags here
+		//skip first window - ui menu
+		for(int i =0;i<winDispIdxXOR.length;++i){		dispWinFrames[winDispIdxXOR[i]].setRectDimsY( dispWinFrames[popUpWinIDX].getRectDim(1));	}						
+	}
 	
 	public final void setWinFlagsXOR(int idx, boolean val){
 		//outStr2Scr("SetWinFlagsXOR : idx " + idx + " val : " + val);
@@ -437,11 +449,8 @@ public abstract class my_procApplet extends PApplet {
 
 	public void handleMenuBtnSelCmp(int _type, int btn, int val){handleMenuBtnSelCmp(_type, btn, val, true);}					//display specific windows - multi-select/ always on if sel
 	public void handleMenuBtnSelCmp(int _type, int btn, int val, boolean callFlags){
-		if(!callFlags){
-			setMenuBtnState(_type,btn, val);
-		} else {
-			dispWinFrames[curFocusWin].clickSideMenuBtn(_type, btn);
-		}
+		if(!callFlags){			setMenuBtnState(_type,btn, val);		} 
+		else {					dispWinFrames[curFocusWin].clickSideMenuBtn(_type, btn);		}
 	}//handleAddDelSelCmp	
 	
 	
@@ -450,8 +459,7 @@ public abstract class my_procApplet extends PApplet {
 		if (val == 1) {
 			outStr2Scr("turning on button row : " + row + "  col " + col);
 			((mySideBarMenu)dispWinFrames[dispMenuIDX]).setWaitForProc(row,col);}//if programmatically (not through UI) setting button on, then set wait for proc value true 
-	}//setMenuBtnState
-	
+	}//setMenuBtnState	
 	
 	//2d range checking of point
 	public boolean ptInRange(double x, double y, double minX, double minY, double maxX, double maxY){return ((x > minX)&&(x <= maxX)&&(y > minY)&&(y <= maxY));}	
@@ -482,22 +490,17 @@ public abstract class my_procApplet extends PApplet {
 		pushMatrix();	pushStyle();
 		strokeWeight(3f);
 		noFill();
-		setColorValStroke(gui_TransGray);
-		
+		setColorValStroke(gui_TransGray);		
 		box(gridDimX,gridDimY,gridDimZ);
 		popStyle();	popMatrix();
 	}		
 	//drawsInitial setup for each draw
 	public void drawSetup(){
 		perspective(PI/3.0f, (1.0f*width)/(1.0f*height), .5f, camVals[2]*100.0f);
-	    turnOnLights();
+		lights(); 	
 	    dispWinFrames[curFocusWin].drawSetupWin(camVals);
 	}//drawSetup		
 	
-	//turn on lights for this sketch
-	public void turnOnLights(){
-	    lights(); 		
-	}
 	public void setCamOrient(){rotateX(rx);rotateY(ry); rotateX(PI/(2.0f));		}//sets the rx, ry, pi/2 orientation of the camera eye	
 	public void unSetCamOrient(){rotateX(-PI/(2.0f)); rotateY(-ry);   rotateX(-rx); }//reverses the rx,ry,pi/2 orientation of the camera eye - paints on screen and is unaffected by camera movement
 	public void drawAxes(double len, float stW, myPoint ctr, int alpha, boolean centered){//axes using current global orientation
@@ -585,6 +588,11 @@ public abstract class my_procApplet extends PApplet {
 			}
 		}
 	}
+	
+	public String getScreenShotSaveName(String prjNmShrt) {
+		return sketchPath() +File.separatorChar+prjNmShrt+"_"+getDateString()+File.separatorChar+prjNmShrt+"_img"+getTimeString() + ".jpg";
+	}
+	
 	//build a date with each component separated by token
 	public String getDateTimeString(){return getDateTimeString(true, false,".");}
 	public String getDateTimeString(boolean useYear, boolean toSecond, String token){
@@ -599,6 +607,26 @@ public abstract class my_procApplet extends PApplet {
 		return result;
 	}
 	//utilities
+	public String getDateString(){return getDateString(true, "-");}
+	public String getDateString(boolean useYear, String token){
+		String result = "";
+		int val;
+		if(useYear){val = now.get(Calendar.YEAR);		result += ""+val+token;}
+		val = now.get(Calendar.MONTH)+1;				result += (val < 10 ? "0"+val : ""+val)+ token;
+		val = now.get(Calendar.DAY_OF_MONTH);			result += (val < 10 ? "0"+val : ""+val)+ token;
+		return result;
+	}//getDateString
+	
+	public String getTimeString(){return getTimeString(true, "-");}
+	public String getTimeString(boolean toSecond, String token){
+		String result = "";
+		int val;
+		val = now.get(Calendar.HOUR_OF_DAY);					result += (val < 10 ? "0"+val : ""+val)+ token;
+		val = now.get(Calendar.MINUTE);					result += (val < 10 ? "0"+val : ""+val);
+		if(toSecond){val = now.get(Calendar.SECOND);	result += token + (val < 10 ? "0"+val : ""+val);}
+		return result;
+	}//getDateString
+	
 	
 	//handle user-driven file load or save - returns a filename + filepath string
 	public String FileSelected(File selection){

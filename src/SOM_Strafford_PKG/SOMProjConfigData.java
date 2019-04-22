@@ -110,8 +110,8 @@ public class SOMProjConfigData {
 	//separately from calls to setSOM_ExpFileNames because experimental parameters can change between the saving of training data and the running of the experiment
 	private String SOMOutExpSffx;
 	
-	public SOMProjConfigData(SOMMapManager _map) {
-		msgObj = new messageObject(_map);
+	public SOMProjConfigData(SOMMapManager _mapMgr) {
+		msgObj = _mapMgr.buildMsgObj();
 		try {
 			straff_QualifedBaseDir = new File(_baseDir).getCanonicalPath() + File.separator ;
 		} catch (Exception e) {

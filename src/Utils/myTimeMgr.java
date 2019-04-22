@@ -7,13 +7,15 @@ public class myTimeMgr {
 	//time of current process start, from initial construction of mapmgr - TODO use this to monitor specific process time elapsed.  set to 0 at beginning of a particular process, then measure time elapsed in process
 	protected long curProcStartTime;
 	//time mapMgr built, in millis - used as offset for instant to provide smaller values for timestamp
-	protected static final long mapMgrBuiltTime = Instant.now().toEpochMilli();
+	protected final long mapMgrBuiltTime;
 
-	public myTimeMgr() {}
+	public myTimeMgr(long _mapMgrBuiltTime) {mapMgrBuiltTime=_mapMgrBuiltTime;}
 	//////////////////////////
 	// time functions
+	//set time of current process start - all future time measurements will measure from here
+	public void setCurProcStartTime(long _curProcStartTime) {curProcStartTime=_curProcStartTime;}
 	
-	//get time from "start time" (ctor run for map manager)
+	//get time from "start time" (instancing of owning object)
 	public long getCurTime() {			
 		Instant instant = Instant.now();
 		return instant.toEpochMilli() - mapMgrBuiltTime;//milliseconds since 1/1/1970, subtracting when mapmgr was built to keep millis low		

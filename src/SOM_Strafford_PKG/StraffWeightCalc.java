@@ -5,6 +5,7 @@ import java.util.Map.Entry;
 
 import Utils.FileIOManager;
 import Utils.MsgCodes;
+import Utils.Tuple;
 import Utils.messageObject;
 
 /**
@@ -15,12 +16,13 @@ import Utils.messageObject;
  * @author john
  */
 public class StraffWeightCalc {
+	//public StraffSOMMapManager mapMgr;
+	private messageObject msgObj;
 	public MonitorJpJpgrp jpJpgMon;
 	FileIOManager fileIO;
 	//base file name, minus type and extension 
 	private String fileName;
 	private String[] fileTypes = new String[] {"train","compare"};
-	public StraffSOMMapManager mapMgr;
 	public final Date now;
 	//arrays are for idxs of various eq components (mult, offset, decay) in the format file for 
 	//each component contributor (order, opt, link, source), in order.  0-idx is jp name or "default"
@@ -54,20 +56,20 @@ public class StraffWeightCalc {
 	private static final int numBndTypes = 4;	
 		
 	private int[] stFlags;						//state flags - bits in array holding relevant process/state info
-	public static final int
+	private static final int
 			debugIDX 					= 0,
 			ftrCalcCustCompleteIDX		= 1,	//ftr weight calc has been completed for all loaded customer examples.
 			custCalcAnalysisCompleteIDX	= 2,	//analysis of calc results completed for all customer records for this object
 			ftrCalcTPCompleteIDX		= 3,	//ftr weight calc has been completed for all loaded true prospects examples.
 			TPCalcAnalysisCompleteIDX	= 4;	//analysis of calc results completed for all true prospects records for this object
-	public static final int numFlags = 5;	
+	private static final int numFlags = 5;	
 	private static final int[] ftrCalcFlags = new int[] {ftrCalcCustCompleteIDX,ftrCalcTPCompleteIDX};
 	private static final int[] calcCompleteFlags = new int[] {custCalcAnalysisCompleteIDX,TPCalcAnalysisCompleteIDX};
 	
 	public StraffWeightCalc(StraffSOMMapManager _mapMgr, String _fileNamePrfx, MonitorJpJpgrp _jpJpgMon) {
-		mapMgr = _mapMgr;
-		Calendar nowCal = mapMgr.getInstancedNow();
-		fileIO = new FileIOManager(new messageObject(mapMgr), "StraffWeightCalc");
+		msgObj = _mapMgr.buildMsgObj();
+		Calendar nowCal = _mapMgr.getInstancedNow();
+		fileIO = new FileIOManager(msgObj, "StraffWeightCalc");
 		now = nowCal.getTime();
 		jpJpgMon = _jpJpgMon;
 		initFlags();
@@ -79,7 +81,7 @@ public class StraffWeightCalc {
 	private void loadConfigAndSetVars(String _fileNamePrfx) {
 		fileName = _fileNamePrfx;
 		TreeMap<String, String[]> wtConfig = _loadWtCalcConfig(_fileNamePrfx+"_"+fileTypes[0]+".txt", "Ftr Calc");
-		if(null==wtConfig) {mapMgr.msgObj.dispMessage("StraffWeightCalc","loadConfigAndSetVars", "Error! First non comment record in config file "+ _fileNamePrfx + " is not default weight map specification.  Exiting calc unbuilt.", MsgCodes.error2);return ;}
+		if(null==wtConfig) {msgObj.dispMessage("StraffWeightCalc","loadConfigAndSetVars", "Error! First non comment record in config file "+ _fileNamePrfx + " is not default weight map specification.  Exiting calc unbuilt.", MsgCodes.error2);return ;}
 		TreeMap<String, String[]> wtConfig2 = _loadWtCalcConfig(_fileNamePrfx+"_"+fileTypes[1]+".txt", "Comparator Calc");
 		boolean bothAreSame = false;
 		if(null==wtConfig2) {wtConfig2 = wtConfig; bothAreSame=true;}
@@ -210,10 +212,10 @@ public class StraffWeightCalc {
 	}
 	
 	///////////////////////////
-	// calculate feature vectors - only works on product features!
-	
+	// calculate feature vectors - currently only works on product features - and comparator vectors - built off membership in jpgroups
+
 	//calculate feature vector for true prospect example on -training- features
-	public TreeMap<Integer, Float> calcTPFtrVec(prospectExample ex, HashSet<Integer> jps,TreeMap<Integer, jpOccurrenceData> linkOccs, 
+	public TreeMap<Integer, Float> calcTruePrspctFtrVec(prospectExample ex, HashSet<Integer> jps, TreeMap<Integer, jpOccurrenceData> linkOccs,
 			TreeMap<Integer, jpOccurrenceData> optOccs,TreeMap<Integer, jpOccurrenceData> srcOccs) {
 		TreeMap<Integer, Float> res = new TreeMap<Integer, Float>();
 		float ftrVecSqMag = 0.0f;
@@ -227,9 +229,9 @@ public class StraffWeightCalc {
 			if (destIDX==null) {continue;}//ignore unknown/unmapped jps
 			optOcc = optOccs.get(jp);
 			if ((optOcc != null )&& ((ex.getPosOptAllOccObj() != null) || (ex.getNegOptAllOccObj() != null))) {	//opt all means they have opted for positive behavior for all jps that allow opts
-				mapMgr.msgObj.dispMessage("StraffWeightCalc","calcFeatureVector","Multiple opt refs for prospect : " + ex.OID + " : indiv opt and opt-all | This should not happen - opt events will be overly-weighted.", MsgCodes.warning4);	
+				msgObj.dispMessage("StraffWeightCalc","calcFeatureVector","Multiple opt refs for prospect : " + ex.OID + " : indiv opt and opt-all | This should not happen - opt events will be overly-weighted.", MsgCodes.warning4);	
 			}
-			float val = allEqs.get(jp).calcVal(ex,null, linkOccs.get(jp), optOcc, srcOccs.get(jp),tpCalcObjIDX, bndAra_TrainJPsIDX);
+			float val = allEqs.get(jp).calcFtrVal(ex,null, linkOccs.get(jp), optOcc, srcOccs.get(jp),tpCalcObjIDX, bndAra_TrainJPsIDX);
 			
 			if (val != 0) {
 				isZeroMagExample = false;
@@ -244,7 +246,7 @@ public class StraffWeightCalc {
 	}//calcFeatureVector	
 
 	//calculate feature vector for this customer example on -training- features
-	public TreeMap<Integer, Float> calcTrainFtrVec(prospectExample ex, HashSet<Integer> jps, 
+	public TreeMap<Integer, Float> calcTrainFtrVec(prospectExample ex, HashSet<Integer> jps,
 			TreeMap<Integer, jpOccurrenceData> orderOccs,TreeMap<Integer, jpOccurrenceData> linkOccs, 
 			TreeMap<Integer, jpOccurrenceData> optOccs,TreeMap<Integer, jpOccurrenceData> srcOccs) {
 		TreeMap<Integer, Float> res = new TreeMap<Integer, Float>();
@@ -259,9 +261,9 @@ public class StraffWeightCalc {
 			if (destIDX==null) {continue;}//ignore unknown/unmapped jps
 			optOcc = optOccs.get(jp);
 			if ((optOcc != null )&& ((ex.getPosOptAllOccObj() != null) || (ex.getNegOptAllOccObj() != null))) {	//opt all means they have opted for positive behavior for all jps that allow opts
-				mapMgr.msgObj.dispMessage("StraffWeightCalc","calcFeatureVector","Multiple opt refs for prospect : " + ex.OID + " : indiv opt and opt-all | This should not happen - opt events will be overly-weighted.", MsgCodes.warning4);	
+				msgObj.dispMessage("StraffWeightCalc","calcFeatureVector","Multiple opt refs for prospect : " + ex.OID + " : indiv opt and opt-all | This should not happen - opt events will be overly-weighted.", MsgCodes.warning4);	
 			}
-			float val = allEqs.get(jp).calcVal(ex,orderOccs.get(jp),linkOccs.get(jp), optOcc, srcOccs.get(jp),custCalcObjIDX ,bndAra_TrainJPsIDX);
+			float val = allEqs.get(jp).calcFtrVal(ex,orderOccs.get(jp),linkOccs.get(jp), optOcc, srcOccs.get(jp),custCalcObjIDX ,bndAra_TrainJPsIDX);
 			
 			if (val != 0) {
 				isZeroMagExample = false;
@@ -275,8 +277,50 @@ public class StraffWeightCalc {
 		return res;
 	}//calcFeatureVector
 	
+	//build comparator object - alternate comparison for customers and prospects
+	public static int biggestTPNonProd = 0, biggestTPJPGrpNonProd = 0;
+	public static TreeMap<Integer, TreeSet<Integer>> mostNonProdTPJpgrps = new TreeMap<Integer, TreeSet<Integer>>();
+	//specifically for true prospects
+	public TreeMap<Integer, Float> calcTruePrspctCompareObj(prospectExample ex, HashSet<Integer> jps, HashSet<Tuple<Integer,Integer>> nonProdJpgJps, TreeMap<Integer, TreeSet<Integer>> prodJPsForNonProdJPGroups, 
+			TreeMap<Integer, jpOccurrenceData> linkOccs,TreeMap<Integer, jpOccurrenceData> optOccs,TreeMap<Integer, jpOccurrenceData> srcOccs) {	
+		TreeMap<Integer, Float> res = new TreeMap<Integer, Float>();
+		if(biggestTPNonProd <  nonProdJpgJps.size()) {
+			biggestTPNonProd= nonProdJpgJps.size();
+		}
+		if(biggestTPJPGrpNonProd <  prodJPsForNonProdJPGroups.size()) {
+			biggestTPJPGrpNonProd =  prodJPsForNonProdJPGroups.size();
+			mostNonProdTPJpgrps = new TreeMap<Integer, TreeSet<Integer>>(prodJPsForNonProdJPGroups);
+		}
+		
+		
+		return res;
+	
+	}//calcCompareObj
+	public static int biggestCustNonProd = 0, biggestCustJPGrpNonProd = 0;
+	public static TreeMap<Integer, TreeSet<Integer>> mostNonProdCustJpgrps = new TreeMap<Integer, TreeSet<Integer>>();
+	//this is specifically for past customers
+	public TreeMap<Integer, Float> calcTrainFtrCompareObj(prospectExample ex, HashSet<Integer> jps, HashSet<Tuple<Integer,Integer>> nonProdJpgJps, TreeMap<Integer, TreeSet<Integer>> prodJPsForNonProdJPGroups, 
+			TreeMap<Integer, jpOccurrenceData> orderOccs,TreeMap<Integer, jpOccurrenceData> linkOccs, 
+			TreeMap<Integer, jpOccurrenceData> optOccs,TreeMap<Integer, jpOccurrenceData> srcOccs) {
+		TreeMap<Integer, Float> res = new TreeMap<Integer, Float>();
+		
+		if(biggestCustNonProd <  nonProdJpgJps.size()) {
+			biggestCustNonProd= nonProdJpgJps.size();
+		}
+		if(biggestCustJPGrpNonProd <  prodJPsForNonProdJPGroups.size()) {
+			biggestCustJPGrpNonProd =  prodJPsForNonProdJPGroups.size();
+			mostNonProdCustJpgrps = new TreeMap<Integer, TreeSet<Integer>>(prodJPsForNonProdJPGroups);
+		}
+	
+		
+		return res;
+	}//calcCompareObj
+	
+	
+
+	
 	//////////////////////////////////////////////////
-	//end feature vector calc
+	//end feature vector and comparator vec calc
 	
 	//////////////////////////////////////////////////
 	// reporting functions
@@ -309,7 +353,7 @@ public class StraffWeightCalc {
 	public void finalizeCalcAnalysis(int calcIDX) {
 		if (calcAnalysisShouldBeDone(calcIDX)) {
 			//for(JPWeightEquation jpEq:eqs.values()) {jpEq.calcStats.aggregateCalcVals(jpJpgMon.getJpToFtrIDX(jpEq.jp));}
-			for(JPWeightEquation jpEq:allEqs.values()) {jpEq.calcStats[calcIDX].aggregateCalcVals();}
+			for(JPWeightEquation jpEq:allEqs.values()) {jpEq.aggregateFtrCalcVals(calcIDX);}//{jpEq.calcStats[calcIDX].aggregateCalcVals();}
 			setFlag(calcCompleteFlags[calcIDX], true);
 		}
 	}//finalizeCalcAnalysis
@@ -320,7 +364,7 @@ public class StraffWeightCalc {
 	//retrieve a list of all eq performance data per ftr
 	private ArrayList<String> _getCalcAnalysisRes(int calcIDX){
 		ArrayList<String> res = new ArrayList<String>();
-		for(JPWeightEquation jpEq:allEqs.values()) {	res.addAll(jpEq.calcStats[calcIDX].getCalcRes());}
+		for(JPWeightEquation jpEq:allEqs.values()) {	res.addAll(jpEq.getCalcRes(calcIDX));}
 		return res;
 	}//getCalcAnalysisRes
 	
@@ -331,7 +375,7 @@ public class StraffWeightCalc {
 		//for(int i=0;i<jpsToDraw.length;++i) {
 			//JPWeightEquation jpEq = eqs.get(jpsToDraw[i]);
 			//draw bar
-			jpEq.drawFtrVec(p, ht, barWidth, jpEq.jpIDXs[bndAra_AllJPsIDX]==curJPIdx,calcIDX);
+			jpEq.drawFtrVec(p, ht, barWidth, jpEq.jpIDXs[bndAra_AllJPsIDX]==curJPIdx,bndAra_AllJPsIDX,calcIDX);
 			//move over for next bar
 			p.translate(barWidth, 0.0f, 0.0f);
 		}
@@ -343,7 +387,7 @@ public class StraffWeightCalc {
 		p.pushMatrix();p.pushStyle();		
 		for(JPWeightEquation jpEq:ftrEqs.values()) {	//only draw eqs that calculated actual feature values (jps found in products)
 			//draw bar
-			jpEq.drawFtrVec(p, ht, barWidth, jpEq.jpIDXs[bndAra_TrainJPsIDX]==curJPIdx,calcIDX);
+			jpEq.drawFtrVec(p, ht, barWidth, jpEq.jpIDXs[bndAra_TrainJPsIDX]==curJPIdx,bndAra_TrainJPsIDX,calcIDX);
 			//move over for next bar
 			p.translate(barWidth, 0.0f, 0.0f);
 		}
@@ -452,7 +496,7 @@ class JPWeightEquation {
 	private final Float[] compDecay;
 	
 	//analysis function for this eq component
-	public calcAnalysis[] calcStats;
+	private calcAnalysis[] ftrCalcStats;
 				
 	//if this equation is using default values for coefficients
 	public boolean isDefault;
@@ -461,9 +505,11 @@ class JPWeightEquation {
 	//_eqVals : idx 0->2 are ftr vals; idx 3->5 are comparator vals
 	public JPWeightEquation(StraffWeightCalc _calcObj, String _name, int _jp, int[] _jpIdxs, Float[][] _eqVals, boolean _isDefault) {
 		calcObj = _calcObj; now = calcObj.now;jp=_jp;jpIDXs=_jpIdxs; jpName=_name;
+		//for feature calculation equations
 		FtrMult = new Float[numEqs];
 		FtrOffset = new Float[numEqs];
 		FtrDecay = new Float[numEqs];
+		//for comparator object calculations
 		compMult = new Float[numEqs];
 		compOffset = new Float[numEqs];
 		compDecay = new Float[numEqs];
@@ -474,8 +520,8 @@ class JPWeightEquation {
 		System.arraycopy(_eqVals[4], 0, compOffset, 0, numEqs);
 		System.arraycopy(_eqVals[5], 0, compDecay, 0, numEqs);	
 		isDefault = _isDefault;
-		calcStats = new calcAnalysis[calcObj.numExamplTypeObjs];
-		for(int i=0;i<calcStats.length;++i) {	calcStats[i] = new calcAnalysis(this, jpIDXs[i]);}	
+		ftrCalcStats = new calcAnalysis[calcObj.numExamplTypeObjs];
+		for(int i=0;i<ftrCalcStats.length;++i) {			ftrCalcStats[i] = new calcAnalysis(this, jpIDXs);		}	
 	}//ctor
 	//decay # of purchases by # of days difference * decay multiplier
 	private float decayCalc(int idx, int num, Date date) {
@@ -541,28 +587,46 @@ class JPWeightEquation {
 	}//calcOptRes
 	
 	//reset analysis object to clear out all stats from previous run
-	public void resetAnalysis(int idx) {calcStats[idx].reset();	}
+	public void resetAnalysis(int idx) {ftrCalcStats[idx].reset();	}
 	
-	//calculate a particular example's weight value for this object's jp
+	public void aggregateFtrCalcVals(int calcIDX) {ftrCalcStats[calcIDX].aggregateCalcVals();}
+	
+	public ArrayList<String> getCalcRes(int calcIDX){return ftrCalcStats[calcIDX].getCalcRes();}
+	
+	//calculate a particular example's feature weight value for this object's jp
 	//int _exampleType : whether a customer or a true prospect
 	//int _bndJPType : whether the jp is an actual ftr jp (in products) or is part of the global jp set (might be ftr jp, might not)
-	public float calcVal(prospectExample ex, jpOccurrenceData orderJpOccurrences, jpOccurrenceData linkJpOccurrences, jpOccurrenceData optJpOccurrences, jpOccurrenceData srcJpOccurrences, int _exampleType, int _bndJPType) {	
+	public float calcFtrVal(prospectExample ex, jpOccurrenceData orderJpOccurrences, jpOccurrenceData linkJpOccurrences, jpOccurrenceData optJpOccurrences, jpOccurrenceData srcJpOccurrences, int _exampleType, int _bndJPType) {	
 		boolean hasData = false;
 			//for source data - should replace prospect calc above
-		if (srcJpOccurrences != null) {	hasData = true;		calcStats[_exampleType].setWSVal(srcCoeffIDX, aggregateOccsSourceEv(srcJpOccurrences, srcCoeffIDX));}//calcStats.workSpace[orderCoeffIDX] = aggregateOccs(orderJpOccurrences, orderCoeffIDX);}
+		if (srcJpOccurrences != null) {	hasData = true;		ftrCalcStats[_exampleType].setWSVal(srcCoeffIDX, aggregateOccsSourceEv(srcJpOccurrences, srcCoeffIDX));}//calcStats.workSpace[orderCoeffIDX] = aggregateOccs(orderJpOccurrences, orderCoeffIDX);}
 			//handle order occurrences for this jp.   aggregate every order occurrence, with decay on importance based on date
-		if (orderJpOccurrences != null) {hasData = true;	calcStats[_exampleType].setWSVal(orderCoeffIDX, aggregateOccs(orderJpOccurrences, orderCoeffIDX));}//calcStats.workSpace[orderCoeffIDX] = aggregateOccs(orderJpOccurrences, orderCoeffIDX);}
+		if (orderJpOccurrences != null) {hasData = true;	ftrCalcStats[_exampleType].setWSVal(orderCoeffIDX, aggregateOccs(orderJpOccurrences, orderCoeffIDX));}//calcStats.workSpace[orderCoeffIDX] = aggregateOccs(orderJpOccurrences, orderCoeffIDX);}
 			//for links use same mechanism as orders - handle differences through weightings - aggregate every order occurrence, with decay on importance based on date
-		if (linkJpOccurrences != null) {hasData = true;		calcStats[_exampleType].setWSVal(linkCoeffIDX, aggregateOccs(linkJpOccurrences, linkCoeffIDX));	}//calcStats.workSpace[linkCoeffIDX] = aggregateOccs(linkJpOccurrences, linkCoeffIDX);	}
+		if (linkJpOccurrences != null) {hasData = true;		ftrCalcStats[_exampleType].setWSVal(linkCoeffIDX, aggregateOccs(linkJpOccurrences, linkCoeffIDX));	}//calcStats.workSpace[linkCoeffIDX] = aggregateOccs(linkJpOccurrences, linkCoeffIDX);	}
 			//user opts - these are handled differently - calcOptRes return of -9999 means negative opt specified for this jp alone (ignores negative opts across all jps) - should force total from eq for this jp to be ==0
-		if (optJpOccurrences != null) {	hasData = true;		calcStats[_exampleType].setWSVal(optCoeffIDX, calcOptRes(optJpOccurrences));}	//calcStats.workSpace[optCoeffIDX] = calcOptRes(optJpOccurrences);}	
+		if (optJpOccurrences != null) {	hasData = true;		ftrCalcStats[_exampleType].setWSVal(optCoeffIDX, calcOptRes(optJpOccurrences));}	//calcStats.workSpace[optCoeffIDX] = calcOptRes(optJpOccurrences);}	
 		if (hasData) {calcObj.incrBnds(_bndJPType,jpIDXs[_bndJPType]);		}
-		float res = calcStats[_exampleType].getValFromCalcs(optCoeffIDX, optOutSntnlVal);//(calcStats.workSpace[optCoeffIDX]==optOutSntnlVal);
+		float res = ftrCalcStats[_exampleType].getFtrValFromCalcs(optCoeffIDX, optOutSntnlVal);//(calcStats.workSpace[optCoeffIDX]==optOutSntnlVal);
 		return res;
 	}//calcVal
 	
-	public void drawIndivFtrVec(SOM_StraffordMain p, float height, float width, int calcIDX) {calcStats[calcIDX].drawIndivFtrVec(p, height, width);	}
-	public void drawFtrVec(SOM_StraffordMain p, float height, float width, boolean selected, int calcIDX){calcStats[calcIDX].drawFtrVec(p, height, width,selected);}
+	//calculate a comparator value for this jp - this will be used to calculate a comparison/quantifier vector for true prospects, as well as to provide an alternate/interpolated comparator for past customers
+	public float calcCompVal(prospectExample ex, jpOccurrenceData orderJpOccurrences, jpOccurrenceData linkJpOccurrences, jpOccurrenceData optJpOccurrences, jpOccurrenceData srcJpOccurrences, int _exampleType, int _bndJPType) {	
+		boolean hasData = false;
+		
+
+		float res = 0.0f;
+		return res;
+	}//calcVal
+	
+	
+	
+	
+	
+	
+	public void drawIndivFtrVec(SOM_StraffordMain p, float height, float width, int calcIDX) {ftrCalcStats[calcIDX].drawIndivFtrVec(p, height, width);	}
+	public void drawFtrVec(SOM_StraffordMain p, float height, float width, boolean selected, int eqDispType, int calcIDX){ftrCalcStats[calcIDX].drawFtrVec(p, height, width,eqDispType, selected);}
 	
 	//string rep of this calc
 	public String toString() {
@@ -631,9 +695,16 @@ class calcAnalysis{
 	
 	private static float[] legendSizes;
 	//disp idx of this calc;jpIDX corresponding to owning eq - NOTE this is either the index in the ftr vector, or it is the index in the list of all jps
-	private final int dispIDX, jpIDX;
+	private final int[] jpIDX;
+	private int[] dispIDXAra;
 	//
-	public calcAnalysis(JPWeightEquation _eq, int _jpIDX) {eq=_eq;reset();jpIDX=_jpIDX;dispIDX = jpIDX%5;legendSizes=new float[eq.numEqs];for(int i=0;i<eq.numEqs;++i) {legendSizes[i]= 1.0f/eq.numEqs;}}
+	public calcAnalysis(JPWeightEquation _eq, int[] _jpIDX) {
+		eq=_eq;reset();
+		jpIDX=_jpIDX;
+		dispIDXAra = new int[] {jpIDX[0]%5,jpIDX[1]%5} ;
+		legendSizes=new float[eq.numEqs];
+		for(int i=0;i<eq.numEqs;++i) {legendSizes[i]= 1.0f/eq.numEqs;}
+	}//ctor
 	//reset this calc analysis object
 	public void reset() {
 		vals = new float[eq.numEqs];
@@ -660,7 +731,7 @@ class calcAnalysis{
 	}
 	
 	//add values for a particular calc run - returns calc total
-	public float getValFromCalcs(int optCoeffIDX, float optOutValCk) {
+	public float getFtrValFromCalcs(int optCoeffIDX, float optOutValCk) {
 			//if below is true, then this means this JP's opt out value was set to sentinel val to allow for calculations but ultimately to set the weight of this jp's contribution to 0
 		boolean optOut = workSpace[optCoeffIDX]==optOutValCk;
 		++numExamplesWithJP;		//if optOut is true, then this increases # of examples, but all values will be treated as 0
@@ -721,7 +792,7 @@ class calcAnalysis{
 		calcStatDispDetail[stdIDX] = new String[] {String.format("Stds : %.5f",ttlStdNoOpt)};
 		calcStatDispDetail[stdOptIDX] = new String[] {String.format("Std w/opts : %.5f",ttlStdWithOpt)};		
 		
-		analysisRes.add("FTR : "+String.format("%03d", jpIDX)+"|JP : "+String.format("%03d", eq.jp)+"|% opt:"+String.format("%.5f",ratioOptOut)
+		analysisRes.add("FTR IDX : "+String.format("%03d", jpIDX[0])+"ALL JP IDX : "+String.format("%03d", jpIDX[1])+"|JP : "+String.format("%03d", eq.jp)+"|% opt:"+String.format("%.5f",ratioOptOut)
 					+"|MU : " + String.format("%.5f",ttlMeanNoOpt)+"|Std : " + String.format("%.5f",ttlStdNoOpt) 
 					+"|MU w/opt : " +String.format("%.5f",ttlMeanWithOpt)+"|Std w/opt : " +String.format("%.5f",ttlStdWithOpt));
 		analysisRes.add(perCompMuStd);
@@ -730,7 +801,7 @@ class calcAnalysis{
 	//this will display a vertical bar corresponding to the performance of the analyzed calculation.
 	//each component of calc object will have a different color
 	//height - the height of the bar.  start each vertical bar at upper left corner, put text beneath bar
-	public void drawFtrVec(SOM_StraffordMain p, float height, float width, boolean selected){
+	public void drawFtrVec(SOM_StraffordMain p, float height, float width, int eqDispType, boolean selected){
 		p.pushMatrix();p.pushStyle();
 		float rCompHeight, rYSt = 0.0f;
 		for(int i =0;i<analysisCalcStats[ratioIDX].length;++i) {
@@ -745,7 +816,7 @@ class calcAnalysis{
 		} 
 
 		p.translate(0.0f, height+txtYOff, 0.0f);
-		p.translate(0.0f, dispIDX*txtYOff, 0.0f);
+		p.translate(0.0f, dispIDXAra[eqDispType]*txtYOff, 0.0f);
 		p.showOffsetText2D(0.0f, p.gui_White, ""+eq.jp);
 		p.popStyle();p.popMatrix();	
 	}//drawFtrVec

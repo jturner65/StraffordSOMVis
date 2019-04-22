@@ -1,18 +1,21 @@
 package Utils;
 
 import SOM_Base.SOMMapManager;
-
+/**
+ * This class instances objects that are responsible for screen display, and potentially writing out to log files
+ * @author john
+ */
 public class messageObject {
 	public SOMMapManager mapMgr;
 	private static Boolean supportsANSITerm = null;
 	private static myTimeMgr timeMgr = null;
 	
-	public messageObject(SOMMapManager _mapMgr) {
+	public messageObject(SOMMapManager _mapMgr,long _mapMgrBuiltTime) {
 		mapMgr=_mapMgr; 
 		if(supportsANSITerm == null) {supportsANSITerm = (System.console() != null && System.getenv().get("TERM") != null);	}
-		if(timeMgr == null) {timeMgr = new myTimeMgr();}
+		if(timeMgr == null) {timeMgr = new myTimeMgr(_mapMgrBuiltTime);}
 	}	
-	public messageObject(messageObject _obj) {mapMgr = _obj.mapMgr;if(supportsANSITerm == null) {supportsANSITerm = (System.console() != null && System.getenv().get("TERM") != null);}if(timeMgr == null) {timeMgr = new myTimeMgr();}}
+	public messageObject(messageObject _obj) {mapMgr = _obj.mapMgr;if(supportsANSITerm == null) {supportsANSITerm = (System.console() != null && System.getenv().get("TERM") != null);}}
 	
 	private String buildClrStr(ConsoleCLR bk, ConsoleCLR clr, String str) {return bk.toString() + clr.toString() + str + ConsoleCLR.RESET.toString();	}
 	private String _processMsgCode(String src, MsgCodes useCode) {
