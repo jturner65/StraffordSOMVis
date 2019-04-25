@@ -1,11 +1,11 @@
-package UI;
+package base_UI_Objects;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 
 import SOM_Strafford_PKG.SOM_StraffordMain;
-import Utils.myPoint;
-import Utils.myVector;
+import base_Utils_Objects.myPoint;
+import base_Utils_Objects.myVector;
 import processing.core.PApplet;
 import processing.core.PConstants;
 

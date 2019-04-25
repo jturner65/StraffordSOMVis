@@ -3,10 +3,10 @@ package SOM_Strafford_PKG;
 import java.util.*;
 import java.util.Map.Entry;
 
-import Utils.FileIOManager;
-import Utils.MsgCodes;
-import Utils.Tuple;
-import Utils.messageObject;
+import base_Utils_Objects.FileIOManager;
+import base_Utils_Objects.MsgCodes;
+import base_Utils_Objects.Tuple;
+import base_Utils_Objects.messageObject;
 
 /**
  * This class is intended to hold an object capable of calculation
@@ -63,6 +63,7 @@ public class StraffWeightCalc {
 			ftrCalcTPCompleteIDX		= 3,	//ftr weight calc has been completed for all loaded true prospects examples.
 			TPCalcAnalysisCompleteIDX	= 4;	//analysis of calc results completed for all true prospects records for this object
 	private static final int numFlags = 5;	
+	//idx 0 is customer records; idx 1 is true prospect records
 	private static final int[] ftrCalcFlags = new int[] {ftrCalcCustCompleteIDX,ftrCalcTPCompleteIDX};
 	private static final int[] calcCompleteFlags = new int[] {custCalcAnalysisCompleteIDX,TPCalcAnalysisCompleteIDX};
 	
@@ -214,7 +215,7 @@ public class StraffWeightCalc {
 	///////////////////////////
 	// calculate feature vectors - currently only works on product features - and comparator vectors - built off membership in jpgroups
 
-	//calculate feature vector for true prospect example on -training- features
+	//calculate feature vector for true prospect example on actual product-based features
 	public TreeMap<Integer, Float> calcTruePrspctFtrVec(prospectExample ex, HashSet<Integer> jps, TreeMap<Integer, jpOccurrenceData> linkOccs,
 			TreeMap<Integer, jpOccurrenceData> optOccs,TreeMap<Integer, jpOccurrenceData> srcOccs) {
 		TreeMap<Integer, Float> res = new TreeMap<Integer, Float>();
@@ -231,7 +232,7 @@ public class StraffWeightCalc {
 			if ((optOcc != null )&& ((ex.getPosOptAllOccObj() != null) || (ex.getNegOptAllOccObj() != null))) {	//opt all means they have opted for positive behavior for all jps that allow opts
 				msgObj.dispMessage("StraffWeightCalc","calcFeatureVector","Multiple opt refs for prospect : " + ex.OID + " : indiv opt and opt-all | This should not happen - opt events will be overly-weighted.", MsgCodes.warning4);	
 			}
-			float val = allEqs.get(jp).calcFtrVal(ex,null, linkOccs.get(jp), optOcc, srcOccs.get(jp),tpCalcObjIDX, bndAra_TrainJPsIDX);
+			float val = allEqs.get(jp).calcFtrVal(ex,null, linkOccs.get(jp), optOcc, srcOccs.get(jp),tpCalcObjIDX, bndAra_TrainJPsIDX, true);
 			
 			if (val != 0) {
 				isZeroMagExample = false;
@@ -245,7 +246,7 @@ public class StraffWeightCalc {
 		return res;
 	}//calcFeatureVector	
 
-	//calculate feature vector for this customer example on -training- features
+	//calculate feature vector for this customer example on actual product-based features
 	public TreeMap<Integer, Float> calcTrainFtrVec(prospectExample ex, HashSet<Integer> jps,
 			TreeMap<Integer, jpOccurrenceData> orderOccs,TreeMap<Integer, jpOccurrenceData> linkOccs, 
 			TreeMap<Integer, jpOccurrenceData> optOccs,TreeMap<Integer, jpOccurrenceData> srcOccs) {
@@ -263,7 +264,7 @@ public class StraffWeightCalc {
 			if ((optOcc != null )&& ((ex.getPosOptAllOccObj() != null) || (ex.getNegOptAllOccObj() != null))) {	//opt all means they have opted for positive behavior for all jps that allow opts
 				msgObj.dispMessage("StraffWeightCalc","calcFeatureVector","Multiple opt refs for prospect : " + ex.OID + " : indiv opt and opt-all | This should not happen - opt events will be overly-weighted.", MsgCodes.warning4);	
 			}
-			float val = allEqs.get(jp).calcFtrVal(ex,orderOccs.get(jp),linkOccs.get(jp), optOcc, srcOccs.get(jp),custCalcObjIDX ,bndAra_TrainJPsIDX);
+			float val = allEqs.get(jp).calcFtrVal(ex,orderOccs.get(jp),linkOccs.get(jp), optOcc, srcOccs.get(jp),custCalcObjIDX ,bndAra_TrainJPsIDX, false);
 			
 			if (val != 0) {
 				isZeroMagExample = false;
@@ -311,12 +312,9 @@ public class StraffWeightCalc {
 			biggestCustJPGrpNonProd =  prodJPsForNonProdJPGroups.size();
 			mostNonProdCustJpgrps = new TreeMap<Integer, TreeSet<Integer>>(prodJPsForNonProdJPGroups);
 		}
-	
 		
 		return res;
 	}//calcCompareObj
-	
-	
 
 	
 	//////////////////////////////////////////////////
@@ -328,54 +326,49 @@ public class StraffWeightCalc {
 	///////
 	//customer-based calculations
 	
+	public boolean calcAnalysisIsReady_cust() {return getFlag(ftrCalcFlags[custCalcObjIDX]) && getFlag(calcCompleteFlags[custCalcObjIDX]);}		//ftr calc is done, and calc anaylsis has been done on these feature calcs	
+	//called when all current prospect examples have been calculated
 	public boolean isFinishedFtrCalcs_cust() {return getFlag(ftrCalcFlags[custCalcObjIDX]);}
-	public boolean calcAnalysisIsReady_cust() {return getFlag(ftrCalcFlags[custCalcObjIDX]) && getFlag(calcCompleteFlags[custCalcObjIDX]);}		//ftr calc is done, and calc anaylsis has been done on these feature calcs
-	
 	//retrieve a list of all eq performance data per ftr
 	public ArrayList<String> getCalcAnalysisRes_cust(){return _getCalcAnalysisRes(custCalcObjIDX);}//getCalcAnalysisRes	
 	
+	public boolean calcAnalysisIsReady_tp() {return getFlag(ftrCalcFlags[tpCalcObjIDX]) && getFlag(calcCompleteFlags[tpCalcObjIDX]);}		//ftr calc is done, and calc anaylsis has been done on these feature calcs
 	//called when all current prospect examples have been calculated
-	public void finishFtrCalcs_tp() {	setFlag(ftrCalcFlags[tpCalcObjIDX], true); 	}
-	public boolean isFinishedFtrCalcs_tp() {return getFlag(ftrCalcFlags[tpCalcObjIDX]);}
-	
+	public boolean isFinishedFtrCalcs_tp() {return getFlag(ftrCalcFlags[tpCalcObjIDX]);}	
 	//retrieve a list of all eq performance data per ftr
 	public ArrayList<String> getCalcAnalysisRes_tp(){return _getCalcAnalysisRes(tpCalcObjIDX);}//getCalcAnalysisRes	
 	
 	//this will reset all analysis components of feature vectors.  this is so that new feature calculations won't aggregate stats with old ones
-	public void resetCalcObjs(int calcIDX) {
-		for ( JPWeightEquation eq : allEqs.values()	) {	eq.resetAnalysis(calcIDX);	}
-		setFlag(ftrCalcFlags[calcIDX], false);
-	}//resetCalcObjs
+	public void resetCalcObjs(int _exampleType) {for ( JPWeightEquation eq : allEqs.values()	) {	eq.resetAnalysis(_exampleType);	}	setFlag(ftrCalcFlags[_exampleType], false);}//resetCalcObjs
 	
 	//called when all current prospect examples have been calculated
-	public void finishFtrCalcs(int calcIDX) {	setFlag(ftrCalcFlags[calcIDX], true); 	}	
+	public void finishFtrCalcs(int _exampleType) {	setFlag(ftrCalcFlags[_exampleType], true); 	}	
 	//after all features are calculated, run this first to finalize reporting statistics on eq performance
-	public void finalizeCalcAnalysis(int calcIDX) {
-		if (calcAnalysisShouldBeDone(calcIDX)) {
-			//for(JPWeightEquation jpEq:eqs.values()) {jpEq.calcStats.aggregateCalcVals(jpJpgMon.getJpToFtrIDX(jpEq.jp));}
-			for(JPWeightEquation jpEq:allEqs.values()) {jpEq.aggregateFtrCalcVals(calcIDX);}//{jpEq.calcStats[calcIDX].aggregateCalcVals();}
-			setFlag(calcCompleteFlags[calcIDX], true);
+	public void finalizeCalcAnalysis(int _exampleType) {
+		if (calcAnalysisShouldBeDone(_exampleType)) {
+			for(JPWeightEquation jpEq:allEqs.values()) {jpEq.aggregateFtrCalcVals(_exampleType);}
+			setFlag(calcCompleteFlags[_exampleType], true);
 		}
 	}//finalizeCalcAnalysis
 	
-	public boolean calcAnalysisIsReady(int calcIDX) {return getFlag(ftrCalcFlags[calcIDX]) && getFlag(calcCompleteFlags[calcIDX]);}		//ftr calc is done, and calc anaylsis has been done on these feature calcs
-	private boolean calcAnalysisShouldBeDone(int calcIDX) {return getFlag(ftrCalcFlags[calcIDX]) && ! getFlag(calcCompleteFlags[calcIDX]);}//only perform analysis once on same set of collected ftr calc data
+	public boolean calcAnalysisIsReady(int _exampleType) {return getFlag(ftrCalcFlags[_exampleType]) && getFlag(calcCompleteFlags[_exampleType]);}		//ftr calc is done, and calc anaylsis has been done on these feature calcs
+	private boolean calcAnalysisShouldBeDone(int _exampleType) {return getFlag(ftrCalcFlags[_exampleType]) && ! getFlag(calcCompleteFlags[_exampleType]);}//only perform analysis once on same set of collected ftr calc data
 	
 	//retrieve a list of all eq performance data per ftr
-	private ArrayList<String> _getCalcAnalysisRes(int calcIDX){
+	private ArrayList<String> _getCalcAnalysisRes(int _exampleType){
 		ArrayList<String> res = new ArrayList<String>();
-		for(JPWeightEquation jpEq:allEqs.values()) {	res.addAll(jpEq.getCalcRes(calcIDX));}
+		for(JPWeightEquation jpEq:allEqs.values()) {	res.addAll(jpEq.getCalcRes(_exampleType));}
 		return res;
 	}//getCalcAnalysisRes
 	
 	//draw res of all calcs as single rectangle of height ht and width barWidth*num eqs
-	public void drawAllCalcRes(SOM_StraffordMain p, float ht, float barWidth, int curJPIdx,int calcIDX) {		
+	public void drawAllCalcRes(SOM_StraffordMain p, float ht, float barWidth, int curJPIdx,int _exampleType) {		
 		p.pushMatrix();p.pushStyle();		
 		for(JPWeightEquation jpEq:allEqs.values()) {	
 		//for(int i=0;i<jpsToDraw.length;++i) {
 			//JPWeightEquation jpEq = eqs.get(jpsToDraw[i]);
 			//draw bar
-			jpEq.drawFtrVec(p, ht, barWidth, jpEq.jpIDXs[bndAra_AllJPsIDX]==curJPIdx,bndAra_AllJPsIDX,calcIDX);
+			jpEq.drawFtrVec(p, ht, barWidth, jpEq.jpIDXs[bndAra_AllJPsIDX]==curJPIdx,bndAra_AllJPsIDX,_exampleType);
 			//move over for next bar
 			p.translate(barWidth, 0.0f, 0.0f);
 		}
@@ -383,11 +376,11 @@ public class StraffWeightCalc {
 	}//draw analysis res for each graphically
 	
 	//draw only ftr JP calc res
-	public void drawFtrCalcRes(SOM_StraffordMain p, float ht, float barWidth, int curJPIdx,int calcIDX) {		
+	public void drawFtrCalcRes(SOM_StraffordMain p, float ht, float barWidth, int curJPIdx,int _exampleType) {		
 		p.pushMatrix();p.pushStyle();		
 		for(JPWeightEquation jpEq:ftrEqs.values()) {	//only draw eqs that calculated actual feature values (jps found in products)
 			//draw bar
-			jpEq.drawFtrVec(p, ht, barWidth, jpEq.jpIDXs[bndAra_TrainJPsIDX]==curJPIdx,bndAra_TrainJPsIDX,calcIDX);
+			jpEq.drawFtrVec(p, ht, barWidth, jpEq.jpIDXs[bndAra_TrainJPsIDX]==curJPIdx,bndAra_TrainJPsIDX,_exampleType);
 			//move over for next bar
 			p.translate(barWidth, 0.0f, 0.0f);
 		}
@@ -395,10 +388,10 @@ public class StraffWeightCalc {
 	}//draw analysis res for each graphically
 	
 	//draw single detailed feature eq detailed analysis
-	public void drawSingleFtr(SOM_StraffordMain p, float ht, float width, Integer jp,int calcIDX) {
+	public void drawSingleFtr(SOM_StraffordMain p, float ht, float width, Integer jp,int _exampleType) {
 		p.pushMatrix();p.pushStyle();		
 		//draw detailed analysis
-		allEqs.get(jp).drawIndivFtrVec(p, ht, width,calcIDX);
+		allEqs.get(jp).drawIndivFtrVec(p, ht, width,_exampleType);
 		p.popStyle();p.popMatrix();			
 	}//drawSingleFtr
 	
@@ -587,16 +580,14 @@ class JPWeightEquation {
 	}//calcOptRes
 	
 	//reset analysis object to clear out all stats from previous run
-	public void resetAnalysis(int idx) {ftrCalcStats[idx].reset();	}
-	
-	public void aggregateFtrCalcVals(int calcIDX) {ftrCalcStats[calcIDX].aggregateCalcVals();}
-	
-	public ArrayList<String> getCalcRes(int calcIDX){return ftrCalcStats[calcIDX].getCalcRes();}
+	public void resetAnalysis(int _exampleType) {ftrCalcStats[_exampleType].reset();	}	
+	public void aggregateFtrCalcVals(int _exampleType) {ftrCalcStats[_exampleType].aggregateCalcVals();}	
+	public ArrayList<String> getCalcRes(int _exampleType){return ftrCalcStats[_exampleType].getCalcRes();}	
 	
 	//calculate a particular example's feature weight value for this object's jp
 	//int _exampleType : whether a customer or a true prospect
 	//int _bndJPType : whether the jp is an actual ftr jp (in products) or is part of the global jp set (might be ftr jp, might not)
-	public float calcFtrVal(prospectExample ex, jpOccurrenceData orderJpOccurrences, jpOccurrenceData linkJpOccurrences, jpOccurrenceData optJpOccurrences, jpOccurrenceData srcJpOccurrences, int _exampleType, int _bndJPType) {	
+	public float calcFtrVal(prospectExample ex, jpOccurrenceData orderJpOccurrences, jpOccurrenceData linkJpOccurrences, jpOccurrenceData optJpOccurrences, jpOccurrenceData srcJpOccurrences, int _exampleType, int _bndJPType, boolean _modBnds) {	
 		boolean hasData = false;
 			//for source data - should replace prospect calc above
 		if (srcJpOccurrences != null) {	hasData = true;		ftrCalcStats[_exampleType].setWSVal(srcCoeffIDX, aggregateOccsSourceEv(srcJpOccurrences, srcCoeffIDX));}//calcStats.workSpace[orderCoeffIDX] = aggregateOccs(orderJpOccurrences, orderCoeffIDX);}
@@ -606,7 +597,7 @@ class JPWeightEquation {
 		if (linkJpOccurrences != null) {hasData = true;		ftrCalcStats[_exampleType].setWSVal(linkCoeffIDX, aggregateOccs(linkJpOccurrences, linkCoeffIDX));	}//calcStats.workSpace[linkCoeffIDX] = aggregateOccs(linkJpOccurrences, linkCoeffIDX);	}
 			//user opts - these are handled differently - calcOptRes return of -9999 means negative opt specified for this jp alone (ignores negative opts across all jps) - should force total from eq for this jp to be ==0
 		if (optJpOccurrences != null) {	hasData = true;		ftrCalcStats[_exampleType].setWSVal(optCoeffIDX, calcOptRes(optJpOccurrences));}	//calcStats.workSpace[optCoeffIDX] = calcOptRes(optJpOccurrences);}	
-		if (hasData) {calcObj.incrBnds(_bndJPType,jpIDXs[_bndJPType]);		}
+		if (_modBnds && hasData) {calcObj.incrBnds(_bndJPType,jpIDXs[_bndJPType]);		}//_modBnds means this calc should actually modify bounds - if calcing for true prospect, we don't necessarily want to do this, since this may modify how training data ends up being
 		float res = ftrCalcStats[_exampleType].getFtrValFromCalcs(optCoeffIDX, optOutSntnlVal);//(calcStats.workSpace[optCoeffIDX]==optOutSntnlVal);
 		return res;
 	}//calcVal
@@ -618,15 +609,10 @@ class JPWeightEquation {
 
 		float res = 0.0f;
 		return res;
-	}//calcVal
+	}//calcVal	
 	
-	
-	
-	
-	
-	
-	public void drawIndivFtrVec(SOM_StraffordMain p, float height, float width, int calcIDX) {ftrCalcStats[calcIDX].drawIndivFtrVec(p, height, width);	}
-	public void drawFtrVec(SOM_StraffordMain p, float height, float width, boolean selected, int eqDispType, int calcIDX){ftrCalcStats[calcIDX].drawFtrVec(p, height, width,eqDispType, selected);}
+	public void drawIndivFtrVec(SOM_StraffordMain p, float height, float width, int _exampleType) {ftrCalcStats[_exampleType].drawIndivFtrVec(p, height, width);	}
+	public void drawFtrVec(SOM_StraffordMain p, float height, float width, boolean selected, int eqDispType, int _exampleType){ftrCalcStats[_exampleType].drawFtrVec(p, height, width,eqDispType, selected);}
 	
 	//string rep of this calc
 	public String toString() {

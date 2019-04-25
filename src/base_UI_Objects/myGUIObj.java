@@ -1,9 +1,9 @@
-package UI;
+package base_UI_Objects;
 
 import java.util.ArrayList;
 
 import SOM_Strafford_PKG.SOM_StraffordMain;
-import Utils.myVector;
+import base_Utils_Objects.myVector;
 
 //object on menu that can be modified via mouse input
 public class myGUIObj {

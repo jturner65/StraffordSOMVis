@@ -1,25 +1,15 @@
 package SOM_Strafford_PKG;
 
 import java.io.*;
-import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.stream.*;
 
-import SOM_Base.SOMExample;
-import SOM_Base.SOMMapManager;
-import SOM_Base.SOM_MapDat;
-import Utils.FileIOManager;
-import Utils.MsgCodes;
-import Utils.messageObject;
-
-
+import base_SOM_Objects.*;
+import base_Utils_Objects.*;
 
 //structure to hold all the file names, file configurations and general program configurations required to run the SOM project
 //will manage that all file names need to be reset when any are changed
 public class SOMProjConfigData {
-	//owning map manager
-	//protected SOMMapManager mapMgr;
 	//object to manage screen and log output
 	protected messageObject msgObj;
 	//manage IO in this object
@@ -41,7 +31,7 @@ public class SOMProjConfigData {
 	//fileNow date string array for most recent experiment
 	private String[] dateTimeStrAra;
 
-	//test/train partition - ratio of # of training data points to total # of data points
+	//test/train partition - ratio of # of training data points to total # of data points 0->1.0f
 	private float trainTestPartition;	
 	//current experiment # of samples total, train partition and test partition
 	private int expNumSmpls, expNumTrain, expNumTest;
@@ -55,16 +45,17 @@ public class SOMProjConfigData {
 	//whether current OS supports ansi terminal color settings
 	public static boolean supportsANSITerm = false;
 	//base sub directory where the source data, SOM and output will be found
-	private static final String _baseDir = "StraffordProject" + File.separator;
+	public static final String _baseDir = "StraffordProject" + File.separator;
 	//sub directory where project config files are found
-	private static final String configDir = "config" + File.separator;
+	public static final String configDir = "config" + File.separator;
 	//file name of project config file
 	private static final String projectConfigFile = "projectConfig.txt";
 	//file name of experimental config for a particular experiment
 	private static final String expProjConfigFileName = "SOM_EXEC_Proj_Config.txt";
 	
 	//fully qualified source directory for reading all source csv files, writing intermediate outputs, executing SOM_MAP and writing results
-	private String straff_QualifedBaseDir;
+	//private String straff_QualifedBaseDir;
+	private String straff_QualifiedDataDir, straff_QualifiedConfigDir;
 	//name of som executable
 	private final String SOMExeName_base = "straff_SOM";
 	//private final String SOMExeName_base = "straff_SOM_new";
@@ -110,16 +101,13 @@ public class SOMProjConfigData {
 	//separately from calls to setSOM_ExpFileNames because experimental parameters can change between the saving of training data and the running of the experiment
 	private String SOMOutExpSffx;
 	
-	public SOMProjConfigData(SOMMapManager _mapMgr) {
+	public SOMProjConfigData(SOMMapManager _mapMgr, String[] _dirs) {
 		msgObj = _mapMgr.buildMsgObj();
-		try {
-			straff_QualifedBaseDir = new File(_baseDir).getCanonicalPath() + File.separator ;
-		} catch (Exception e) {
-			straff_QualifedBaseDir = _baseDir;
-			msgObj.dispMessage("SOMProjConfigData","Constructor","Failed to find base application directory "+ straff_QualifedBaseDir + " due to : " + e + ". Exiting program.", MsgCodes.error1);
-			System.exit(1);
-		}
-		msgObj.dispMessage("SOMProjConfigData","Constructor","Canonical Path to application directory : " + straff_QualifedBaseDir, MsgCodes.info1);
+		//_dirs : idx 0 is config dir; idx 1 is data dir
+		
+		straff_QualifiedConfigDir = buildQualifiedBaseDir(_dirs[0],"Specified Config");
+		straff_QualifiedDataDir = buildQualifiedBaseDir(_dirs[1],"Specified Data");
+
 		fileIO = new FileIOManager(msgObj,"SOMProjConfigData");		
 		//----accumulate and manage OS info ----//
 		//find platform this is executing on supportsANSITerm
@@ -145,11 +133,27 @@ public class SOMProjConfigData {
 		dateTimeStrAra = getDateTimeString(false, "_");
 	}//ctor
 	
+	//public SOMProjConfigData(SOMMapManager _mapMgr) {this(_mapMgr, new String[] {_baseDir+configDir,_baseDir});}
+	
+	private String buildQualifiedBaseDir(String _dir, String _type) {
+		String qualifiedDir = "";
+		try {
+			qualifiedDir = new File(_dir).getCanonicalPath() + File.separator ;
+		} catch (Exception e) {
+			qualifiedDir = _dir;
+			msgObj.dispMessage("SOMProjConfigData","Constructor->buildQualifiedBaseDir","Failed to find " + _type + " directory "+ qualifiedDir + " due to : " + e + ". Exiting program.", MsgCodes.error1);
+			System.exit(1);
+		}
+		msgObj.dispMessage("SOMProjConfigData","Constructor->buildQualifiedBaseDir","Canonical Path to " + _type + " directory : " + qualifiedDir, MsgCodes.info1);
+
+		return qualifiedDir;
+	}//buildQualifiedBaseDir
+	
 	//this will load the project config file and set initial project-wide settings
 	private void loadProjectConfig() {
 		msgObj.dispMessage("SOMProjConfigData","loadProjectConfig","Start loading project configuration.", MsgCodes.info5);
 		//build config file name and load config data
-		String configFileName = getDirNameAndBuild(configDir) + projectConfigFile;
+		String configFileName = straff_QualifiedConfigDir + projectConfigFile;
 		String[] fileStrings = fileIO.loadFileIntoStringAra(configFileName, "SOMProjConfigData Main Project Config File loaded", "SOMProjConfigData Main Project Config File Failed to load");
 		//init maps holding config data
 		configFileNames = new HashMap<String,String>();
@@ -209,7 +213,7 @@ public class SOMProjConfigData {
 		TreeMap<String, String[]> straffDataFileNames = new TreeMap<String, String[]>();
 		//for each directory, find all file names present, stripping ".csv" from name
 		for (int dIdx = 0; dIdx < dataDirNames.length;++dIdx) {
-			String dirName = straff_QualifedBaseDir + subDirLocs.get("straffSourceCSV") + dataDirNames[dIdx];
+			String dirName = straff_QualifiedDataDir + subDirLocs.get("straffSourceCSV") + dataDirNames[dIdx];
 			File folder = new File(dirName);
 			File[] listOfFiles = folder.listFiles();
 			ArrayList<String> resList = new ArrayList<String>();
@@ -276,7 +280,7 @@ public class SOMProjConfigData {
 	//SOM_EXP_Format_default
 	//this will load all essential information for a SOM-based experimental run, from loading preprocced data, configuring map
 	public void loadDefaultSOMExp_Config(SOMMapManager mapMgr) {
-		String dfltSOMConfigFName = getDirNameAndBuild(configDir) + configFileNames.get("SOMDfltConfigFileName"); 
+		String dfltSOMConfigFName = straff_QualifiedConfigDir + configFileNames.get("SOMDfltConfigFileName"); 
 		msgObj.dispMessage("SOMProjConfigData","loadDefaultSOMExp_Config","Default file name  :" + dfltSOMConfigFName, MsgCodes.info1);
 		loadSOMMap_Config(mapMgr,dfltSOMConfigFName);
 	}
@@ -326,8 +330,9 @@ public class SOMProjConfigData {
 					default : {}		
 				}
 			}
-		}//for each line	
-		trainTestPartition = expNumTrain/(1.0f*expNumSmpls);
+		}//for each line
+		//override value set in config
+		if(expNumTest==0) {trainTestPartition = 1.0f;} else {trainTestPartition = expNumTrain/(1.0f*expNumSmpls);}
 		if(somFileNamesAraTmp.size() > 0) {		SOMFileNamesAra = somFileNamesAraTmp.toArray(new String[0]);} 
 		else {									setSOM_ExpFileNames(expNumSmpls, expNumTrain, expNumTest);}
 	}//setExpConfigData	
@@ -336,20 +341,20 @@ public class SOMProjConfigData {
 	public void launchTestTrainSaveThrds(ExecutorService th_exec, SOMMapManager mapMgr, int curMapFtrType, int numTrainFtrs, SOMExample[] trainData, SOMExample[] testData) {
 		String saveFileName = "";
 		List<Future<Boolean>> straffSOMDataWriteFutures = new ArrayList<Future<Boolean>>();
-		List<straffDataWriter> straffSOMDataWrite = new ArrayList<straffDataWriter>();
+		List<SOMTrainDataWriter> straffSOMDataWrite = new ArrayList<SOMTrainDataWriter>();
 		//call threads to instance and save different file formats
 		if (expNumTrain > 0) {//save training data
 			if (useSparseTrainingData) {
 				saveFileName = getSOMMapSVMFileName();
-				straffSOMDataWrite.add(new straffDataWriter(mapMgr, curMapFtrType, numTrainFtrs, saveFileName, "sparseSVMData", trainData));	
+				straffSOMDataWrite.add(new SOMTrainDataWriter(mapMgr, curMapFtrType, numTrainFtrs, saveFileName, "sparseSVMData", trainData));	
 			} else {
 				saveFileName = getSOMMapLRNFileName();
-				straffSOMDataWrite.add(new straffDataWriter(mapMgr, curMapFtrType, numTrainFtrs, saveFileName, "denseLRNData", trainData));	
+				straffSOMDataWrite.add(new SOMTrainDataWriter(mapMgr, curMapFtrType, numTrainFtrs, saveFileName, "denseLRNData", trainData));	
 			}
 		}
 		if (expNumTest > 0) {//save testing data
 			saveFileName = getSOMMapTestFileName();
-			straffSOMDataWrite.add(new straffDataWriter(mapMgr, curMapFtrType, numTrainFtrs, saveFileName, useSparseTestingData ? "sparseSVMData" : "denseLRNData", testData));
+			straffSOMDataWrite.add(new SOMTrainDataWriter(mapMgr, curMapFtrType, numTrainFtrs, saveFileName, useSparseTestingData ? "sparseSVMData" : "denseLRNData", testData));
 		}
 		try {straffSOMDataWriteFutures = th_exec.invokeAll(straffSOMDataWrite);for(Future<Boolean> f: straffSOMDataWriteFutures) { f.get(); }} catch (Exception e) { e.printStackTrace(); }		
 		
@@ -417,8 +422,8 @@ public class SOMProjConfigData {
 		String [] tmpNow = getDateTimeString(false, "_");
 		return getDirNameAndBuild(subDirLocs.get("straffProdSuggest") + "PerProdMaps_"+sfx+"_"+ tmpNow[1] + "_data_" +dateTimeStrAra[0]+File.separator);}
 	//these file names are specified above but may be modified/set via a config file in future
-	public String getFullCalcInfoFileName(){ return getDirNameAndBuild(configDir) + configFileNames.get("calcWtFileName");}
-	public String getFullProdOutMapperInfoFileName(){ return getDirNameAndBuild(configDir) + configFileNames.get("reqProdConfigFileName");}
+	public String getFullCalcInfoFileName(){ return straff_QualifiedConfigDir + configFileNames.get("calcWtFileName");}
+	public String getFullProdOutMapperInfoFileName(){ return straff_QualifiedConfigDir + configFileNames.get("reqProdConfigFileName");}
 	//call this to set up debug map call - TODO replace this with just loading from a default config file
 	public void setSOM_UsePreBuilt(SOMMapManager mapMgr) {		//TOOD replace this when saved file with appropriate format
 		//load map values from pre-trained map using this data - IGNORES VALUES SET IN UI	
@@ -451,9 +456,7 @@ public class SOMProjConfigData {
 		saveSOM_Exp();
 		//launch in a thread? - needs to finish to be able to proceed, so not necessary
 		boolean runSuccess = mapMgr.buildNewMap(SOMExeDat);
-		if(!runSuccess) {
-			return false;
-		}
+		if(!runSuccess) {			return false;		}
 		mapMgr.setLoaderRtnFalse();
 		setAllFileNames();
 		return res;	
@@ -471,9 +474,9 @@ public class SOMProjConfigData {
 	public String getRawDataLoadInfo(boolean fromFiles, String baseDirName, String baseFName) {
 		String dataLocStrData = "";
 		if (fromFiles) {
-			dataLocStrData = straff_QualifedBaseDir + subDirLocs.get("straffSourceCSV") + baseDirName + File.separator + baseFName+".csv";
+			dataLocStrData = straff_QualifiedDataDir + subDirLocs.get("straffSourceCSV") + baseDirName + File.separator + baseFName+".csv";
 		} else {//SQL connection configuration needs to be determined/designed
-			dataLocStrData = straff_QualifedBaseDir + subDirLocs.get("straffSQLProc") + "sqlConnData_"+baseDirName+".csv";
+			dataLocStrData = straff_QualifiedDataDir + subDirLocs.get("straffSQLProc") + "sqlConnData_"+baseDirName+".csv";
 			msgObj.dispMessage("SOMProjConfigData","getLoadRawDataStrs","Need to construct appropriate sql connection info and put in text config file : " + dataLocStrData, MsgCodes.warning2);
 		}
 		return dataLocStrData;
@@ -510,7 +513,7 @@ public class SOMProjConfigData {
 	
 	//this will retrieve a subdirectory name under the main directory of this project and build the subdir if it doesn't exist
 	//subdir assumed to have file.separator already appended (might not be necessary)
-	private String getDirNameAndBuild(String subdir) {return getDirNameAndBuild(straff_QualifedBaseDir,subdir);} 
+	private String getDirNameAndBuild(String subdir) {return getDirNameAndBuild(straff_QualifiedDataDir,subdir);} 
 	//baseDir must exist already
 	public String getDirNameAndBuild(String baseDir, String subdir) {
 		String dirName = baseDir +subdir;
@@ -546,7 +549,7 @@ public class SOMProjConfigData {
 	public float getTrainTestPartition() {return trainTestPartition;}
 	
 	//file name to save record of bad events
-	public String getBadEventFName(String dataFileName) { return straff_QualifedBaseDir + dataFileName +"_bad_OIDs.csv";	}
+	public String getBadEventFName(String dataFileName) { return straff_QualifiedDataDir + dataFileName +"_bad_OIDs.csv";	}
 	
 	
 	//sets all file names to be loaded - assumes names to be valid

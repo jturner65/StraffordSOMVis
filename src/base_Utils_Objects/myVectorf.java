@@ -1,4 +1,4 @@
-package Utils;
+package base_Utils_Objects;
 
 public class myVectorf extends myPointf{
 	public float sqMagn, magn;

@@ -1,4 +1,4 @@
-package SOM_Base;
+package base_SOM_Objects;
 
 import java.util.*;
 

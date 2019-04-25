@@ -1,18 +1,20 @@
-package UI;
+package base_UI_Objects;
 
 import java.io.File;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
 
-import Utils.*;
+import base_Utils_Objects.*;
 import processing.core.PApplet;
 import processing.core.PConstants;
 import processing.event.MouseEvent;
 
 public abstract class my_procApplet extends PApplet {
 	
-	public int glblStartSimFrameTime,			//begin of draw
+	protected int glblStartSimFrameTime,			//begin of draw
 		glblLastSimFrameTime,					//begin of last draw
 		glblStartProgTime;					//start of program
 	
@@ -22,10 +24,10 @@ public abstract class my_procApplet extends PApplet {
 	public int drawnTrajEditWidth = 10; //TODO make ui component			//width in cntl points of the amount of the drawn trajectory deformed by dragging
 	
 	//individual display/HUD windows for gui/user interaction
-	public myDispWindow[] dispWinFrames;
+	protected myDispWindow[] dispWinFrames;
 	//set in instancing class - must be > 1
-	public int numDispWins;
-	//always idx 0
+	protected int numDispWins;
+	//always idx 0 - first window is always menu
 	public static final int dispMenuIDX = 0;	
 	//which myDispWindow currently has focus
 	public int curFocusWin;		
@@ -33,8 +35,14 @@ public abstract class my_procApplet extends PApplet {
 	public String[] winTitles,winDescr;
 
 	//whether or not the display windows will accept a drawn trajectory
-	public boolean[] canDrawInWin,canShow3DBox, canMoveView;	
-	public boolean[] dispWinIs3D;
+	protected boolean[][] dispWinFlags;
+	//idxs : 0 : canDrawInWin; 1 : canShow3dbox; 2 : canMoveView; 3 : dispWinIs3d
+	protected static int
+		dispCanDrawInWinIDX 	= 0,
+		dispCanShow3dboxIDX 	= 1,
+		dispCanMoveViewIDX 		= 2,
+		dispWinIs3dIDX 			= 3;
+	private static int numDispWinBoolFlags = 4;
 	
 	public int[][] winFillClrs;
 	public int[][] winStrkClrs;
@@ -61,9 +69,6 @@ public abstract class my_procApplet extends PApplet {
 	
 	protected final int cnslStrDecay = 10;			//how long a message should last before it is popped from the console strings deque (how many frames)
 	
-	public int scrWidth, scrHeight;			//set to be applet.width and applet.height unless otherwise specified below
-	public final int scrWidthMod = 200, 
-			scrHeightMod = 0;
 	public final float frate = 120;			//frame rate - # of playback updates per second
 	
 	//size of printed text (default is 12)
@@ -79,6 +84,19 @@ public abstract class my_procApplet extends PApplet {
 	public float[][] cubeBnds = new float[][]{//idx 0 is min, 1 is diffs
 		new float[]{-gridDimX/2.0f,-gridDimY/2.0f,-gridDimZ/2.0f},//mins
 		new float[]{gridDimX,gridDimY,gridDimZ}};			//diffs
+		
+	
+	//2D, 3D
+	private myVector[] sceneFcsValsBase = new myVector[]{						//set these values to be different targets of focus
+			new myVector(-grid2D_X/2,-grid2D_Y/1.75f,0),
+			new myVector(0,0,0)
+	};
+	//2D, 3D
+	private myPoint[] sceneCtrValsBase = new myPoint[]{				//set these values to be different display center translations -
+		new myPoint(0,0,0),										// to be used to calculate mouse offset in world for pick
+		new myPoint(-gridDimX/2.0,-gridDimY/2.0,-gridDimZ/2.0)
+	};
+		
 	
 	public final float
 	//PopUpWinOpenFraction = .40f,				//fraction of screen not covered by popwindow
@@ -89,11 +107,11 @@ public abstract class my_procApplet extends PApplet {
 	public int animCounter, runCounter;	
 	public final int scrMsgTime = 50;									//5 seconds to delay a message 60 fps (used against draw count)
 	
-	public int drawCount,simCycles;												// counter for draw cycles		
-	public float menuWidth,menuWidthMult = .15f, hideWinWidth, hideWinWidthMult = .03f, hidWinHeight, hideWinHeightMult = .05f;			//side menu is 15% of screen grid2D_X, 
+	protected int drawCount,simCycles;												// counter for draw cycles		
+	protected float menuWidth,menuWidthMult = .15f, hideWinWidth, hideWinWidthMult = .03f, hidWinHeight, hideWinHeightMult = .05f;			//side menu is 15% of screen grid2D_X, 
 	
-	public ArrayList<String> DebugInfoAra;										//enable drawing dbug info onto screen
-	public String debugInfoString;
+	private ArrayList<String> DebugInfoAra;										//enable drawing dbug info onto screen
+	private String debugInfoString;
 	
 	//animation control variables	
 	public final float maxAnimCntr = PI*1000.0f, baseAnimSpd = 1.0f;
@@ -166,13 +184,11 @@ public abstract class my_procApplet extends PApplet {
 			new myPoint[] {new myPoint(tGDimX,tGDimY,hGDimZ), new myPoint(-tGDimX,tGDimY,hGDimZ), new myPoint(tGDimX,-tGDimY,hGDimZ)  },
 			new myPoint[] {new myPoint(tGDimX,tGDimY,-hGDimZ),new myPoint(-tGDimX,tGDimY,-hGDimZ),new myPoint(tGDimX,-tGDimY,-hGDimZ)  }
 	};
-	//for multithreading 
-	public ExecutorService th_exec;
-	public int numThreadsAvail;	
 	
 	//whether or not to show start up instructions for code		
-	public boolean showInfo=false;										
-
+	public boolean showInfo=false;			
+	
+	protected String exeDir = Paths.get("").toAbsolutePath().toString();
 	
 	////////////////////////
 	// code
@@ -180,16 +196,19 @@ public abstract class my_procApplet extends PApplet {
 	///////////////////////////////////
 	/// generic graphics functions and classes
 	///////////////////////////////////
-		//1 time initialization of things that won't change
+		//1 time initialization of visualization things that won't change
 	public void initVisOnce(){	
-		now = Calendar.getInstance();
-		scrWidth = width + scrWidthMod;
-		scrHeight = height + scrHeightMod;		//set to be applet.width and applet.height unless otherwise specified below
+		int numThreadsAvail = Runtime.getRuntime().availableProcessors();
 		
-		msSclX = PI/width;
-		msSclY = PI/height;
+		now = Calendar.getInstance();
+		//mouse scrolling scale
+		msSclX = (float) (Math.PI/width);
+		msSclY = (float) (Math.PI/height);
 
 		consoleStrings = new ArrayDeque<String>();				//data being printed to console		
+		outStr2Scr("# threads : "+ numThreadsAvail);
+		outStr2Scr("Current sketchPath " + sketchPath());
+		
 		menuWidth = width * menuWidthMult;						//grid2D_X of menu region	
 		hideWinWidth = width * hideWinWidthMult;				//dims for hidden windows
 		hidWinHeight = height * hideWinHeightMult;
@@ -197,14 +216,14 @@ public abstract class my_procApplet extends PApplet {
 		strokeCap(SQUARE);//makes the ends of stroke lines squared off		
 		//instancing class version
 		initVisOnce_Priv();
-		//init initernal state flags structure
-		initBaseFlags();		
 		
+		//init initernal state flags structure
+		initBaseFlags();			
 		//camVals = new float[]{width/2.0f, height/2.0f, (height/2.0f) / tan(PI/6.0f), width/2.0f, height/2.0f, 0, 0, 1, 0};
 		camVals = new float[]{0, 0, (height/2.0f) / tan(PI/6.0f), 0, 0, 0, 0,1,0};
 		
 		textSize(txtSz);
-		outStr2Scr("Current sketchPath " + sketchPath());
+		
 		textureMode(NORMAL);			
 		rectMode(CORNER);	
 		sphereDetail(4);
@@ -217,6 +236,107 @@ public abstract class my_procApplet extends PApplet {
 		simCycles = 0;
 
 	}//	initVisOnce
+	protected abstract void initVisOnce_Priv();
+		//1 time initialization of programmatic things that won't change
+	public void initOnce() {
+		//th_exec = Executors.newCachedThreadPool();
+		//1-time init for program and windows
+		initOnce_Priv();
+		//after all init is done
+		setFinalInitDone(true);
+	}//initOnce	
+//	protected abstract void initDispWins();
+	protected abstract void initOnce_Priv();
+	
+	
+		//called every time re-initialized
+	public void initVisProg(){	
+		drawCount = 0;		
+		debugInfoString = "";		
+		reInitInfoStr();
+	}
+	protected abstract void initVisProg_Indiv();
+		//called every time re-initialized
+	public void initProgram() {
+		
+		initProgram_Indiv();
+	}//initProgram	
+	protected abstract void initProgram_Indiv();
+	
+	
+	public void initCamView(){	dz=camInitialDist;	ry=camInitRy;	rx=camInitRx - ry;	}
+	public void reInitInfoStr(){		DebugInfoAra = new ArrayList<String>();		DebugInfoAra.add("");	}	
+	
+	//set up window structures
+	protected void initWins(int _numWins) {
+		numDispWins = _numWins;	//must be set here!
+		winRectDimOpen = new float[numDispWins][];
+		winRectDimClose = new float[numDispWins][];
+		//idxs : 0 : canDrawInWin; 1 : canShow3dbox; 2 : canMoveView; 3 : dispWinIs3d
+		dispWinFlags = new boolean[numDispWins][numDispWinBoolFlags];
+		//need 1 per display window
+		winTitles = new String[numDispWins];
+		winDescr = new String[numDispWins];
+		winFillClrs = new int[numDispWins][4];
+		winStrkClrs = new int[numDispWins][4];
+		winTrajFillClrs = new int[numDispWins];		//set to color constants for each window
+		winTrajStrkClrs = new int[numDispWins];		//set to color constants for each window
+		//display window initialization
+		dispWinFrames = new myDispWindow[numDispWins];			
+	}//initWins
+	
+	//initialize menu window
+	protected void buildInitMenuWin(int _showUIMenuIDX) {
+		//init sidebar menu vals
+		for(int i=0;i<dispWinFlags[dispMenuIDX].length;++i) {dispWinFlags[dispMenuIDX][i] = false;}
+		//set up dims for menu
+		winRectDimOpen[dispMenuIDX] =  new float[]{0,0, menuWidth, height};
+		winRectDimClose[dispMenuIDX] =  new float[]{0,0, hideWinWidth, height};
+		
+		winFillClrs[dispMenuIDX] = new int[]{255,255,255,255};
+		winStrkClrs[dispMenuIDX] = new int[]{0,0,0,255};
+		
+		winTrajFillClrs[dispMenuIDX] = gui_Black;		//set to color constants for each window
+		winTrajStrkClrs[dispMenuIDX] = gui_Black;		//set to color constants for each window		
+		winTitles[dispMenuIDX] = "UI Window";
+		winDescr[dispMenuIDX] = "User Controls";
+		
+		//menu bar init
+		int wIdx = dispMenuIDX,fIdx=_showUIMenuIDX;
+		dispWinFrames[wIdx] = new mySideBarMenu(this, winTitles[wIdx], fIdx, winFillClrs[wIdx], winStrkClrs[wIdx], winRectDimOpen[wIdx], winRectDimClose[wIdx], winDescr[wIdx],dispWinFlags[wIdx][dispCanDrawInWinIDX]);			
+	
+	}//setIniMenuWin
+	
+	//call once for each display window before calling constructor
+	protected void setInitDispWinVals(int _winIDX, float[] _dimOpen, float[] _dimClosed, String _ttl, String _desc, boolean[] _dispFlags, int[] _fill, int[] _strk, int _trajFill, int _trajStrk) {
+		winRectDimOpen[_winIDX] = _dimOpen;
+		winRectDimClose[_winIDX] = _dimClosed;
+		//idxs : 0 : canDrawInWin; 1 : canShow3dbox; 2 : canMoveView; 3 : dispWinIs3d
+		dispWinFlags[_winIDX] = _dispFlags;
+		//need 1 per display window
+		winTitles[_winIDX] = _ttl;
+		winDescr[_winIDX] = _desc;
+		winFillClrs[_winIDX] = _fill;
+		winStrkClrs[_winIDX] = _strk;
+		winTrajFillClrs[_winIDX] = _trajFill;		//set to color constants for each window
+		winTrajStrkClrs[_winIDX] = _trajStrk;		//set to color constants for each window		
+	}//setInitDispWinVals
+	
+//	
+//			dispCanDrawInWinIDX 	= 0,
+//			dispCanShow3dboxIDX 	= 1,
+//			dispCanMoveViewIDX 		= 2,
+//			dispWinIs3dIDX 			= 3;
+		
+	protected void finalDispWinInit() {
+		for(int i =0; i < numDispWins; ++i){
+			int scIdx = dispWinFlags[i][dispWinIs3dIDX] ? 1 : 0;//whether or not is 3d
+			dispWinFrames[i].finalInit(dispWinFlags[i][dispWinIs3dIDX], dispWinFlags[i][dispCanMoveViewIDX], sceneCtrValsBase[scIdx], sceneFcsValsBase[scIdx]);
+			dispWinFrames[i].setTrajColors(winTrajFillClrs[i], winTrajStrkClrs[i]);
+			dispWinFrames[i].setRtSideUIBoxClrs(new int[]{0,0,0,200},new int[]{255,255,255,255});
+		}	
+
+	}//finalDispWinInit
 	
 	
 	//called by sidebar menu to display current window's UI components
@@ -266,8 +386,6 @@ public abstract class my_procApplet extends PApplet {
 	}//drawUI	
 
 		
-	protected abstract void initVisOnce_Priv();
-	
 	public abstract void initVisFlags();
 	public abstract void setVisFlag(int idx, boolean val);
 	//this will not execute the code in setVisFlag, which might cause a loop
@@ -320,6 +438,20 @@ public abstract class my_procApplet extends PApplet {
 	public final boolean mouseIsClicked() {return getBaseFlag(mouseClicked);}
 	public final boolean IsModView() {return getBaseFlag(modView);}
 	public final boolean IsDrawing() {return getBaseFlag(drawing);}
+	
+	//display window flags
+	public final boolean dispWinCanDrawInWin(int wIdx) {return dispWinFlags[wIdx][dispCanDrawInWinIDX];}
+	public final boolean dispWinCanShow3dbox(int wIdx) {return dispWinFlags[wIdx][dispCanShow3dboxIDX];}
+	public final boolean dispWinCanMoveView(int wIdx) {return dispWinFlags[wIdx][dispCanMoveViewIDX];}
+	public final boolean dispWinIs3D(int wIdx) {return dispWinFlags[wIdx][dispWinIs3dIDX];}
+	
+	public final boolean curDispWinCanDrawInWin() {return dispWinFlags[curFocusWin][dispCanDrawInWinIDX];}
+	public final boolean curDispWinCanShow3dbox() {return dispWinFlags[curFocusWin][dispCanShow3dboxIDX];}
+	public final boolean curDispWinCanMoveView() {return dispWinFlags[curFocusWin][dispCanMoveViewIDX];}
+	public final boolean curDispWinIs3D() {return dispWinFlags[curFocusWin][dispWinIs3dIDX];}
+	
+	
+	
 	
 	public final void setSimIsRunning(boolean val) {setBaseFlag(runSim,val);}
 	public final void toggleSimIsRunning() {setBaseFlag(runSim, !getBaseFlag(runSim));}
@@ -461,13 +593,40 @@ public abstract class my_procApplet extends PApplet {
 			((mySideBarMenu)dispWinFrames[dispMenuIDX]).setWaitForProc(row,col);}//if programmatically (not through UI) setting button on, then set wait for proc value true 
 	}//setMenuBtnState	
 	
+	
+	public void loadFromFile(File file){
+		if (file == null) {
+		    outStr2Scr("Load was cancelled.");
+		    return;
+		} 
+		String[] res = loadStrings(file.getAbsolutePath());
+		//stop any simulations while file is loaded
+		//load - iterate through for each window
+		int[] stIdx = {0};//start index for a particular window - make an array so it can be passed by ref and changed by windows
+		for(int i =0; i<numDispWins; ++i){
+			while(!res[stIdx[0]].contains(dispWinFrames[i].name)){++stIdx[0];}			
+			dispWinFrames[i].hndlFileLoad(res,stIdx);
+		}//accumulate array of params to save
+		//resume simulations		
+	}//loadFromFile
+	
+	public void saveToFile(File file){
+		if (file == null) {
+		    outStr2Scr("Save was cancelled.");
+		    return;
+		} 
+		ArrayList<String> res = new ArrayList<String>();
+		//save - iterate through for each window
+		for(int i =0; i<numDispWins; ++i){
+			res.addAll(dispWinFrames[i].hndlFileSave());	
+		}//accumulate array of params to save
+		saveStrings(file.getAbsolutePath(), res.toArray(new String[0]));  
+	}//saveToFile	
+	
+	
 	//2d range checking of point
 	public boolean ptInRange(double x, double y, double minX, double minY, double maxX, double maxY){return ((x > minX)&&(x <= maxX)&&(y > minY)&&(y <= maxY));}	
-	
-		//called every time re-initialized
-	public void initVisProg(){	drawCount = 0;		debugInfoString = "";		reInitInfoStr();}	
-	public void initCamView(){	dz=camInitialDist;	ry=camInitRy;	rx=camInitRx - ry;	}
-	public void reInitInfoStr(){		DebugInfoAra = new ArrayList<String>();		DebugInfoAra.add("");	}	
+
 	public int addInfoStr(String str){return addInfoStr(DebugInfoAra.size(), str);}
 	public int addInfoStr(int idx, String str){	
 		int lstIdx = DebugInfoAra.size();
@@ -634,9 +793,7 @@ public abstract class my_procApplet extends PApplet {
 		return selection.getAbsolutePath();		
 	}//FileSelected
 	
-	//		//s-cut to print to console
-	public void pr(String str){outStr2Scr(str);}
-	
+
 	public String getFName(String fNameAndPath){
 		String[] strs = fNameAndPath.split("/");
 		return strs[strs.length-1];
@@ -814,7 +971,7 @@ public abstract class my_procApplet extends PApplet {
 	public void cylinder(myPoint A, myPoint B, float r, int c1, int c2) {
 		myPoint P = A;
 		myVector V = V(A,B);
-		myVector I = c.drawSNorm;//U(Normal(V));
+		myVector I = c.getDrawSNorm();//U(Normal(V));
 		myVector J = U(N(I,V));
 		float da = TWO_PI/36;
 		beginShape(QUAD_STRIP);

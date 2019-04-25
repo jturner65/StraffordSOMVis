@@ -1,10 +1,10 @@
-package Utils;
+package base_Utils_Objects;
 
 import java.io.*;
 import java.util.*;
 
-import SOM_Base.SOMMapManager;
 import SOM_Strafford_PKG.SOMProjConfigData;
+import base_SOM_Objects.SOMMapManager;
 
 /**
  * This class will manage file IO
@@ -20,29 +20,31 @@ public class FileIOManager{
 	
 	public FileIOManager(messageObject _msg, String _owner) {owner=_owner; msg=_msg;}	
 	//write data to file
-	public void saveStrings(String fname, String[] data) {
+	public void saveStrings(String fname, String[] data) { saveStrings( fname, data, false);}
+	public void saveStrings(String fname, String[] data, boolean append) {
 		PrintWriter pw = null;
 		try {
 		     File file = new File(fname);
-		     FileWriter fw = new FileWriter(file, false);
+		     FileWriter fw = new FileWriter(file, append);
 		     pw = new PrintWriter(fw);
 		     for (int i=0;i<data.length;++i) { pw.println(data[i]);}
 		     
 		} catch (IOException e) {	e.printStackTrace();}
 		finally {			if (pw != null) {pw.close();}}
 	}//saveStrings
-
-	public void saveStrings(String fname, ArrayList<String> data) {
+	public void saveStrings(String fname, ArrayList<String> data) { saveStrings( fname, data, false);}
+	public void saveStrings(String fname, ArrayList<String> data, boolean append) {
 		PrintWriter pw = null;
 		try {
 		     File file = new File(fname);
-		     FileWriter fw = new FileWriter(file, false);
+		     FileWriter fw = new FileWriter(file, append);
 		     pw = new PrintWriter(fw);
 		     for (int i=0;i<data.size();++i) { pw.println(data.get(i));}
 		     
 		} catch (IOException e) {	e.printStackTrace();}
 		finally {			if (pw != null) {pw.close();}}
 	}//saveStrings
+	
 	
 	public String[] loadFileIntoStringAra(String fileName, String dispYesStr, String dispNoStr) {try {return _loadFileIntoStringAra(fileName, dispYesStr, dispNoStr);} catch (Exception e) {e.printStackTrace(); } return new String[0];}
 	//stream read the csv file and build the data objects

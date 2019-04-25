@@ -1,4 +1,4 @@
-package SOM_Base;
+package base_SOM_Objects;
 /**
  * This object holds the configuration information for a SOMOCLU-based map to be trained and consumed.  
  * An instance of this class object must be the prime source for all actual map-based configuration and 
@@ -10,8 +10,7 @@ package SOM_Base;
 import java.util.*;
 
 import SOM_Strafford_PKG.SOMProjConfigData;
-import Utils.MsgCodes;
-import Utils.messageObject;
+import base_Utils_Objects.*;
 
 public class SOM_MapDat{
 	//object to faciliate printing to screen or log file

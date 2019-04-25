@@ -1,11 +1,11 @@
-package SOM_Base;
+package base_SOM_Objects;
 
 import java.util.*;
 import java.util.Map.Entry;
 
 import SOM_Strafford_PKG.SOM_StraffordMain;
 import SOM_Strafford_PKG.StraffSOMMapManager;
-import Utils.*;
+import base_Utils_Objects.*;
 
 
 /**
@@ -99,7 +99,7 @@ public abstract class SOMExample extends baseDataPtVis{
 	//column names of rawDescrForCSV data
 	public abstract String getRawDescColNamesForCSV();
 	//finalization after being loaded from baseRawData or from csv record
-	public abstract void finalizeBuild();
+	public abstract void finalizeBuildBeforeFtrCalc();
 	//return all jpg/jps in this example record
 	protected abstract HashSet<Tuple<Integer,Integer>> getSetOfAllJpgJpData();
 	
@@ -454,7 +454,7 @@ public abstract class SOMExample extends baseDataPtVis{
 	public final double getSqDistFromFtrType_ChiSq(SOMExample fromNode, int _ftrType){		
 		TreeMap<Integer, Float> fromftrMap = fromNode.ftrMaps[_ftrType], toftrMap = ftrMaps[_ftrType];
 		double res = 0.0f;
-		float[] mapFtrVar = mapMgr.map_ftrsVar;
+		float[] mapFtrVar = mapMgr.getMap_ftrsVar();
 		Set<Integer> allIdxs = new HashSet<Integer>(fromftrMap.keySet());
 		allIdxs.addAll(toftrMap.keySet());
 		for (Integer key : allIdxs) {//either map will have this key
@@ -488,7 +488,7 @@ public abstract class SOMExample extends baseDataPtVis{
 	public final double getSqDistFromFtrType_ChiSq_Exclude(SOMExample fromNode, int _ftrType){
 		TreeMap<Integer, Float> fromftrMap = fromNode.ftrMaps[_ftrType], toftrMap = ftrMaps[_ftrType];
 		double res = 0.0f;
-		float[] mapFtrVar = mapMgr.map_ftrsVar;
+		float[] mapFtrVar = mapMgr.getMap_ftrsVar();
 		Set<Integer> allIdxs = new HashSet<Integer>(toftrMap.keySet());
 		for (Integer key : allIdxs) {//either map will have this key
 			Float frmVal = fromftrMap.get(key);

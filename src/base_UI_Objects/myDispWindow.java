@@ -1,12 +1,12 @@
-package UI;
+package base_UI_Objects;
 
 import java.io.File;
 import java.util.*;
 
 import SOM_Strafford_PKG.SOM_StraffordMain;
-import Utils.myPoint;
-import Utils.myVector;
-import Utils.myVectorf;
+import base_Utils_Objects.myPoint;
+import base_Utils_Objects.myVector;
+import base_Utils_Objects.myVectorf;
 import processing.core.*;
 
 //abstract class to hold base code for a menu/display window (2D for gui, etc), to handle displaying and controlling the window, and calling the implementing class for the specifics

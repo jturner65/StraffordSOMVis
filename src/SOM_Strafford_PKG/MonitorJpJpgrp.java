@@ -3,12 +3,12 @@ package SOM_Strafford_PKG;
 import java.util.*; 
 import java.util.concurrent.ConcurrentSkipListMap;
 
-import SOM_Base.SOMExample;
-import SOM_Base.SOMMapManager;
-import Utils.FileIOManager;
-import Utils.MsgCodes;
-import Utils.Tuple;
-import Utils.messageObject;
+import base_SOM_Objects.SOMExample;
+import base_SOM_Objects.SOMMapManager;
+import base_Utils_Objects.FileIOManager;
+import base_Utils_Objects.MsgCodes;
+import base_Utils_Objects.Tuple;
+import base_Utils_Objects.messageObject;
 
 //this class will monitor presence and counts of jpgroups and jps
 //in training data for map

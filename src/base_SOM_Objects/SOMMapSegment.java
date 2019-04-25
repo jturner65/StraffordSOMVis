@@ -1,8 +1,8 @@
-package SOM_Base;
+package base_SOM_Objects;
 
 import java.util.*;
 
-import Utils.Tuple;
+import base_Utils_Objects.Tuple;
 
 /**
  * this class will be used to describe a segment/cluster of the SOM containing  

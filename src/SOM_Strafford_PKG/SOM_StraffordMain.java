@@ -5,8 +5,8 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.*;			//used for threading
 
-import UI.*;
-import Utils.*;
+import base_UI_Objects.*;
+import base_Utils_Objects.*;
 import processing.core.*;
 /**
  * Testbed to visually inspect and verify results from Strafford prospect mapping to a SOM
@@ -15,55 +15,26 @@ import processing.core.*;
  * 
  */
 public class SOM_StraffordMain extends my_procApplet {
+
 	//project-specific variables
-	public String prjNmLong = "Testbed for development of Strafford Prospects SOM", prjNmShrt = "SOM_Strafford";
+	private String prjNmLong = "Testbed for development of Strafford Prospects SOM", prjNmShrt = "SOM_Strafford";
 	
-	//data in files created by SOM_MAP separated by spaces
-	public String SOM_FileToken = " ", csvFileToken = "\\s*,\\s*";
 	//platform independent path separator
-	public String dirSep = File.separator;
+	private String dirSep = File.separator;
 	//don't use sphere background for this program
 	private boolean useSphereBKGnd = false;	
-			
-	public String exeDir = Paths.get("").toAbsolutePath().toString();
-	//base directory to write output from spheres/samples and from som analysis
-	public String BaseWriteDir = exeDir + dirSep + "data" + dirSep;
-	//location of SOM_MAP exe
-	//NOTE this program uses a modified version of the SOM_MAP library, modified to also build a file holding the per-feature best nodes
-	public String SOM_Dir = BaseWriteDir;
-			
-	//holds training data
-	public boolean init = false; 
-	
-	//2D, 3D
-	private myVector[] sceneFcsValsBase = new myVector[]{						//set these values to be different targets of focus
-			new myVector(-grid2D_X/2,-grid2D_Y/1.75f,0),
-			new myVector(0,0,0)
-	};
-	//2D, 3D
-	private myPoint[] sceneCtrValsBase = new myPoint[]{				//set these values to be different display center translations -
-		new myPoint(0,0,0),										// to be used to calculate mouse offset in world for pick
-		new myPoint(-gridDimX/2.0,-gridDimY/2.0,-gridDimZ/2.0)
-	};
-	
-	
-	public myVector[] cameraInitLocs = new myVector[]{						//set these values to be different initial camera locations based on 2d or 3d
-			new myVector(camInitRx,camInitRy,camInitialDist),
-			new myVector(camInitRx,camInitRy,camInitialDist),
-			new myVector(-0.47f,-0.61f,-gridDimZ*.25f)			
-	};
-	
+				
 	private int[] visFlags;
-	public final int
+	private final int
 		showUIMenu = 0,
 		showSOMMapUI = 1;
 	public final int numVisFlags = 2;
 	
 	//idx's in dispWinFrames for each window - 0 is always left side menu window
-	public static final int	dispSOMMapIDX = 1;	
+	private static final int	dispSOMMapIDX = 1;	
 																		//set array of vector values (sceneFcsVals) based on application
 	//private boolean cyclModCmp;										//comparison every draw of cycleModDraw			
-	public final int[] bground = new int[]{244,244,244,255};		//bground color
+	private final int[] bground = new int[]{244,244,244,255};		//bground color
 	private PShape bgrndSphere;										//giant sphere encapsulating entire scene
 
 
@@ -71,10 +42,13 @@ public class SOM_StraffordMain extends my_procApplet {
 //CODE STARTS
 ///////////////	
 	//////////////////////////////////////////////// code
+	
+	//needs main to run project
 	public static void main(String[] passedArgs) {		
 		String[] appletArgs = new String[] { "SOM_Strafford_PKG.SOM_StraffordMain" };
 	    if (passedArgs != null) {PApplet.main(PApplet.concat(appletArgs, passedArgs)); } else {PApplet.main(appletArgs);		    }
-	}//main
+	}//main	
+	
 	public void settings(){
 		size((int)(displayWidth*.95f), (int)(displayHeight*.92f),P3D);
 		noSmooth();
@@ -106,24 +80,55 @@ public class SOM_StraffordMain extends my_procApplet {
 	public void setBkgrnd(){
 		background(bground[0],bground[1],bground[2],bground[3]);		
 	}//setBkgrnd
-	//called once at start of program
-	public void initOnce(){
-		numThreadsAvail = Runtime.getRuntime().availableProcessors();
-		pr("# threads : "+ numThreadsAvail);
-		th_exec = Executors.newFixedThreadPool(numThreadsAvail);
-		//th_exec = Executors.newCachedThreadPool();			 
-		initDispWins();
+	
+	@Override
+	//build windows here
+	protected  void initVisOnce_Priv() {
+		showInfo = true;
+		drawnTrajEditWidth = 10;
+		int numWins = 2;
+		initWins(numWins);//includes 1 for menu window (never < 1)
+		//call for menu window
+		buildInitMenuWin(showUIMenu);
+		//instanced window dimensions when open and closed - only showing 1 open at a time
+		float[] _dimOpen  =  new float[]{menuWidth, 0, width-menuWidth, height}, _dimClosed  =  new float[]{menuWidth, 0, hideWinWidth, height};	
+		//(int _winIDX, float[] _dimOpen, float[] _dimClosed, String _ttl, String _desc, 
+		setInitDispWinVals(dispSOMMapIDX, _dimOpen, _dimClosed,"SOM Map UI","Visualize Prospect SOM Node Mapping",
+				//boolean[] _dispFlags : idxs : 0 : canDrawInWin; 1 : canShow3dbox; 2 : canMoveView; 3 : dispWinIs3d
+				//int[] _fill, int[] _strk, int _trajFill, int _trajStrk)
+				new boolean[] {false,false,false,false}, new int[]{50,40,20,255},new int[]{255,255,255,255},gui_LightGray,gui_DarkGray); 
+		
+		int wIdx = dispSOMMapIDX,fIdx=showSOMMapUI;
+		dispWinFrames[wIdx] = new mySOMMapUIWin(this, winTitles[wIdx], fIdx, winFillClrs[wIdx], winStrkClrs[wIdx], winRectDimOpen[wIdx], winRectDimClose[wIdx], winDescr[wIdx],dispWinFlags[wIdx][dispCanDrawInWinIDX]);
+		
+		//after all display windows are drawn
+		finalDispWinInit();
+
+		winFlagsXOR = new int[]{showSOMMapUI};//showSequence,showSphereUI};
+		//specify windows that cannot be shown simultaneously here
+		winDispIdxXOR = new int[]{dispSOMMapIDX};//dispPianoRollIDX,dispSphereUIIDX};
+		initVisFlags();
+	}//	initVisOnce_Priv
+	
+	@Override
+	//called from base class, once at start of program after vis init is called
+	protected void initOnce_Priv(){
+		//which objects to initially show
 		setVisFlag(showUIMenu, true);					//show input UI menu	
 		setVisFlag(showSOMMapUI, true);
-		initProgram();
-		setFinalInitDone(true);
+		//initProgram is called every time reinitialization is desired
+		initProgram();		
 	}//	initOnce
 	
+	@Override
 	//called multiple times, whenever re-initing
-	public void initProgram(){
+	protected void initProgram_Indiv(){
 		initVisProg();				//always first
-		drawCount = 0;
+		
 	}//initProgram
+	
+	@Override
+	protected void initVisProg_Indiv() {}	
 	
 	//get difference between frames and set both glbl times
 	private float getModAmtMillis() {
@@ -149,12 +154,12 @@ public class SOM_StraffordMain extends my_procApplet {
 		//drawing section
 		pushMatrix();pushStyle();
 		drawSetup();																//initialize camera, lights and scene orientation and set up eye movement		
-		if((curFocusWin == -1) || (dispWinIs3D[curFocusWin])){	//allow for single window to have focus, but display multiple windows	
+		if((curFocusWin == -1) || (curDispWinIs3D())){	//allow for single window to have focus, but display multiple windows	
 			//if refreshing screen, this clears screen, sets background
 			setBkgrnd();				
 			draw3D_solve3D(modAmtMillis);
 			c.buildCanvas();			
-			if(canShow3DBox[curFocusWin]){drawBoxBnds();}
+			if(curDispWinCanShow3dbox()){drawBoxBnds();}
 			if(dispWinFrames[curFocusWin].chkDrawMseRet()){			c.drawMseEdge();	}			
 			popStyle();popMatrix(); 
 		} else {	//either/or 2d window
@@ -185,7 +190,7 @@ public class SOM_StraffordMain extends my_procApplet {
 		}
 		popStyle();popMatrix();
 		//fixed xyz rgb axes for visualisation purposes and to show movement and location in otherwise empty scene
-		drawAxes(100,3, new myPoint(-c.viewDimW/2.0f+40,0.0f,0.0f), 200, false); 		
+		drawAxes(100,3, new myPoint(-c.getViewDimW()/2.0f+40,0.0f,0.0f), 200, false); 		
 	}//draw3D_solve3D
 	
 	//if should show problem # i
@@ -253,58 +258,7 @@ public class SOM_StraffordMain extends my_procApplet {
 			}
 		}
 	}//handleShowWin
-	
 
-	public void loadFromFile(File file){
-		if (file == null) {
-		    outStr2Scr("Load was cancelled.");
-		    return;
-		} 
-		String[] res = loadStrings(file.getAbsolutePath());
-		//stop any simulations while file is loaded
-		//load - iterate through for each window
-		int[] stIdx = {0};//start index for a particular window - make an array so it can be passed by ref and changed by windows
-		for(int i =0; i<numDispWins; ++i){
-			while(!res[stIdx[0]].contains(dispWinFrames[i].name)){++stIdx[0];}			
-			dispWinFrames[i].hndlFileLoad(res,stIdx);
-		}//accumulate array of params to save
-		//resume simulations		
-	}//loadFromFile
-	
-	public void saveToFile(File file){
-		if (file == null) {
-		    outStr2Scr("Save was cancelled.");
-		    return;
-		} 
-		ArrayList<String> res = new ArrayList<String>();
-		//save - iterate through for each window
-		for(int i =0; i<numDispWins; ++i){
-			res.addAll(dispWinFrames[i].hndlFileSave());	
-		}//accumulate array of params to save
-		saveStrings(file.getAbsolutePath(), res.toArray(new String[0]));  
-	}//saveToFile	
-	
-	public void initDispWins(){
-		//instanced window dimensions when open and closed - only showing 1 open at a time
-		winRectDimOpen[dispSOMMapIDX]  =  new float[]{menuWidth, 0, width-menuWidth, height};
-		//hidden
-		winRectDimClose[dispSOMMapIDX]  =  new float[]{menuWidth, 0, hideWinWidth, height};
-		
-		winTrajFillClrs = new int []{gui_Black,gui_LightGray,gui_LightGreen};		//set to color constants for each window
-		winTrajStrkClrs = new int []{gui_Black,gui_DarkGray,gui_White};				//set to color constants for each window			
-		
-	//			//display window initialization	
-		int wIdx = dispSOMMapIDX,fIdx=showSOMMapUI;
-		dispWinFrames[wIdx] = new mySOMMapUIWin(this, winTitles[wIdx], fIdx,winFillClrs[wIdx], winStrkClrs[wIdx], winRectDimOpen[wIdx], winRectDimClose[wIdx], winDescr[wIdx],canDrawInWin[wIdx]);
-		for(int i =0; i < numDispWins; ++i){
-			int scIdx = dispWinIs3D[i] ? 1 : 0;
-			dispWinFrames[i].finalInit(dispWinIs3D[i], canMoveView[i], sceneCtrValsBase[scIdx], sceneFcsValsBase[scIdx]);
-			dispWinFrames[i].setTrajColors(winTrajFillClrs[i], winTrajStrkClrs[i]);
-			dispWinFrames[i].setRtSideUIBoxClrs(new int[]{0,0,0,200},new int[]{255,255,255,255});
-		}	
-		//set initial state to be true - show info window
-		//setFlags(showRtSideMenu, true);
-	}//initDispWins
 	
 	@Override
 	//get the ui rect values of the "master" ui region (another window) -> this is so ui objects of one window can be made, clicked, and shown displaced from those of the parent windwo
@@ -320,56 +274,10 @@ public class SOM_StraffordMain extends my_procApplet {
 	//////////////////////////////////////////
 	/// graphics and base functionality utilities and variables
 	//////////////////////////////////////////
-
-	@Override
-	protected  void initVisOnce_Priv() {
-		showInfo = true;
-		drawnTrajEditWidth = 10;
-		numDispWins = 2;	//must be set here!
-		winRectDimOpen = new float[numDispWins][];
-		winRectDimClose = new float[numDispWins][];
-		winRectDimOpen[0] =  new float[]{0,0, menuWidth, height};
-		winRectDimClose[0] =  new float[]{0,0, hideWinWidth, height};
-		
-		//need 1 per display window
-		winTitles = new String[]{"","SOM Map UI"};
-		winDescr = new String[] {"", "Visualize Prospect SOM Node Mapping"};
-
-		//whether or not the display windows will accept a drawn trajectory
-		canDrawInWin = new boolean[]{false,false};		
-		canShow3DBox = new boolean[]{false,false};		
-		canMoveView = new boolean[]{false,false};		
-		dispWinIs3D = new boolean[]{false,false};
-		
-		winFillClrs = new int[][]{          
-			new int[]{255,255,255,255},                                 	// dispMenuIDX = 0,
-			new int[]{50,40,20,255}                                        	// dispSOMMapIDX = 2
-		};
-		winStrkClrs = new int[][]{
-			new int[]{0,0,0,255},                                    		//dispMenuIDX = 0,
-			new int[]{255,255,255,255}                               		//dispSOMMapIDX = 2
-		};
-		
-		winTrajFillClrs = new int []{0,0};		//set to color constants for each window
-		winTrajStrkClrs = new int []{0,0};		//set to color constants for each window
-		
-
-		//display window initialization
-		dispWinFrames = new myDispWindow[numDispWins];		
-		//menu bar init
-		dispWinFrames[dispMenuIDX] = new mySideBarMenu(this, "UI Window", showUIMenu,  winFillClrs[dispMenuIDX], winStrkClrs[dispMenuIDX], winRectDimOpen[dispMenuIDX],winRectDimClose[dispMenuIDX], "User Controls",canDrawInWin[dispMenuIDX]);			
-
-		winFlagsXOR = new int[]{showSOMMapUI};//showSequence,showSphereUI};
-		//specify windows that cannot be shown simultaneously here
-		winDispIdxXOR = new int[]{dispSOMMapIDX};//dispPianoRollIDX,dispSphereUIIDX};
-		initVisFlags();
-
-	}//	initVisOnce_Priv
 	
 		//init boolean state machine flags for program
 	public void initVisFlags(){
 		visFlags = new int[1 + numVisFlags/32];for(int i =0; i<numVisFlags;++i){forceVisFlag(i,false);}	
-
 		((mySideBarMenu)dispWinFrames[dispMenuIDX]).initPFlagColors();			//init sidebar window flags
 	}		
 	

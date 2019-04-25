@@ -4,13 +4,8 @@ import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
 
-import SOM_Base.ExDataType;
-import SOM_Base.SOMExample;
-import SOM_Base.SOMMapManager;
-import SOM_Base.SOMMapNode;
-import Utils.*;
-
-import processing.core.PImage;
+import base_SOM_Objects.*;
+import base_Utils_Objects.*;
 
 //class that describes the hierarchy of files required for running and analysing a SOM
 public class SOMDataLoader implements Runnable {
@@ -92,14 +87,14 @@ public class SOMDataLoader implements Runnable {
 		return true;		
 	}//checkMapDim
 	
-	private float[]  _initMapMgrMeanMinVar(int numFtrs) {
-		mapMgr.map_ftrsMean = new float[numFtrs];
-		float[] tmpMapMaxs = new float[numFtrs];
-		mapMgr.map_ftrsMin = new float[numFtrs];
-		for(int l=0;l<mapMgr.map_ftrsMin.length;++l) {mapMgr.map_ftrsMin[l]=10000.0f;}//need to init to big number to get accurate min
-		mapMgr.map_ftrsVar = new float[numFtrs];
-		return tmpMapMaxs;
-	}//_initMapMgrMeanMinVar
+//	private float[]  _initMapMgrMeanMinVar(int numFtrs) {
+//		mapMgr.map_ftrsMean = new float[numFtrs];
+//		float[] tmpMapMaxs = new float[numFtrs];
+//		mapMgr.map_ftrsMin = new float[numFtrs];
+//		for(int l=0;l<mapMgr.map_ftrsMin.length;++l) {mapMgr.map_ftrsMin[l]=10000.0f;}//need to init to big number to get accurate min
+//		mapMgr.map_ftrsVar = new float[numFtrs];
+//		return tmpMapMaxs;
+//	}//_initMapMgrMeanMinVar
 	
 	
 	//load map wts from file built by SOM_MAP - need to know format of original data used to train map	
@@ -108,14 +103,14 @@ public class SOMDataLoader implements Runnable {
 	private boolean loadSOMWts(){//builds mapnodes structure - each map node's weights 
 		String wtsFileName = projConfigData.getSOMResFName(projConfigData.wtsIDX);
 		msgObj.dispMessage("DataLoader","loadSOMWts","Starting Loading SOM weight data from file : " + getFName(wtsFileName), MsgCodes.info5 );
-		mapMgr.MapNodes = new TreeMap<Tuple<Integer,Integer>, SOMMapNode>();
+		mapMgr.initMapNodes();
 		mapMgr.clearBMUNodesWithNoExs(ExDataType.Training);//clear structures holding map nodes with and without training examples
 		if(wtsFileName.length() < 1){return false;}
 		String [] strs= fileIO.loadFileIntoStringAra(wtsFileName, "Loaded wts data file : "+wtsFileName, "Error wts reading file : "+wtsFileName);
 		if(strs==null){return false;}
 		String[] tkns,ftrNames;
 		SOMMapNode dpt;	
-		int numEx = 0, mapX=1, mapY=1,numWtData = 0;
+		int numEx = 0, mapX=1, mapY=1;//,numWtData = 0;
 		Tuple<Integer,Integer> mapLoc;
 		//# of training features in each map node
 		int numTrainFtrs = 0; 
@@ -131,7 +126,7 @@ public class SOMDataLoader implements Runnable {
 					ftrNames = new String[numTrainFtrs];
 					for(int j=0;j<ftrNames.length;++j){ftrNames[j]=""+j;}			//build temporary names for each feature idx in feature vector					
 					//mapMgr.dataHdr = new dataDesc(mapMgr, ftrNames);				//assign numbers to feature name data header 
-					tmpMapMaxs = _initMapMgrMeanMinVar(ftrNames.length);
+					tmpMapMaxs = mapMgr.initMapMgrMeanMinVar(ftrNames.length);
 				}	
 				continue;
 			}//if first 2 lines in wts file
@@ -140,46 +135,11 @@ public class SOMDataLoader implements Runnable {
 			mapLoc = new Tuple<Integer, Integer>((i-2)%mapX, (i-2)/mapX);//map locations in som data are increasing in x first, then y (row major)
 			dpt = mapMgr.buildMapNode(mapLoc, tkns);//give each map node its features		
 			++numEx;
-			float[] ftrData = dpt.getFtrs();
-			for(int d = 0; d<numTrainFtrs; ++d){
-				mapMgr.map_ftrsMean[d] += ftrData[d];
-				tmpMapMaxs[d] = (tmpMapMaxs[d] < ftrData[d] ? ftrData[d]  : tmpMapMaxs[d]);
-				mapMgr.map_ftrsMin[d] = (mapMgr.map_ftrsMin[d] > ftrData[d] ? ftrData[d]  : mapMgr.map_ftrsMin[d]);
-			}
-			mapMgr.MapNodes.put(mapLoc, dpt);			
-			mapMgr.addExToNodesWithNoExs(dpt, ExDataType.Training);//nodesWithNoTrainEx.add(dpt);				//initialize : add all nodes to set, will remove nodes when they get mappings
+			mapMgr.addToMapNodes(mapLoc, dpt, tmpMapMaxs, numTrainFtrs);			
 		}
 		//make sure both unmoddified features and std'ized features are built before determining map mean/var
-		//need to have all features built to scale features		
-		mapMgr.map_ftrsDiffs = new float[numTrainFtrs];
-		//initialize array of images to display map of particular feature with
-		mapMgr.initMapAras(numTrainFtrs);
-		
-		for(int d = 0; d<mapMgr.map_ftrsMean.length; ++d){mapMgr.map_ftrsMean[d] /= 1.0f*numEx;mapMgr.map_ftrsDiffs[d]=tmpMapMaxs[d]-mapMgr.map_ftrsMin[d];}
-		//set stdftrs for map nodes and variance calc
-		float diff;
-		//reset this to manage all map nodes
-		mapMgr.initPerFtrMapOfNodes(numTrainFtrs);
-		float[] ftrData ;
-		//for every node, now build standardized features 
-		for(Tuple<Integer, Integer> key : mapMgr.MapNodes.keySet()){
-			SOMMapNode tmp = mapMgr.MapNodes.get(key);
-			tmp.buildStdFtrsMapFromFtrData_MapNode(mapMgr.map_ftrsMin, mapMgr.map_ftrsDiffs);
-			//accumulate map ftr moments
-			ftrData = tmp.getFtrs();
-			for(int d = 0; d<mapMgr.map_ftrsMean.length; ++d){
-				diff = mapMgr.map_ftrsMean[d] - ftrData[d];
-				mapMgr.map_ftrsVar[d] += diff*diff;
-			}
-			mapMgr.setMapNodeFtrStr(tmp);
-		}
-		for(int d = 0; d<mapMgr.map_ftrsVar.length; ++d){mapMgr.map_ftrsVar[d] /= 1.0f*numEx;}
-		
-		mapMgr.setNumTrainFtrs(numTrainFtrs); 
-		
-		
-		msgObj.dispMessage("DataLoader","loadSOMWts","Finished Loading SOM weight data from file : " + getFName(wtsFileName), MsgCodes.info5 );
-		
+		mapMgr.finalizeMapNodes(tmpMapMaxs, numTrainFtrs, numEx);		
+		msgObj.dispMessage("DataLoader","loadSOMWts","Finished Loading SOM weight data from file : " + getFName(wtsFileName), MsgCodes.info5 );		
 		return true;
 	}//loadSOMWts	
 	
@@ -207,6 +167,7 @@ public class SOMDataLoader implements Runnable {
 	private boolean loadSOM_BMUs(){//modifies existing nodes and datapoints only
 		String bmFileName = projConfigData.getSOMResFName(projConfigData.bmuIDX);
 		if(bmFileName.length() < 1){return false;}
+		//clear out listing of bmus that have training examples already
 		mapMgr.clearBMUNodesWithExs(ExDataType.Training);
 		msgObj.dispMessage("DataLoader","loadSOM_BMUs","Start Loading BMU File : "+bmFileName, MsgCodes.info5);
 		String[] tkns;			
@@ -229,7 +190,7 @@ public class SOMDataLoader implements Runnable {
 			mapNodeY = Integer.parseInt(tkns[1]);
 			dpIdx = Integer.parseInt(tkns[0]);	//datapoint index in training data		
 			Tuple<Integer,Integer> mapLoc = new Tuple<Integer, Integer>(mapNodeX,mapNodeY);//map locations in bmu data are in (y,x) order (row major)
-			SOMMapNode tmpMapNode = mapMgr.MapNodes.get(mapLoc);
+			SOMMapNode tmpMapNode = mapMgr.getMapNodeLoc(mapLoc);//mapMgr.MapNodes.get(mapLoc);
 			if(null==tmpMapNode){ msgObj.dispMessage("DataLoader","loadSOM_BMUs","!!!!!!!!!Map node stated as best matching unit for training example " + tkns[0] + " not found in map ... somehow. ", MsgCodes.error2); return false;}//catastrophic error shouldn't be possible
 			SOMExample tmpDataPt = mapMgr.trainData[dpIdx];
 			if(null==tmpDataPt){ msgObj.dispMessage("DataLoader","loadSOM_BMUs","!!Training Datapoint given by idx in BMU file str tok : " + tkns[0] + " of string : --" + strs[i] + "-- not found in training data. ", MsgCodes.error2); return false;}//catastrophic error shouldn't happen
@@ -260,8 +221,7 @@ public class SOMDataLoader implements Runnable {
 						ArrayList<SOMExample> exs = bmuToExsMap.get(tmpMapNode);
 						for(SOMExample ex : exs) {ex.setBMU_ChiSq(tmpMapNode, ftrTypeUsedToTrain);tmpMapNode.addExToBMUs(ex);	}
 					}
-				}
-				
+				}				
 			} else {
 				for (HashMap<SOMMapNode, ArrayList<SOMExample>> bmuToExsMap : bmusToExs) {
 					for (SOMMapNode tmpMapNode : bmuToExsMap.keySet()) {
@@ -320,7 +280,7 @@ public class SOMDataLoader implements Runnable {
 	private void dbgVerifyBMUs(SOMMapNode tmpMapNode, SOMExample tmpDataPt, Integer x, Integer y) {
 		//this is alternate node with column-major key
 		Tuple<Integer,Integer> mapAltLoc = new Tuple<Integer, Integer>(x,y);//verifying correct row/col order - tmpMapNode should be closer to mapMgr.trainData[dpIdx] than to tmpAltMapNode
-		SOMMapNode tmpAltMapNode = mapMgr.MapNodes.get(mapAltLoc);
+		SOMMapNode tmpAltMapNode = mapMgr.getMapNodeLoc(mapAltLoc);//mapMgr.MapNodes.get(mapAltLoc);
 		//if using chi-sq dist, must know mapMgr.map_ftrsVar by now
 		//double tmpDist =  mapMgr.dpDistFunc(tmpAltMapNode, tmpDataPt);
 		double tmpDist;
@@ -358,12 +318,12 @@ public class SOMDataLoader implements Runnable {
 			row = i-1;
 			for (int col=0;col<tkns.length;++col) {
 				mapLoc = new Tuple<Integer, Integer>(col, row);//map locations in som data are increasing in x first, then y (row major)
-				dpt = mapMgr.MapNodes.get(mapLoc);//give each map node its features
+				dpt = mapMgr.getMapNodeLoc(mapLoc);//mapMgr.MapNodes.get(mapLoc);//give each map node its features
 				dpt.setUMatDist(Float.parseFloat(tkns[col].trim()));
 			}	
 		}//
 		//update each map node's neighborhood member's weight values
-		for(SOMMapNode ex : mapMgr.MapNodes.values()) {	ex.buildNeighborWtVals();	}
+		mapMgr.buildAllMapNodeNeighborhoods();//for(SOMMapNode ex : mapMgr.MapNodes.values()) {	ex.buildNeighborWtVals();	}
 		//calculate segments of nodes
 		mapMgr.buildSegmentsOnMap();
 		msgObj.dispMessage("DataLoader","loadSOM_nodeDists","Finished loading and processing U-Matrix File : "+uMtxBMUFname, MsgCodes.info5);		
@@ -425,243 +385,96 @@ class SOMExBMULoader implements Callable<Boolean>{
 	}//run	
 }//SOMExBMULoader
 
-//this class will find the bmus for the passed dataset - the passed reference is to 
-//the entire dataset, each instance of this callable will process a subset of this dataset
-class mapTestDataToBMUs implements Callable<Boolean>{
-	SOMMapManager mapMgr;
-	private messageObject msgObj;
-	int stIdx, endIdx, curMapFtrType, thdIDX;
+//class to manage mapping of examples to bmus
+abstract class mapDataToBMUs implements Callable<Boolean>{
+	protected SOMMapManager mapMgr;
+	protected messageObject msgObj;
+	protected final int stIdx, endIdx, curMapFtrType, thdIDX;
 	//calculate the exclusionary feature distance(only measure distance from map via features that the node has non-zero values in)
-	private boolean useChiSqDist;
+	protected final boolean useChiSqDist;
+	protected final TreeMap<Tuple<Integer,Integer>, SOMMapNode> MapNodes;
+	protected String ftrTypeDesc, dataType;
 	
-	int ftrTypeUsedToTrain;
-	SOMExample[] exs;
-	String ftrTypeDesc, dataType;
-
-	public mapTestDataToBMUs(SOMMapManager _mapMgr, int _stProdIDX, int _endProdIDX, SOMExample[] _exs, int _thdIDX, String _type, boolean _useChiSqDist) {
+	public mapDataToBMUs(SOMMapManager _mapMgr, int _stProdIDX, int _endProdIDX, int _thdIDX, String _type, boolean _useChiSqDist){
 		mapMgr = _mapMgr;
+		MapNodes = mapMgr.getMapNodes();
 		msgObj = mapMgr.buildMsgObj();
 		stIdx = _stProdIDX;
 		endIdx = _endProdIDX;
 		thdIDX= _thdIDX;
-		exs=_exs;
 		dataType = _type;
 		curMapFtrType = mapMgr.getCurrentTestDataFormat();
 		ftrTypeDesc = mapMgr.getDataDescFromCurFtrTestType();
 		useChiSqDist = _useChiSqDist;		
+	}//ctor
+	
+	protected abstract boolean mapAllDataToBMUs();
+	@Override
+	public final Boolean call() throws Exception {	
+		boolean retCode = mapAllDataToBMUs();		
+		return retCode;
+	}
+	
+}//mapDataToBMUs
+
+
+//this class will find the bmus for the passed dataset - the passed reference is to 
+//the entire dataset, each instance of this callable will process a subset of this dataset
+class mapTestDataToBMUs extends mapDataToBMUs{
+	protected SOMExample[] exs;
+	
+	public mapTestDataToBMUs(SOMMapManager _mapMgr, int _stProdIDX, int _endProdIDX, SOMExample[] _exs, int _thdIDX, String _type, boolean _useChiSqDist) {
+		super(_mapMgr, _stProdIDX,  _endProdIDX,  _thdIDX, _type, _useChiSqDist);			
+		exs = _exs;		//make sure these are cast appropriately
 	}	
 	@Override
-	public Boolean call() throws Exception {
-		//for every example find closest map node
-		//the function call at the end is ignored by product examples
+	protected boolean mapAllDataToBMUs() {
 		if(exs.length == 0) {
 			msgObj.dispMessage("mapTestDataToBMUs", "Run Thread : " +thdIDX, ""+dataType+" Data["+stIdx+":"+endIdx+"] is length 0 so nothing to do. Aborting thread.", MsgCodes.info5);
 			return true;}
-		msgObj.dispMessage("mapTestDataToBMUs", "Run Thread : " +thdIDX, "Starting "+dataType+" Data["+stIdx+":"+endIdx+"] to BMU mapping using " + ftrTypeDesc + " Features and including all features in distance.", MsgCodes.info5);
-		if (useChiSqDist) {		for (int i=stIdx;i<endIdx;++i) {exs[i].findBMUFromNodes_ChiSq_Excl(mapMgr.MapNodes, curMapFtrType);}} 
-		else {					for (int i=stIdx;i<endIdx;++i) {exs[i].findBMUFromNodes_Excl(mapMgr.MapNodes,  curMapFtrType); }}		
+		msgObj.dispMessage("mapTestDataToBMUs", "Run Thread : " +thdIDX, "Starting "+dataType+" Data["+stIdx+":"+endIdx+"]  (" + (endIdx-stIdx) + " exs), to BMU mapping using " + ftrTypeDesc + " Features and including all features in distance.", MsgCodes.info5);
+		if (useChiSqDist) {		for (int i=stIdx;i<endIdx;++i) {exs[i].findBMUFromNodes_ChiSq_Excl(MapNodes, curMapFtrType);}} 
+		else {					for (int i=stIdx;i<endIdx;++i) {exs[i].findBMUFromNodes_Excl(MapNodes,  curMapFtrType); }}		
 		msgObj.dispMessage("mapTestDataToBMUs", "Run Thread : " +thdIDX, "Finished "+dataType+" Data["+stIdx+":"+endIdx+"] to BMU mapping", MsgCodes.info5);		
 		return true;
 	}		
 }//mapTestToBMUs	
 
 //maps products to all map nodes, not just bmu
-class mapProductDataToBMUs implements Callable<Boolean>{
-	SOMMapManager mapMgr;
-	private messageObject msgObj;
-	int stIdx, endIdx, curMapFtrType, thdIDX;
-	//calculate the exclusionary feature distance(only measure distance from map via features that the node has non-zero values in)
-	private boolean useChiSqDist;
-	
-	int ftrTypeUsedToTrain;
+class mapProductDataToBMUs extends mapDataToBMUs{
 	ProductExample[] exs;
-	String ftrTypeDesc;
 
 	public mapProductDataToBMUs(SOMMapManager _mapMgr, int _stProdIDX, int _endProdIDX, ProductExample[] _exs, int _thdIDX, boolean _useChiSqDist) {
-		mapMgr = _mapMgr;
-		msgObj = mapMgr.buildMsgObj();
-		stIdx = _stProdIDX;
-		endIdx = _endProdIDX;
-		thdIDX= _thdIDX;
-		exs=_exs;
-		curMapFtrType = mapMgr.getCurrentTestDataFormat();
-		ftrTypeDesc = mapMgr.getDataDescFromCurFtrTestType();
-		useChiSqDist = _useChiSqDist;
+		super(_mapMgr, _stProdIDX,  _endProdIDX,  _thdIDX, "Product", _useChiSqDist);
+		exs = _exs;		//make sure these are cast appropriately
 	}	
 	@Override
-	public Boolean call() throws Exception {
+	protected boolean mapAllDataToBMUs() {
 		//for every example find closest map node
 		//the function call at the end is ignored by product examples
-		msgObj.dispMessage("mapTestDataToBMUs", "Run Thread : " +thdIDX, "Starting Product data to BMU mapping using " + ftrTypeDesc + " Features and both including and excluding unshared features in distance.", MsgCodes.info5);
+		msgObj.dispMessage("mapTestDataToBMUs", "Run Thread : " +thdIDX, "Starting "+dataType+" data to BMU mapping using " + (endIdx-stIdx) + " of " + exs.length+" examples ["+stIdx+":"+endIdx+"] with " + ftrTypeDesc + " Features and both including and excluding unshared features in distance.", MsgCodes.info5);
 		TreeMap<Double, ArrayList<SOMMapNode>> mapNodesByDist;
 		if (useChiSqDist) {	
 			for (int i=stIdx;i<endIdx;++i) {
-				mapNodesByDist = exs[i].findBMUFromNodes_ChiSq_Excl(mapMgr.MapNodes, curMapFtrType); 
+				mapNodesByDist = exs[i].findBMUFromNodes_ChiSq_Excl(MapNodes, curMapFtrType); 
 				exs[i].setMapNodesStruct(ProductExample.SharedFtrsIDX, mapNodesByDist);
-				mapNodesByDist = exs[i].findBMUFromNodes_ChiSq(mapMgr.MapNodes, curMapFtrType); 
+				mapNodesByDist = exs[i].findBMUFromNodes_ChiSq(MapNodes, curMapFtrType); 
 				exs[i].setMapNodesStruct(ProductExample.AllFtrsIDX, mapNodesByDist);  
 			}
 		} else {							
 			for (int i=stIdx;i<endIdx;++i) {
-				mapNodesByDist = exs[i].findBMUFromNodes_Excl(mapMgr.MapNodes,  curMapFtrType); 
+				mapNodesByDist = exs[i].findBMUFromNodes_Excl(MapNodes,  curMapFtrType); 
 				exs[i].setMapNodesStruct(ProductExample.SharedFtrsIDX, mapNodesByDist);
-				mapNodesByDist = exs[i].findBMUFromNodes(mapMgr.MapNodes,  curMapFtrType); 
+				mapNodesByDist = exs[i].findBMUFromNodes(MapNodes,  curMapFtrType); 
 				exs[i].setMapNodesStruct(ProductExample.AllFtrsIDX, mapNodesByDist);
 			}
 		}					
-		msgObj.dispMessage("mapTestDataToBMUs", "Run Thread : " +thdIDX, "Finished Product data to BMU mapping", MsgCodes.info5);
+		msgObj.dispMessage("mapTestDataToBMUs", "Run Thread : " +thdIDX, "Finished "+dataType+" data to BMU mapping", MsgCodes.info5);
 		
 		return true;
 	}		
 }//mapTestToBMUs
 	
-//this will build a single image of the map based on ftr data
-class SOMFtrMapVisImgBuilder implements Callable<Boolean>{
-	private messageObject msgObj;
-	private int mapX, mapY, xSt, xEnd, ySt, yEnd, imgW;
-	//type of features to use to build vis, based on type used to train map (unmodified, stdftrs, normftrs)
-	private int ftrType;
-	private float mapScaleVal, sclMultXPerPxl, sclMultYPerPxl;
-	private TreeMap<Tuple<Integer,Integer>, SOMMapNode> MapNodes;
-	private PImage[] mapLocClrImg;
-	public SOMFtrMapVisImgBuilder(SOMMapManager _mapMgr, PImage[] _mapLocClrImg, int[] _xVals, int[] _yVals,  float _mapScaleVal) {
-		msgObj= _mapMgr.buildMsgObj();
-		MapNodes = _mapMgr.MapNodes;
-		ftrType = _mapMgr.getCurrentTrainDataFormat();
-		mapLocClrImg = _mapLocClrImg;
-		mapX = _mapMgr.getMapNodeCols();
-		xSt = _xVals[0];
-		xEnd = _xVals[1];
-		if(mapLocClrImg.length == 0) {		imgW = 0;} 
-		else {								imgW = mapLocClrImg[0].width;}
-		mapY = _mapMgr.getMapNodeRows();
-		ySt = _yVals[0];
-		yEnd = _yVals[1];
-
-		mapScaleVal = _mapScaleVal;
-		sclMultXPerPxl = mapScaleVal * _mapMgr.getNodePerPxlCol();
-		sclMultYPerPxl = mapScaleVal * _mapMgr.getNodePerPxlRow();
-	}//ctor
-	
-	public float[] getMapNodeLocFromPxlLoc(float mapPxlX, float mapPxlY){	return new float[]{(mapPxlX * sclMultXPerPxl) - .5f, (mapPxlY * sclMultYPerPxl) - .5f};}	
-		
-	//get treemap of features that interpolates between two maps of features
-	private TreeMap<Integer, Float> interpTreeMap(TreeMap<Integer, Float> a, TreeMap<Integer, Float> b, float t, float mult){
-		TreeMap<Integer, Float> res = new TreeMap<Integer, Float>();
-		float Onemt = 1.0f-t;
-		if(mult==1.0) {
-			//first go through all a values
-			for(Integer key : a.keySet()) {
-				Float aVal = a.get(key), bVal = b.get(key);
-				if(bVal == null) {bVal = 0.0f;}
-				res.put(key, (aVal*Onemt) + (bVal*t));			
-			}
-			//next all b values
-			for(Integer key : b.keySet()) {
-				Float aVal = a.get(key);
-				if(aVal == null) {aVal = 0.0f;} else {continue;}		//if aVal is not null then calced already
-				Float bVal = b.get(key);
-				res.put(key, (aVal*Onemt) + (bVal*t));			
-			}
-		} else {//scale by mult - precomputes color values
-			float m1t = mult*Onemt, mt = mult*t;
-			//first go through all a values
-			for(Integer key : a.keySet()) {
-				Float aVal = a.get(key), bVal = b.get(key);
-				if(bVal == null) {bVal = 0.0f;}
-				res.put(key, (aVal*m1t) + (bVal*mt));			
-			}
-			//next all b values
-			for(Integer key : b.keySet()) {
-				Float aVal = a.get(key);
-				if(aVal == null) {aVal = 0.0f;} else {continue;}		//if aVal is not null then calced already
-				Float bVal = b.get(key);
-				res.put(key, (aVal*m1t) + (bVal*mt));			
-			}			
-		}		
-		return res;
-	}//interpolate between 2 tree maps
-	
-	//return interpolated feature vector on map at location given by x,y, where x,y is float location of map using mapnodes as integral locations
-	private TreeMap<Integer, Float> getInterpFtrs(float x, float y){
-		int xInt = (int) Math.floor(x+mapX)%mapX, yInt = (int) Math.floor(y+mapY)%mapY, xIntp1 = (xInt+1)%mapX, yIntp1 = (yInt+1)%mapY;		//assume torroidal map		
-		float xInterp = (x+1) %1, yInterp = (y+1) %1;
-		//always compare standardized feature data in test/train data to standardized feature data in map
-		TreeMap<Integer, Float> LowXLowYFtrs = MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt)).getCurrentFtrMap(ftrType), 
-				LowXHiYFtrs= MapNodes.get(new Tuple<Integer, Integer>(xInt,yIntp1)).getCurrentFtrMap(ftrType),
-				HiXLowYFtrs= MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yInt)).getCurrentFtrMap(ftrType),  
-				HiXHiYFtrs= MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yIntp1)).getCurrentFtrMap(ftrType);
-		try{
-			TreeMap<Integer, Float> ftrs = interpTreeMap(interpTreeMap(LowXLowYFtrs, LowXHiYFtrs,yInterp,1.0f),interpTreeMap(HiXLowYFtrs, HiXHiYFtrs,yInterp,1.0f),xInterp,255.0f);	
-			return ftrs;
-		} catch (Exception e){
-			msgObj.dispMessage("SOMFtrMapVisImgBuilder","getInterpFtrs","Exception triggered in mySOMMapUIWin::getInterpFtrs : \n"+e.toString() + "\n\tMessage : "+e.getMessage() , MsgCodes.error1);
-			return null;
-		}		
-	}//getInterpFtrs	
-	
-	private int getDataClrFromFtrVec(TreeMap<Integer, Float> ftrMap, Integer jpIDX) {
-		Float ftrVal = ftrMap.get(jpIDX);
-		if(ftrVal == null) {return 0;}
-		int ftr = Math.round(ftrVal);
-		int clrVal = ((ftr & 0xff) << 16) + ((ftr & 0xff) << 8) + (ftr & 0xff);
-		return clrVal;
-	}//getDataClrFromFtrVec	
-	
-	@Override
-	public Boolean call() throws Exception {
-		//build portion of every map in each thread-  this speeds up time consuming interpolation between neighboring nodes for each location
-		float[] c;
-		for(int y = ySt; y<yEnd; ++y){
-			int yCol = y * imgW;
-			for(int x = xSt; x < xEnd; ++x){
-				c = getMapNodeLocFromPxlLoc(x, y);
-				TreeMap<Integer, Float> ftrs = getInterpFtrs(c[0],c[1]);
-				//for (int i=0;i<mapLocClrImg.length;++i) {	mapLocClrImg[i].pixels[x+yCol] = getDataClrFromFtrVec(ftrs, i);}
-				//only access map that the interpolated vector has values for
-				for (Integer jp : ftrs.keySet()) {mapLocClrImg[jp].pixels[x+yCol] = getDataClrFromFtrVec(ftrs, jp);}
-			}
-		}
-		return true;
-	}	
-}//SOMFtrMapVisImgBuilder
-
-//this class will load the pre-procced csv data into the prospect data structure owned by the SOMMapData object
-abstract class SOMExCSVDataLoader implements Callable<Boolean>{
-	public SOMMapManager mapMgr;
-	private messageObject msgObj;
-	private String fileName, dispYesStr, dispNoStr;
-	private int thdIDX;
-	private FileIOManager fileIO;
-	//ref to map to add to, either prospects or validation records
-	private ConcurrentSkipListMap<String, SOMExample> mapToAddTo;
-	protected String type;
-	public SOMExCSVDataLoader(SOMMapManager _mapMgr, int _thdIDX, String _fileName, String _yStr, String _nStr, ConcurrentSkipListMap<String, SOMExample> _mapToAddTo) {	
-		mapMgr=_mapMgr;
-		msgObj=mapMgr.buildMsgObj();thdIDX=_thdIDX;fileName=_fileName;dispYesStr=_yStr;dispNoStr=_nStr; 
-		mapToAddTo = _mapToAddTo;
-		fileIO = new FileIOManager(msgObj,"SOMExCSVDataLoader TH_IDX_"+thdIDX);
-		type="";
-	}	
-	
-	protected abstract prospectExample buildExample(String oid, String str);
-	
-	@Override
-	public Boolean call() throws Exception {	
-		String[] csvLoadRes = fileIO.loadFileIntoStringAra(fileName, dispYesStr, dispNoStr);
-		//ignore first entry - header
-		for (int j=1;j<csvLoadRes.length; ++j) {
-			String str = csvLoadRes[j];
-			int pos = str.indexOf(',');
-			String oid = str.substring(0, pos);
-			prospectExample ex = buildExample(oid, str);//new custProspectExample(mapMgr, oid, str);
-			//ProspectExample oldEx = mapMgr.putInProspectMap(ex);//mapMgr.prospectMap.put(ex.OID, ex);	
-			SOMExample oldEx = mapToAddTo.put(ex.OID, ex);	//mapMgr.prospectMap.put(ex.OID, ex);	
-			if(oldEx != null) {msgObj.dispMessage("SOMExCSVDataLoader", type+": call thd : " + thdIDX, "ERROR : "+thdIDX+" : Attempt to add duplicate record to prospectMap w/OID : " + oid, MsgCodes.error2);	}
-		}		
-		return true;
-	}	
-}//class SOMExCSVDataLoader
 
 class custCSVDataLoader extends SOMExCSVDataLoader{
 
@@ -670,7 +483,7 @@ class custCSVDataLoader extends SOMExCSVDataLoader{
 		super(_mapMgr, _thdIDX, _fileName, _yStr, _nStr, _mapToAddTo);type="custCSVDataLoader";
 	}
 	@Override
-	protected prospectExample buildExample(String oid, String str) {return new custProspectExample(mapMgr, oid, str);}
+	protected SOMExample buildExample(String oid, String str) {return new custProspectExample(mapMgr, oid, str);}
 	
 }//custCSVDataLoader
 
@@ -680,111 +493,6 @@ class prscpctCSVDataLoader extends SOMExCSVDataLoader{
 		super(_mapMgr, _thdIDX, _fileName, _yStr, _nStr, _mapToAddTo);type="prscpctCSVDataLoader";
 	}
 	@Override
-	protected prospectExample buildExample(String oid, String str) {return new trueProspectExample(mapMgr, oid, str);}
+	protected SOMExample buildExample(String oid, String str) {return new trueProspectExample(mapMgr, oid, str);}
 }//class prscpctCSVDataLoader
-
-//save all Strafford training/testing data to appropriate format for SOM
-class straffDataWriter implements Callable<Boolean>{
-	//public SOM_StraffordMain pa;
-	private SOMMapManager mapMgr;	
-	private messageObject msgObj;
-	private int dataFrmt, numFtrs,numSmpls;
-	private SOMExample[] exAra;
-	private String savFileFrmt, fileName;
-	//manage IO in this object
-	private FileIOManager fileIO;
-	
-	public straffDataWriter(SOMMapManager _mapData, int _dataFrmt, int _numTrainFtrs, String _fileName, String _savFileFrmt, SOMExample[] _exAra) {
-		mapMgr = _mapData; msgObj = mapMgr.buildMsgObj();
-		dataFrmt = _dataFrmt;		//either unmodified, standardized or normalized -> 0,1,2
-		exAra = _exAra;
-		numFtrs = _numTrainFtrs;
-		numSmpls = exAra.length;
-		savFileFrmt = _savFileFrmt;
-		fileName = _fileName;
-		fileIO = new FileIOManager(msgObj, "straffDataWriter");
-	}//ctor
-
-	//build LRN file header
-	private String[] buildInitLRN() {
-		String[] outStrings = new String[numSmpls + 4];
-		//# of data points
-		outStrings[0]="% "+numSmpls;
-		//# of features per data point +1
-		outStrings[1]="% "+numFtrs;
-		//9 + 1's * smplDim
-		String str1="% 9", str2 ="% Key";
-		for(int i=0; i< numFtrs; ++i) {
-			str1 +=" 1";
-			str2 +=" c"+(i+1);
-		}
-		outStrings[2]=str1;
-		//'Key' + c{i} where i is 1->smplDim
-		outStrings[3]=str2;		
-		return outStrings;
-	}//buildInitLRN
-	
-	//write file to save all data samples in appropriate format for 
-	private void saveLRNData() {
-		String[] outStrings = buildInitLRN();
-		int strIDX = 4;
-		for (int i=0;i<exAra.length; ++i) {outStrings[i+strIDX]=exAra[i].toLRNString(dataFrmt, " ");	}
-		fileIO.saveStrings(fileName,outStrings);		
-		msgObj.dispMessage("straffDataWriter","saveLRNData","Finished saving .lrn file with " + outStrings.length+ " elements to file : "+ fileName, MsgCodes.info5);			
-	}//save lrn train data
-	
-	//save data in csv format
-	private void saveCSVData() {
-		//use buildInitLRN for test and train
-		String[] outStrings = buildInitLRN();
-		int strIDX = 4;
-		for (int i=0;i<exAra.length; ++i) {outStrings[i+strIDX]=exAra[i].toCSVString(dataFrmt);	}
-		fileIO.saveStrings(fileName,outStrings);		
-		msgObj.dispMessage("straffDataWriter","saveCSVData","Finished saving .csv file with " + outStrings.length+ " elements to file : "+ fileName, MsgCodes.info5);			
-	}//save csv test data
-	
-	//save data in SVM record form - each record is like a map/dict -> idx: val pair.  designed for sparse data
-	private void saveSVMData() {
-		//need to save a vector to determine the 
-		String[] outStrings = new String[numSmpls];
-		for (int i=0;i<exAra.length; ++i) {outStrings[i]=exAra[i].toSVMString(dataFrmt);	}
-		fileIO.saveStrings(fileName,outStrings);		
-		msgObj.dispMessage("straffDataWriter","saveSVMData","Finished saving .svm (sparse) file with " + outStrings.length+ " elements to file : "+ fileName, MsgCodes.info5);			
-	}
-
-	//write all sphere data to appropriate files
-	@Override
-	public Boolean call() {		
-		//save to lrnFileName - build lrn file
-		//4 extra lines that describe dense .lrn file - started with '%'
-		//0 : # of examples
-		//1 : # of features + 1 for name column
-		//2 : format of columns -> 9 1 1 1 1 ...
-		//3 : names of columns (not used by SOM_MAP)
-		//format : 0 is training data to lrn, 1 is training data to svm format, 2 is testing data
-		switch (savFileFrmt) {
-			case "denseLRNData" : {
-				saveLRNData();
-				mapMgr.setDenseTrainDataSaved(true);	
-				break;
-			}
-			case "sparseSVMData" : {
-				saveSVMData();
-				mapMgr.setSparseTrainDataSaved(true);		
-				break;
-			}
-			case "denseCSVData" : {				
-				saveCSVData();
-				mapMgr.setCSVTestDataSaved(true);
-				break;
-			}
-			default :{//default to save data in lrn format
-				saveLRNData();
-				mapMgr.setDenseTrainDataSaved(true);					
-			}
-		}
-		return true;
-	}//call
-}//straffDataWriter
-
 

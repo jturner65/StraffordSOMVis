@@ -1,4 +1,4 @@
-package Utils;
+package base_Utils_Objects;
 
 public class myVector extends myPoint{
 	public double sqMagn, magn;

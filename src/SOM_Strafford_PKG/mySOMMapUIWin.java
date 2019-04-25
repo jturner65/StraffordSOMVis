@@ -1,12 +1,11 @@
 package SOM_Strafford_PKG;
 
-import java.io.File;
 import java.util.*;
 import java.util.concurrent.*;
 
-import SOM_Base.*;
-import UI.*;
-import Utils.*;
+import base_SOM_Objects.*;
+import base_UI_Objects.*;
+import base_Utils_Objects.*;
 import processing.core.PImage;
 
 
@@ -132,7 +131,7 @@ public class mySOMMapUIWin extends myDispWindow {
 	//image of segments suggested by UMat Dist
 	private PImage mapCubicSegmentsImg;
 	
-	//which map is currently being shown
+	//which ftr map is currently being shown
 	private int curMapImgIDX;
 	//which product is being shown by single-product display visualizations, as index in list of jps of products
 	private int curProdToShowIDX;
@@ -153,7 +152,7 @@ public class mySOMMapUIWin extends myDispWindow {
 	private String[] menuLdRawFuncBtnNames = new String[] {"CSV", "SQL"};
 	private int loadRawBtnIDX = 0;
 	
-	public mySOMMapUIWin(SOM_StraffordMain _p, String _n, int _flagIdx, int[] fc, int[] sc, float[] rd, float[] rdClosed, String _winTxt, boolean _canDrawTraj) {
+	public mySOMMapUIWin(my_procApplet _p, String _n, int _flagIdx, int[] fc, int[] sc, float[] rd, float[] rdClosed, String _winTxt, boolean _canDrawTraj) {
 		super(_p, _n, _flagIdx, fc, sc, rd, rdClosed, _winTxt, _canDrawTraj);
 		float stY = rectDim[1]+rectDim[3]-4*yOff,stYFlags = stY + 2*yOff;		
 		trajFillClrCnst = SOM_StraffordMain.gui_DarkCyan;	
@@ -168,7 +167,7 @@ public class mySOMMapUIWin extends myDispWindow {
 				//"Train W/Recs W/Event Data", 
 				"Building SOM", "Resetting Default UI Vals", 
 				"Using ChiSq for Ftr Distance", "Product Dist ignores 0-ftrs",	"Hide Train Data", "Hide Test Data","Hide True Prospects",
-				"Hide Node Lbls","Hide Map Nodes (by Wt)","Hide Map Nodes (by Pop)", "Hide Map Nodes", "Hide Products","Hide Cur Prod Zone",
+				"Hide Node Lbls","Hide Active Ftr Map Nodes (by Wt)","Hide Map Nodes (by Pop)", "Hide Map Nodes", "Hide Products","Hide Cur Prod Zone",
 				"Showing U Mtrx Dists (Bi-Cubic)","Hide Clusters (U-Dist)", "Hide Cluster Image", 
 				"Show Calc Analysis on Ftr-specific JPs","Hide Cust Ex Calc Analysis", "Hide Tru Prspct Ex Calc Analysis", 
 				"Finding True Prospect BMUs",	"Saving Prospect Mappings for specified prods"
@@ -177,7 +176,7 @@ public class mySOMMapUIWin extends myDispWindow {
 				//"Train W/All Recs",
 				"Build New Map ","Reset Default UI Vals",
 				"Not Using ChiSq Distance", "Product Dist measures all ftrs","Show Train Data","Show Test Data","Show True Prospects",
-				"Show Node Lbls","Show Map Nodes (by Wt)","Show Map Nodes (by Pop)","Show Map Nodes", "Show Products","Show Cur Prod Zone",
+				"Show Node Lbls","Show Active Ftr Map Nodes (by Wt)","Show Map Nodes (by Pop)","Show Map Nodes", "Show Products","Show Cur Prod Zone",
 				"Showing Per Feature Map", "Show Clusters (U-Dist)", "Show Cluster Image", 
 				"Show Calc Analysis on All JPs", "Show Cust Ex Calc Analysis", "Show Tru Prspct Ex Calc Analysis", 
 				"Find True Prospect BMUs",	"Save Prospect Mappings for specified prods"
@@ -202,11 +201,11 @@ public class mySOMMapUIWin extends myDispWindow {
 		//start x and y and dimensions of full map visualization as function of visible window size;
 		float width = rectDim[3]-(2*xOff);//actually also height, but want it square, and space is wider than high, so we use height as constraint - ends up being 834.8 x 834.8 with default screen dims and without side menu
 		SOM_mapDims = new float[] {width,width};
-		mapMgr = new StraffSOMMapManager(pa.th_exec,SOM_mapDims);
+		String[] _dirs = new String[] {SOMProjConfigData._baseDir+SOMProjConfigData.configDir,SOMProjConfigData._baseDir};
+		mapMgr = new StraffSOMMapManager(_dirs,SOM_mapDims);
 		setVisScreenWidth(rectDim[2]);
-		//only set for visualization
-		mapMgr.win=this;
-		mapMgr.pa = (SOM_StraffordMain)pa;
+		//only set for visualization - needs to reset static refs in msgObj
+		mapMgr.setPADispWinData(this, pa);
 		//used to display results within this window
 		msgObj = mapMgr.buildMsgObj();
 		
@@ -677,6 +676,7 @@ public class mySOMMapUIWin extends myDispWindow {
 				break;}
 			case uiFtrJPToDispIDX : {//highlight display of different region of SOM map corresponding to selected JP				
 				curMapImgIDX = (int)val;
+				curProdToShowIDX = (int)val;
 				//msgObj.dispMessage("\nSOM WIN","setUIWinVals::uiJPToDispIDX", "Click : settingJPFromJPG : " + settingJPFromJPG);
 				if(!settingJPFromJPG) {
 					int curJPGVal = (int)guiObjs[uiFtrJPGToDispIDX].getVal();
@@ -702,7 +702,7 @@ public class mySOMMapUIWin extends myDispWindow {
 				}
 				break;}			
 			case uiAllJpSeenToDispIDX		: {
-				curProdToShowIDX = (int)val;
+				
 				if(!settingProdJPFromJPG) {
 					int curJPGVal = (int)guiObjs[uiAllJpgSeenToDispIDX].getVal();
 					int jpgToSet = mapMgr.getUI_JPGrpFromJP(curMapImgIDX, curJPGVal);
@@ -995,12 +995,12 @@ public class mySOMMapUIWin extends myDispWindow {
 	public void setMapImgClrs(){ //mapRndClrImg
 		float[] c;		
 		int stTime = pa.millis();
-		for (int i=0;i<mapPerFtrWtImgs.length;++i) {	mapPerFtrWtImgs[i].loadPixels();}
+		for (int i=0;i<mapPerFtrWtImgs.length;++i) {	mapPerFtrWtImgs[i].loadPixels();}//needed to retrieve pixel values
 		//build uMatrix image
 		setMapUMatImgClrs();
 		//build segmentation image
 		setMapSegmentImgClrs();
-		//if single threaded
+		//check if single threaded
 		int numThds = mapMgr.getNumUsableThreads();
 		boolean mtCapable = mapMgr.isMTCapable();
 		if(mtCapable) {				
@@ -1012,7 +1012,7 @@ public class mySOMMapUIWin extends myDispWindow {
 			List<SOMFtrMapVisImgBuilder> mapImgBuilders = new ArrayList<SOMFtrMapVisImgBuilder>();
 			int[] xVals = new int[] {0,0};
 			int[] yVals = new int[] {0,mapPerFtrWtImgs[0].height};
-			
+			//each thread builds columns of every map
 			for (int i=0; i<numPartitions-1;++i) {	
 				xVals[1] += numXPerPart;
 				mapImgBuilders.add(new SOMFtrMapVisImgBuilder(mapMgr, mapPerFtrWtImgs, xVals, yVals, mapScaleVal));
@@ -1021,15 +1021,17 @@ public class mySOMMapUIWin extends myDispWindow {
 			//last one
 			xVals[1] += numXLastPart;
 			mapImgBuilders.add(new SOMFtrMapVisImgBuilder(mapMgr, mapPerFtrWtImgs, xVals, yVals, mapScaleVal));
-			try {mapImgFtrs = pa.th_exec.invokeAll(mapImgBuilders);for(Future<Boolean> f: mapImgFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }					
+			mapMgr.invokeSOMFtrDispBuild(mapImgBuilders);
+			//try {mapImgFtrs = pa.th_exec.invokeAll(mapImgBuilders);for(Future<Boolean> f: mapImgFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }					
 		} else {
 			//single threaded exec
 			for(int y = 0; y<mapPerFtrWtImgs[0].height; ++y){
 				int yCol = y * mapPerFtrWtImgs[0].width;
 				for(int x = 0; x < mapPerFtrWtImgs[0].width; ++x){
+					int pxlIDX = x+yCol;
 					c = getMapNodeLocFromPxlLoc(x, y,mapScaleVal);
 					TreeMap<Integer, Float> ftrs = mapMgr.getInterpFtrs(c[0],c[1]);
-					for (Integer jp : ftrs.keySet()) {mapPerFtrWtImgs[jp].pixels[x+yCol] = getDataClrFromFtrVec(ftrs, jp);}
+					for (Integer jp : ftrs.keySet()) {mapPerFtrWtImgs[jp].pixels[pxlIDX] = getDataClrFromFtrVec(ftrs, jp);}
 				}
 			}
 		}

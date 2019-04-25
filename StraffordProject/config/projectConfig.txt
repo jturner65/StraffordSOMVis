@@ -50,5 +50,5 @@ custTruePrsTypeEvents, "0"
 #all the following use the new data as of 3/25/19
 #
 #built using "WeightEqConfig_allDecay_p01_optWt_p01_srcWt_p01"
-preBuiltMapDir,"StraffSOM_2019_04_19_10_56"
+preBuiltMapDir,"StraffSOM_2019_04_22_12_32"
 #END MISC GLOBAL VARS

@@ -1,9 +1,9 @@
-package SOM_Base;
+package base_SOM_Objects;
 
 import java.util.*;
 
 import SOM_Strafford_PKG.SOM_StraffordMain;
-import Utils.*;
+import base_Utils_Objects.*;
 
 /**
 * objects of inheritors to this abstract class represent nodes in the SOM.  
@@ -87,7 +87,7 @@ public abstract class SOMMapNode extends SOMExample{
 		seg.addNode(this);
 		segClr = seg.getSegClr();
 		segClrAsInt = seg.getSegClrAsInt();
-		int row = 1, col = 1;//1,1 is this node
+		int row = 1, col = 1;//1,1 is this node for neighbor hood
 		SOMMapNode ex = mapMgr.MapNodes.get(neighborMapCoords[row][col+1]);
 		if(ex.shouldAddToSegment(seg.thresh)) {ex.addToSeg(seg);}
 		ex = mapMgr.MapNodes.get(neighborMapCoords[row][col-1]);
@@ -157,7 +157,7 @@ public abstract class SOMMapNode extends SOMExample{
 	public String getRawDescColNamesForCSV() {return "Do not save SOMMapNode to intermediate CSV";}
 	//map nodes do not use finalize
 	@Override
-	public void finalizeBuild() {	}
+	public void finalizeBuildBeforeFtrCalc() {	}
 	@Override
 	protected HashSet<Tuple<Integer, Integer>> getSetOfAllJpgJpData() {		return null;}//getSetOfAllJpgJpData	
 	//this should not be used - should build stdFtrsmap based on ranges of each ftr value in trained map

@@ -9,11 +9,11 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-import SOM_Base.SOMExample;
-import SOM_Base.SOMMapNode;
-import Utils.FileIOManager;
-import Utils.MsgCodes;
-import Utils.messageObject;
+import base_SOM_Objects.SOMExample;
+import base_SOM_Objects.SOMMapNode;
+import base_Utils_Objects.FileIOManager;
+import base_Utils_Objects.MsgCodes;
+import base_Utils_Objects.messageObject;
 
 /**
  * Instances of this object will load a desired set of product IDs and compare them to the constructed SOM to derive appropriate prospects.

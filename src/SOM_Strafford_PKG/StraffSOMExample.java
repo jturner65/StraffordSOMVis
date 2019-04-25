@@ -4,13 +4,13 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
-import SOM_Base.ExDataType;
-import SOM_Base.SOMExample;
-import SOM_Base.SOMMapManager;
-import SOM_Base.SOMMapNode;
-import Utils.MsgCodes;
-import Utils.Tuple;
-import Utils.myPointf;
+import base_SOM_Objects.ExDataType;
+import base_SOM_Objects.SOMExample;
+import base_SOM_Objects.SOMMapManager;
+import base_SOM_Objects.SOMMapNode;
+import base_Utils_Objects.MsgCodes;
+import base_Utils_Objects.Tuple;
+import base_Utils_Objects.myPointf;
 
 
 /**
@@ -500,10 +500,10 @@ class custProspectExample extends prospectExample{
 		testTrainDataIDX = -1;
 	}//initObjsData
 
-	//any processing that must occur once all constituent data records are added to this example - must be called externally, before ftr vec is built
+	//any processing that must occur once all constituent data records are added to this example - must be called externally, BEFORE ftr vec is built
 	//---maps event data to occurrence structs; builds allJPs list
 	@Override
-	public void finalizeBuild() {
+	public void finalizeBuildBeforeFtrCalc() {
 		buildOccurrenceStructs(eventMapTypeKeys, eventMapUseOccData);	
 		//allprodjps holds all jps in this example based on occurences that will be used in training; will not reference jps implied by opt-all records
 		buildJPListsAndSetBadExample();
@@ -713,7 +713,7 @@ class trueProspectExample extends prospectExample{
 	protected boolean hasRelelventTrainingEvents() { return false;}//hasRelelventEvents	
 	
 	@Override
-	public void finalizeBuild() {
+	public void finalizeBuildBeforeFtrCalc() {
 		buildOccurrenceStructs(eventMapTypeKeys, eventMapUseOccData);	
 		//allprodjps holds all jps in this example based on occurences that will be used in training; will not reference jps implied by opt-all records
 		buildJPListsAndSetBadExample();
@@ -880,7 +880,7 @@ class ProductExample extends StraffSOMExample{
 	protected void setIsTrainingDataIDX_Priv() { msgObj.dispMessage("ProductExample","setIsTrainingDataIDX_Priv","Calling inappropriate setIsTrainingDataIDX_Priv for ProductExample - should never have training index set.", MsgCodes.warning2);	}//products are never going to be training examples
 
 	@Override
-	public void finalizeBuild() {		allProdJPs = trainPrdctData.getAllJpsInData();	}
+	public void finalizeBuildBeforeFtrCalc() {		allProdJPs = trainPrdctData.getAllJpsInData();	}
 	@Override
 	protected HashSet<Tuple<Integer, Integer>> getSetOfAllJpgJpData() {
 		HashSet<Tuple<Integer,Integer>> res = trainPrdctData.getAllJpgJpsInData();
@@ -1241,7 +1241,7 @@ class DispSOMMapExample extends StraffSOMExample{
 	protected void setIsTrainingDataIDX_Priv() {}
 
 	@Override
-	public void finalizeBuild() {}
+	public void finalizeBuildBeforeFtrCalc() {}
 	@Override
 	//called after all features of this kind of object are built
 	public void postFtrVecBuild() {}

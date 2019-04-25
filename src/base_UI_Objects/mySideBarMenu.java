@@ -1,9 +1,9 @@
-package UI;
+package base_UI_Objects;
 
 import java.util.ArrayList;
 
 import SOM_Strafford_PKG.SOM_StraffordMain;
-import Utils.*;
+import base_Utils_Objects.*;
 
 //displays sidebar menu of interaction and functionality
 

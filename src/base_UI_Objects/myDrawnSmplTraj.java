@@ -1,8 +1,8 @@
-package UI;
+package base_UI_Objects;
 
 import SOM_Strafford_PKG.SOM_StraffordMain;
-import Utils.myPoint;
-import Utils.myVector;
+import base_Utils_Objects.myPoint;
+import base_Utils_Objects.myVector;
 
 //class holds trajctory and 4 macro cntl points, and handling for them
 public class myDrawnSmplTraj {
@@ -65,7 +65,7 @@ public class myDrawnSmplTraj {
 	}
 	
 	public void calcPerpPoints(){
-		myVector dir = pa.U(myVector._rotAroundAxis(pa.V(edtCrvEndPts[0],edtCrvEndPts[1]), pa.c.drawSNorm));
+		myVector dir = pa.U(myVector._rotAroundAxis(pa.V(edtCrvEndPts[0],edtCrvEndPts[1]), pa.c.getDrawSNorm()));
 		float mult =  .125f,
 		dist = mult * (float)myPoint._dist(edtCrvEndPts[0],edtCrvEndPts[1]);
 		edtCrvEndPts[2] = pa.P(pa.P(edtCrvEndPts[0],edtCrvEndPts[1]), dist,dir);
@@ -83,7 +83,7 @@ public class myDrawnSmplTraj {
 		edtCrvEndPts[2] = null;
 		edtCrvEndPts[3] = null;
 		calcPerpPoints();
-		drawnTraj = new myVariStroke(pa, pa.V(pa.c.drawSNorm),fillClrCnst, strkClrCnst);
+		drawnTraj = new myVariStroke(pa, pa.V(pa.c.getDrawSNorm()),fillClrCnst, strkClrCnst);
 		drawnTraj.startDrawing();
 	}
 	public boolean startEditEndPoint(int idx){
@@ -140,7 +140,7 @@ public class myDrawnSmplTraj {
 			drawnTraj.remakeDrawnTraj(false);
 			rebuildDrawnTraj();	
 		} else {//scale all traj points based on modification of pts 2 or 3 - only allow them to move along the perp axis
-			myVector abRotAxis = pa.U(myVector._rotAroundAxis(pa.V(edtCrvEndPts[0],edtCrvEndPts[1]), pa.c.drawSNorm));
+			myVector abRotAxis = pa.U(myVector._rotAroundAxis(pa.V(edtCrvEndPts[0],edtCrvEndPts[1]), pa.c.getDrawSNorm()));
 			float dist = (float)myPoint._dist(edtCrvEndPts[2], edtCrvEndPts[3]);
 			double modAmt = diff._dot(abRotAxis);
 			if(editEndPt == 2){	edtCrvEndPts[2]._add(pa.V(modAmt,abRotAxis));edtCrvEndPts[3]._add(pa.V(-modAmt,abRotAxis));} 
@@ -201,7 +201,7 @@ public class myDrawnSmplTraj {
 			//pa.outStr2Scr("In Traj : " + this.ID + " endDrawObj ");
 			win.processTrajectory(this);
 		} else {
-			drawnTraj = new myVariStroke(pa, pa.V(pa.c.drawSNorm),fillClrCnst, strkClrCnst);
+			drawnTraj = new myVariStroke(pa, pa.V(pa.c.getDrawSNorm()),fillClrCnst, strkClrCnst);
 		}
 		win.setFlags(myDispWindow.drawingTraj, false);
 	}//endDrawObj

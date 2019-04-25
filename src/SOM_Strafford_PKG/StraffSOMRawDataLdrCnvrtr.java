@@ -5,8 +5,8 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-import SOM_Base.SOMExample;
-import Utils.*;
+import base_SOM_Objects.SOMExample;
+import base_Utils_Objects.*;
 
 /**
  * this class manages the loading of the raw data from either csv or from sql queries (TODO: SQL not implemented yet)
