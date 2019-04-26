@@ -1152,9 +1152,9 @@ class StraffSOMMapNode extends SOMMapNode{
 	
 	//called after ftrs are built
 	protected void _initDataFtrMappings() {	
-		for (Integer idx : ftrMaps[ftrMapTypeKey].keySet()) {
-			float val = ftrMaps[ftrMapTypeKey].get(idx);
-		}
+//		for (Integer idx : ftrMaps[ftrMapTypeKey].keySet()) {	
+//			float val = ftrMaps[ftrMapTypeKey].get(idx);
+//		}
 		//build essential components of feature vector
 		buildAllNonZeroFtrIDXs();
 		buildNormFtrData();//once ftr map is built can normalize easily

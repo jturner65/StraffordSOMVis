@@ -13,11 +13,15 @@ public abstract class mapDataToBMUs implements Callable<Boolean>{
 	//calculate the exclusionary feature distance(only measure distance from map via features that the node has non-zero values in)
 	protected final boolean useChiSqDist;
 	protected final TreeMap<Tuple<Integer,Integer>, SOMMapNode> MapNodes;
+	//map of ftr idx and all map nodes that have non-zero presence in that ftr
+	protected TreeMap<Integer, HashSet<SOMMapNode>> MapNodesByFtr;
+
 	protected String ftrTypeDesc, dataType;
 	
 	public mapDataToBMUs(SOMMapManager _mapMgr, int _stProdIDX, int _endProdIDX, int _thdIDX, String _type, boolean _useChiSqDist){
 		mapMgr = _mapMgr;
 		MapNodes = mapMgr.getMapNodes();
+		MapNodesByFtr = mapMgr.getMapNodesByFtr();
 		msgObj = mapMgr.buildMsgObj();
 		stIdx = _stProdIDX;
 		endIdx = _endProdIDX;

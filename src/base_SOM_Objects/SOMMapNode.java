@@ -24,6 +24,7 @@ public abstract class SOMMapNode extends SOMExample{
 	public Tuple<Integer,Integer>[][] neighborMapCoords;				//array of arrays of row x col of neighbors to this node.  This node is 1,1 - this is for square map to use bicubic interpolation
 	public float[][] neighborUMatWts;
 	
+	private Integer[] nonZeroIDXs;
 	//owning segment for this map node
 	private SOMMapSegment seg; 
 	
@@ -47,20 +48,24 @@ public abstract class SOMMapNode extends SOMExample{
 	//build feature vector from passed feature array
 	private void setFtrsFromFloatAra(float[] _ftrs) {
 		ftrMaps[ftrMapTypeKey] = new TreeMap<Integer, Float>();
+		ArrayList<Integer> nonZeroIDXList = new ArrayList<Integer>();
 		float ftrVecSqMag = 0.0f;
 		for(int i = 0; i < _ftrs.length; ++i) {	
 			Float val =  _ftrs[i];
 			if (val > ftrThresh) {
 				ftrVecSqMag+=val*val;
 				ftrMaps[ftrMapTypeKey].put(i, val);
+				nonZeroIDXList.add(i);
 			}
 		}
 		//called after features are built because that's when we have all jp's for this example determined
 		ftrVecMag = (float) Math.sqrt(ftrVecSqMag);		
-		
+		nonZeroIDXs = nonZeroIDXList.toArray(new Integer[0]);
 		setFlag(ftrsBuiltIDX, true);
 		//buildNormFtrData();		
-	}//setFtrsFromFloatAra	
+	}//setFtrsFromFloatAra
+	
+	public Integer[] getNonZeroIDXs() {return nonZeroIDXs;}
 	
 	//this will map feature values to some representation of the underlying feature description - this is specific to undelrying data
 	protected abstract void _initDataFtrMappings();

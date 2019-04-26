@@ -546,75 +546,148 @@ public abstract class SOMExample extends baseDataPtVis{
 		}	
 		_setBMUAddToNeighborhood(bestUnit, bmuDist);
 	}//_setBMUFromMapNodeDistMap
+	
+	
+//	//references current map of nodes, finds best matching unit and returns map of all map node tuple addresses and their ftr distances from this node
+//	//also build neighborhood nodes
+//	//two methods to minimize if calls for chisq dist vs regular euclidean dist
+//	public final TreeMap<Double, ArrayList<SOMMapNode>> findBMUFromNodes(TreeMap<Integer, HashSet<SOMMapNode>> _MapNodesByFtr, int _ftrtype) {
+//		TreeMap<Double, ArrayList<SOMMapNode>> mapNodesByDist = new TreeMap<Double, ArrayList<SOMMapNode>>();			
+//		for (SOMMapNode node : _MapNodes.values()) {
+//			double sqDistToNode = getSqDistFromFtrType(node, _ftrtype);
+//			ArrayList<SOMMapNode> tmpAra = mapNodesByDist.get(sqDistToNode);
+//			if(tmpAra == null) {tmpAra = new ArrayList<SOMMapNode>();}
+//			tmpAra.add(node);
+//			mapNodesByDist.put(sqDistToNode, tmpAra);		
+//		}				
+//		_setBMUFromMapNodeDistMap(mapNodesByDist);//,all_MapNodeLocToSqDist);		
+//		//find ftr distance to all 8 surrounding nodes and add them to mapNodeNeighbors
+//		buildNghbrhdMapNodes( _ftrtype);	
+//		return mapNodesByDist;
+//	}//findBMUFromNodes 	
+//	
+//	//references current map of nodes, finds distances from all map nodes, and finds and sets bmu
+//	//also build neighborhood nodes
+//	//this uses only non-zero features in this node when measuring distances.  two methods to minimize if calls for chisq dist vs regular euclidean dist
+//	public final TreeMap<Double, ArrayList<SOMMapNode>> findBMUFromNodes_Excl(TreeMap<Integer, HashSet<SOMMapNode>> _MapNodesByFtr, int _ftrtype) {
+//		TreeMap<Double, ArrayList<SOMMapNode>> mapNodesByDist = new TreeMap<Double, ArrayList<SOMMapNode>>();			
+//		for (SOMMapNode node : _MapNodes.values()) {
+//			double sqDistToNode = getSqDistFromFtrType_Exclude(node, _ftrtype);
+//			ArrayList<SOMMapNode> tmpAra = mapNodesByDist.get(sqDistToNode);
+//			if(tmpAra == null) {tmpAra = new ArrayList<SOMMapNode>();}
+//			tmpAra.add(node);
+//			mapNodesByDist.put(sqDistToNode, tmpAra);		
+//		}				
+//		_setBMUFromMapNodeDistMap(mapNodesByDist);//,all_MapNodeLocToSqDist);		
+//		//find ftr distance to all 8 surrounding nodes and add them to mapNodeNeighbors
+//		buildNghbrhdMapNodes( _ftrtype);	
+//		return mapNodesByDist;
+//	}//findBMUFromNodes 
+//	
+//	//references current map of nodes, finds best matching unit and returns map of all map node tuple addresses and their ftr distances from this node
+//	//using chi sq dist
+//	public final TreeMap<Double, ArrayList<SOMMapNode>> findBMUFromNodes_ChiSq(TreeMap<Integer, HashSet<SOMMapNode>> _MapNodesByFtr, int _ftrtype) {
+//		TreeMap<Double, ArrayList<SOMMapNode>> mapNodesByDist = new TreeMap<Double, ArrayList<SOMMapNode>>();
+//		for (SOMMapNode node : _MapNodes.values()) {
+//			double sqDistToNode = getSqDistFromFtrType_ChiSq(node, _ftrtype);
+//			ArrayList<SOMMapNode> tmpAra = mapNodesByDist.get(sqDistToNode);
+//			if(tmpAra == null) {tmpAra = new ArrayList<SOMMapNode>();}
+//			tmpAra.add(node);
+//			mapNodesByDist.put(sqDistToNode, tmpAra);		
+//		}				
+//		_setBMUFromMapNodeDistMap(mapNodesByDist);//, all_MapNodeLocToSqDist);
+//		//find ftr distance to all 8 surrounding nodes and add them to mapNodeNeighbors
+//		buildNghbrhdMapNodes_ChiSq( _ftrtype);	
+//		return mapNodesByDist;
+//	}//findBMUFromNodes_ChiSq		
+//	
+//	//references current map of nodes, finds best matching unit and returns map of all map node tuple addresses and their ftr distances from this node
+//	//using chi sq dist
+//	public final TreeMap<Double, ArrayList<SOMMapNode>> findBMUFromNodes_ChiSq_Excl(TreeMap<Integer, HashSet<SOMMapNode>> _MapNodesByFtr, int _ftrtype) {
+//		TreeMap<Double, ArrayList<SOMMapNode>> mapNodesByDist = new TreeMap<Double, ArrayList<SOMMapNode>>();
+//		for (SOMMapNode node : _MapNodes.values()) {
+//			double sqDistToNode = getSqDistFromFtrType_ChiSq_Exclude(node, _ftrtype);
+//			ArrayList<SOMMapNode> tmpAra = mapNodesByDist.get(sqDistToNode);
+//			if(tmpAra == null) {tmpAra = new ArrayList<SOMMapNode>();}
+//			tmpAra.add(node);
+//			mapNodesByDist.put(sqDistToNode, tmpAra);		
+//		}				
+//		_setBMUFromMapNodeDistMap(mapNodesByDist);//, all_MapNodeLocToSqDist);
+//		//find ftr distance to all 8 surrounding nodes and add them to mapNodeNeighbors
+//		buildNghbrhdMapNodes_ChiSq( _ftrtype);	
+//		return mapNodesByDist;
+//	}//findBMUFromNodes_ChiSq	
+	
+	
 		
 	//references current map of nodes, finds best matching unit and returns map of all map node tuple addresses and their ftr distances from this node
 	//also build neighborhood nodes
 	//two methods to minimize if calls for chisq dist vs regular euclidean dist
 	public final TreeMap<Double, ArrayList<SOMMapNode>> findBMUFromNodes(TreeMap<Tuple<Integer,Integer>, SOMMapNode> _MapNodes, int _ftrtype) {
-		TreeMap<Double, ArrayList<SOMMapNode>> mapNodes = new TreeMap<Double, ArrayList<SOMMapNode>>();			
+		TreeMap<Double, ArrayList<SOMMapNode>> mapNodesByDist = new TreeMap<Double, ArrayList<SOMMapNode>>();			
 		for (SOMMapNode node : _MapNodes.values()) {
 			double sqDistToNode = getSqDistFromFtrType(node, _ftrtype);
-			ArrayList<SOMMapNode> tmpAra = mapNodes.get(sqDistToNode);
+			ArrayList<SOMMapNode> tmpAra = mapNodesByDist.get(sqDistToNode);
 			if(tmpAra == null) {tmpAra = new ArrayList<SOMMapNode>();}
 			tmpAra.add(node);
-			mapNodes.put(sqDistToNode, tmpAra);		
+			mapNodesByDist.put(sqDistToNode, tmpAra);		
 		}				
-		_setBMUFromMapNodeDistMap(mapNodes);//,all_MapNodeLocToSqDist);		
+		_setBMUFromMapNodeDistMap(mapNodesByDist);//,all_MapNodeLocToSqDist);		
 		//find ftr distance to all 8 surrounding nodes and add them to mapNodeNeighbors
 		buildNghbrhdMapNodes( _ftrtype);	
-		return mapNodes;
+		return mapNodesByDist;
 	}//findBMUFromNodes 	
 	
 	//references current map of nodes, finds distances from all map nodes, and finds and sets bmu
 	//also build neighborhood nodes
 	//this uses only non-zero features in this node when measuring distances.  two methods to minimize if calls for chisq dist vs regular euclidean dist
 	public final TreeMap<Double, ArrayList<SOMMapNode>> findBMUFromNodes_Excl(TreeMap<Tuple<Integer,Integer>, SOMMapNode> _MapNodes, int _ftrtype) {
-		TreeMap<Double, ArrayList<SOMMapNode>> mapNodes = new TreeMap<Double, ArrayList<SOMMapNode>>();			
+		TreeMap<Double, ArrayList<SOMMapNode>> mapNodesByDist = new TreeMap<Double, ArrayList<SOMMapNode>>();			
 		for (SOMMapNode node : _MapNodes.values()) {
 			double sqDistToNode = getSqDistFromFtrType_Exclude(node, _ftrtype);
-			ArrayList<SOMMapNode> tmpAra = mapNodes.get(sqDistToNode);
+			ArrayList<SOMMapNode> tmpAra = mapNodesByDist.get(sqDistToNode);
 			if(tmpAra == null) {tmpAra = new ArrayList<SOMMapNode>();}
 			tmpAra.add(node);
-			mapNodes.put(sqDistToNode, tmpAra);		
+			mapNodesByDist.put(sqDistToNode, tmpAra);		
 		}				
-		_setBMUFromMapNodeDistMap(mapNodes);//,all_MapNodeLocToSqDist);		
+		_setBMUFromMapNodeDistMap(mapNodesByDist);//,all_MapNodeLocToSqDist);		
 		//find ftr distance to all 8 surrounding nodes and add them to mapNodeNeighbors
 		buildNghbrhdMapNodes( _ftrtype);	
-		return mapNodes;
+		return mapNodesByDist;
 	}//findBMUFromNodes 
 	
 	//references current map of nodes, finds best matching unit and returns map of all map node tuple addresses and their ftr distances from this node
 	//using chi sq dist
 	public final TreeMap<Double, ArrayList<SOMMapNode>> findBMUFromNodes_ChiSq(TreeMap<Tuple<Integer,Integer>, SOMMapNode> _MapNodes, int _ftrtype) {
-		TreeMap<Double, ArrayList<SOMMapNode>> mapNodes = new TreeMap<Double, ArrayList<SOMMapNode>>();
+		TreeMap<Double, ArrayList<SOMMapNode>> mapNodesByDist = new TreeMap<Double, ArrayList<SOMMapNode>>();
 		for (SOMMapNode node : _MapNodes.values()) {
 			double sqDistToNode = getSqDistFromFtrType_ChiSq(node, _ftrtype);
-			ArrayList<SOMMapNode> tmpAra = mapNodes.get(sqDistToNode);
+			ArrayList<SOMMapNode> tmpAra = mapNodesByDist.get(sqDistToNode);
 			if(tmpAra == null) {tmpAra = new ArrayList<SOMMapNode>();}
 			tmpAra.add(node);
-			mapNodes.put(sqDistToNode, tmpAra);		
+			mapNodesByDist.put(sqDistToNode, tmpAra);		
 		}				
-		_setBMUFromMapNodeDistMap(mapNodes);//, all_MapNodeLocToSqDist);
+		_setBMUFromMapNodeDistMap(mapNodesByDist);//, all_MapNodeLocToSqDist);
 		//find ftr distance to all 8 surrounding nodes and add them to mapNodeNeighbors
 		buildNghbrhdMapNodes_ChiSq( _ftrtype);	
-		return mapNodes;
+		return mapNodesByDist;
 	}//findBMUFromNodes_ChiSq		
 	
 	//references current map of nodes, finds best matching unit and returns map of all map node tuple addresses and their ftr distances from this node
 	//using chi sq dist
 	public final TreeMap<Double, ArrayList<SOMMapNode>> findBMUFromNodes_ChiSq_Excl(TreeMap<Tuple<Integer,Integer>, SOMMapNode> _MapNodes, int _ftrtype) {
-		TreeMap<Double, ArrayList<SOMMapNode>> mapNodes = new TreeMap<Double, ArrayList<SOMMapNode>>();
+		TreeMap<Double, ArrayList<SOMMapNode>> mapNodesByDist = new TreeMap<Double, ArrayList<SOMMapNode>>();
 		for (SOMMapNode node : _MapNodes.values()) {
 			double sqDistToNode = getSqDistFromFtrType_ChiSq_Exclude(node, _ftrtype);
-			ArrayList<SOMMapNode> tmpAra = mapNodes.get(sqDistToNode);
+			ArrayList<SOMMapNode> tmpAra = mapNodesByDist.get(sqDistToNode);
 			if(tmpAra == null) {tmpAra = new ArrayList<SOMMapNode>();}
 			tmpAra.add(node);
-			mapNodes.put(sqDistToNode, tmpAra);		
+			mapNodesByDist.put(sqDistToNode, tmpAra);		
 		}				
-		_setBMUFromMapNodeDistMap(mapNodes);//, all_MapNodeLocToSqDist);
+		_setBMUFromMapNodeDistMap(mapNodesByDist);//, all_MapNodeLocToSqDist);
 		//find ftr distance to all 8 surrounding nodes and add them to mapNodeNeighbors
 		buildNghbrhdMapNodes_ChiSq( _ftrtype);	
-		return mapNodes;
+		return mapNodesByDist;
 	}//findBMUFromNodes_ChiSq		
 
 	private final String _toCSVString(TreeMap<Integer, Float> ftrs) {

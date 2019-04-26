@@ -28,6 +28,9 @@ public abstract class SOMMapManager {
 	
 	//all nodes of som map, keyed by node location as tuple of row/col coordinates
 	protected TreeMap<Tuple<Integer,Integer>, SOMMapNode> MapNodes;	
+	//map of ftr idx and all map nodes that have non-zero presence in that ftr
+	protected TreeMap<Integer, HashSet<SOMMapNode>> MapNodesByFtr;
+	
 	//array of map clusters
 	public ArrayList<SOMMapSegment> segments;
 	//data values directly from the trained map, populated upon load
@@ -420,7 +423,11 @@ public abstract class SOMMapManager {
 	///////////////////////////
 	// mapNodes obj
 	
-	public void initMapNodes() {MapNodes = new TreeMap<Tuple<Integer,Integer>, SOMMapNode>();}	
+	public void initMapNodes() {
+		MapNodes = new TreeMap<Tuple<Integer,Integer>, SOMMapNode>();
+		//this will hold all map nodes keyed by the ftr idx where they have non-zero weight
+		MapNodesByFtr = new TreeMap<Integer, HashSet<SOMMapNode>>();
+	}//initMapNodes()
 	
 	//only appropriate if using UI
 	public void initMapFtrVisAras(int numTrainFtrs) {
@@ -439,13 +446,20 @@ public abstract class SOMMapManager {
 			tmpMapMaxs[d] = (tmpMapMaxs[d] < ftrData[d] ? ftrData[d]  : tmpMapMaxs[d]);
 			map_ftrsMin[d] = (map_ftrsMin[d] > ftrData[d] ? ftrData[d]  : map_ftrsMin[d]);
 		}
-		MapNodes.put(key, node);		
+		MapNodes.put(key, node);	
+		Integer[] nonZeroIDXs = node.getNonZeroIDXs();
+		for(Integer idx : nonZeroIDXs) {
+			HashSet<SOMMapNode> nodeSet = MapNodesByFtr.get(idx);
+			if(null==nodeSet) {nodeSet = new HashSet<SOMMapNode>();MapNodesByFtr.put(idx,nodeSet);}
+			nodeSet.add(node);
+		}		
 		//initialize : add all nodes to set, will remove nodes when they get mappings
 		addExToNodesWithNoExs(node, ExDataType.Training);//nodesWithNoTrainEx.add(dpt);				//initialize : add all nodes to set, will remove nodes when they get mappings
 	}//addToMapNodes
 	
 	public SOMMapNode getMapNodeLoc(Tuple<Integer,Integer> key) {return MapNodes.get(key);}
 	public TreeMap<Tuple<Integer,Integer>, SOMMapNode> getMapNodes(){return MapNodes;}
+	public TreeMap<Integer, HashSet<SOMMapNode>> getMapNodesByFtr(){return MapNodesByFtr;}
 	//build all neighborhood values
 	public void buildAllMapNodeNeighborhoods() {for(SOMMapNode ex : MapNodes.values()) {	ex.buildNeighborWtVals();	}}
 
