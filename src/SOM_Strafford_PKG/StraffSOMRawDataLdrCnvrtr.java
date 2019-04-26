@@ -161,8 +161,7 @@ public class StraffSOMRawDataLdrCnvrtr {
 	
 	
 	//////////////////////////////
-	// process raw data
-	
+	// process raw data	
 	
 	//process all events into training examples
 	private void procRawEventData(ConcurrentSkipListMap<String, SOMExample> tmpProspectMap,ConcurrentSkipListMap<String, ArrayList<BaseRawData>> dataArrays, boolean saveBadRecs) {			
@@ -231,11 +230,9 @@ public class StraffSOMRawDataLdrCnvrtr {
 		//now handle loaded jp and jpgroup data
 		mapMgr.jpJpgrpMon.setJpJpgrpNames(rawDataArrays.get(straffDataDirNames[jpDataIDX]),rawDataArrays.get(straffDataDirNames[jpgDataIDX]));		
 		//to free up memory before we build feature weight vectors; get rid of rawDataArrays used to hold original data read from files		
-		rawDataArrays.clear();		
-		
+		rawDataArrays.clear();				
 		msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","procRawLoadedData","Finished processing all loaded data", MsgCodes.info5);
-	}//procRawLoadedData
-	
+	}//procRawLoadedData	
 	
 	//show first numToShow elemens of array of BaseRawData, either just to console or to applet window
 	private void dispRawDataAra(ArrayList<BaseRawData> sAra, int numToShow) {

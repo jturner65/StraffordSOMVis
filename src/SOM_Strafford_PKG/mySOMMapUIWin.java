@@ -220,6 +220,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		setPrivFlags(mapDrawWtMapNodesIDX,false);
 		setPrivFlags(mapUseChiSqDistIDX,false);
 		setPrivFlags(mapDrawUMatrixIDX, true);
+		setPrivFlags(mapDrawCalcFtrOrAllVisIDX, true);
 		//this window uses right side info window
 		setFlags(drawRightSideMenu, true);		//may need some re-scaling to keep things in the middle and visible
 
@@ -248,7 +249,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		setAnalysisDimWidth();
 	}//calcAndSetMapLoc
 	//per jp bar width ~= total width / # of jps
-	protected void setAnalysisDimWidth() {analysisAllJPBarWidth = (curVisScrDims[0]/(1.0f+mapMgr.numFtrsToShowForCalcAnalysis(curCalcAnalysisTypeIDX)))*.98f;	}
+	protected void setAnalysisDimWidth() {analysisAllJPBarWidth = (curVisScrDims[0]/(1.0f+mapMgr.numFtrsToShowForCalcAnalysis(curCalcAnalysisJPTypeIDX)))*.98f;	}
 	
 	public void initMapAras(int numFtrVals, int numJPGVals) {
 		curMapImgIDX = 0;
@@ -322,7 +323,8 @@ public class mySOMMapUIWin extends myDispWindow {
 			case mapDrawNodeLblIDX : {//whether or not to show labels of nodes being displayed				
 				break;}
 			case mapDrawCalcFtrOrAllVisIDX : {
-				curCalcAnalysisJPTypeIDX = (val ? StraffSOMMapManager.jps_FtrIDX : StraffSOMMapManager.jps_AllIDX);				
+				curCalcAnalysisJPTypeIDX = (val ? StraffSOMMapManager.jps_FtrIDX : StraffSOMMapManager.jps_AllIDX);		
+				setAnalysisDimWidth();
 				break;}
 			case mapDrawCustAnalysisVisIDX	: {//whether or not to draw feature calc analysis graphs  
 				if (val) {//if setting to true then aggregate data

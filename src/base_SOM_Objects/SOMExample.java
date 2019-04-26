@@ -3,8 +3,7 @@ package base_SOM_Objects;
 import java.util.*;
 import java.util.Map.Entry;
 
-import SOM_Strafford_PKG.SOM_StraffordMain;
-import SOM_Strafford_PKG.StraffSOMMapManager;
+import base_UI_Objects.*;
 import base_Utils_Objects.*;
 
 
@@ -29,7 +28,7 @@ public abstract class SOMExample extends baseDataPtVis{
 	//magnitude of this feature vector
 	public float ftrVecMag;	
 	//keys for ftr map arrays
-	protected static final int ftrMapTypeKey = StraffSOMMapManager.useUnmoddedDat, normFtrMapTypeKey = StraffSOMMapManager.useNormedDat, stdFtrMapTypeKey = StraffSOMMapManager.useScaledDat;	
+	protected static final int ftrMapTypeKey = SOMMapManager.useUnmoddedDat, normFtrMapTypeKey = SOMMapManager.useNormedDat, stdFtrMapTypeKey = SOMMapManager.useScaledDat;	
 	protected static final Integer[] ftrMapTypeKeysAra = new Integer[] {ftrMapTypeKey, normFtrMapTypeKey, stdFtrMapTypeKey};
 
 	private int[] stFlags;						//state flags - bits in array holding relevant process info
@@ -61,6 +60,14 @@ public abstract class SOMExample extends baseDataPtVis{
 	protected boolean isTrainingData;
 	//this is index for this data point in training/testing data array; original index in preshuffled array (reflecting build order)
 	protected int testTrainDataIDX;
+	//two maps of distances to each map node for each example, including unshared features and excluding unshared features in distance calc
+	protected TreeMap<Double,ArrayList<SOMMapNode>>[] allMapNodesDists;	
+	//two kinds of maps to bmus available - all ftrs looks at all feature values for distances, 
+	//while shared only measures distances where this example's wts are non-zero
+	public static final int
+		AllFtrsIDX = 0,				//looks at all features in this node for distance calculations
+		SharedFtrsIDX = 1;			//looks only at non-zero features in this node for distance calculations
+	protected static int numFtrCompVals = 2;
 
 	
 	public SOMExample(SOMMapManager _map, ExDataType _type, String _id) {
@@ -622,9 +629,9 @@ public abstract class SOMExample extends baseDataPtVis{
 	////useUnmoddedDat = 0, useScaledDat = 1, useNormedDat
 	public final String toCSVString(int _type) {
 		switch(_type){
-			case StraffSOMMapManager.useUnmoddedDat : {return _toCSVString(ftrMaps[ftrMapTypeKey]); }
-			case StraffSOMMapManager.useNormedDat  : {return _toCSVString(getFlag(normFtrsBuiltIDX) ? ftrMaps[normFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]);}
-			case StraffSOMMapManager.useScaledDat  : {return _toCSVString(getFlag(stdFtrsBuiltIDX) ? ftrMaps[stdFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]); }
+			case SOMMapManager.useUnmoddedDat : {return _toCSVString(ftrMaps[ftrMapTypeKey]); }
+			case SOMMapManager.useNormedDat  : {return _toCSVString(getFlag(normFtrsBuiltIDX) ? ftrMaps[normFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]);}
+			case SOMMapManager.useScaledDat  : {return _toCSVString(getFlag(stdFtrsBuiltIDX) ? ftrMaps[stdFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]); }
 			default : {return _toCSVString(ftrMaps[ftrMapTypeKey]); }
 		}
 	}//toCSVString
@@ -640,9 +647,9 @@ public abstract class SOMExample extends baseDataPtVis{
 	//return LRN-format (dense) string of this object's features, depending on which type is selected - check to make sure 2ndary features exist before attempting to build data strings
 	public final String toLRNString(int _type, String sep) {
 		switch(_type){
-			case StraffSOMMapManager.useUnmoddedDat : {return _toLRNString(ftrMaps[ftrMapTypeKey], sep); }
-			case StraffSOMMapManager.useNormedDat   : {return _toLRNString(getFlag(normFtrsBuiltIDX) ? ftrMaps[normFtrMapTypeKey] : ftrMaps[ftrMapTypeKey], sep);}
-			case StraffSOMMapManager.useScaledDat   : {return _toLRNString(getFlag(stdFtrsBuiltIDX) ? ftrMaps[stdFtrMapTypeKey] : ftrMaps[ftrMapTypeKey], sep); }
+			case SOMMapManager.useUnmoddedDat : {return _toLRNString(ftrMaps[ftrMapTypeKey], sep); }
+			case SOMMapManager.useNormedDat   : {return _toLRNString(getFlag(normFtrsBuiltIDX) ? ftrMaps[normFtrMapTypeKey] : ftrMaps[ftrMapTypeKey], sep);}
+			case SOMMapManager.useScaledDat   : {return _toLRNString(getFlag(stdFtrsBuiltIDX) ? ftrMaps[stdFtrMapTypeKey] : ftrMaps[ftrMapTypeKey], sep); }
 			default : {return _toLRNString(ftrMaps[ftrMapTypeKey], sep); }
 		}		
 	}//toLRNString
@@ -656,9 +663,9 @@ public abstract class SOMExample extends baseDataPtVis{
 	//return LRN-format (dense) string of this object's features, depending on which type is selected - check to make sure 2ndary features exist before attempting to build data strings
 	public final String toSVMString(int _type) {
 		switch(_type){
-			case StraffSOMMapManager.useUnmoddedDat : {return _toSVMString(ftrMaps[ftrMapTypeKey]); }
-			case StraffSOMMapManager.useNormedDat   : {return _toSVMString(getFlag(normFtrsBuiltIDX) ? ftrMaps[normFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]);}
-			case StraffSOMMapManager.useScaledDat   : {return _toSVMString(getFlag(stdFtrsBuiltIDX) ? ftrMaps[stdFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]); }
+			case SOMMapManager.useUnmoddedDat : {return _toSVMString(ftrMaps[ftrMapTypeKey]); }
+			case SOMMapManager.useNormedDat   : {return _toSVMString(getFlag(normFtrsBuiltIDX) ? ftrMaps[normFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]);}
+			case SOMMapManager.useScaledDat   : {return _toSVMString(getFlag(stdFtrsBuiltIDX) ? ftrMaps[stdFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]); }
 			default : {return _toSVMString(ftrMaps[ftrMapTypeKey]); }
 		}		
 	}//toLRNString
@@ -678,9 +685,9 @@ public abstract class SOMExample extends baseDataPtVis{
 	
 	public final TreeMap<Integer, Float> getCurrentFtrMap(int _type){
 		switch(_type){
-			case StraffSOMMapManager.useUnmoddedDat : {return ftrMaps[ftrMapTypeKey]; }
-			case StraffSOMMapManager.useNormedDat   : {return (getFlag(normFtrsBuiltIDX) ? ftrMaps[normFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]);}
-			case StraffSOMMapManager.useScaledDat   : {return (getFlag(stdFtrsBuiltIDX) ? ftrMaps[stdFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]); }
+			case SOMMapManager.useUnmoddedDat : {return ftrMaps[ftrMapTypeKey]; }
+			case SOMMapManager.useNormedDat   : {return (getFlag(normFtrsBuiltIDX) ? ftrMaps[normFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]);}
+			case SOMMapManager.useScaledDat   : {return (getFlag(stdFtrsBuiltIDX) ? ftrMaps[stdFtrMapTypeKey] : ftrMaps[ftrMapTypeKey]); }
 			default : {return ftrMaps[ftrMapTypeKey]; }
 		}		
 	}
@@ -791,6 +798,7 @@ abstract class baseDataPtVis{
 	
 	public baseDataPtVis(SOMMapManager _map, ExDataType _type) {
 		mapMgr = _map;type=_type;
+		if(msgObj==null) {msgObj=mapMgr.buildMsgObj();}
 		mapLoc = new myPointf();	
 		mapNodeLoc = new myPointf();
 		rad = 1.0f;
@@ -817,7 +825,7 @@ abstract class baseDataPtVis{
 	public void setMapLoc(myPointf _pt){mapLoc = new myPointf(_pt);}
 	
 	//draw this example with a line linking it to its best matching unit
-	public final void drawMeLinkedToBMU(SOM_StraffordMain p, float _rad, String ID){
+	public final void drawMeLinkedToBMU(my_procApplet p, float _rad, String ID){
 		p.pushMatrix();p.pushStyle();
 		//draw point of radius rad at mapLoc - actual location on map
 		//show(myPointf P, float rad, int det, int[] clrs, String[] txtAra)
@@ -829,31 +837,31 @@ abstract class baseDataPtVis{
 		p.popStyle();p.popMatrix();		
 	}//drawMeLinkedToBMU
 	
-	public void drawMeSmallNoLbl(SOM_StraffordMain p){
+	public void drawMeSmallNoLbl(my_procApplet p){
 		p.pushMatrix();p.pushStyle();
 		p.show(mapLoc, 2, 2, nodeClrs); 
 		p.popStyle();p.popMatrix();		
 	}	
 		
 	//override drawing in map nodes
-	public final void drawMeMap(SOM_StraffordMain p){
+	public final void drawMeMap(my_procApplet p){
 		p.pushMatrix();p.pushStyle();	
 		p.show(mapLoc, getRad(), drawDet, nodeClrs);		
 		p.popStyle();p.popMatrix();		
 	}//drawMeMap
 	
 	//override drawing in map nodes
-	public final void drawMeMapClr(SOM_StraffordMain p, int[] clr){
+	public final void drawMeMapClr(my_procApplet p, int[] clr){
 		p.pushMatrix();p.pushStyle();
 		//draw point of radius rad at mapLoc
 		p.show_ClrAra(mapLoc, rad,drawDet, clr, clr);
 		p.popStyle();p.popMatrix();		
 	}//drawMeMapClr
 	
-	public void drawMeRanked(SOM_StraffordMain p, String lbl, int[] clr, float rad, int rank){
+	public void drawMeRanked(my_procApplet p, String lbl, int[] clr, float rad, int rank){
 		p.pushMatrix();p.pushStyle();
 		//draw point of radius rad at maploc with label and no background box	
-		p.showNoBox_ClrAra(mapLoc, rad, drawDet, clr, clr, SOM_StraffordMain.gui_White, lbl);
+		p.showNoBox_ClrAra(mapLoc, rad, drawDet, clr, clr, my_procApplet.gui_White, lbl);
 		p.popStyle();p.popMatrix();
 	}
 }//baseDataPtVis

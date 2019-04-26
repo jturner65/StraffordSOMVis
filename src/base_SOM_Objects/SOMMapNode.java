@@ -2,7 +2,7 @@ package base_SOM_Objects;
 
 import java.util.*;
 
-import SOM_Strafford_PKG.SOM_StraffordMain;
+import base_UI_Objects.*;
 import base_Utils_Objects.*;
 
 /**
@@ -198,32 +198,32 @@ public abstract class SOMMapNode extends SOMExample{
 	//////////////////////////
 	// draw routines
 	
-	public void drawMePopLbl(SOM_StraffordMain p, int _typeIDX) {		BMUExampleNodes[_typeIDX].drawMapNodeWithLabel(p);	}	
-	public void drawMePopNoLbl(SOM_StraffordMain p, int _typeIDX) {		BMUExampleNodes[_typeIDX].drawMapNodeNoLabel(p);	}	
-	public void drawMeSmallWt(SOM_StraffordMain p, int jpIDX){
+	public void drawMePopLbl(my_procApplet p, int _typeIDX) {		BMUExampleNodes[_typeIDX].drawMapNodeWithLabel(p);	}	
+	public void drawMePopNoLbl(my_procApplet p, int _typeIDX) {		BMUExampleNodes[_typeIDX].drawMapNodeNoLabel(p);	}	
+	public void drawMeSmallWt(my_procApplet p, int jpIDX){
 		p.pushMatrix();p.pushStyle();
 		Float wt = this.ftrMaps[stdFtrMapTypeKey].get(jpIDX);
 		if (wt==null) {wt=0.0f;}
 		p.show(mapLoc, 2, 2, nodeClrs, new String[] {this.OID+":",String.format("%.4f", wt)}); 
 		p.popStyle();p.popMatrix();		
 	}	
-	public void drawMeSmall(SOM_StraffordMain p){
+	public void drawMeSmall(my_procApplet p){
 		p.pushMatrix();p.pushStyle();
 		p.show(mapLoc, 2, 2, nodeClrs, new String[] {this.OID}); 
 		p.popStyle();p.popMatrix();		
 	}		
-	public void drawMeWithWt(SOM_StraffordMain p, float wt, String[] disp){
+	public void drawMeWithWt(my_procApplet p, float wt, String[] disp){
 		p.pushMatrix();p.pushStyle();	
 		p.show(mapLoc, wt, (int)wt+1, nodeClrs,  disp); 
 		p.popStyle();p.popMatrix();		
 	}//drawMeWithWt
 	
 	//draw a box around this node of uMatD color
-	public void drawMeUMatDist(SOM_StraffordMain p){drawMeClrRect(p,uMatClr, 255);}
-	public void drawMeSegClr(SOM_StraffordMain p){drawMeClrRect(p,segClr, segClr[3]);}
-	public void drawMeProdBoxClr(SOM_StraffordMain p, int[] clr) {drawMeClrRect(p,clr, clr[3]);}
+	public void drawMeUMatDist(my_procApplet p){drawMeClrRect(p,uMatClr, 255);}
+	public void drawMeSegClr(my_procApplet p){drawMeClrRect(p,segClr, segClr[3]);}
+	public void drawMeProdBoxClr(my_procApplet p, int[] clr) {drawMeClrRect(p,clr, clr[3]);}
 	//clr is 3 vals
-	private void drawMeClrRect(SOM_StraffordMain p, int[] fclr, int alpha) {
+	private void drawMeClrRect(my_procApplet p, int[] fclr, int alpha) {
 		p.pushMatrix();p.pushStyle();
 		p.setFill(fclr, alpha);
 		p.noStroke();
@@ -290,13 +290,13 @@ class SOMMapNodeBMUExamples{
 
 	/////////////////////
 	// drawing routines for owning node
-	public void drawMapNodeWithLabel(SOM_StraffordMain p) {
+	public void drawMapNodeWithLabel(my_procApplet p) {
 		p.pushMatrix();p.pushStyle();	
 		p.show(node.mapLoc, logExSize, nodeSphrDet, node.nodeClrs,  visLabel); 		
 		p.popStyle();p.popMatrix();		
 	}
 
-	public void drawMapNodeNoLabel(SOM_StraffordMain p) {
+	public void drawMapNodeNoLabel(my_procApplet p) {
 		p.pushMatrix();p.pushStyle();	
 		p.show(node.mapLoc, logExSize, nodeSphrDet, node.nodeClrs); 		
 		p.popStyle();p.popMatrix();		

@@ -32,7 +32,7 @@ public class SOMProjConfigData {
 	private String[] dateTimeStrAra;
 
 	//test/train partition - ratio of # of training data points to total # of data points 0->1.0f
-	private float trainTestPartition;	
+	private float trainTestPartition = 1.0f;	
 	//current experiment # of samples total, train partition and test partition
 	private int expNumSmpls, expNumTrain, expNumTest;
 	//current type of data used to train map - unmodified features, normalized features (ftr vec sums to 1) or standardized features (normalized across all data examples per ftr)
@@ -163,16 +163,16 @@ public class SOMProjConfigData {
 		while (!found && (idx < fileStrings.length)){if(fileStrings[idx].contains(fileComment)) {++idx; } else {found=true;}}
 		// CONFIG FILE NAMES
 		idx = _loadProjConfigData(fileStrings, configFileNames, idx, false);//returns next idx, fills config variables
-			if(idx == -1) {msgObj.dispMessage("SOMProjConfigData","loadProjectConfig","Error after _loadProjConfigData with configFileNames : idx == -1", MsgCodes.error2); return;}
-		// SUBDIR DEFS
+		if(idx == -1) {msgObj.dispMessage("SOMProjConfigData","loadProjectConfig","Error after _loadProjConfigData with configFileNames : idx == -1", MsgCodes.error2); return;}
+		// SUBDIR DEFS - location under data dir where data subdirs are located
 		idx = _loadProjConfigData(fileStrings, subDirLocs, idx, true);//returns next idx, fills subdir variables
-			if(idx == -1) {msgObj.dispMessage("SOMProjConfigData","loadProjectConfig","Error after _loadProjConfigData with subDirLocs : idx == -1", MsgCodes.error2); return;}
+		if(idx == -1) {msgObj.dispMessage("SOMProjConfigData","loadProjectConfig","Error after _loadProjConfigData with subDirLocs : idx == -1", MsgCodes.error2); return;}
 		
 		// MISC GLOBAL VARS
 		//read through individual config vars
 		idx = _loadIndivConfigVars(fileStrings, idx); 
 		msgObj.dispMessage("SOMProjConfigData","loadProjectConfig","preBuiltMapDir set to be : " + preBuiltMapDir, MsgCodes.info3);
-			if(idx == -1) {msgObj.dispMessage("SOMProjConfigData","loadProjectConfig","Error after _loadIndivConfigVars : idx == -1", MsgCodes.error2); return;}
+		if(idx == -1) {msgObj.dispMessage("SOMProjConfigData","loadProjectConfig","Error after _loadIndivConfigVars : idx == -1", MsgCodes.error2); return;}
 		msgObj.dispMessage("SOMProjConfigData","loadProjectConfig","Finished loading project configuration.", MsgCodes.info5);
 	}//loadProjectConfig
 	
@@ -187,7 +187,7 @@ public class SOMProjConfigData {
 			//map has keys that describe what the values are
 			String key = tkns[0].trim(), val= tkns[1].trim().replace("\"", "")+sfx;
 			map.put(key,val);	
-			msgObj.dispMessage("SOMProjConfigData","_loadProjConfigData","Key : "+key+" | Val : " + val, MsgCodes.info3);
+			msgObj.dispMessage("SOMProjConfigData","_loadProjConfigData","Key : "+key+" \t| Val : " + val, MsgCodes.info3);
 		}		
 		return -1;	
 	}//_loadProjConfigData
@@ -332,13 +332,17 @@ public class SOMProjConfigData {
 			}
 		}//for each line
 		//override value set in config
-		if(expNumTest==0) {trainTestPartition = 1.0f;} else {trainTestPartition = expNumTrain/(1.0f*expNumSmpls);}
+		if((expNumTest==0) || (expNumSmpls==0)){trainTestPartition = 1.0f;} else {trainTestPartition = expNumTrain/(1.0f*expNumSmpls);}
 		if(somFileNamesAraTmp.size() > 0) {		SOMFileNamesAra = somFileNamesAraTmp.toArray(new String[0]);} 
 		else {									setSOM_ExpFileNames(expNumSmpls, expNumTrain, expNumTest);}
 	}//setExpConfigData	
 		
 	//save test/train data in multiple threads
 	public void launchTestTrainSaveThrds(ExecutorService th_exec, SOMMapManager mapMgr, int curMapFtrType, int numTrainFtrs, SOMExample[] trainData, SOMExample[] testData) {
+		//set exp names
+		int numTtlEx = trainData.length + testData.length;
+		setSOM_ExpFileNames(numTtlEx, trainData.length, testData.length);
+		
 		String saveFileName = "";
 		List<Future<Boolean>> straffSOMDataWriteFutures = new ArrayList<Future<Boolean>>();
 		List<SOMTrainDataWriter> straffSOMDataWrite = new ArrayList<SOMTrainDataWriter>();

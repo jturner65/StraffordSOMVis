@@ -5,18 +5,12 @@ import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
 
-import SOM_Strafford_PKG.SOMDataLoader;
 import SOM_Strafford_PKG.SOMProjConfigData;
-import SOM_Strafford_PKG.SOM_StraffordMain;
-import SOM_Strafford_PKG.StraffSOMMapManager;
+//import SOM_Strafford_PKG.my_procApplet;
 import SOM_Strafford_PKG.mySOMMapUIWin;
-import base_UI_Objects.my_procApplet;
-import base_Utils_Objects.FileIOManager;
-import base_Utils_Objects.MsgCodes;
-import base_Utils_Objects.Tuple;
-import base_Utils_Objects.messageObject;
-import base_Utils_Objects.myPoint;
-import base_Utils_Objects.myPointf;
+
+import base_UI_Objects.*;
+import base_Utils_Objects.*;
 
 public abstract class SOMMapManager {
 	//applet, if used in graphical context
@@ -217,7 +211,6 @@ public abstract class SOMMapManager {
 		//build file names, including info for data type used to train map
 		if (isBuildingNewMap) {//will save results to new directory
 			projConfigData.buildDateTimeStrAraAndDType(getDataTypeNameFromCurFtrTrainType());
-			projConfigData.setSOM_ExpFileNames(inputData.length, numTrainData, numTestData);
 			projConfigData.launchTestTrainSaveThrds(th_exec, this, curMapTrainFtrType, numTrnFtrs,trainData,testData);				//save testing and training data
 		} 
 		msgObj.dispMessage("SOMMapManager","setInputTestTrainDataArasShuffle","Finished Shuffling Input, Building Training and Testing Partitions. Train size : " + numTrainData+ " Testing size : " + numTestData+".", MsgCodes.info5);
@@ -232,26 +225,26 @@ public abstract class SOMMapManager {
 	protected abstract void buildTestTrainFromPartition(float trainTestPartition, boolean isBuildingNewMap);
 	
 	//load preproc customer csv and build training and testing partitions - testing partition not necessary 
-	public void loadPreprocAndBuildTestTrainPartitions() {loadPreprocAndBuildTestTrainPartitions(1.0f);}//100% training data
+	public void loadPreprocAndBuildTestTrainPartitions() {loadPreprocAndBuildTestTrainPartitions(projConfigData.getTrainTestPartition());}//whatever most recent setting is
 	public void loadPreprocAndBuildTestTrainPartitions(float trainTestPartition) {
-		msgObj.dispMessage("StraffSOMMapManager","loadPreprocAndBuildTestTrainPartitions","Start Loading all CSV example Data to train map.", MsgCodes.info5);
+		msgObj.dispMessage("SOMMapManager","loadPreprocAndBuildTestTrainPartitions","Start Loading all CSV example Data to train map.", MsgCodes.info5);
 		loadPreProcTestTrainData();
 		//build SOM data
 		buildTestTrainFromPartition(trainTestPartition, true);	
 		saveMinsAndDiffs();		
-		msgObj.dispMessage("StraffSOMMapManager","loadPreprocAndBuildTestTrainPartitions","Finished Loading all CSV example Data to train map.", MsgCodes.info5);
+		msgObj.dispMessage("SOMMapManager","loadPreprocAndBuildTestTrainPartitions","Finished Loading all CSV example Data to train map.", MsgCodes.info5);
 	}//loadPreprocAndBuildTestTrainPartitions
 	
 	//load the data used to build a map as well as existing map results
 	//NOTE this may break if different data is used to build the map than the current data being loaded
 	public void loadPretrainedExistingMap() {
 		//load customer data into preproc  -this must be data used to build map
-		loadAllPreprocData();
+		loadPreProcTestTrainData();
 		//for prebuilt map
 		projConfigData.setSOM_UsePreBuilt(this);	
 		//build data partitions - use partition size set via constants in debug
 		buildTestTrainFromPartition(projConfigData.getTrainTestPartition(), false);	
-		msgObj.dispMessage("StraffSOMMapManager","loadPretrainedExistingMap","Current projConfigData before dataLoader Call : " + projConfigData.toString(), MsgCodes.info3);
+		msgObj.dispMessage("SOMMapManager","loadPretrainedExistingMap","Current projConfigData before dataLoader Call : " + projConfigData.toString(), MsgCodes.info3);
 		th_exec.execute(new SOMDataLoader(this,projConfigData));//fire and forget load task 
 	}//dbgBuildExistingMap
 	
@@ -336,7 +329,7 @@ public abstract class SOMMapManager {
 	public void buildSegmentsOnMap() {//need to find closest
 		if (nodeInSegDistThresh == mapMadeWithSegThresh) {return;}
 		if ((MapNodes == null) || (MapNodes.size() == 0)) {return;}
-		msgObj.dispMessage("StraffSOMMapManager","buildSegmentsOnMap","Started building cluster map", MsgCodes.info5);	
+		msgObj.dispMessage("SOMMapManager","buildSegmentsOnMap","Started building cluster map", MsgCodes.info5);	
 		//clear existing segments
 		for (SOMMapNode ex : MapNodes.values()) {ex.clearSeg();}
 		segments = new ArrayList<SOMMapSegment>();
@@ -350,14 +343,57 @@ public abstract class SOMMapManager {
 		}		
 		mapMadeWithSegThresh = nodeInSegDistThresh;
 		if(win!=null) {win.setMapSegmentImgClrs();}
-		msgObj.dispMessage("StraffSOMMapManager","buildSegmentsOnMap","Finished building cluster map", MsgCodes.info5);			
+		msgObj.dispMessage("SOMMapManager","buildSegmentsOnMap","Finished building cluster map", MsgCodes.info5);			
 	}//buildSegmentsOnMap()
 	
 	/////////////////////////////////////
 	// map node management - map nodes are represented by SOMExample objects called SOMMapNodes
 	// and are classified as either having examples that map to them (they are bmu's for) or not having any
 	//   furthermore, they can have types of examples mapping to them - training, product, true prospect
-		
+	
+	
+	
+	protected void _setExamplesBMUs(SOMExample[] exData, String dataTypName, ExDataType dataType) {
+		msgObj.dispMessage("SOMMapManager","setTestBMUs","Start Mapping " +exData.length + " "+dataTypName+" data to best matching units.", MsgCodes.info5);
+		boolean canMultiThread=isMTCapable();//this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
+		if(canMultiThread) {
+			List<Future<Boolean>> testMapperFtrs = new ArrayList<Future<Boolean>>();
+			List<mapTestDataToBMUs> testMappers = new ArrayList<mapTestDataToBMUs>();
+			int numForEachThrd = calcNumPerThd(exData.length, numUsableThreads);
+			//use this many for every thread but last one
+			int stIDX = 0;
+			int endIDX = numForEachThrd;		
+			for (int i=0; i<(numUsableThreads-1);++i) {				
+				testMappers.add(new mapTestDataToBMUs(this,stIDX, endIDX,  exData, i, dataTypName, useChiSqDist));
+				stIDX = endIDX;
+				endIDX += numForEachThrd;
+			}
+			//last one probably won't end at endIDX, so use length
+			if(stIDX < exData.length) {testMappers.add(new mapTestDataToBMUs(this,stIDX, exData.length, exData, numUsableThreads-1, dataTypName,useChiSqDist));}
+			try {testMapperFtrs = th_exec.invokeAll(testMappers);for(Future<Boolean> f: testMapperFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }		
+		} else {//for every product find closest map node
+			if (useChiSqDist) {			for (int i=0;i<exData.length;++i) {	exData[i].findBMUFromNodes_ChiSq(MapNodes, curMapTestFtrType);		}}			
+			else {						for (int i=0;i<exData.length;++i) {	exData[i].findBMUFromNodes(MapNodes, curMapTestFtrType);		}	}			
+		}
+		//go through every test example, if any, and attach prod to bmu - needs to be done synchronously because don't want to concurrently modify bmus from 2 different test examples		
+		msgObj.dispMessage("SOMMapManager","setTestBMUs","Finished finding bmus for all " +exData.length + " "+dataTypName+" data. Start adding "+dataTypName+" data to appropriate bmu's list.", MsgCodes.info1);
+		_finalizeBMUProcessing(exData, dataType);
+		msgObj.dispMessage("SOMMapManager","setTestBMUs","Finished Mapping "+dataTypName+" data to best matching units.", MsgCodes.info5);		
+	}//_setExamplesBMUs
+	
+	protected void _finalizeBMUProcessing(SOMExample[] _exs, ExDataType _type) {
+		int val = _type.getVal();
+		for(SOMMapNode mapNode : MapNodes.values()){mapNode.clearBMUExs(val);addExToNodesWithNoExs(mapNode, _type);}	
+		for (int i=0;i<_exs.length;++i) {	
+			SOMExample ex = _exs[i];
+			ex.getBmu().addExToBMUs(ex);	
+			addExToNodesWithExs(ex.getBmu(), _type);
+		}
+		filterExFromNoEx(_type);		//clear out all nodes that have examples from struct holding no-example map nodes
+		finalizeExMapNodes(_type);		
+	}//_finalizeBMUProcessing
+	
+	
 	public void clearBMUNodesWithExs(ExDataType _type) {							nodesWithEx.get(_type).clear();}
 	public void clearBMUNodesWithNoExs(ExDataType _type) {							nodesWithNoEx.get(_type).clear();}
 	public void addExToNodesWithExs(SOMMapNode node, ExDataType _type) {			nodesWithEx.get(_type).add(node);}	
@@ -390,9 +426,9 @@ public abstract class SOMMapManager {
 	public void initMapFtrVisAras(int numTrainFtrs) {
 		if (win != null) {
 			int num2ndTrainFtrs = _getNumSecondaryMaps();
-			msgObj.dispMessage("StraffSOMMapManager","initMapAras","Initializing per-feature map display to hold : "+ numTrainFtrs +" primary feature and " +num2ndTrainFtrs + " secondary feature map images.", MsgCodes.info1);
+			msgObj.dispMessage("SOMMapManager","initMapAras","Initializing per-feature map display to hold : "+ numTrainFtrs +" primary feature and " +num2ndTrainFtrs + " secondary feature map images.", MsgCodes.info1);
 			win.initMapAras(numTrainFtrs, num2ndTrainFtrs);
-		} else {msgObj.dispMessage("StraffSOMMapManager","initMapAras","Display window doesn't exist, can't build map visualization image arrays; ignoring.", MsgCodes.warning2);}
+		} else {msgObj.dispMessage("SOMMapManager","initMapAras","Display window doesn't exist, can't build map visualization image arrays; ignoring.", MsgCodes.warning2);}
 	}//initMapAras
 	
 	//process map node's ftr vals, add node to map, and add node to struct without any training examples (initial state for all map nodes)
@@ -439,7 +475,7 @@ public abstract class SOMMapManager {
 	
 	//put a map node in PerJPHiWtMapNodes per-jp array
 	public void setMapNodeFtrStr(SOMMapNode mapNode) {
-		TreeMap<Integer, Float> stdFtrMap = mapNode.getCurrentFtrMap(StraffSOMMapManager.useScaledDat);
+		TreeMap<Integer, Float> stdFtrMap = mapNode.getCurrentFtrMap(SOMMapManager.useScaledDat);
 		for (Integer jpIDX : stdFtrMap.keySet()) {
 			Float ftrVal = stdFtrMap.get(jpIDX);
 			ArrayList<SOMMapNode> nodeList = PerFtrHiWtMapNodes[jpIDX].get(ftrVal);
@@ -476,9 +512,7 @@ public abstract class SOMMapManager {
 			}
 			setMapNodeFtrStr(tmp);
 		}
-		for(int d = 0; d<map_ftrsVar.length; ++d){map_ftrsVar[d] /= 1.0f*_numEx;}
-
-		
+		for(int d = 0; d<map_ftrsVar.length; ++d){map_ftrsVar[d] /= 1.0f*_numEx;}		
 		setNumTrainFtrs(_numTrainFtrs); 
 
 	}//finalizeMapNodes
@@ -538,6 +572,7 @@ public abstract class SOMMapManager {
 	public abstract Float[] getTrainFtrMins();
 	public abstract Float[] getTrainFtrDiffs();
 	
+	//save mins and diffs of current training data
 	protected void saveMinsAndDiffs() {
 		msgObj.dispMessage("SOMMapManager","saveMinsAndDiffs","Begin Saving Mins and Diffs Files", MsgCodes.info1);
 		//save mins/maxes so this file data be reconstructed
@@ -723,7 +758,7 @@ public abstract class SOMMapManager {
 	
 	private static int dispTrainDataFrame = 0, numDispTrainDataFrames = 20;
 	//if connected to UI, draw data - only called from window
-	public void drawTrainData(SOM_StraffordMain pa) {
+	public void drawTrainData(my_procApplet pa) {
 		pa.pushMatrix();pa.pushStyle();
 		if (trainData.length < numDispTrainDataFrames) {	for(int i=0;i<trainData.length;++i){		trainData[i].drawMeMap(pa);	}	} 
 		else {
@@ -735,7 +770,7 @@ public abstract class SOMMapManager {
 	}//drawTrainData
 	private static int dispTestDataFrame = 0, numDispTestDataFrames = 20;
 	//if connected to UI, draw data - only called from window
-	public void drawTestData(SOM_StraffordMain pa) {
+	public void drawTestData(my_procApplet pa) {
 		pa.pushMatrix();pa.pushStyle();
 		if (testData.length < numDispTestDataFrames) {	for(int i=0;i<testData.length;++i){		testData[i].drawMeMap(pa);	}	} 
 		else {
@@ -748,40 +783,40 @@ public abstract class SOMMapManager {
 
 	
 	//draw boxes around each node representing umtrx values derived in SOM code - deprecated, now drawing image
-	public void drawUMatrixVals(SOM_StraffordMain pa) {
+	public void drawUMatrixVals(my_procApplet pa) {
 		pa.pushMatrix();pa.pushStyle();
 		for(SOMMapNode node : MapNodes.values()){	node.drawMeUMatDist(pa);	}		
 		pa.popStyle();pa.popMatrix();
 	}//drawUMatrix
 	//draw boxes around each node representing segments these nodes belong to
-	public void drawSegments(SOM_StraffordMain pa) {
+	public void drawSegments(my_procApplet pa) {
 		pa.pushMatrix();pa.pushStyle();
 		for(SOMMapNode node : MapNodes.values()){	node.drawMeSegClr(pa);	}		
 		pa.popStyle();pa.popMatrix();
 	}//drawUMatrix
 	
-	public void drawAllNodesWted(SOM_StraffordMain pa, int curJPIdx) {//, int[] dpFillClr, int[] dpStkClr) {
+	public void drawAllNodesWted(my_procApplet pa, int curJPIdx) {//, int[] dpFillClr, int[] dpStkClr) {
 		pa.pushMatrix();pa.pushStyle();
 		//pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
 		for(SOMMapNode node : MapNodes.values()){	node.drawMeSmallWt(pa,curJPIdx);	}
 		pa.popStyle();pa.popMatrix();
 	} 
 		
-	public void drawAllNodes(SOM_StraffordMain pa) {//, int[] dpFillClr, int[] dpStkClr) {
+	public void drawAllNodes(my_procApplet pa) {//, int[] dpFillClr, int[] dpStkClr) {
 		pa.pushMatrix();pa.pushStyle();
 		//pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
 		for(SOMMapNode node : MapNodes.values()){	node.drawMeSmall(pa);	}
 		pa.popStyle();pa.popMatrix();
 	} 
 	
-	public void drawAllNodesNoLbl(SOM_StraffordMain pa) {//, int[] dpFillClr, int[] dpStkClr) {
+	public void drawAllNodesNoLbl(my_procApplet pa) {//, int[] dpFillClr, int[] dpStkClr) {
 		pa.pushMatrix();pa.pushStyle();
 		//pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
 		for(SOMMapNode node : MapNodes.values()){	node.drawMeSmallNoLbl(pa);	}
 		pa.popStyle();pa.popMatrix();
 	} 
 	
-	public void drawNodesWithWt(SOM_StraffordMain pa, float valThresh, int curJPIdx) {//, int[] dpFillClr, int[] dpStkClr) {
+	public void drawNodesWithWt(my_procApplet pa, float valThresh, int curJPIdx) {//, int[] dpFillClr, int[] dpStkClr) {
 		pa.pushMatrix();pa.pushStyle();
 		//pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
 		TreeMap<Float,ArrayList<SOMMapNode>> map = PerFtrHiWtMapNodes[curJPIdx];
@@ -793,14 +828,14 @@ public abstract class SOMMapManager {
 		pa.popStyle();pa.popMatrix();
 	}//drawNodesWithWt
 	
-	public void drawExMapNodes(SOM_StraffordMain pa, ExDataType _type) {
+	public void drawExMapNodes(my_procApplet pa, ExDataType _type) {
 		HashSet<SOMMapNode> nodes = nodesWithEx.get(_type);
 		pa.pushMatrix();pa.pushStyle();
 		int _typeIDX = _type.getVal();
 		for(SOMMapNode node : nodes){	node.drawMePopLbl(pa, _typeIDX);}
 		pa.popStyle();pa.popMatrix();		
 	}	
-	public void drawExMapNodesNoLbl(SOM_StraffordMain pa, ExDataType _type) {
+	public void drawExMapNodesNoLbl(my_procApplet pa, ExDataType _type) {
 		HashSet<SOMMapNode> nodes = nodesWithEx.get(_type);
 		pa.pushMatrix();pa.pushStyle();
 		int _typeIDX = _type.getVal();
@@ -809,7 +844,7 @@ public abstract class SOMMapManager {
 	}
 	
 	//draw right sidebar data
-	public void drawResultBar(SOM_StraffordMain pa, float yOff) {
+	public void drawResultBar(my_procApplet pa, float yOff) {
 		yOff-=4;
 		float sbrMult = 1.2f, lbrMult = 1.5f;//offsets multiplier for barriers between contextual ui elements
 		pa.pushMatrix();pa.pushStyle();
@@ -823,9 +858,9 @@ public abstract class SOMMapManager {
 	}//drawResultBar
 	
 	//draw app-specific sidebar data
-	protected abstract void drawResultBarPriv1(SOM_StraffordMain pa, float yOff);
-	protected abstract void drawResultBarPriv2(SOM_StraffordMain pa, float yOff);
-	protected abstract void drawResultBarPriv3(SOM_StraffordMain pa, float yOff);
+	protected abstract void drawResultBarPriv1(my_procApplet pa, float yOff);
+	protected abstract void drawResultBarPriv2(my_procApplet pa, float yOff);
+	protected abstract void drawResultBarPriv3(my_procApplet pa, float yOff);
 	
 	//invoke multi-threading call to build map imgs - called from UI window
 	public void invokeSOMFtrDispBuild(List<SOMFtrMapVisImgBuilder> mapImgBuilders) {		

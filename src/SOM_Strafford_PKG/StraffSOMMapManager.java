@@ -6,6 +6,7 @@ import java.util.*;
 import java.util.concurrent.*;
 
 import base_SOM_Objects.*;
+import base_UI_Objects.*;
 import base_Utils_Objects.*;
 
 
@@ -234,7 +235,10 @@ public class StraffSOMMapManager extends SOMMapManager {
 		msgObj.dispMessage("StraffSOMMapManager","loadMonitorJpJpgrp","Finished loading MonitorJpJpgrp data", MsgCodes.info1);
 		msgObj.dispMessage("StraffSOMMapManager","loadMonitorJpJpgrp",jpJpgrpMon.toString(), MsgCodes.info1);
 		//load customer prospect data
-		loadCustomerProspectData(subDir);			
+		//clear out current prospect data
+		resetCustProspectMap();		
+		//load customer data
+		loadAllExampleMapData(subDir, custExKey, prospectExamples.get(custExKey));		
 		//load product data
 		loadAllProductMapData(subDir);
 		finishSOMExampleBuild();
@@ -245,21 +249,15 @@ public class StraffSOMMapManager extends SOMMapManager {
 		msgObj.dispMessage("StraffSOMMapManager","loadAllPreProccedData","Finished loading preprocced data from " + subDir +  "directory.", MsgCodes.info5);
 	}//loadAllPreProccedData
 
-	//load "prospect" (customers/prospects with past events) data found in subDir
-	private void loadCustomerProspectData(String subDir) {
-		//load prospect data - prospect records with orders
-		//clear out current prospect data
-		resetCustProspectMap();		
-		//load customer data
-		loadAllExampleMapData(subDir, custExKey, prospectExamples.get(custExKey));		
-	}//loadAllProspectData
 	
 	public void loadAllTrueProspectData() {loadAllTrueProspectData(projConfigData.getRawDataDesiredDirName());}
 	//load validation (true prospects) data found in subDir
 	private void loadAllTrueProspectData(String subDir) {
 		msgObj.dispMessage("StraffSOMMapManager","loadAllTrueProspectData","Begin loading preprocessed True Prospect data from " + subDir +  "directory.", MsgCodes.info5);
 		//load validation data - prospect records with no order events
-		if(!getPrivFlag(rawPrspctEvDataProcedIDX)) {	loadPreProcMonCustProd(subDir);	}
+		if(!getPrivFlag(rawPrspctEvDataProcedIDX)) {	
+			loadPreprocAndBuildTestTrainPartitions();
+		}
 		//clear out current validation data
 		resetValidationMap();	
 		//load into map
@@ -478,9 +476,12 @@ public class StraffSOMMapManager extends SOMMapManager {
 		msgObj.dispMessage("StraffSOMMapManager","rebuildCalcObj","Finished loading calc object, calculating all feature vectors for prospects and products & calculating mins and diffs | Start saving all results.", MsgCodes.info1);
 		setPrivFlag(rawPrspctEvDataProcedIDX, true);
 		setPrivFlag(rawProducDataProcedIDX, true);
+				
 		boolean prspctSuccess = saveAllExampleMapData(custExKey, prospectExamples.get(custExKey));
 		boolean validationSuccess = saveAllExampleMapData(prspctExKey, prospectExamples.get(prspctExKey));
+		
 		boolean prodSuccess = saveAllProductMapData();		
+		
 		if (prspctSuccess || validationSuccess || prodSuccess) { saveMonitorJpJpgrp();}
 		msgObj.dispMessage("StraffSOMMapManager","rebuildCalcObj","Finished loading calc object, calculating all feature vectors for prospects and products, calculating mins and diffs, and saving all results.", MsgCodes.info5);
 	}//calcFtrsDiffsMinsAndSave()
@@ -511,7 +512,7 @@ public class StraffSOMMapManager extends SOMMapManager {
 	private void buildPrspctFtrVecs(Collection<SOMExample> exs, int type) {
 		ftrCalcObj.resetCalcObjs(type);
 		for (SOMExample ex : exs) {			ex.buildFeatureVector();	}
-		////called after all features of this kind of object are built
+		////called after all features of this kind of object are built - this calculates alternate compare object
 		for (SOMExample ex : exs) {			ex.postFtrVecBuild();	}		
 		_dispPrspctRes(type);
 		//set state as finished
@@ -575,11 +576,12 @@ public class StraffSOMMapManager extends SOMMapManager {
 	public void setAllBMUsFromMap() {
 		setProductBMUs();
 		setTestBMUs();
-		//setTrueProspectBMUs();
+		//setTrueProspectBMUs();			//this should be specified manually
 	}//setAllBMUsFromMap
-	
-	//once map is built, find bmus on map for each product
-	public void setProductBMUs() {
+
+
+	//once map is built, find bmus on map for each product (target that training examples should map to)
+	protected void setProductBMUs() {
 		msgObj.dispMessage("StraffSOMMapManager","setProductBMUs","Start Mapping " +productData.length + " products to best matching units.", MsgCodes.info5);
 		boolean canMultiThread=isMTCapable();//if false this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
 		if(canMultiThread) {
@@ -597,60 +599,30 @@ public class StraffSOMMapManager extends SOMMapManager {
 			//last one probably won't end at endIDX, so use length
 			if(stIDX < productData.length) {prdcttMappers.add(new mapProductDataToBMUs(this,stIDX, productData.length, productData, numUsableThreads-1, useChiSqDist));}
 			
-			
 			try {prdcttMapperFtrs = th_exec.invokeAll(prdcttMappers);for(Future<Boolean> f: prdcttMapperFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }		
 		} else {//for every product find closest map node
 			TreeMap<Double, ArrayList<SOMMapNode>> mapNodes;
 			if (useChiSqDist) {	
 				for (int i=0;i<productData.length;++i) {
 					mapNodes = productData[i].findBMUFromNodes_ChiSq_Excl(MapNodes, curMapTestFtrType); 
-					productData[i].setMapNodesStruct(ProductExample.SharedFtrsIDX, mapNodes);
+					productData[i].setMapNodesStruct(SOMExample.SharedFtrsIDX, mapNodes);
 					mapNodes = productData[i].findBMUFromNodes_ChiSq(MapNodes, curMapTestFtrType); 
-					productData[i].setMapNodesStruct(ProductExample.AllFtrsIDX, mapNodes);
+					productData[i].setMapNodesStruct(SOMExample.AllFtrsIDX, mapNodes);
 				}
 			} else {				
 				for (int i=0;i<productData.length;++i) {
 					mapNodes = productData[i].findBMUFromNodes_Excl(MapNodes,  curMapTestFtrType); 
-					productData[i].setMapNodesStruct(ProductExample.SharedFtrsIDX, mapNodes);
+					productData[i].setMapNodesStruct(SOMExample.SharedFtrsIDX, mapNodes);
 					mapNodes = productData[i].findBMUFromNodes(MapNodes,  curMapTestFtrType); 
-					productData[i].setMapNodesStruct(ProductExample.AllFtrsIDX, mapNodes);
+					productData[i].setMapNodesStruct(SOMExample.AllFtrsIDX, mapNodes);
 				}
 			}	
 		}
 		//go through every product and attach prod to bmu - needs to be done synchronously because don't want to concurrently modify bmus from 2 different prods
 		msgObj.dispMessage("StraffSOMMapManager","setProductBMUs","Finished finding bmus for all product data. Start adding product data to appropriate bmu's list.", MsgCodes.info1);
-		_finalizeBMUProcessing(productData, ExDataType.Product);
-		
+		_finalizeBMUProcessing(productData, ExDataType.Product);		
 		msgObj.dispMessage("StraffSOMMapManager","setProductBMUs","Finished Mapping products to best matching units.", MsgCodes.info5);
 	}//setProductBMUs
-	
-	private void _setExamplesBMUs(SOMExample[] testData, String dataTypName, ExDataType dataType) {
-		msgObj.dispMessage("StraffSOMMapManager","setTestBMUs","Start Mapping " +testData.length + " "+dataTypName+" data to best matching units.", MsgCodes.info5);
-		boolean canMultiThread=isMTCapable();//this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
-		if(canMultiThread) {
-			List<Future<Boolean>> testMapperFtrs = new ArrayList<Future<Boolean>>();
-			List<mapTestDataToBMUs> testMappers = new ArrayList<mapTestDataToBMUs>();
-			int numForEachThrd = calcNumPerThd(testData.length, numUsableThreads);
-			//use this many for every thread but last one
-			int stIDX = 0;
-			int endIDX = numForEachThrd;		
-			for (int i=0; i<(numUsableThreads-1);++i) {				
-				testMappers.add(new mapTestDataToBMUs(this,stIDX, endIDX,  testData, i, dataTypName, useChiSqDist));
-				stIDX = endIDX;
-				endIDX += numForEachThrd;
-			}
-			//last one probably won't end at endIDX, so use length
-			if(stIDX < testData.length) {testMappers.add(new mapTestDataToBMUs(this,stIDX, testData.length, testData, numUsableThreads-1, dataTypName,useChiSqDist));}
-			try {testMapperFtrs = th_exec.invokeAll(testMappers);for(Future<Boolean> f: testMapperFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }		
-		} else {//for every product find closest map node
-			if (useChiSqDist) {			for (int i=0;i<testData.length;++i) {	testData[i].findBMUFromNodes_ChiSq(MapNodes, curMapTestFtrType);		}}			
-			else {						for (int i=0;i<testData.length;++i) {	testData[i].findBMUFromNodes(MapNodes, curMapTestFtrType);		}	}			
-		}
-		//go through every test example, if any, and attach prod to bmu - needs to be done synchronously because don't want to concurrently modify bmus from 2 different test examples		
-		msgObj.dispMessage("StraffSOMMapManager","setTestBMUs","Finished finding bmus for all "+dataTypName+" data. Start adding "+dataTypName+" data to appropriate bmu's list.", MsgCodes.info1);
-		_finalizeBMUProcessing(testData, dataType);
-		msgObj.dispMessage("StraffSOMMapManager","setTestBMUs","Finished Mapping "+dataTypName+" data to best matching units.", MsgCodes.info5);		
-	}//_setExamplesBMUs
 	
 	//once map is built, find bmus on map for each test data example
 	private void setTestBMUs() {
@@ -678,18 +650,7 @@ public class StraffSOMMapManager extends SOMMapManager {
 		else {			msgObj.dispMessage("StraffSOMMapManager","setTrueProspectBMUs","Unable to process due to no true prospects loaded to map to BMUs. Aborting.", MsgCodes.warning5);		}	
 		msgObj.dispMessage("StraffSOMMapManager","setTrueProspectBMUs","Finished processing true prospects for BMUs.", MsgCodes.info1);	
 	}//setTrueProspectBMUs
-	
-	private void _finalizeBMUProcessing(SOMExample[] _exs, ExDataType _type) {
-		int val = _type.getVal();
-		for(SOMMapNode mapNode : MapNodes.values()){mapNode.clearBMUExs(val);addExToNodesWithNoExs(mapNode, _type);}	
-		for (int i=0;i<_exs.length;++i) {	
-			SOMExample ex = _exs[i];
-			ex.getBmu().addExToBMUs(ex);	
-			addExToNodesWithExs(ex.getBmu(), _type);
-		}
-		filterExFromNoEx(_type);		//clear out all nodes that have examples from struct holding no-example map nodes
-		finalizeExMapNodes(_type);		
-	}//_finalizeBMUProcessing
+
 	
 	//build and save feature-based reports for all examples, products and map nodes TODO
 	public void buildFtrBasedRpt() {
@@ -791,9 +752,9 @@ public class StraffSOMMapManager extends SOMMapManager {
 	
 	//this will display debug-related info related to event mapping in raw prospect records
 	private void dispDebugEventPresenceData(int[] countsOfBoolResOcc, int[] countsOfBoolResEvt) {
-		for(int i=0;i<custProspectExample.eventMapTypeKeys.length;++i) {
-			msgObj.dispMessage("StraffSOMMapManager","_buildCustomerAndProspectMaps->dispDebugEventPresenceData","# prospect OCC records with "+ custProspectExample.eventMapTypeKeys[i]+" events : " + countsOfBoolResOcc[i] , MsgCodes.info1);				
-			msgObj.dispMessage("StraffSOMMapManager","_buildCustomerAndProspectMaps->dispDebugEventPresenceData","# prospect Event records with "+ custProspectExample.eventMapTypeKeys[i]+" events : " + countsOfBoolResEvt[i] , MsgCodes.info1);	
+		for(int i=0;i<custProspectExample.jpOccTypeKeys.length;++i) {
+			msgObj.dispMessage("StraffSOMMapManager","_buildCustomerAndProspectMaps->dispDebugEventPresenceData","# prospect OCC records with "+ custProspectExample.jpOccTypeKeys[i]+" events : " + countsOfBoolResOcc[i] , MsgCodes.info1);				
+			msgObj.dispMessage("StraffSOMMapManager","_buildCustomerAndProspectMaps->dispDebugEventPresenceData","# prospect Event records with "+ custProspectExample.jpOccTypeKeys[i]+" events : " + countsOfBoolResEvt[i] , MsgCodes.info1);	
 			if(i==1) {
 				msgObj.dispMessage("StraffSOMMapManager","_buildCustomerAndProspectMaps->dispDebugEventPresenceData","# prospect records with global opt : " + StraffEvntTrainData.numOptAllIncidences , MsgCodes.info1);	
 				msgObj.dispMessage("StraffSOMMapManager","_buildCustomerAndProspectMaps->dispDebugEventPresenceData","# prospect records with positive global opt : " + StraffEvntTrainData.numPosOptAllIncidences , MsgCodes.info1);	
@@ -824,8 +785,8 @@ public class StraffSOMMapManager extends SOMMapManager {
 		int numRecsToProc = tmpProspectMap.size();
 		int typeOfEventsForCustomer = projConfigData.getTypeOfEventsForCustAndProspect();
 
-		int[] countsOfBoolResOcc = new int[custProspectExample.eventMapTypeKeys.length+1],
-			countsOfBoolResEvt = new int[custProspectExample.eventMapTypeKeys.length+1];		//all types of events supported + 1
+		int[] countsOfBoolResOcc = new int[custProspectExample.jpOccTypeKeys.length+1],
+			countsOfBoolResEvt = new int[custProspectExample.jpOccTypeKeys.length+1];		//all types of events supported + 1
 		ConcurrentSkipListMap<String, SOMExample> 
 			customerPrspctMap = prospectExamples.get(custExKey),			//map of customers to build
 			truePrspctMap = prospectExamples.get(prspctExKey);				//map of true prospects to build
@@ -883,7 +844,7 @@ public class StraffSOMMapManager extends SOMMapManager {
 	//drawing and graphics methods - these must check if win and/or pa exist, or else except win or pa as passed arguments, to manage when this code is executed without UI
 	
 	private static int dispTruPrxpctDataFrame = 0, numDispTruPrxpctDataFrames = 100;
-	public void drawTruPrspctData(SOM_StraffordMain pa) {
+	public void drawTruPrspctData(my_procApplet pa) {
 		pa.pushMatrix();pa.pushStyle();
 		if (trueProspectData.length < numDispTruPrxpctDataFrames) {	for(int i=0;i<trueProspectData.length;++i){		trueProspectData[i].drawMeMap(pa);	}	} 
 		else {
@@ -895,7 +856,7 @@ public class StraffSOMMapManager extends SOMMapManager {
 	}//drawTruPrspctData
 	
 	//draw all product nodes with max vals corresponding to current JPIDX
-	public void drawProductNodes(SOM_StraffordMain pa, int prodJpIDX, boolean showJPorJPG) {
+	public void drawProductNodes(my_procApplet pa, int prodJpIDX, boolean showJPorJPG) {
 		pa.pushMatrix();pa.pushStyle();
 		ArrayList<ProductExample> prodsToShow = (showJPorJPG ? productsByJp.get(jpJpgrpMon.getProdJpByIdx(prodJpIDX)) :  productsByJpg.get(jpJpgrpMon.getProdJpGrpByIdx(prodJpIDX)));
 		for(ProductExample ex : prodsToShow) {			ex.drawMeLinkedToBMU(pa, 5.0f,ex.OID);		}		
@@ -904,7 +865,7 @@ public class StraffSOMMapManager extends SOMMapManager {
 	
 	private static int dispProdDataFrame = 0, numDispProdDataFrames = 20, framesPerDisp = 0, maxFramesPerDisp = 10;
 	//show all products
-	public void drawAllProductNodes(SOM_StraffordMain pa) {
+	public void drawAllProductNodes(my_procApplet pa) {
 		pa.pushMatrix();pa.pushStyle();
 		if (productData.length-numDispProdDataFrames <=  0 ) {	for(int i=0;i<productData.length;++i){		productData[i].drawMeMap(pa);	}} 
 		else {
@@ -920,25 +881,25 @@ public class StraffSOMMapManager extends SOMMapManager {
 		pa.popStyle();pa.popMatrix();
 	}//drawProductNodes
 	
-	public void drawAnalysisAllJps(SOM_StraffordMain pa, float ht, float barWidth, int curJPIdx,int calcIDX) {
+	public void drawAnalysisAllJps(my_procApplet pa, float ht, float barWidth, int curJPIdx,int calcIDX) {
 		pa.pushMatrix();pa.pushStyle();
 		ftrCalcObj.drawAllCalcRes(pa, ht, barWidth, curJPIdx, calcIDX);
 		pa.popStyle();pa.popMatrix();
 	}//drawAnalysisAllJps
 	
-	public void drawAnalysisFtrJps(SOM_StraffordMain pa, float ht, float barWidth, int curJPIdx,int calcIDX) {
+	public void drawAnalysisFtrJps(my_procApplet pa, float ht, float barWidth, int curJPIdx,int calcIDX) {
 		pa.pushMatrix();pa.pushStyle();
 		ftrCalcObj.drawFtrCalcRes(pa, ht, barWidth, curJPIdx, calcIDX);
 		pa.popStyle();pa.popMatrix();
 	}//drawAnalysisAllJps
 	
-	public void drawAnalysisOneFtrJp(SOM_StraffordMain pa,  float ht, float width, int curJPIdx,int calcIDX) {
+	public void drawAnalysisOneFtrJp(my_procApplet pa,  float ht, float width, int curJPIdx,int calcIDX) {
 		pa.pushMatrix();pa.pushStyle();
 		ftrCalcObj.drawSingleFtr(pa, ht, width,jpJpgrpMon.getFtrJpByIdx(curJPIdx),calcIDX);		//Enable analysis 
 		pa.popStyle();pa.popMatrix();
 	}//drawAnalysisOneFtrJp	
 	
-	public void drawAnalysisOneJp(SOM_StraffordMain pa,  float ht, float width, int curJPIdx,int calcIDX) {
+	public void drawAnalysisOneJp(my_procApplet pa,  float ht, float width, int curJPIdx,int calcIDX) {
 		pa.pushMatrix();pa.pushStyle();
 		ftrCalcObj.drawSingleFtr(pa, ht, width,jpJpgrpMon.getFtrJpByIdx(curJPIdx),calcIDX);		//Enable analysis 
 		pa.popStyle();pa.popMatrix();
@@ -947,7 +908,7 @@ public class StraffSOMMapManager extends SOMMapManager {
 	private int getProdDistType() {return (getPrivFlag(mapExclProdZeroFtrIDX) ? ProductExample.SharedFtrsIDX : ProductExample.AllFtrsIDX);}
 	private static int dispProdJPDataFrame = 0, curProdJPIdx = -1, curProdTimer = 0;
 	//display the region of the map expected to be impacted by the products serving the passed jp 
-	public void drawProductRegion(SOM_StraffordMain pa, int prodJpIDX, double maxDist) {
+	public void drawProductRegion(my_procApplet pa, int prodJpIDX, double maxDist) {
 		pa.pushMatrix();pa.pushStyle();
 		ArrayList<ProductExample> prodsToShow = productsByJp.get(jpJpgrpMon.getProdJpByIdx(prodJpIDX));
 		if(curProdJPIdx != prodJpIDX) {
@@ -968,13 +929,13 @@ public class StraffSOMMapManager extends SOMMapManager {
 	}	
 	
 	//app-specific drawing routines for side bar
-	protected void drawResultBarPriv1(SOM_StraffordMain pa, float yOff){
+	protected void drawResultBarPriv1(my_procApplet pa, float yOff){
 		
 	}
-	protected void drawResultBarPriv2(SOM_StraffordMain pa, float yOff){
+	protected void drawResultBarPriv2(my_procApplet pa, float yOff){
 		
 	}
-	protected void drawResultBarPriv3(SOM_StraffordMain pa, float yOff){}
+	protected void drawResultBarPriv3(my_procApplet pa, float yOff){}
 	
 
 	// end drawing routines

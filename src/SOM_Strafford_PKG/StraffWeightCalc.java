@@ -3,10 +3,8 @@ package SOM_Strafford_PKG;
 import java.util.*;
 import java.util.Map.Entry;
 
-import base_Utils_Objects.FileIOManager;
-import base_Utils_Objects.MsgCodes;
-import base_Utils_Objects.Tuple;
-import base_Utils_Objects.messageObject;
+import base_UI_Objects.*;
+import base_Utils_Objects.*;
 
 /**
  * This class is intended to hold an object capable of calculation
@@ -282,7 +280,7 @@ public class StraffWeightCalc {
 	public static int biggestTPNonProd = 0, biggestTPJPGrpNonProd = 0;
 	public static TreeMap<Integer, TreeSet<Integer>> mostNonProdTPJpgrps = new TreeMap<Integer, TreeSet<Integer>>();
 	//specifically for true prospects
-	public TreeMap<Integer, Float> calcTruePrspctCompareObj(prospectExample ex, HashSet<Integer> jps, HashSet<Tuple<Integer,Integer>> nonProdJpgJps, TreeMap<Integer, TreeSet<Integer>> prodJPsForNonProdJPGroups, 
+	public TreeMap<Integer, Float> calcTruePrspctCompareDat(prospectExample ex, HashSet<Integer> jps, HashSet<Tuple<Integer,Integer>> nonProdJpgJps, TreeMap<Integer, TreeSet<Integer>> prodJPsForNonProdJPGroups, 
 			TreeMap<Integer, jpOccurrenceData> linkOccs,TreeMap<Integer, jpOccurrenceData> optOccs,TreeMap<Integer, jpOccurrenceData> srcOccs) {	
 		TreeMap<Integer, Float> res = new TreeMap<Integer, Float>();
 		if(biggestTPNonProd <  nonProdJpgJps.size()) {
@@ -300,7 +298,7 @@ public class StraffWeightCalc {
 	public static int biggestCustNonProd = 0, biggestCustJPGrpNonProd = 0;
 	public static TreeMap<Integer, TreeSet<Integer>> mostNonProdCustJpgrps = new TreeMap<Integer, TreeSet<Integer>>();
 	//this is specifically for past customers
-	public TreeMap<Integer, Float> calcTrainFtrCompareObj(prospectExample ex, HashSet<Integer> jps, HashSet<Tuple<Integer,Integer>> nonProdJpgJps, TreeMap<Integer, TreeSet<Integer>> prodJPsForNonProdJPGroups, 
+	public TreeMap<Integer, Float> calcTrainFtrCompareDat(prospectExample ex, HashSet<Integer> jps, HashSet<Tuple<Integer,Integer>> nonProdJpgJps, TreeMap<Integer, TreeSet<Integer>> prodJPsForNonProdJPGroups, 
 			TreeMap<Integer, jpOccurrenceData> orderOccs,TreeMap<Integer, jpOccurrenceData> linkOccs, 
 			TreeMap<Integer, jpOccurrenceData> optOccs,TreeMap<Integer, jpOccurrenceData> srcOccs) {
 		TreeMap<Integer, Float> res = new TreeMap<Integer, Float>();
@@ -362,7 +360,7 @@ public class StraffWeightCalc {
 	}//getCalcAnalysisRes
 	
 	//draw res of all calcs as single rectangle of height ht and width barWidth*num eqs
-	public void drawAllCalcRes(SOM_StraffordMain p, float ht, float barWidth, int curJPIdx,int _exampleType) {		
+	public void drawAllCalcRes(my_procApplet p, float ht, float barWidth, int curJPIdx,int _exampleType) {		
 		p.pushMatrix();p.pushStyle();		
 		for(JPWeightEquation jpEq:allEqs.values()) {	
 		//for(int i=0;i<jpsToDraw.length;++i) {
@@ -376,7 +374,7 @@ public class StraffWeightCalc {
 	}//draw analysis res for each graphically
 	
 	//draw only ftr JP calc res
-	public void drawFtrCalcRes(SOM_StraffordMain p, float ht, float barWidth, int curJPIdx,int _exampleType) {		
+	public void drawFtrCalcRes(my_procApplet p, float ht, float barWidth, int curJPIdx,int _exampleType) {		
 		p.pushMatrix();p.pushStyle();		
 		for(JPWeightEquation jpEq:ftrEqs.values()) {	//only draw eqs that calculated actual feature values (jps found in products)
 			//draw bar
@@ -388,7 +386,7 @@ public class StraffWeightCalc {
 	}//draw analysis res for each graphically
 	
 	//draw single detailed feature eq detailed analysis
-	public void drawSingleFtr(SOM_StraffordMain p, float ht, float width, Integer jp,int _exampleType) {
+	public void drawSingleFtr(my_procApplet p, float ht, float width, Integer jp,int _exampleType) {
 		p.pushMatrix();p.pushStyle();		
 		//draw detailed analysis
 		allEqs.get(jp).drawIndivFtrVec(p, ht, width,_exampleType);
@@ -611,8 +609,8 @@ class JPWeightEquation {
 		return res;
 	}//calcVal	
 	
-	public void drawIndivFtrVec(SOM_StraffordMain p, float height, float width, int _exampleType) {ftrCalcStats[_exampleType].drawIndivFtrVec(p, height, width);	}
-	public void drawFtrVec(SOM_StraffordMain p, float height, float width, boolean selected, int eqDispType, int _exampleType){ftrCalcStats[_exampleType].drawFtrVec(p, height, width,eqDispType, selected);}
+	public void drawIndivFtrVec(my_procApplet p, float height, float width, int _exampleType) {ftrCalcStats[_exampleType].drawIndivFtrVec(p, height, width);	}
+	public void drawFtrVec(my_procApplet p, float height, float width, boolean selected, int eqDispType, int _exampleType){ftrCalcStats[_exampleType].drawFtrVec(p, height, width,eqDispType, selected);}
 	
 	//string rep of this calc
 	public String toString() {
@@ -787,7 +785,7 @@ class calcAnalysis{
 	//this will display a vertical bar corresponding to the performance of the analyzed calculation.
 	//each component of calc object will have a different color
 	//height - the height of the bar.  start each vertical bar at upper left corner, put text beneath bar
-	public void drawFtrVec(SOM_StraffordMain p, float height, float width, int eqDispType, boolean selected){
+	public void drawFtrVec(my_procApplet p, float height, float width, int eqDispType, boolean selected){
 		p.pushMatrix();p.pushStyle();
 		float rCompHeight, rYSt = 0.0f;
 		for(int i =0;i<analysisCalcStats[ratioIDX].length;++i) {
@@ -808,7 +806,7 @@ class calcAnalysis{
 	}//drawFtrVec
 	
 	//draw vertical bar describing per-comp values with
-	private void drawDetailFtrVec(SOM_StraffordMain p, float height, float width, float[] vals, float denom, String valTtl, String[] dispStrAra, String[] valDesc) {
+	private void drawDetailFtrVec(my_procApplet p, float height, float width, float[] vals, float denom, String valTtl, String[] dispStrAra, String[] valDesc) {
 		p.pushMatrix();p.pushStyle();
 			p.translate(0.0f, txtYOff, 0.0f);
 			p.showOffsetText2D(0.0f, p.gui_White, valTtl);
@@ -850,7 +848,7 @@ class calcAnalysis{
 
 	//draw a single ftr vector as a wide bar; include text for descriptions
 	//width is per bar
-	public void drawIndivFtrVec(SOM_StraffordMain p, float height, float width){
+	public void drawIndivFtrVec(my_procApplet p, float height, float width){
 		p.pushMatrix();p.pushStyle();
 		//title here?
 		p.showOffsetText2D(0.0f, p.gui_White, "Calc Values for ftr idx : " +jpIDX + " jp "+eq.jp + " : " + eq.jpName);//p.drawText("Calc Values for ftr idx : " +eq.jpIdx + " jp "+eq.jp, 0, 0, 0, p.gui_White);
