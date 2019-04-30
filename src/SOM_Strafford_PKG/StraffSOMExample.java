@@ -120,7 +120,7 @@ public abstract class StraffSOMExample extends SOMExample{
 	protected void buildAllNonZeroFtrIDXs() {
 		allNonZeroFtrIDXs = new ArrayList<Integer>();
 		for(Integer jp : allProdJPs) {
-			Integer jpIDX = jpJpgMon.getJpToFtrIDX(jp);
+			Integer jpIDX = jpJpgMon.getFtrJpToIDX(jp);
 			if(jpIDX==null) {msgObj.dispMessage("StraffSOMExample","buildAllNonZeroFtrIDXs","ERROR!  null value in jpJpgMon.getJpToFtrIDX("+jp+")", MsgCodes.error2 ); }
 			else {allNonZeroFtrIDXs.add(jpIDX);}
 		}
@@ -489,7 +489,7 @@ abstract class prospectExample extends StraffSOMExample{
 		prodJPsForNonProdJPGroups = new TreeMap<Integer, TreeSet<Integer>>();
 		for(Tuple<Integer,Integer> jpgJp : alljpgjps) {
 			Integer jp = jpgJp.y;
-			Integer jpIDX = jpJpgMon.getJpToFtrIDX(jp);
+			Integer jpIDX = jpJpgMon.getFtrJpToIDX(jp);
 			if(jpIDX==null) {
 				nonProdJpgJps.add(jpgJp); 
 				prodJPsForNonProdJPGroups.put(jpgJp.x, jpJpgMon.getProdJPsforSpecifiedJpgrp(jpgJp.x));

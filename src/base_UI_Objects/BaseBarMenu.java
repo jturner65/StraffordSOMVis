@@ -1,13 +1,14 @@
 package base_UI_Objects;
 
-import java.util.ArrayList;
+import java.io.*;
+import java.util.*;
 
-import SOM_Strafford_PKG.SOM_StraffordMain;
 import base_Utils_Objects.*;
 
 //displays sidebar menu of interaction and functionality
 
-public class mySideBarMenu extends myDispWindow{
+public abstract class BaseBarMenu extends myDispWindow{
+
 	//booleans in main program - need to have labels in idx order, even if not displayed
 	public final String[] truePFlagNames = {//needs to be in order of flags
 			"Debug Mode",
@@ -67,74 +68,38 @@ public class mySideBarMenu extends myDispWindow{
 	//GUI Buttons
 	public float minBtnClkY;			//where buttons should start on side menu
 
-	public static final String[] guiBtnRowNames = new String[]{ 
-			"Raw Data/Ftr Processing","Post Proc Load And Map Config/Exec","DEBUG","File"};
+	public String[] guiBtnRowNames;
 
-	public static final int 
-			//btnShowWinIdx = 0, 				//which window to show
-			btnAuxFunc1Idx = 0,			//aux functionality 1
-			btnAuxFunc2Idx = 1,			//aux functionality 2
-			btnDBGSelCmpIdx = 2,			//debug
-			btnFileCmdIdx = 3;				//load/save files
 	//names for each row of buttons - idx 1 is name of row
-	public final String[][] guiBtnNames = new String[][]{
-		//new String[]{pa.winTitles[1], pa.winTitles[2]},							//display specific windows - multi-select/ always on if sel
-		new String[]{"Func 1","Func 2","Func 3"},						//per-window user functions - momentary
-		new String[]{"Func 1","Func 2","Func 3","Func 4","Func 5"},						//per-window user functions - momentary
-		new String[]{"Dbg 1","Dbg 2","Dbg 3","Dbg 4","Dbg 5"},						//DEBUG - momentary
-		new String[]{"Load Txt File","Save Txt File"}							//load an existing score, save an existing score - momentary		
-	};
+	public String[][] guiBtnNames;
 	//default names, to return to if not specified by user
-	public final String[][] defaultUIBtnNames = new String[][]{
-		//new String[]{pa.winTitles[1], pa.winTitles[2]},							//display specific windows - multi-select/ always on if sel
-		new String[]{"Func 1","Func 2","Func 3"},					//per-window user functions - momentary
-		new String[]{"Func 1","Func 2","Func 3","Func 4","Func 5"},			//per-window user functions - momentary
-		new String[]{"Dbg 1","Dbg 2","Dbg 3","Dbg 4","Dbg 5"},						//DEBUG - momentary
-		new String[]{"Load Txt File","Save Txt File"}							//load an existing score, save an existing score - momentary		
-	};
+	public String[][] defaultUIBtnNames;
 	//whether buttons are momentary or not (on only while being clicked)
-	public boolean[][] guiBtnInst = new boolean[][]{
-		//new boolean[]{false,false},         						//display specific windows - multi-select/ always on if sel
-		new boolean[]{false,false,false,false,false},                   //functionality - momentary
-		new boolean[]{false,false,false,false,false},                   //functionality - momentary
-		new boolean[]{false,false,false,false,false},                   		//debug - momentary
-		new boolean[]{true,true},			              			//load an existing score, save an existing score - momentary	
-	};		
+	public boolean[][] guiBtnInst;
 	//whether buttons are waiting for processing to complete (for non-momentary buttons)
-	public boolean[][] guiBtnWaitForProc = new boolean[][]{
-		//new boolean[]{false,false},         						//display specific windows - multi-select/ always on if sel
-		new boolean[]{false,false,false,false,false},                   //functionality - momentary
-		new boolean[]{false,false,false,false,false},                   //functionality - momentary
-		new boolean[]{false,false,false,false,false},                   		//debug - momentary
-		new boolean[]{false,false},			              			//load an existing score, save an existing score - momentary	
-	};			
+	public boolean[][] guiBtnWaitForProc;
 	
 	//whether buttons are disabled(-1), enabled but not clicked/on (0), or enabled and on/clicked(1)
-	public int[][] guiBtnSt = new int[][]{
-		//new int[]{1,0},                    					//display specific windows - multi-select/ always on if sel
-		new int[]{0,0,0,0,0},                   					//debug - momentary
-		new int[]{0,0,0,0,0},                   					//debug - momentary
-		new int[]{0,0,0,0,0},                   					//debug - momentary
-		new int[]{0,0}			              					//load an existing score, save an existing score - momentary	
-	};
+	public int[][] guiBtnSt;
 	
 	public int[] guiBtnStFillClr;
 	public int[] guiBtnStTxtClr;
 	//row and column of currently clicked-on button (for display highlight as pressing)
 	public int[] curBtnClick = new int[]{-1,-1};
 
-	public mySideBarMenu(my_procApplet _p, String _n, int _flagIdx, int[] fc, int[] sc, float[] rd, float[] rdClosed, String _winTxt, boolean _canDrawTraj) {
+	public BaseBarMenu(my_procApplet _p, String _n, int _flagIdx, int[] fc, int[] sc, float[] rd, float[] rdClosed, String _winTxt, boolean _canDrawTraj) {
 		super(_p, _n, _flagIdx, fc, sc,  rd, rdClosed, _winTxt, _canDrawTraj);
 		guiBtnStFillClr = new int[]{		//button colors based on state
-				SOM_StraffordMain.gui_White,								//disabled color for buttons
-				SOM_StraffordMain.gui_LightGray,								//not clicked button color
-				SOM_StraffordMain.gui_LightBlue,									//clicked button color
+				my_procApplet.gui_White,								//disabled color for buttons
+				my_procApplet.gui_LightGray,								//not clicked button color
+				my_procApplet.gui_LightBlue,									//clicked button color
 			};
 		guiBtnStTxtClr = new int[]{			//text color for buttons
-				SOM_StraffordMain.gui_LightGray,									//disabled color for buttons
-				SOM_StraffordMain.gui_Black,									//not clicked button color
-				SOM_StraffordMain.gui_Black,									//clicked button color
-			};			
+				my_procApplet.gui_LightGray,									//disabled color for buttons
+				my_procApplet.gui_Black,									//not clicked button color
+				my_procApplet.gui_Black,									//clicked button color
+			};	
+		initSideBarMenuBtns_Priv();
 		super.initThisWin(_canDrawTraj, false, true);
 	}
 	
@@ -173,8 +138,11 @@ public class mySideBarMenu extends myDispWindow{
 	protected void initMe() {//init/reinit this window
 		setFlags(closeable, false);
 //		setFlags(uiObjsAreVert, true);
-		initPrivFlags(numPrivFlags);		
+		initPrivFlags(numPrivFlags);	
 	}	
+	
+	//initialize application-specific windows and titles
+	protected abstract void initSideBarMenuBtns_Priv();
 	//set flag values and execute special functionality for this sequencer
 	@Override
 	public void setPrivFlags(int idx, boolean val){
@@ -242,19 +210,7 @@ public class mySideBarMenu extends myDispWindow{
 		if(!guiBtnInst[row][col]) {	guiBtnWaitForProc[row][col] = true;}		
 	}
 	//handle click on button region of menubar
-	public void handleButtonClick(int row, int col){
-		int val = guiBtnSt[row][col];//initial state, before being changed
-		guiBtnSt[row][col] = (guiBtnSt[row][col] + 1)%2;//change state
-		//if not momentary buttons, set wait for proc to true
-		setWaitForProc(row,col);
-		switch(row){
-			//case btnShowWinIdx 		: {pa.handleShowWin(col, val);break;}
-			case btnAuxFunc1Idx 		: //{pa.handleMenuBtnSelCmp(btnAuxFunc1Idx,col, val);break;}
-			case btnAuxFunc2Idx 		: //{pa.handleMenuBtnSelCmp(btnAuxFunc2Idx,col, val);break;}
-			case btnDBGSelCmpIdx  		: {pa.handleMenuBtnSelCmp(row, col, val);break;}//{pa.handleMenuBtnSelCmp(btnDBGSelCmpIdx,col, val);break;}
-			case btnFileCmdIdx 			: {pa.handleFileCmd(col, val);break;}
-		}				
-	}	
+	protected abstract void handleButtonClick(int row, int col);
 
 	//handle the display of UI objects backed by a list
 	@Override
@@ -312,7 +268,7 @@ public class mySideBarMenu extends myDispWindow{
 	private void drawSideBarBooleans(){
 		//draw main booleans and their state
 		pa.translate(10,yOff*2);
-		pa.setColorValFill(SOM_StraffordMain.gui_Black);
+		pa.setColorValFill(my_procApplet.gui_Black);
 		pa.text("Boolean Flags",0,yOff*.20f);
 		pa.translate(0,clkFlgsStY);
 		for(int idx =0; idx<pa.numFlagsToShow; ++idx){
@@ -382,24 +338,16 @@ public class mySideBarMenu extends myDispWindow{
 	
 	@Override
 	public void drawCustMenuObjs(){}	
-	@Override
-	protected void launchMenuBtnHndlr() {
-		switch(curCustBtnType) {
-		case mySideBarMenu.btnAuxFunc1Idx : {break;}//row 1 of menu side bar buttons
-		case mySideBarMenu.btnAuxFunc2Idx : {break;}//row 2 of menu side bar buttons
-		case mySideBarMenu.btnDBGSelCmpIdx : {break;}//row 3 of menu side bar buttons (debug)			
-		}		
-	}
 	//no custom camera handling for menu , float rx, float ry, float dz are all now member variables of every window
 	@Override
 	protected void setCameraIndiv(float[] camVals){}
 	@Override
-	public void hndlFileLoad(String[] vals, int[] stIdx) {
+	public void hndlFileLoad(File file, String[] vals, int[] stIdx) {
 		hndlFileLoad_GUI(vals, stIdx);
 		
 	}
 	@Override
-	public ArrayList<String> hndlFileSave() {
+	public ArrayList<String> hndlFileSave(File file) {
 		ArrayList<String> res = hndlFileSave_GUI();
 
 		return res;

@@ -3,7 +3,6 @@ package base_UI_Objects;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import SOM_Strafford_PKG.SOM_StraffordMain;
 import base_Utils_Objects.myPoint;
 import base_Utils_Objects.myVector;
 import processing.core.PApplet;

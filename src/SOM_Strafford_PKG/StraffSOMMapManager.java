@@ -893,13 +893,13 @@ public class StraffSOMMapManager extends SOMMapManager {
 		pa.popStyle();pa.popMatrix();
 	}//drawAnalysisAllJps
 	
-	public void drawAnalysisOneFtrJp(my_procApplet pa,  float ht, float width, int curJPIdx,int calcIDX) {
+	public void drawAnalysisOneJp_All(my_procApplet pa,  float ht, float width, int curJPIdx,int calcIDX) {
 		pa.pushMatrix();pa.pushStyle();
-		ftrCalcObj.drawSingleFtr(pa, ht, width,jpJpgrpMon.getFtrJpByIdx(curJPIdx),calcIDX);		//Enable analysis 
+		ftrCalcObj.drawSingleFtr(pa, ht, width,jpJpgrpMon.getAllJpByIdx(curJPIdx),calcIDX);		//Enable analysis 
 		pa.popStyle();pa.popMatrix();
 	}//drawAnalysisOneFtrJp	
 	
-	public void drawAnalysisOneJp(my_procApplet pa,  float ht, float width, int curJPIdx,int calcIDX) {
+	public void drawAnalysisOneJp_Ftr(my_procApplet pa,  float ht, float width, int curJPIdx,int calcIDX) {
 		pa.pushMatrix();pa.pushStyle();
 		ftrCalcObj.drawSingleFtr(pa, ht, width,jpJpgrpMon.getFtrJpByIdx(curJPIdx),calcIDX);		//Enable analysis 
 		pa.popStyle();pa.popMatrix();
@@ -979,9 +979,15 @@ public class StraffSOMMapManager extends SOMMapManager {
 	public String getFtrJpGrpByIdxStr(int idx) {return jpJpgrpMon.getFtrJpGrpByIdxStr(idx);}
 		
 	//this will return the appropriate jpgrp for the given jpIDX (list idx)
-	public int getUI_JPGrpFromJP(int jpIdx, int curVal) {		return jpJpgrpMon.getUI_JPGrpFromJP(jpIdx, curVal);}
+	public int getUI_JPGrpFromFtrJP(int jpIdx, int curVal) {		return jpJpgrpMon.getUI_JPGrpFromFtrJP(jpIdx, curVal);}
 	//this will return the first(lowest) jp for a particular jpgrp
-	public int getUI_FirstJPFromJPG(int jpgIdx, int curJPVal) {	return jpJpgrpMon.getUI_FirstJPFromJPG(jpgIdx, curJPVal);}	
+	public int getUI_FirstJPFromFtrJPG(int jpgIdx, int curJPVal) {	return jpJpgrpMon.getUI_FirstJPFromFtrJPG(jpgIdx, curJPVal);}	
+	//this will return the appropriate jpgrp for the given jpIDX (list idx)
+	public int getUI_JPGrpFromAllJP(int jpIdx, int curVal) {		return jpJpgrpMon.getUI_JPGrpFromAllJP(jpIdx, curVal);}
+	//this will return the first(lowest) jp for a particular jpgrp
+	public int getUI_FirstJPFromAllJPG(int jpgIdx, int curJPVal) {	return jpJpgrpMon.getUI_FirstJPFromAllJPG(jpgIdx, curJPVal);}	
+	
+	
 	//return appropriately pathed file name for map image of specified JP idx
 	public String getSOMLocClrImgForJPFName(int jpIDX) {
 		int jp = jpJpgrpMon.getFtrJpByIdx(jpIDX);

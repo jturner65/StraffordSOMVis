@@ -1,5 +1,6 @@
 package SOM_Strafford_PKG;
 
+import java.io.File;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -135,6 +136,8 @@ public class mySOMMapUIWin extends myDispWindow {
 	private int curMapImgIDX;
 	//which product is being shown by single-product display visualizations, as index in list of jps of products
 	private int curProdToShowIDX;
+	//which jp is currently being investigated of -all- jps
+	private int curAllJPToShowIDX;
 	//scaling value - use this to decrease the image size and increase the scaling so it is rendered the same size
 	public static final float mapScaleVal = 10.0f;
 	
@@ -253,6 +256,7 @@ public class mySOMMapUIWin extends myDispWindow {
 	
 	public void initMapAras(int numFtrVals, int numJPGVals) {
 		curMapImgIDX = 0;
+		curAllJPToShowIDX = 0;
 		int format = pa.RGB; 
 		int w = (int) (SOM_mapDims[0]/mapScaleVal), h = (int) (SOM_mapDims[1]/mapScaleVal);
 		mapPerFtrWtImgs = new PImage[numFtrVals];
@@ -418,12 +422,10 @@ public class mySOMMapUIWin extends myDispWindow {
 		msgObj.dispMessage("mySOMMapUIWin","buildNewSOMMap","Map Build " + (returnCode ? "Completed Successfully." : "Failed due to error."), MsgCodes.info5);
 		setPrivFlags(buildSOMExe, false);
 	}//buildNewSOMMap	
-
 	
 	//initialize structure to hold modifiable menu regions
 	@Override
-	protected void setupGUIObjsAras(){		
-		
+	protected void setupGUIObjsAras(){				
 		guiMinMaxModVals = new double [][]{  
 			{0.0, uiRawDataSourceList.length-1, 1},			//uiRawDataSourceIDX
 			{0.0, uiMapTrainFtrTypeList.length-1, 1.0},		//uiTrainDataFrmtIDX
@@ -664,11 +666,12 @@ public class mySOMMapUIWin extends myDispWindow {
 			case uiMapRadEndIDX	    : {
 				if(val >= guiObjs[uiMapRadStIDX].getVal()-guiMinMaxModVals[UIidx][2]) { guiObjs[UIidx].setVal(guiObjs[uiMapRadStIDX].getVal()-guiMinMaxModVals[UIidx][2]);}
 				break;}
+			
 			case uiFtrJPGToDispIDX : {//highlight display of different region of SOM map corresponding to group of JPs (jpg)
 				//msgObj.dispMessage("\nSOM WIN","setUIWinVals::uiJPGToDispIDX", "Click : settingJPGFromJp : " + settingJPGFromJp);
 				if(!settingJPGFromJp) {
 					int curJPVal = (int)guiObjs[uiFtrJPToDispIDX].getVal();
-					int jpToSet = mapMgr.getUI_FirstJPFromJPG((int)val, curJPVal);
+					int jpToSet = mapMgr.getUI_FirstJPFromFtrJPG((int)val, curJPVal);
 					//msgObj.dispMessage("SOM WIN","setUIWinVals:uiJPGToDispIDX", "Attempt to modify uiJPToDispIDX : curJPVal : "  +curJPVal + " | jpToSet : " + jpToSet, MsgCodes.info1););
 					settingJPFromJPG = true;
 					guiObjs[uiFtrJPToDispIDX].setVal(jpToSet);	
@@ -681,11 +684,12 @@ public class mySOMMapUIWin extends myDispWindow {
 				curProdToShowIDX = (int)val;
 				//msgObj.dispMessage("\nSOM WIN","setUIWinVals::uiJPToDispIDX", "Click : settingJPFromJPG : " + settingJPFromJPG);
 				if(!settingJPFromJPG) {
-					int curJPGVal = (int)guiObjs[uiFtrJPGToDispIDX].getVal();
-					int jpgToSet = mapMgr.getUI_JPGrpFromJP(curMapImgIDX, curJPGVal);
-					//msgObj.dispMessage("SOM WIN","setUIWinVals::uiJPToDispIDX", "Attempt to modify uiJPGToDispIDX : cur JPG val : "+ curJPGVal + " | jpgToSet : " + jpgToSet, MsgCodes.info1);					
+					int curJPGIdxVal = (int)guiObjs[uiFtrJPGToDispIDX].getVal();
+					int jpgIdxToSet = mapMgr.getUI_JPGrpFromFtrJP(curMapImgIDX, curJPGIdxVal);
+					//fix this
+					msgObj.dispMessage("SOM WIN","setUIWinVals::uiJPToDispIDX", "Attempt to modify uiJPGToDispIDX : cur JPG IDX val : "+ curJPGIdxVal + " | jpg IDX To Set : " + jpgIdxToSet, MsgCodes.info1);					
 					settingJPGFromJp = true;
-					guiObjs[uiFtrJPGToDispIDX].setVal(jpgToSet);
+					guiObjs[uiFtrJPGToDispIDX].setVal(jpgIdxToSet);
 					setUIWinVals(uiFtrJPGToDispIDX);
 					settingJPGFromJp = false;
 				}
@@ -695,7 +699,7 @@ public class mySOMMapUIWin extends myDispWindow {
 			case uiAllJpgSeenToDispIDX		: {
 				if(!settingProdJPGFromJp) {
 					int curJPVal = (int)guiObjs[uiAllJpSeenToDispIDX].getVal();
-					int jpToSet = mapMgr.getUI_FirstJPFromJPG((int)val, curJPVal);
+					int jpToSet = mapMgr.getUI_FirstJPFromAllJPG((int)val, curJPVal);
 					//msgObj.dispMessage("SOM WIN","setUIWinVals:uiJPGToDispIDX", "Attempt to modify uiJPToDispIDX : curJPVal : "  +curJPVal + " | jpToSet : " + jpToSet, MsgCodes.info1);
 					settingProdJPFromJPG = true;
 					guiObjs[uiAllJpSeenToDispIDX].setVal(jpToSet);	
@@ -704,10 +708,10 @@ public class mySOMMapUIWin extends myDispWindow {
 				}
 				break;}			
 			case uiAllJpSeenToDispIDX		: {
-				
+				curAllJPToShowIDX = (int)val;
 				if(!settingProdJPFromJPG) {
 					int curJPGVal = (int)guiObjs[uiAllJpgSeenToDispIDX].getVal();
-					int jpgToSet = mapMgr.getUI_JPGrpFromJP(curMapImgIDX, curJPGVal);
+					int jpgToSet = mapMgr.getUI_JPGrpFromAllJP(curMapImgIDX, curJPGVal);
 					//msgObj.dispMessage("SOM WIN","setUIWinVals::uiJPToDispIDX", "Attempt to modify uiJPGToDispIDX : cur JPG val : "+ curJPGVal + " | jpgToSet : " + jpgToSet, MsgCodes.info1);				
 					settingProdJPGFromJp = true;
 					guiObjs[uiAllJpgSeenToDispIDX].setVal(jpgToSet);
@@ -940,19 +944,27 @@ public class mySOMMapUIWin extends myDispWindow {
 	
 	private void _drawAnalysis(int exCalcedIDX, int mapDrawAnalysisIDX) {
 		if (getPrivFlags(exCalcedIDX)){	
+			//determine what kind of jps are being displayed
+			//int curJPIdx = ( ? curMapImgIDX : curAllJPToShowIDX);
 			pa.pushMatrix();pa.pushStyle();	
-			pa.translate(calcAnalysisLocs[0],SOM_mapLoc[1]*calcScale + 10,0.0f);
-			//pa.setFill(new int[] {0,255,0}, 255);
-//			pa.rect(0,0,analysisPerJPWidth,analysisHt);
-			mapMgr.drawAnalysisOneJp((SOM_StraffordMain)pa,analysisHt, analysisPerJPWidth,curMapImgIDX, curCalcAnalysisTypeIDX);	
-			pa.popStyle();pa.popMatrix();
+			pa.translate(calcAnalysisLocs[0],SOM_mapLoc[1]*calcScale + 10,0.0f);			
+			if(curCalcAnalysisJPTypeIDX == StraffSOMMapManager.jps_AllIDX) {		
+				int curJPIdx = curAllJPToShowIDX;
+				mapMgr.drawAnalysisOneJp_All((SOM_StraffordMain)pa,analysisHt, analysisPerJPWidth,curJPIdx, curCalcAnalysisTypeIDX);	
+				pa.popStyle();pa.popMatrix();			
+				pa.pushMatrix();pa.pushStyle();
+				pa.translate(rectDim[0]+5,calcAnalysisLocs[1],0.0f);					
+				mapMgr.drawAnalysisAllJps((SOM_StraffordMain)pa, analysisHt, analysisAllJPBarWidth, curJPIdx, curCalcAnalysisTypeIDX);
+				
+			} else if(curCalcAnalysisJPTypeIDX == StraffSOMMapManager.jps_FtrIDX)  {		
+				int curJPIdx = curMapImgIDX;
+				mapMgr.drawAnalysisOneJp_Ftr((SOM_StraffordMain)pa,analysisHt, analysisPerJPWidth,curJPIdx, curCalcAnalysisTypeIDX);	
+				pa.popStyle();pa.popMatrix();			
+				pa.pushMatrix();pa.pushStyle();
+				pa.translate(rectDim[0]+5,calcAnalysisLocs[1],0.0f);					
+				mapMgr.drawAnalysisFtrJps((SOM_StraffordMain)pa, analysisHt, analysisAllJPBarWidth, curJPIdx, curCalcAnalysisTypeIDX);				
+			}			
 			
-			pa.pushMatrix();pa.pushStyle();
-			pa.translate(rectDim[0]+5,calcAnalysisLocs[1],0.0f);
-//			pa.setFill(new int[] {255,0,0}, 255);
-//			pa.rect(0,0,analysisAllJPBarWidth*mapMgr.numFtrs,analysisHt);
-			if(curCalcAnalysisJPTypeIDX == StraffSOMMapManager.jps_AllIDX) {		mapMgr.drawAnalysisAllJps((SOM_StraffordMain)pa, analysisHt, analysisAllJPBarWidth, curMapImgIDX, curCalcAnalysisTypeIDX);}
-			else if(curCalcAnalysisJPTypeIDX == StraffSOMMapManager.jps_FtrIDX)  {		mapMgr.drawAnalysisFtrJps((SOM_StraffordMain)pa, analysisHt, analysisAllJPBarWidth, curMapImgIDX, curCalcAnalysisTypeIDX);}
 			pa.popStyle();pa.popMatrix();
 			pa.scale(calcScale);				//scale here so that if we are drawing calc analysis, ftr map image will be shrunk
 		} else {
@@ -1168,7 +1180,7 @@ public class mySOMMapUIWin extends myDispWindow {
 	@Override
 	protected void hndlMouseRelIndiv() {	}	
 	@Override
-	public void hndlFileLoad(String[] vals, int[] stIdx) {
+	public void hndlFileLoad(File file, String[] vals, int[] stIdx) {
 		//if wanting to load/save UI values, uncomment this call and similar in hndlFileSave 
 		//hndlFileLoad_GUI(vals, stIdx);
 		//loading in grade data from grade file - vals holds array of strings, expected to be comma sep values, for a single class, with student names and grades
@@ -1176,7 +1188,7 @@ public class mySOMMapUIWin extends myDispWindow {
 		
 	}
 	@Override
-	public ArrayList<String> hndlFileSave() {
+	public ArrayList<String> hndlFileSave(File file) {
 		ArrayList<String> res = new ArrayList<String>();
 		//if wanting to load/save UI values, uncomment this call and similar in hndlFileLoad 
 		//res = hndlFileSave_GUI();
@@ -1223,4 +1235,92 @@ public class mySOMMapUIWin extends myDispWindow {
 	}
 
 
-}//myTrajEditWin
+}//mySOMMapUIWin
+
+//class to manage buttons used by sidebar window
+class mySideBarMenu extends BaseBarMenu {
+	
+	public static final int 
+		//btnShowWinIdx = 0, 				//which window to show
+		btnAuxFunc1Idx = 0,			//aux functionality 1
+		btnAuxFunc2Idx = 1,			//aux functionality 2
+		btnDBGSelCmpIdx = 2,			//debug
+		btnFileCmdIdx = 3;				//load/save files
+
+
+	public mySideBarMenu(my_procApplet _p, String _n, int _flagIdx, int[] fc, int[] sc, float[] rd, float[] rdClosed,
+			String _winTxt, boolean _canDrawTraj) {
+		super(_p, _n, _flagIdx, fc, sc, rd, rdClosed, _winTxt, _canDrawTraj);
+	}
+
+	@Override
+	protected void initSideBarMenuBtns_Priv() {
+		guiBtnRowNames = new String[]{"Raw Data/Ftr Processing","Post Proc Load And Map Config/Exec","DEBUG","File"};
+
+		//names for each row of buttons - idx 1 is name of row
+		guiBtnNames = new String[][]{
+			//new String[]{pa.winTitles[1], pa.winTitles[2], pa.winTitles[3], pa.winTitles[4]},							//display specific windows - multi-select/ always 
+			new String[]{"Func 1","Func 2","Func 3"},						//per-window user functions - momentary
+			new String[]{"Func 1","Func 2","Func 3","Func 4","Func 5"},						//per-window user functions - momentary
+			new String[]{"Dbg 1","Dbg 2","Dbg 3","Dbg 4","Dbg 5"},						//DEBUG - momentary
+			new String[]{"Load Txt File","Save Txt File"}							//load an existing score, save an existing score - momentary		
+		};
+		//default names, to return to if not specified by user
+		defaultUIBtnNames = new String[][]{
+			//new String[]{pa.winTitles[1], pa.winTitles[2], pa.winTitles[3], pa.winTitles[4]},							//display specific windows - multi-select/ always 
+			new String[]{"Func 1","Func 2","Func 3"},					//per-window user functions - momentary
+			new String[]{"Func 1","Func 2","Func 3","Func 4","Func 5"},			//per-window user functions - momentary
+			new String[]{"Dbg 1","Dbg 2","Dbg 3","Dbg 4","Dbg 5"},						//DEBUG - momentary
+			new String[]{"Load Txt File","Save Txt File"}							//load an existing score, save an existing score - momentary		
+		};
+		//whether buttons are momentary or not (on only while being clicked)
+		guiBtnInst = new boolean[][]{
+			//new boolean[]{false,false,false,false},         						//display specific windows - multi-select/ always on if sel
+			new boolean[]{false,false,false,false,false},                   //functionality - momentary
+			new boolean[]{false,false,false,false,false},                   //functionality - momentary
+			new boolean[]{false,false,false,false,false},                   		//debug - momentary
+			new boolean[]{true,true},			              			//load an existing score, save an existing score - momentary	
+		};		
+		//whether buttons are waiting for processing to complete (for non-momentary buttons)
+		guiBtnWaitForProc = new boolean[][]{
+			//new boolean[]{false,false,false,false},         						//display specific windows - multi-select/ always on if sel
+			new boolean[]{false,false,false,false,false},                   //functionality - momentary
+			new boolean[]{false,false,false,false,false},                   //functionality - momentary
+			new boolean[]{false,false,false,false,false},                   		//debug - momentary
+			new boolean[]{false,false},			              			//load an existing score, save an existing score - momentary	
+		};			
+		
+		//whether buttons are disabled(-1), enabled but not clicked/on (0), or enabled and on/clicked(1)
+		guiBtnSt = new int[][]{
+			//new int[]{0,0,1,0},                    					//display specific windows - multi-select/ always on if sel
+			new int[]{0,0,0,0,0},                   					//debug - momentary
+			new int[]{0,0,0,0,0},                   					//debug - momentary
+			new int[]{0,0,0,0,0},                   					//debug - momentary
+			new int[]{0,0}			              					//load an existing score, save an existing score - momentary	
+		};	}
+
+	@Override
+	public void handleButtonClick(int row, int col){
+		int val = guiBtnSt[row][col];//initial state, before being changed
+		guiBtnSt[row][col] = (guiBtnSt[row][col] + 1)%2;//change state
+		//if not momentary buttons, set wait for proc to true
+		setWaitForProc(row,col);
+		switch(row){
+			//case btnShowWinIdx 		: {pa.handleShowWin(col, val);break;}
+			case btnAuxFunc1Idx 		: //{pa.handleMenuBtnSelCmp(btnAuxFunc1Idx,col, val);break;}
+			case btnAuxFunc2Idx 		: //{pa.handleMenuBtnSelCmp(btnAuxFunc2Idx,col, val);break;}
+			case btnDBGSelCmpIdx  		: {pa.handleMenuBtnSelCmp(row, col, val);break;}//{pa.handleMenuBtnSelCmp(btnDBGSelCmpIdx,col, val);break;}
+			case btnFileCmdIdx 			: {pa.handleFileCmd(btnFileCmdIdx, col, val);break;}
+		}				
+	}	
+
+	@Override
+	protected void launchMenuBtnHndlr() {
+		switch(curCustBtnType) {
+		case mySideBarMenu.btnAuxFunc1Idx : {break;}//row 1 of menu side bar buttons
+		case mySideBarMenu.btnAuxFunc2Idx : {break;}//row 2 of menu side bar buttons
+		case mySideBarMenu.btnDBGSelCmpIdx : {break;}//row 3 of menu side bar buttons (debug)			
+		}		
+	}
+
+}//mySideBarMenu

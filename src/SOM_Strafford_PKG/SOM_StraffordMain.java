@@ -15,14 +15,8 @@ import processing.core.*;
  * 
  */
 public class SOM_StraffordMain extends my_procApplet {
-
 	//project-specific variables
 	private String prjNmLong = "Testbed for development of Strafford Prospects SOM", prjNmShrt = "SOM_Strafford";
-	
-	//platform independent path separator
-	private String dirSep = File.separator;
-	//don't use sphere background for this program
-	private boolean useSphereBKGnd = false;	
 				
 	private int[] visFlags;
 	private final int
@@ -35,8 +29,7 @@ public class SOM_StraffordMain extends my_procApplet {
 																		//set array of vector values (sceneFcsVals) based on application
 	//private boolean cyclModCmp;										//comparison every draw of cycleModDraw			
 	private final int[] bground = new int[]{244,244,244,255};		//bground color
-	private PShape bgrndSphere;										//giant sphere encapsulating entire scene
-
+	
 
 ///////////////
 //CODE STARTS
@@ -54,147 +47,66 @@ public class SOM_StraffordMain extends my_procApplet {
 		noSmooth();
 	}		
 
-	public void setup() {
-		colorMode(RGB, 255, 255, 255, 255);
-		frameRate(frate);
-		if(useSphereBKGnd) {			setBkgndSphere();		} 
-		else {			setBkgrnd();		}
-		initVisOnce();
-		//call this in first draw loop?
-		initOnce();
-	}// setup
+	//instance-specific setup code
+	protected void setup_indiv() {setBkgrnd();}
 	
-	private void setBkgndSphere() {
-		sphereDetail(100);
-		//TODO move to window to set up specific background for each different "scene" type
-		PImage bgrndTex = loadImage("bkgrndTex.jpg");
-		bgrndSphere = createShape(SPHERE, 10000);
-		bgrndSphere.setTexture(bgrndTex);
-		bgrndSphere.rotate(HALF_PI,-1,0,0);
-		bgrndSphere.setStroke(false);	
-		//TODO move to myDispWindow
-		background(bground[0],bground[1],bground[2],bground[3]);		
-		shape(bgrndSphere);	
-	}
-	
-	public void setBkgrnd(){
-		background(bground[0],bground[1],bground[2],bground[3]);		
-	}//setBkgrnd
+	@Override
+	public void setBkgrnd(){background(bground[0],bground[1],bground[2],bground[3]);}//setBkgrnd
 	
 	@Override
 	//build windows here
-	protected  void initVisOnce_Priv() {
+	protected void initVisOnce_Priv() {
 		showInfo = true;
 		drawnTrajEditWidth = 10;
-		int numWins = 2;
-		initWins(numWins);//includes 1 for menu window (never < 1)
+		//includes 1 for menu window (never < 1) - always have same # of visFlags as myDispWindows
+		int numWins = numVisFlags;		
+		//titles and descs, need to be set before sidebar menu is defined
+		String[] _winTitles = new String[]{"","SOM Map UI"},
+				_winDescr = new String[] {"", "Visualize Prospect SOM Node Mapping"};
+		initWins(numWins,_winTitles, _winDescr);
 		//call for menu window
 		buildInitMenuWin(showUIMenu);
+		//menu bar init
+		int wIdx = dispMenuIDX,fIdx=showUIMenu;
+		dispWinFrames[wIdx] = new mySideBarMenu(this, winTitles[wIdx], fIdx, winFillClrs[wIdx], winStrkClrs[wIdx], winRectDimOpen[wIdx], winRectDimClose[wIdx], winDescr[wIdx],dispWinFlags[wIdx][dispCanDrawInWinIDX]);		
+	
+
 		//instanced window dimensions when open and closed - only showing 1 open at a time
 		float[] _dimOpen  =  new float[]{menuWidth, 0, width-menuWidth, height}, _dimClosed  =  new float[]{menuWidth, 0, hideWinWidth, height};	
 		//(int _winIDX, float[] _dimOpen, float[] _dimClosed, String _ttl, String _desc, 
-		setInitDispWinVals(dispSOMMapIDX, _dimOpen, _dimClosed,"SOM Map UI","Visualize Prospect SOM Node Mapping",
+		setInitDispWinVals(dispSOMMapIDX, _dimOpen, _dimClosed,
 				//boolean[] _dispFlags : idxs : 0 : canDrawInWin; 1 : canShow3dbox; 2 : canMoveView; 3 : dispWinIs3d
 				//int[] _fill, int[] _strk, int _trajFill, int _trajStrk)
 				new boolean[] {false,false,false,false}, new int[]{50,40,20,255},new int[]{255,255,255,255},gui_LightGray,gui_DarkGray); 
 		
-		int wIdx = dispSOMMapIDX,fIdx=showSOMMapUI;
+		wIdx = dispSOMMapIDX; fIdx=showSOMMapUI;
 		dispWinFrames[wIdx] = new mySOMMapUIWin(this, winTitles[wIdx], fIdx, winFillClrs[wIdx], winStrkClrs[wIdx], winRectDimOpen[wIdx], winRectDimClose[wIdx], winDescr[wIdx],dispWinFlags[wIdx][dispCanDrawInWinIDX]);
 		
-		//after all display windows are drawn
-		finalDispWinInit();
-
-		winFlagsXOR = new int[]{showSOMMapUI};//showSequence,showSphereUI};
 		//specify windows that cannot be shown simultaneously here
-		winDispIdxXOR = new int[]{dispSOMMapIDX};//dispPianoRollIDX,dispSphereUIIDX};
-		initVisFlags();
+		initXORWins(new int[]{showSOMMapUI},new int[]{dispSOMMapIDX});
+
 	}//	initVisOnce_Priv
 	
 	@Override
-	//called from base class, once at start of program after vis init is called
+	//called from base class, once at start of program after vis init is called - set initial windows to show - always show UI Menu
 	protected void initOnce_Priv(){
 		//which objects to initially show
 		setVisFlag(showUIMenu, true);					//show input UI menu	
 		setVisFlag(showSOMMapUI, true);
-		//initProgram is called every time reinitialization is desired
-		initProgram();		
 	}//	initOnce
 	
 	@Override
 	//called multiple times, whenever re-initing
-	protected void initProgram_Indiv(){
-		initVisProg();				//always first
-		
-	}//initProgram
-	
+	protected void initProgram_Indiv(){	}//initProgram	
 	@Override
-	protected void initVisProg_Indiv() {}	
-	
-	//get difference between frames and set both glbl times
-	private float getModAmtMillis() {
-		glblStartSimFrameTime = millis();
-		float modAmtMillis = (glblStartSimFrameTime - glblLastSimFrameTime);
-		glblLastSimFrameTime = millis();
-		return modAmtMillis;
-	}
-	
+	protected void initVisProg_Indiv() {}		
+	@Override
 	//main draw loop
 	public void draw(){	
-		if(!isFinalInitDone()) {initOnce(); return;}	
-		float modAmtMillis = getModAmtMillis();
-		//simulation section
-		if(isRunSim() ){
-			//run simulation
-			drawCount++;									//needed here to stop draw update so that pausing sim retains animation positions	
-			for(int i =1; i<numDispWins; ++i){if((isShowingWindow(i)) && (dispWinFrames[i].getFlags(myDispWindow.isRunnable))){dispWinFrames[i].simulate(modAmtMillis);}}
-			if(isSingleStep()){setSimIsRunning(false);}
-			simCycles++;
-		}		//play in current window
-
-		//drawing section
-		pushMatrix();pushStyle();
-		drawSetup();																//initialize camera, lights and scene orientation and set up eye movement		
-		if((curFocusWin == -1) || (curDispWinIs3D())){	//allow for single window to have focus, but display multiple windows	
-			//if refreshing screen, this clears screen, sets background
-			setBkgrnd();				
-			draw3D_solve3D(modAmtMillis);
-			c.buildCanvas();			
-			if(curDispWinCanShow3dbox()){drawBoxBnds();}
-			if(dispWinFrames[curFocusWin].chkDrawMseRet()){			c.drawMseEdge();	}			
-			popStyle();popMatrix(); 
-		} else {	//either/or 2d window
-			//2d windows paint window box so background is always cleared
-			c.buildCanvas();
-			c.drawMseEdge();
-			popStyle();popMatrix(); 
-			for(int i =1; i<numDispWins; ++i){if (isShowingWindow(i) && !(dispWinFrames[i].getFlags(myDispWindow.is3DWin))){dispWinFrames[i].draw2D(modAmtMillis);}}
-		}
-		drawUI(modAmtMillis);																	//draw UI overlay on top of rendered results			
-		if (doSaveAnim()) {	savePic();}
-		updateConsoleStrs();
+		//private draw routine
+		_drawPriv();
 		surface.setTitle(prjNmLong + " : " + (int)(frameRate) + " fps|cyc curFocusWin : " + curFocusWin);
-	}//draw
-	
-	private void updateConsoleStrs(){
-		++drawCount;
-		if(drawCount % cnslStrDecay == 0){drawCount = 0;	consoleStrings.poll();}			
-	}//updateConsoleStrs
-	
-	public void draw3D_solve3D(float modAmtMillis){
-		//System.out.println("drawSolve");
-		pushMatrix();pushStyle();
-		for(int i =1; i<numDispWins; ++i){
-			if((isShowingWindow(i)) && (dispWinFrames[i].getFlags(myDispWindow.is3DWin))){
-				dispWinFrames[i].draw3D(modAmtMillis);
-			}
-		}
-		popStyle();popMatrix();
-		//fixed xyz rgb axes for visualisation purposes and to show movement and location in otherwise empty scene
-		drawAxes(100,3, new myPoint(-c.getViewDimW()/2.0f+40,0.0f,0.0f), 200, false); 		
-	}//draw3D_solve3D
-	
-	//if should show problem # i
-	public boolean isShowingWindow(int i){return getVisFlag((i+this.showUIMenu));}//showUIMenu is first flag of window showing flags
+	}//draw	
 	
 	//handle pressing keys 0-9
 	//keyVal is actual value of key (screen character as int)
@@ -274,13 +186,13 @@ public class SOM_StraffordMain extends my_procApplet {
 	//////////////////////////////////////////
 	/// graphics and base functionality utilities and variables
 	//////////////////////////////////////////
-	
+	@Override
 		//init boolean state machine flags for program
 	public void initVisFlags(){
 		visFlags = new int[1 + numVisFlags/32];for(int i =0; i<numVisFlags;++i){forceVisFlag(i,false);}	
 		((mySideBarMenu)dispWinFrames[dispMenuIDX]).initPFlagColors();			//init sidebar window flags
 	}		
-	
+	@Override
 	//address all flag-setting here, so that if any special cases need to be addressed they can be
 	public void setVisFlag(int idx, boolean val ){
 		int flIDX = idx/32, mask = 1<<(idx%32);
@@ -288,22 +200,18 @@ public class SOM_StraffordMain extends my_procApplet {
 		switch (idx){
 			case showUIMenu 	    : { dispWinFrames[dispMenuIDX].setFlags(myDispWindow.showIDX,val);    break;}											//whether or not to show the main ui window (sidebar)			
 			case showSOMMapUI		: {setWinFlagsXOR(dispSOMMapIDX, val); break;}
-			//case showSOMMapUI 		: {dispWinFrames[dispSOMMapIDX].setFlags(myDispWindow.showIDX,val);handleShowWin(dispSOMMapIDX-1 ,(val ? 1 : 0),false); setWinsHeight(dispSOMMapIDX); break;}	//show InstEdit window
-	
-			//case useDrawnVels 		: {for(int i =1; i<dispWinFrames.length;++i){dispWinFrames[i].rebuildAllDrawnTrajs();}break;}
 			default : {break;}
 		}
 	}//setFlags  
+	@Override
 	//get vis flag
 	public boolean getVisFlag(int idx){int bitLoc = 1<<(idx%32);return (visFlags[idx/32] & bitLoc) == bitLoc;}	
+	@Override
 	public void forceVisFlag(int idx, boolean val) {
 		int flIDX = idx/32, mask = 1<<(idx%32);
 		visFlags[flIDX] = (val ?  visFlags[flIDX] | mask : visFlags[flIDX] & ~mask);
 		//doesn't perform any other ops - to prevent 
 	}
 	
-//	//set flags appropriately when only 1 can be true 
-//	public void setFlagsXOR(int tIdx, int[] fIdx){for(int i =0;i<fIdx.length;++i){if(tIdx != fIdx[i]){flags[fIdx[i]] =false;}}}						
-
 
 }//class SOM_StraffordMain

@@ -1,8 +1,6 @@
 package base_UI_Objects;
 
-import SOM_Strafford_PKG.SOM_StraffordMain;
-import base_Utils_Objects.myPoint;
-import base_Utils_Objects.myVector;
+import base_Utils_Objects.*;
 
 public class cntlPt extends myPoint {
 	public static my_procApplet pa;

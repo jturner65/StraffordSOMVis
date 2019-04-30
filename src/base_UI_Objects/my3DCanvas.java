@@ -3,7 +3,6 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 
-import SOM_Strafford_PKG.SOM_StraffordMain;
 import base_Utils_Objects.*;
 import processing.core.*;
 import processing.opengl.PGL;

@@ -16,7 +16,7 @@ import base_Utils_Objects.*;
 public class StraffWeightCalc {
 	//public StraffSOMMapManager mapMgr;
 	private messageObject msgObj;
-	public MonitorJpJpgrp jpJpgMon;
+	public MonitorJpJpgrp jpJpgMon; 
 	FileIOManager fileIO;
 	//base file name, minus type and extension 
 	private String fileName;
@@ -107,7 +107,7 @@ public class StraffWeightCalc {
 			Float[] jpM = getFAraFromStrAra(wtCalcStrAra,mIdx), jpO = getFAraFromStrAra(wtCalcStrAra,oIdx), jpD = getFAraFromStrAra(wtCalcStrAra,dIdx);
 			Float[] cpM = getFAraFromStrAra(wtCalcStrAra2,mIdx), cpO = getFAraFromStrAra(wtCalcStrAra2,oIdx), cpD = getFAraFromStrAra(wtCalcStrAra2,dIdx);
 			Integer allIDX = jpJpgMon.getJpToAllIDX(jp);
-			Integer ftrIDX = jpJpgMon.getJpToFtrIDX(jp);
+			Integer ftrIDX = jpJpgMon.getFtrJpToIDX(jp);
 			if(ftrIDX == null) {ftrIDX = -1;}
 			Float[][] eqVals = new Float[][] {jpM, jpO, jpD,cpM, cpO, cpD};
 			JPWeightEquation eq = new JPWeightEquation(this, jpJpgMon.getJPNameFromJP(jp),jp, new int[] {ftrIDX,allIDX}, eqVals, false);
@@ -155,8 +155,8 @@ public class StraffWeightCalc {
 		ftrEqs = new TreeMap<Integer, JPWeightEquation> ();
 		int ttlNumJps = jpJpgMon.getNumAllJpsFtrs();
 		for (int i=0;i<ttlNumJps;++i) {
-			int jp = jpJpgMon.getJpByAllIdx(i);
-			Integer ftrIDX = jpJpgMon.getJpToFtrIDX(jp);
+			int jp = jpJpgMon.getAllJpByIdx(i);
+			Integer ftrIDX = jpJpgMon.getFtrJpToIDX(jp);
 			if(ftrIDX == null) {ftrIDX = -1;}
 			Float[][] eqVals = new Float[][] {dfltM, dfltO, dfltD,dfltcpM, dfltcpO, dfltcpD};
 			JPWeightEquation eq = new JPWeightEquation(this,jpJpgMon.getJPNameFromJP(jp),jp, new int[] {ftrIDX,i}, eqVals, true);
@@ -224,7 +224,7 @@ public class StraffWeightCalc {
 		boolean isZeroMagExample = true;		//if all values are 0 then this is a bad training example, we want to ignore it
 		for (Integer jp : jps) {
 			//find destIDX
-			destIDX = jpJpgMon.getJpToFtrIDX(jp);
+			destIDX = jpJpgMon.getFtrJpToIDX(jp);
 			if (destIDX==null) {continue;}//ignore unknown/unmapped jps
 			optOcc = optOccs.get(jp);
 			if ((optOcc != null )&& ((ex.getPosOptAllOccObj() != null) || (ex.getNegOptAllOccObj() != null))) {	//opt all means they have opted for positive behavior for all jps that allow opts
@@ -256,7 +256,7 @@ public class StraffWeightCalc {
 		boolean isZeroMagExample = true;		//if all values are 0 then this is a bad training example, we want to ignore it
 		for (Integer jp : jps) {
 			//find destIDX
-			destIDX = jpJpgMon.getJpToFtrIDX(jp);
+			destIDX = jpJpgMon.getFtrJpToIDX(jp);
 			if (destIDX==null) {continue;}//ignore unknown/unmapped jps
 			optOcc = optOccs.get(jp);
 			if ((optOcc != null )&& ((ex.getPosOptAllOccObj() != null) || (ex.getNegOptAllOccObj() != null))) {	//opt all means they have opted for positive behavior for all jps that allow opts
@@ -636,8 +636,7 @@ class JPWeightEquation {
 
 
 //this class will hold analysis information for calculations to more clearly understand the results of the current calc object
-class calcAnalysis{
-	//per JPWeightEquation analysis of data
+class calcAnalysis{//per JPWeightEquation analysis of data
 		//corresponding eq - get all pertinent info from this object
 	private JPWeightEquation eq;	
 		//totals seen across all examples per individual calc components(prospect, opt, order, link, etc);sum of sq value, for variance/std calc
@@ -679,13 +678,13 @@ class calcAnalysis{
 	
 	private static float[] legendSizes;
 	//disp idx of this calc;jpIDX corresponding to owning eq - NOTE this is either the index in the ftr vector, or it is the index in the list of all jps
-	private final int[] jpIDX;
+	private final int[] jpIDXara;
 	private int[] dispIDXAra;
 	//
 	public calcAnalysis(JPWeightEquation _eq, int[] _jpIDX) {
 		eq=_eq;reset();
-		jpIDX=_jpIDX;
-		dispIDXAra = new int[] {jpIDX[0]%5,jpIDX[1]%5} ;
+		jpIDXara=_jpIDX;
+		dispIDXAra = new int[] {jpIDXara[0]%5,jpIDXara[1]%5} ;
 		legendSizes=new float[eq.numEqs];
 		for(int i=0;i<eq.numEqs;++i) {legendSizes[i]= 1.0f/eq.numEqs;}
 	}//ctor
@@ -776,7 +775,7 @@ class calcAnalysis{
 		calcStatDispDetail[stdIDX] = new String[] {String.format("Stds : %.5f",ttlStdNoOpt)};
 		calcStatDispDetail[stdOptIDX] = new String[] {String.format("Std w/opts : %.5f",ttlStdWithOpt)};		
 		
-		analysisRes.add("FTR IDX : "+String.format("%03d", jpIDX[0])+"ALL JP IDX : "+String.format("%03d", jpIDX[1])+"|JP : "+String.format("%03d", eq.jp)+"|% opt:"+String.format("%.5f",ratioOptOut)
+		analysisRes.add("FTR IDX : "+String.format("%03d", jpIDXara[0])+"ALL JP IDX : "+String.format("%03d", jpIDXara[1])+"|JP : "+String.format("%03d", eq.jp)+"|% opt:"+String.format("%.5f",ratioOptOut)
 					+"|MU : " + String.format("%.5f",ttlMeanNoOpt)+"|Std : " + String.format("%.5f",ttlStdNoOpt) 
 					+"|MU w/opt : " +String.format("%.5f",ttlMeanWithOpt)+"|Std w/opt : " +String.format("%.5f",ttlStdWithOpt));
 		analysisRes.add(perCompMuStd);
@@ -829,7 +828,7 @@ class calcAnalysis{
 						rCompHeight = htMult * vals[i];
 						p.pushMatrix();p.pushStyle();
 						p.translate(10.0f, rYSt+(rCompHeight/2.0f)+5, 0.0f);
-						p.showOffsetText2D(0.0f, p.gui_Black, dispStrAra[i]);
+						if(null!= dispStrAra[i]) {			p.showOffsetText2D(0.0f, p.gui_Black, dispStrAra[i]);}
 						p.popStyle();p.popMatrix();
 						rYSt+=rCompHeight;
 					}
@@ -851,7 +850,7 @@ class calcAnalysis{
 	public void drawIndivFtrVec(my_procApplet p, float height, float width){
 		p.pushMatrix();p.pushStyle();
 		//title here?
-		p.showOffsetText2D(0.0f, p.gui_White, "Calc Values for ftr idx : " +jpIDX + " jp "+eq.jp + " : " + eq.jpName);//p.drawText("Calc Values for ftr idx : " +eq.jpIdx + " jp "+eq.jp, 0, 0, 0, p.gui_White);
+		p.showOffsetText2D(0.0f, p.gui_White, "Calc Values for ftr idx : " +jpIDXara[0] +"," +jpIDXara[1]+ " jp "+eq.jp + " : " + eq.jpName);//p.drawText("Calc Values for ftr idx : " +eq.jpIdx + " jp "+eq.jp, 0, 0, 0, p.gui_White);
 		p.translate(0.0f, txtYOff, 0.0f);
 		for(int i=0;i<analysisCalcStats.length;++i) {
 			drawDetailFtrVec(p,height,width, analysisCalcStats[i], ttlCalcStats_Vis[i], calcStatTitles[i], analysisCalcValStrs[i], calcStatDispDetail[i]);

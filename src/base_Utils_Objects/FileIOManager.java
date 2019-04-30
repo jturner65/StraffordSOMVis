@@ -3,9 +3,6 @@ package base_Utils_Objects;
 import java.io.*;
 import java.util.*;
 
-import SOM_Strafford_PKG.SOMProjConfigData;
-import base_SOM_Objects.SOMMapManager;
-
 /**
  * This class will manage file IO
  * @author john
