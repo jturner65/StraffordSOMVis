@@ -5,24 +5,28 @@ import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
 
-import SOM_Strafford_PKG.SOMProjConfigData;
-//import SOM_Strafford_PKG.my_procApplet;
-import SOM_Strafford_PKG.mySOMMapUIWin;
+import base_SOM_Objects.som_examples.*;
+import base_SOM_Objects.som_fileIO.*;
+import base_SOM_Objects.som_utils.*;
+import base_SOM_Objects.som_vis.*;
+
 
 import base_UI_Objects.*;
 import base_Utils_Objects.*;
+import strafford_SOM_PKG.SOMProjConfigData;
+import strafford_SOM_PKG.Straff_SOMMapUIWin;
 
 public abstract class SOMMapManager {
 	//applet, if used in graphical context
 	private my_procApplet pa;				
 	//owning window
-	public mySOMMapUIWin win;		
+	public Straff_SOMMapUIWin win;		
 	//manage IO in this object
 	protected FileIOManager fileIO; 
 	//struct maintaining complete project configuration and information from config files - all file name data and building needs to be done by this object
 	public SOMProjConfigData projConfigData;	
 	//object to manage messages for display and potentially logging
-	protected messageObject msgObj;
+	private MessageObject msgObj;
 	//////////////////////////////
 	//map descriptors
 	
@@ -106,16 +110,16 @@ public abstract class SOMMapManager {
 	protected final int numUsableThreads;		//# of threads usable by the application
 
 	// String[] _dirs : idx 0 is config directory, as specified by cmd line; idx 1 is data directory, as specified by cmd line
-	public SOMMapManager(mySOMMapUIWin _win, String[] _dirs, float[] _dims) {
+	public SOMMapManager(Straff_SOMMapUIWin _win, String[] _dirs, float[] _dims) {
 		pa=null;//assigned by win if it exists
 		win=_win;		
 		//message object manages displaying to screen and potentially to log files
 		long mapMgrBuiltTime  = Instant.now().toEpochMilli();
-		msgObj = new messageObject(null,mapMgrBuiltTime);
+		setMsgObj(new MessageObject(null,mapMgrBuiltTime));
 		//this is to make sure we always save the log file
-		Runtime.getRuntime().addShutdownHook(new Thread() {public void run() {	if(msgObj==null) {return;}msgObj.dispInfoMessage("SOMMapManager", "ctor->Shutdown Hook", "Running msgObj finish log code");	msgObj.FinishLog();}});
+		Runtime.getRuntime().addShutdownHook(new Thread() {public void run() {	if(getMsgObj()==null) {return;}getMsgObj().dispInfoMessage("SOMMapManager", "ctor->Shutdown Hook", "Running msgObj finish log code");	getMsgObj().FinishLog();}});
 		//fileIO is used to load and save info from/to local files except for the raw data loading, which has its own handling
-		fileIO = new FileIOManager(msgObj,"SOMMapManager");
+		fileIO = new FileIOManager(getMsgObj(),"SOMMapManager");
 		//want # of usable background threads.  Leave 2 for primary process (and potential draw loop)
 		numUsableThreads = Runtime.getRuntime().availableProcessors() - 2;
 		th_exec = Executors.newCachedThreadPool();// Executors.newFixedThreadPool(numUsableThreads);
@@ -130,10 +134,10 @@ public abstract class SOMMapManager {
 		resetTrainDataAras();
 	}//ctor
 	//use this to set window/UI components, if exist
-	public void setPADispWinData(mySOMMapUIWin _win, my_procApplet _pa) {
+	public void setPADispWinData(Straff_SOMMapUIWin _win, my_procApplet _pa) {
 		win=_win;
 		pa=_pa;
-		messageObject.pa = _pa;
+		MessageObject.pa = _pa;
 	}//setPAWindowData
 
 	//determine how many values should be per thread, if 
@@ -145,7 +149,7 @@ public abstract class SOMMapManager {
 	
 	
 	protected void resetTrainDataAras() {
-		msgObj.dispMessage("SOMMapManager","resetTrainDataAras","Init Called", MsgCodes.info5);
+		getMsgObj().dispMessage("SOMMapManager","resetTrainDataAras","Init Called", MsgCodes.info5);
 		inputData = new SOMExample[0];
 		testData = new SOMExample[0];
 		trainData = new SOMExample[0];
@@ -158,7 +162,7 @@ public abstract class SOMMapManager {
 			nodesWithEx.put(_type, new HashSet<SOMMapNode>());
 			nodesWithNoEx.put(_type, new HashSet<SOMMapNode>());		
 		}
-		msgObj.dispMessage("SOMMapManager","resetTrainDataAras","Init Finished", MsgCodes.info5);
+		getMsgObj().dispMessage("SOMMapManager","resetTrainDataAras","Init Finished", MsgCodes.info5);
 	}//resetTrainDataAras()
 	
 	public String getDataTypeNameFromCurFtrTrainType() {return getDataTypeNameFromInt(curMapTrainFtrType);}	
@@ -197,7 +201,7 @@ public abstract class SOMMapManager {
 
 	//set input data and shuffle it; partition test and train arrays 
 	protected void setInputTestTrainDataArasShuffle(SOMExample[] _inData, float trainTestPartition, boolean isBuildingNewMap) {		
-		msgObj.dispMessage("SOMMapManager","setInputTestTrainDataArasShuffle","Shuffling Input, Building Training and Testing Partitions.", MsgCodes.info5);
+		getMsgObj().dispMessage("SOMMapManager","setInputTestTrainDataArasShuffle","Shuffling Input, Building Training and Testing Partitions.", MsgCodes.info5);
 		//set partition size in project config
 		projConfigData.setTrainTestPartition(trainTestPartition);
 		inputData = _inData;		
@@ -207,7 +211,7 @@ public abstract class SOMMapManager {
 		numTestData = inputData.length - numTrainData;		
 		//build train and test partitions
 		trainData = new SOMExample[numTrainData];	
-		msgObj.dispMessage("SOMMapManager","setInputTestTrainDataArasShuffle","# of training examples : " + numTrainData + " inputData size : " + inputData.length, MsgCodes.info3);
+		getMsgObj().dispMessage("SOMMapManager","setInputTestTrainDataArasShuffle","# of training examples : " + numTrainData + " inputData size : " + inputData.length, MsgCodes.info3);
 		for (int i=0;i<trainData.length;++i) {trainData[i]=inputData[i];trainData[i].setIsTrainingDataIDX(true, i);}
 		testData = new SOMExample[numTestData];
 		for (int i=0;i<testData.length;++i) {testData[i]=inputData[i+numTrainData];testData[i].setIsTrainingDataIDX(false, i);}		
@@ -216,7 +220,7 @@ public abstract class SOMMapManager {
 			projConfigData.buildDateTimeStrAraAndDType(getDataTypeNameFromCurFtrTrainType());
 			projConfigData.launchTestTrainSaveThrds(th_exec, this, curMapTrainFtrType, numTrnFtrs,trainData,testData);				//save testing and training data
 		} 
-		msgObj.dispMessage("SOMMapManager","setInputTestTrainDataArasShuffle","Finished Shuffling Input, Building Training and Testing Partitions. Train size : " + numTrainData+ " Testing size : " + numTestData+".", MsgCodes.info5);
+		getMsgObj().dispMessage("SOMMapManager","setInputTestTrainDataArasShuffle","Finished Shuffling Input, Building Training and Testing Partitions. Train size : " + numTrainData+ " Testing size : " + numTestData+".", MsgCodes.info5);
 	}//setInputTestTrainDataArasShuffle
 	
 	//load _all_ preprocessed data
@@ -230,12 +234,12 @@ public abstract class SOMMapManager {
 	//load preproc customer csv and build training and testing partitions - testing partition not necessary 
 	public void loadPreprocAndBuildTestTrainPartitions() {loadPreprocAndBuildTestTrainPartitions(projConfigData.getTrainTestPartition());}//whatever most recent setting is
 	public void loadPreprocAndBuildTestTrainPartitions(float trainTestPartition) {
-		msgObj.dispMessage("SOMMapManager","loadPreprocAndBuildTestTrainPartitions","Start Loading all CSV example Data to train map.", MsgCodes.info5);
+		getMsgObj().dispMessage("SOMMapManager","loadPreprocAndBuildTestTrainPartitions","Start Loading all CSV example Data to train map.", MsgCodes.info5);
 		loadPreProcTestTrainData();
 		//build SOM data
 		buildTestTrainFromPartition(trainTestPartition, true);	
 		saveMinsAndDiffs();		
-		msgObj.dispMessage("SOMMapManager","loadPreprocAndBuildTestTrainPartitions","Finished Loading all CSV example Data to train map.", MsgCodes.info5);
+		getMsgObj().dispMessage("SOMMapManager","loadPreprocAndBuildTestTrainPartitions","Finished Loading all CSV example Data to train map.", MsgCodes.info5);
 	}//loadPreprocAndBuildTestTrainPartitions
 	
 	//load the data used to build a map as well as existing map results
@@ -247,7 +251,7 @@ public abstract class SOMMapManager {
 		projConfigData.setSOM_UsePreBuilt(this);	
 		//build data partitions - use partition size set via constants in debug
 		buildTestTrainFromPartition(projConfigData.getTrainTestPartition(), false);	
-		msgObj.dispMessage("SOMMapManager","loadPretrainedExistingMap","Current projConfigData before dataLoader Call : " + projConfigData.toString(), MsgCodes.info3);
+		getMsgObj().dispMessage("SOMMapManager","loadPretrainedExistingMap","Current projConfigData before dataLoader Call : " + projConfigData.toString(), MsgCodes.info3);
 		th_exec.execute(new SOMDataLoader(this,projConfigData));//fire and forget load task 
 	}//dbgBuildExistingMap
 	
@@ -259,7 +263,7 @@ public abstract class SOMMapManager {
 		//set and save configurations
 		boolean runSuccess = projConfigData.setSOM_ExperimentRun(this, mapInts, mapFloats, mapStrings);
 		if(!runSuccess) {			return false;		}
-		msgObj.dispMessage("SOMMapManager","buildNewSOMMap","Current projConfigData before dataLoader Call : " + projConfigData.toString(), MsgCodes.info1);
+		getMsgObj().dispMessage("SOMMapManager","buildNewSOMMap","Current projConfigData before dataLoader Call : " + projConfigData.toString(), MsgCodes.info1);
 		th_exec.execute(new SOMDataLoader(this, projConfigData));//fire and forget load task to load results from map building
 		return true;
 	}//buildNewSOMMap	
@@ -268,19 +272,19 @@ public abstract class SOMMapManager {
 	public boolean buildNewMap(SOM_MapDat mapExeDat){
 		boolean success = false;
 		try {					success = _buildNewMap(mapExeDat);			} 
-		catch (IOException e){	msgObj.dispMessage("SOMMapManager","buildNewMap","Error running map defined by : " + mapExeDat.toString() + " :\n " + e.getMessage(), MsgCodes.error1);	return false;}		
+		catch (IOException e){	getMsgObj().dispMessage("SOMMapManager","buildNewMap","Error running map defined by : " + mapExeDat.toString() + " :\n " + e.getMessage(), MsgCodes.error1);	return false;}		
 		return success;
 	}//buildNewMap
 	//launch process to exec SOM_MAP
 	private boolean _buildNewMap(SOM_MapDat mapExeDat) throws IOException{
 		boolean showDebug = getIsDebug(), 
 				success = true;		
-		msgObj.dispMessage("SOMMapManager","_buildNewMap","buildNewMap Starting", MsgCodes.info5);
-		msgObj.dispMessage("SOMMapManager","_buildNewMap","Execution String for running manually : \n"+mapExeDat.getDbgExecStr(), MsgCodes.warning2);
+		getMsgObj().dispMessage("SOMMapManager","_buildNewMap","buildNewMap Starting", MsgCodes.info5);
+		getMsgObj().dispMessage("SOMMapManager","_buildNewMap","Execution String for running manually : \n"+mapExeDat.getDbgExecStr(), MsgCodes.warning2);
 		String[] cmdExecStr = mapExeDat.getExecStrAra();
 		//if(showDebug){
-		msgObj.dispMessage("SOMMapManager","_buildNewMap","Execution Arguments passed to SOM, parsed by flags and values: ", MsgCodes.info2);
-		msgObj.dispMessageAra(cmdExecStr,"SOMMapManager","_buildNewMap",2, MsgCodes.info2);//2 strings per line, display execution command	
+		getMsgObj().dispMessage("SOMMapManager","_buildNewMap","Execution Arguments passed to SOM, parsed by flags and values: ", MsgCodes.info2);
+		getMsgObj().dispMessageAra(cmdExecStr,"SOMMapManager","_buildNewMap",2, MsgCodes.info2);//2 strings per line, display execution command	
 		//}
 		//http://stackoverflow.com/questions/10723346/why-should-avoid-using-runtime-exec-in-java		
 		String wkDirStr = mapExeDat.getExeWorkingDir(), 
@@ -290,7 +294,7 @@ public abstract class SOMMapManager {
 		execStr[0] = wkDirStr + cmdStr;
 		//for(int i =2; i<cmdExecStr.length;++i){execStr[i-1] = cmdExecStr[i]; argsStr +=cmdExecStr[i]+" | ";}
 		for(int i = 0; i<cmdExecStr.length;++i){execStr[i+1] = cmdExecStr[i]; argsStr +=cmdExecStr[i]+" | ";}
-		msgObj.dispMessage("SOMMapManager","_buildNewMap","\nwkDir : "+ wkDirStr + "\ncmdStr : " + cmdStr + "\nargs : "+argsStr, MsgCodes.info1);
+		getMsgObj().dispMessage("SOMMapManager","_buildNewMap","\nwkDir : "+ wkDirStr + "\ncmdStr : " + cmdStr + "\nargs : "+argsStr, MsgCodes.info1);
 		
 		//monitor in multiple threads, either msgs or errors
 		List<Future<Boolean>> procMsgMgrsFtrs = new ArrayList<Future<Boolean>>();
@@ -313,14 +317,14 @@ public abstract class SOMMapManager {
 			resultErr = errMsgs.getResults() ;//results of running map TODO save to log?	
 			if(resultErr.toLowerCase().contains("error:")) {throw new InterruptedException("SOM Executable aborted");}
 		} catch (IOException e) {
-			msgObj.dispMessage("SOMMapManager","_buildNewMap","buildNewMap Process failed with IOException : \n" + e.toString() + "\n\t"+ e.getMessage(), MsgCodes.error1);success = false;
+			getMsgObj().dispMessage("SOMMapManager","_buildNewMap","buildNewMap Process failed with IOException : \n" + e.toString() + "\n\t"+ e.getMessage(), MsgCodes.error1);success = false;
 	    } catch (InterruptedException e) {
-	    	msgObj.dispMessage("SOMMapManager","_buildNewMap","buildNewMap Process failed with InterruptedException : \n" + e.toString() + "\n\t"+ e.getMessage(), MsgCodes.error1);success = false;	    	
+	    	getMsgObj().dispMessage("SOMMapManager","_buildNewMap","buildNewMap Process failed with InterruptedException : \n" + e.toString() + "\n\t"+ e.getMessage(), MsgCodes.error1);success = false;	    	
 	    } catch (ExecutionException e) {
-	    	msgObj.dispMessage("SOMMapManager","_buildNewMap","buildNewMap Process failed with ExecutionException : \n" + e.toString() + "\n\t"+ e.getMessage(), MsgCodes.error1);success = false;
+	    	getMsgObj().dispMessage("SOMMapManager","_buildNewMap","buildNewMap Process failed with ExecutionException : \n" + e.toString() + "\n\t"+ e.getMessage(), MsgCodes.error1);success = false;
 		}		
 		
-		msgObj.dispMessage("SOMMapManager","_buildNewMap","buildNewMap Finished", MsgCodes.info5);	
+		getMsgObj().dispMessage("SOMMapManager","_buildNewMap","buildNewMap Finished", MsgCodes.info5);	
 		return success;
 	}//_buildNewMap
 	
@@ -332,7 +336,7 @@ public abstract class SOMMapManager {
 	public void buildSegmentsOnMap() {//need to find closest
 		if (nodeInSegDistThresh == mapMadeWithSegThresh) {return;}
 		if ((MapNodes == null) || (MapNodes.size() == 0)) {return;}
-		msgObj.dispMessage("SOMMapManager","buildSegmentsOnMap","Started building cluster map", MsgCodes.info5);	
+		getMsgObj().dispMessage("SOMMapManager","buildSegmentsOnMap","Started building cluster map", MsgCodes.info5);	
 		//clear existing segments
 		for (SOMMapNode ex : MapNodes.values()) {ex.clearSeg();}
 		segments = new ArrayList<SOMMapSegment>();
@@ -346,7 +350,7 @@ public abstract class SOMMapManager {
 		}		
 		mapMadeWithSegThresh = nodeInSegDistThresh;
 		if(win!=null) {win.setMapSegmentImgClrs();}
-		msgObj.dispMessage("SOMMapManager","buildSegmentsOnMap","Finished building cluster map", MsgCodes.info5);			
+		getMsgObj().dispMessage("SOMMapManager","buildSegmentsOnMap","Finished building cluster map", MsgCodes.info5);			
 	}//buildSegmentsOnMap()
 	
 	/////////////////////////////////////
@@ -357,31 +361,31 @@ public abstract class SOMMapManager {
 	
 	
 	protected void _setExamplesBMUs(SOMExample[] exData, String dataTypName, ExDataType dataType) {
-		msgObj.dispMessage("SOMMapManager","setTestBMUs","Start Mapping " +exData.length + " "+dataTypName+" data to best matching units.", MsgCodes.info5);
+		getMsgObj().dispMessage("SOMMapManager","setTestBMUs","Start Mapping " +exData.length + " "+dataTypName+" data to best matching units.", MsgCodes.info5);
 		boolean canMultiThread=isMTCapable();//this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
 		if(canMultiThread) {
 			List<Future<Boolean>> testMapperFtrs = new ArrayList<Future<Boolean>>();
-			List<mapTestDataToBMUs> testMappers = new ArrayList<mapTestDataToBMUs>();
+			List<MapTestDataToBMUs> testMappers = new ArrayList<MapTestDataToBMUs>();
 			int numForEachThrd = calcNumPerThd(exData.length, numUsableThreads);
 			//use this many for every thread but last one
 			int stIDX = 0;
 			int endIDX = numForEachThrd;		
 			for (int i=0; i<(numUsableThreads-1);++i) {				
-				testMappers.add(new mapTestDataToBMUs(this,stIDX, endIDX,  exData, i, dataTypName, useChiSqDist));
+				testMappers.add(new MapTestDataToBMUs(this,stIDX, endIDX,  exData, i, dataTypName, useChiSqDist));
 				stIDX = endIDX;
 				endIDX += numForEachThrd;
 			}
 			//last one probably won't end at endIDX, so use length
-			if(stIDX < exData.length) {testMappers.add(new mapTestDataToBMUs(this,stIDX, exData.length, exData, numUsableThreads-1, dataTypName,useChiSqDist));}
+			if(stIDX < exData.length) {testMappers.add(new MapTestDataToBMUs(this,stIDX, exData.length, exData, numUsableThreads-1, dataTypName,useChiSqDist));}
 			try {testMapperFtrs = th_exec.invokeAll(testMappers);for(Future<Boolean> f: testMapperFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }		
 		} else {//for every product find closest map node
 			if (useChiSqDist) {			for (int i=0;i<exData.length;++i) {	exData[i].findBMUFromNodes_ChiSq(MapNodes, curMapTestFtrType);		}}			
 			else {						for (int i=0;i<exData.length;++i) {	exData[i].findBMUFromNodes(MapNodes, curMapTestFtrType);		}	}			
 		}
 		//go through every test example, if any, and attach prod to bmu - needs to be done synchronously because don't want to concurrently modify bmus from 2 different test examples		
-		msgObj.dispMessage("SOMMapManager","setTestBMUs","Finished finding bmus for all " +exData.length + " "+dataTypName+" data. Start adding "+dataTypName+" data to appropriate bmu's list.", MsgCodes.info1);
+		getMsgObj().dispMessage("SOMMapManager","setTestBMUs","Finished finding bmus for all " +exData.length + " "+dataTypName+" data. Start adding "+dataTypName+" data to appropriate bmu's list.", MsgCodes.info1);
 		_finalizeBMUProcessing(exData, dataType);
-		msgObj.dispMessage("SOMMapManager","setTestBMUs","Finished Mapping "+dataTypName+" data to best matching units.", MsgCodes.info5);		
+		getMsgObj().dispMessage("SOMMapManager","setTestBMUs","Finished Mapping "+dataTypName+" data to best matching units.", MsgCodes.info5);		
 	}//_setExamplesBMUs
 	
 	protected void _finalizeBMUProcessing(SOMExample[] _exs, ExDataType _type) {
@@ -433,9 +437,9 @@ public abstract class SOMMapManager {
 	public void initMapFtrVisAras(int numTrainFtrs) {
 		if (win != null) {
 			int num2ndTrainFtrs = _getNumSecondaryMaps();
-			msgObj.dispMessage("SOMMapManager","initMapAras","Initializing per-feature map display to hold : "+ numTrainFtrs +" primary feature and " +num2ndTrainFtrs + " secondary feature map images.", MsgCodes.info1);
+			getMsgObj().dispMessage("SOMMapManager","initMapAras","Initializing per-feature map display to hold : "+ numTrainFtrs +" primary feature and " +num2ndTrainFtrs + " secondary feature map images.", MsgCodes.info1);
 			win.initMapAras(numTrainFtrs, num2ndTrainFtrs);
-		} else {msgObj.dispMessage("SOMMapManager","initMapAras","Display window doesn't exist, can't build map visualization image arrays; ignoring.", MsgCodes.warning2);}
+		} else {getMsgObj().dispMessage("SOMMapManager","initMapAras","Display window doesn't exist, can't build map visualization image arrays; ignoring.", MsgCodes.warning2);}
 	}//initMapAras
 	
 	//process map node's ftr vals, add node to map, and add node to struct without any training examples (initial state for all map nodes)
@@ -564,9 +568,9 @@ public abstract class SOMMapManager {
 		String diffsFileName = projConfigData.getSOMMapDiffsFileName(), minsFileName = projConfigData.getSOMMapMinsFileName();
 		//load normalizing values for datapoints in weights - differences and mins, used to scale/descale training and map data
 		diffsVals = loadCSVSrcDataPoint(diffsFileName);
-		if((null==diffsVals) || (diffsVals.length < 1)){msgObj.dispMessage("SOMMapManager","loadDiffsMins","!!error reading diffsFile : " + diffsFileName, MsgCodes.error2); return false;}
+		if((null==diffsVals) || (diffsVals.length < 1)){getMsgObj().dispMessage("SOMMapManager","loadDiffsMins","!!error reading diffsFile : " + diffsFileName, MsgCodes.error2); return false;}
 		minsVals = loadCSVSrcDataPoint(minsFileName);
-		if((null==minsVals)|| (minsVals.length < 1)){msgObj.dispMessage("SOMMapManager","loadDiffsMins","!!error reading minsFile : " + minsFileName, MsgCodes.error2); return false;}	
+		if((null==minsVals)|| (minsVals.length < 1)){getMsgObj().dispMessage("SOMMapManager","loadDiffsMins","!!error reading minsFile : " + minsFileName, MsgCodes.error2); return false;}	
 		return true;
 	}//loadMinsAndDiffs()
 	
@@ -576,7 +580,7 @@ public abstract class SOMMapManager {
 		dispStr+= "] | Diffs is 2D ara of len : "+_diffs.length + " with each array of len : [";
 		for(int i=0;i<_diffs.length;++i) {dispStr+= ""+i+":"+_diffs[i].length+", ";}
 		dispStr+="]";
-		msgObj.dispMessage("SOMMapManager","setMinsAndDiffs",dispStr, MsgCodes.info2);
+		getMsgObj().dispMessage("SOMMapManager","setMinsAndDiffs",dispStr, MsgCodes.info2);
 		minsVals = _mins;
 		diffsVals = _diffs;
 	}
@@ -588,7 +592,7 @@ public abstract class SOMMapManager {
 	
 	//save mins and diffs of current training data
 	protected void saveMinsAndDiffs() {
-		msgObj.dispMessage("SOMMapManager","saveMinsAndDiffs","Begin Saving Mins and Diffs Files", MsgCodes.info1);
+		getMsgObj().dispMessage("SOMMapManager","saveMinsAndDiffs","Begin Saving Mins and Diffs Files", MsgCodes.info1);
 		//save mins/maxes so this file data be reconstructed
 		//save diffs and mins - csv files with each field value sep'ed by a comma
 		//boundary region for training data
@@ -606,7 +610,7 @@ public abstract class SOMMapManager {
 		String diffsFileName = projConfigData.getSOMMapDiffsFileName();				
 		fileIO.saveStrings(minsFileName,minsAra);		
 		fileIO.saveStrings(diffsFileName,diffsAra);		
-		msgObj.dispMessage("SOMMapManager","saveMinsAndDiffs","Finished Saving Mins and Diffs Files", MsgCodes.info1);	
+		getMsgObj().dispMessage("SOMMapManager","saveMinsAndDiffs","Finished Saving Mins and Diffs Files", MsgCodes.info1);	
 	}//saveMinsAndDiffs
 
 	
@@ -625,7 +629,7 @@ public abstract class SOMMapManager {
 			TreeMap<Integer, Float> ftrs = interpTreeMap(interpTreeMap(LowXLowYFtrs, LowXHiYFtrs,yInterp,1.0f),interpTreeMap(HiXLowYFtrs, HiXHiYFtrs,yInterp,1.0f),xInterp,255.0f);	
 			return ftrs;
 		} catch (Exception e){
-			msgObj.dispMessage("mySOMMapUIWin","getInterpFtrs","Exception triggered in mySOMMapUIWin::getInterpFtrs : \n"+e.toString() + "\n\tMessage : "+e.getMessage(), MsgCodes.error1);
+			getMsgObj().dispMessage("mySOMMapUIWin","getInterpFtrs","Exception triggered in mySOMMapUIWin::getInterpFtrs : \n"+e.toString() + "\n\tMessage : "+e.getMessage(), MsgCodes.error1);
 			return null;
 		}		
 	}//getInterpFtrs
@@ -641,7 +645,7 @@ public abstract class SOMMapManager {
 			Float uMatVal = linInterpVal(linInterpVal(LowXLowYUMat, LowXHiYUMat,yInterp,1.0f),linInterpVal(HiXLowYUMat, HiXHiYUMat,yInterp,1.0f),xInterp,255.0f);	
 			return uMatVal;
 		} catch (Exception e){
-			msgObj.dispMessage("mySOMMapUIWin","getInterpFtrs","Exception triggered in mySOMMapUIWin::getInterpFtrs : \n"+e.toString() + "\n\tMessage : "+e.getMessage(), MsgCodes.error1 );
+			getMsgObj().dispMessage("mySOMMapUIWin","getInterpFtrs","Exception triggered in mySOMMapUIWin::getInterpFtrs : \n"+e.toString() + "\n\tMessage : "+e.getMessage(), MsgCodes.error1 );
 			return 0.0f;
 		}
 	}//getInterpUMatVal
@@ -660,7 +664,7 @@ public abstract class SOMMapManager {
 			Float uMatVal = 255.0f*(ex.biCubicInterp(xInterp, yInterp));
 			return uMatVal;
 		} catch (Exception e){
-			msgObj.dispMessage("mySOMMapUIWin","getInterpFtrs","Exception triggered in mySOMMapUIWin::getInterpFtrs : \n"+e.toString() + "\n\tMessage : "+e.getMessage(), MsgCodes.error1 );
+			getMsgObj().dispMessage("mySOMMapUIWin","getInterpFtrs","Exception triggered in mySOMMapUIWin::getInterpFtrs : \n"+e.toString() + "\n\tMessage : "+e.getMessage(), MsgCodes.error1 );
 			return 0.0f;
 		}
 	}//getInterpUMatVal
@@ -673,7 +677,7 @@ public abstract class SOMMapManager {
 			Float uMatVal = (ex.biCubicInterp(xInterp, yInterp));
 			return (uMatVal > nodeInSegDistThresh ? 0 : ex.getSegClrAsInt());
 		} catch (Exception e){
-			msgObj.dispMessage("mySOMMapUIWin","getInterpFtrs","Exception triggered in mySOMMapUIWin::getInterpFtrs : \n"+e.toString() + "\n\tMessage : "+e.getMessage() , MsgCodes.error1);
+			getMsgObj().dispMessage("mySOMMapUIWin","getInterpFtrs","Exception triggered in mySOMMapUIWin::getInterpFtrs : \n"+e.toString() + "\n\tMessage : "+e.getMessage() , MsgCodes.error1);
 			return 0;
 		}
 	}
@@ -892,12 +896,12 @@ public abstract class SOMMapManager {
 	// getters/setters
 	
 	//return a copy of the message object - making a copy so that multiple threads can consume without concurrency issues
-	public messageObject buildMsgObj() {return new messageObject(msgObj);}
+	public MessageObject buildMsgObj() {return new MessageObject(getMsgObj());}
 	
 	//this is called when map is loaded, to set all bmus - application specific as to what gets mapped to map nodes
 	public abstract void setAllBMUsFromMap();
 	
-	public void setMapImgClrs(){if (win != null) {win.setMapImgClrs();} else {msgObj.dispMessage("SOMMapManager","setMapImgClrs","Display window doesn't exist, can't build visualization images; ignoring.", MsgCodes.warning2);}}
+	public void setMapImgClrs(){if (win != null) {win.setMapImgClrs();} else {getMsgObj().dispMessage("SOMMapManager","setMapImgClrs","Display window doesn't exist, can't build visualization images; ignoring.", MsgCodes.warning2);}}
 
 	public boolean getUseChiSqDist() {return useChiSqDist;}
 	public void setUseChiSqDist(boolean _useChiSq) {useChiSqDist=_useChiSq;}
@@ -908,6 +912,12 @@ public abstract class SOMMapManager {
 	
 	public void setCurrentTestDataFormat(int _frmt) {	curMapTestFtrType = _frmt; }//setCurrentDataFormat
 	public int getCurrentTestDataFormat() {	return curMapTestFtrType;}
+	public MessageObject getMsgObj() {
+		return msgObj;
+	}
+	public void setMsgObj(MessageObject msgObj) {
+		this.msgObj = msgObj;
+	}
 	public float getMapWidth(){return mapDims[0];}
 	public float getMapHeight(){return mapDims[1];}
 	public int getMapNodeCols(){return mapNodeCols;}
@@ -972,13 +982,13 @@ public abstract class SOMMapManager {
 			case mapDataLoadedIDX	: 		{break;}		
 			case loaderRtnIDX : {break;}
 			case denseTrainDataSavedIDX : {
-				if (val) {msgObj.dispMessage("SOMMapManager","setFlag","All "+ this.numTrainData +" Dense Training data saved to .lrn file", MsgCodes.info5);}
+				if (val) {getMsgObj().dispMessage("SOMMapManager","setFlag","All "+ this.numTrainData +" Dense Training data saved to .lrn file", MsgCodes.info5);}
 				break;}				//all prospect examples saved as training data
 			case sparseTrainDataSavedIDX : {
-				if (val) {msgObj.dispMessage("SOMMapManager","setFlag","All "+ this.numTrainData +" Sparse Training data saved to .svm file", MsgCodes.info5);}
+				if (val) {getMsgObj().dispMessage("SOMMapManager","setFlag","All "+ this.numTrainData +" Sparse Training data saved to .svm file", MsgCodes.info5);}
 				break;}				//all prospect examples saved as training data
 			case testDataSavedIDX : {
-				if (val) {msgObj.dispMessage("SOMMapManager","setFlag","All "+ this.numTestData + " saved to " + projConfigData.getSOMMapTestFileName() + " using "+(projConfigData.useSparseTestingData ? "Sparse ": "Dense ") + "data format", MsgCodes.info5);}
+				if (val) {getMsgObj().dispMessage("SOMMapManager","setFlag","All "+ this.numTestData + " saved to " + projConfigData.getSOMMapTestFileName() + " using "+(projConfigData.useSparseTestingData ? "Sparse ": "Dense ") + "data format", MsgCodes.info5);}
 				break;		}				
 		}
 	}//setFlag		
@@ -1038,7 +1048,7 @@ public abstract class SOMMapManager {
 		nodeXPerPxl = mapNodeCols/this.mapDims[0];
 		if (win != null) {			
 			boolean didSet = win.setWinToUIVals(win.uiMapColsIDX, mapNodeCols);
-			if(!didSet){msgObj.dispMessage("SOMMapManager","setMapX","Setting ui map x value failed for x = " + _x, MsgCodes.error2);}
+			if(!didSet){getMsgObj().dispMessage("SOMMapManager","setMapX","Setting ui map x value failed for x = " + _x, MsgCodes.error2);}
 		}
 	}//setMapX
 	public void setMapNumRows(int _y){
@@ -1047,7 +1057,7 @@ public abstract class SOMMapManager {
 		nodeYPerPxl = mapNodeRows/this.mapDims[1];
 		if (win != null) {			
 			boolean didSet = win.setWinToUIVals(win.uiMapRowsIDX, mapNodeRows);
-			if(!didSet){msgObj.dispMessage("SOMMapManager","setMapY","Setting ui map y value failed for y = " + _y, MsgCodes.error2);}
+			if(!didSet){getMsgObj().dispMessage("SOMMapManager","setMapY","Setting ui map y value failed for y = " + _y, MsgCodes.error2);}
 		}
 	}//setMapY
 
@@ -1089,7 +1099,7 @@ class messageMgr implements Callable<Boolean> {
 	private void  dispMessage(String str, MsgCodes useCode) {
 		if(mapMgr != null) {
 			String typStr = getStreamType(str);			
-			mapMgr.msgObj.dispMessage("messageMgr","call ("+type+" Stream Handler)", str, useCode);}
+			mapMgr.getMsgObj().dispMessage("messageMgr","call ("+type+" Stream Handler)", str, useCode);}
 		else {				System.out.println(str);	}
 	}//msgObj.dispMessage
 	

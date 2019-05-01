@@ -9,12 +9,12 @@ package base_SOM_Objects;
 
 import java.util.*;
 
-import SOM_Strafford_PKG.SOMProjConfigData;
 import base_Utils_Objects.*;
+import strafford_SOM_PKG.SOMProjConfigData;
 
 public class SOM_MapDat{
 	//object to faciliate printing to screen or log file
-	private messageObject msgObj;
+	private MessageObject msgObj;
 	//os currently running - use to modify exec string for mac/linux
 	private final String curOS;		
 	//SOM_MAP execution directory
@@ -43,7 +43,7 @@ public class SOM_MapDat{
 	private static int numFlags = 3;	
 		
 	//
-	public SOM_MapDat(messageObject _msgObj, String _curOS) {
+	public SOM_MapDat(MessageObject _msgObj, String _curOS) {
 		curOS = _curOS;
 		mapInts = new HashMap<String, Integer>();			// mapCols (x), mapRows (y), mapEpochs, mapKType, mapStRad, mapEndRad;
 		mapFloats = new HashMap<String, Float>();			// mapStLrnRate, mapEndLrnRate;

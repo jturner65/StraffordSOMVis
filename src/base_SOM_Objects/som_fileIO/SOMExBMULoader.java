@@ -1,0 +1,51 @@
+package base_SOM_Objects.som_fileIO;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.concurrent.Callable;
+
+import base_SOM_Objects.som_examples.SOMExample;
+import base_SOM_Objects.som_examples.SOMMapNode;
+import base_Utils_Objects.MsgCodes;
+import base_Utils_Objects.MessageObject;
+
+ 
+//load best matching units for each provided example - 
+public class SOMExBMULoader implements Callable<Boolean>{
+	//object that manages message displays on screen
+	private MessageObject msgObj;
+
+	int thdIDX;
+	boolean useChiSqDist;
+	int ftrTypeUsedToTrain;
+	HashMap<SOMMapNode, ArrayList<SOMExample>> bmusToExmpl;
+	public SOMExBMULoader(MessageObject _msgObj, int _ftrTypeUsedToTrain, boolean _useChiSqDist, HashMap<SOMMapNode, ArrayList<SOMExample>> _bmusToExmpl,int _thdIDX) {
+		msgObj = _msgObj;
+		ftrTypeUsedToTrain = _ftrTypeUsedToTrain;
+		useChiSqDist =_useChiSqDist;
+		thdIDX= _thdIDX;	
+		bmusToExmpl = _bmusToExmpl;
+		int numExs = 0;
+		for (SOMMapNode tmpMapNode : bmusToExmpl.keySet()) {
+			ArrayList<SOMExample> exs = bmusToExmpl.get(tmpMapNode);
+			numExs += exs.size();
+		}		
+		msgObj.dispMessage("SOMExBMULoader","ctor : thd_idx : "+thdIDX, "# of bmus to proc : " +  bmusToExmpl.size() + " # exs : " + numExs, MsgCodes.info2);
+	}//ctor
+
+	@Override
+	public Boolean call() throws Exception {
+		if (useChiSqDist) {		
+			for (SOMMapNode tmpMapNode : bmusToExmpl.keySet()) {
+				ArrayList<SOMExample> exs = bmusToExmpl.get(tmpMapNode);
+				for(SOMExample ex : exs) {ex.setBMU_ChiSq(tmpMapNode, ftrTypeUsedToTrain);tmpMapNode.addExToBMUs(ex);	}
+			}		
+		} else {		
+			for (SOMMapNode tmpMapNode : bmusToExmpl.keySet()) {
+				ArrayList<SOMExample> exs = bmusToExmpl.get(tmpMapNode);
+				for(SOMExample ex : exs) {ex.setBMU(tmpMapNode, ftrTypeUsedToTrain); tmpMapNode.addExToBMUs(ex);	}
+			}
+		}	
+		return true;
+	}//run	
+}//SOMExBMULoader

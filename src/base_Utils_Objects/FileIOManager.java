@@ -11,11 +11,11 @@ import java.util.*;
 
 public class FileIOManager{
 	//owning map manager
-	protected messageObject msg;
+	protected MessageObject msg;
 	//name of owning class of the instance of this object, for display
 	protected String owner;
 	
-	public FileIOManager(messageObject _msg, String _owner) {owner=_owner; msg=_msg;}	
+	public FileIOManager(MessageObject _msg, String _owner) {owner=_owner; msg=_msg;}	
 	//write data to file
 	public void saveStrings(String fname, String[] data) { saveStrings( fname, data, false);}
 	public void saveStrings(String fname, String[] data, boolean append) {
