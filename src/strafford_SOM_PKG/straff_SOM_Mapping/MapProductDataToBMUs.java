@@ -1,4 +1,4 @@
-package strafford_SOM_PKG;
+package strafford_SOM_PKG.straff_SOM_Mapping;
 
 import java.util.ArrayList;
 import java.util.TreeMap;

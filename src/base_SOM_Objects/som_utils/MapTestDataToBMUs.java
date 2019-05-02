@@ -16,12 +16,12 @@ public class MapTestDataToBMUs extends MapDataToBMUs{
 	@Override
 	protected boolean mapAllDataToBMUs() {
 		if(exs.length == 0) {
-			msgObj.dispMessage("mapTestDataToBMUs", "Run Thread : " +thdIDX, ""+dataType+" Data["+stIdx+":"+endIdx+"] is length 0 so nothing to do. Aborting thread.", MsgCodes.info5);
+			msgObj.dispMessage("MapTestDataToBMUs", "Run Thread : " +thdIDX, ""+dataType+" Data["+stIdx+":"+endIdx+"] is length 0 so nothing to do. Aborting thread.", MsgCodes.info5);
 			return true;}
 		msgObj.dispMessage("mapTestDataToBMUs", "Run Thread : " +thdIDX, "Starting "+dataType+" Data["+stIdx+":"+endIdx+"]  (" + (endIdx-stIdx) + " exs), to BMU mapping using " + ftrTypeDesc + " Features and including all features in distance.", MsgCodes.info5);
 		if (useChiSqDist) {		for (int i=stIdx;i<endIdx;++i) {exs[i].findBMUFromNodes_ChiSq_Excl(MapNodes, curMapFtrType);}} 
 		else {					for (int i=stIdx;i<endIdx;++i) {exs[i].findBMUFromNodes_Excl(MapNodes,  curMapFtrType); }}		
-		msgObj.dispMessage("mapTestDataToBMUs", "Run Thread : " +thdIDX, "Finished "+dataType+" Data["+stIdx+":"+endIdx+"] to BMU mapping", MsgCodes.info5);		
+		msgObj.dispMessage("MapTestDataToBMUs", "Run Thread : " +thdIDX, "Finished "+dataType+" Data["+stIdx+":"+endIdx+"] to BMU mapping", MsgCodes.info5);		
 		return true;
 	}		
 }//mapTestToBMUs	

@@ -4,6 +4,8 @@
 package strafford_SOM_PKG;
 
 import base_Utils_Objects.MessageObject;
+import strafford_SOM_PKG.straff_SOM_Mapping.StraffSOMMapManager;
+import strafford_SOM_PKG.straff_Utils.SOMProjConfigData;
 
 /**
  * this class will launch the SOM project without any dependencies on any processing applets or code

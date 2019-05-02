@@ -889,7 +889,7 @@ abstract class baseDataPtVis{
 	public float getRad(){return rad;}
 	
 	//set map location for this example
-	public void setMapLoc(myPointf _pt){mapLoc = new myPointf(_pt);}
+	public final void setMapLoc(myPointf _pt){mapLoc.set(_pt.x,_pt.y,_pt.z);}
 	
 	//draw this example with a line linking it to its best matching unit
 	public final void drawMeLinkedToBMU(my_procApplet p, float _rad, String ID){

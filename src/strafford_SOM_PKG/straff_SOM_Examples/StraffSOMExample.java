@@ -1,17 +1,13 @@
 package strafford_SOM_PKG.straff_SOM_Examples;
 
 import java.util.*;
-import java.util.Map.Entry;
-import java.util.regex.Pattern;
 
 import base_SOM_Objects.*;
 import base_SOM_Objects.som_examples.*;
-import base_UI_Objects.*;
 import base_Utils_Objects.*;
-import strafford_SOM_PKG.MonitorJpJpgrp;
-import strafford_SOM_PKG.StraffSOMMapManager;
-import strafford_SOM_PKG.StraffWeightCalc;
-import strafford_SOM_PKG.straff_RawDataHandling.*;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.*;
+import strafford_SOM_PKG.straff_SOM_Mapping.*;
+import strafford_SOM_PKG.straff_Utils.MonitorJpJpgrp;
 
 
 /**

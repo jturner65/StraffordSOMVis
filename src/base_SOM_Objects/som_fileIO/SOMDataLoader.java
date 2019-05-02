@@ -7,7 +7,7 @@ import java.util.concurrent.*;
 import base_SOM_Objects.*;
 import base_SOM_Objects.som_examples.*;
 import base_Utils_Objects.*;
-import strafford_SOM_PKG.SOMProjConfigData;
+import strafford_SOM_PKG.straff_Utils.SOMProjConfigData;
 
 //class that describes the hierarchy of files required for running and analysing a SOM
 public class SOMDataLoader implements Runnable {

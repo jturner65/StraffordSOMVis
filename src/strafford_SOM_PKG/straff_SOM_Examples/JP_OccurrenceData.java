@@ -5,7 +5,7 @@ import java.util.TreeMap;
 import java.util.Map.Entry;
 
 import base_Utils_Objects.Tuple;
-import strafford_SOM_PKG.straff_RawDataHandling.BaseRawData;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.BaseRawData;
 
 /**
  * this class is a simple struct to hold a single jp's jpg, and the count and date of all occurrences for a specific OID/prospect

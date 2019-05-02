@@ -8,6 +8,14 @@ import base_SOM_Objects.som_examples.ExDataType;
 import base_Utils_Objects.MsgCodes;
 import strafford_SOM_PKG.*;
 import strafford_SOM_PKG.straff_RawDataHandling.*;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.BaseRawData;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.LinkEvent;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.OptEvent;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.OrderEvent;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.ProspectData;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.SourceEvent;
+import strafford_SOM_PKG.straff_SOM_Mapping.StraffSOMMapManager;
+import strafford_SOM_PKG.straff_Utils.StraffWeightCalc;
 
 /**
  * 	this class holds a customer prospect example, that will either be used to 

@@ -9,8 +9,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.*;
 
 import base_Utils_Objects.*;
-import strafford_SOM_PKG.straff_RawDataHandling.BaseRawData;
 import strafford_SOM_PKG.straff_RawDataHandling.StraffSOMRawDataLdrCnvrtr;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.BaseRawData;
 
 /**
 * this class will load, and manage, the appropriate files containing 

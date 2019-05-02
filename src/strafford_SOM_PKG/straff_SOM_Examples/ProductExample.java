@@ -8,8 +8,8 @@ import base_SOM_Objects.som_examples.SOMMapNode;
 import base_UI_Objects.my_procApplet;
 import base_Utils_Objects.MsgCodes;
 import base_Utils_Objects.Tuple;
-import strafford_SOM_PKG.StraffSOMMapManager;
-import strafford_SOM_PKG.straff_RawDataHandling.TcTagData;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.TcTagData;
+import strafford_SOM_PKG.straff_SOM_Mapping.StraffSOMMapManager;
 
 public 
 /**

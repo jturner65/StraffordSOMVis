@@ -1,13 +1,13 @@
 package strafford_SOM_PKG.straff_SOM_Examples;
 
-import java.util.ArrayList;
-import java.util.TreeMap;
+import java.util.*;
 
-import base_SOM_Objects.SOMMapManager;
-import base_SOM_Objects.som_examples.SOMMapNode;
-import base_Utils_Objects.Tuple;
-import strafford_SOM_PKG.MonitorJpJpgrp;
-import strafford_SOM_PKG.StraffSOMMapManager;
+import base_SOM_Objects.*;
+import base_SOM_Objects.som_examples.*;
+import base_Utils_Objects.*;
+
+import strafford_SOM_PKG.straff_SOM_Mapping.StraffSOMMapManager;
+import strafford_SOM_PKG.straff_Utils.MonitorJpJpgrp;
 
 ////this class represents a particular node in the SOM map, with specific customizations for strafford data
 public class StraffSOMMapNode extends SOMMapNode{

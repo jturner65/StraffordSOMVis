@@ -7,20 +7,22 @@ import java.util.concurrent.*;
 
 import base_SOM_Objects.som_examples.*;
 import base_SOM_Objects.som_fileIO.*;
+import base_SOM_Objects.som_ui.*;
 import base_SOM_Objects.som_utils.*;
 import base_SOM_Objects.som_vis.*;
 
 
 import base_UI_Objects.*;
 import base_Utils_Objects.*;
-import strafford_SOM_PKG.SOMProjConfigData;
+
 import strafford_SOM_PKG.Straff_SOMMapUIWin;
+import strafford_SOM_PKG.straff_Utils.SOMProjConfigData;
 
 public abstract class SOMMapManager {
 	//applet, if used in graphical context
 	private my_procApplet pa;				
 	//owning window
-	public Straff_SOMMapUIWin win;		
+	public SOMMapUIWin win;		
 	//manage IO in this object
 	protected FileIOManager fileIO; 
 	//struct maintaining complete project configuration and information from config files - all file name data and building needs to be done by this object
@@ -77,6 +79,9 @@ public abstract class SOMMapManager {
 	//data type to use to describe/train map
 	public static final int useUnmoddedDat = 0, useScaledDat = 1, useNormedDat = 2;
 	public static final String[] uiMapTrainFtrTypeList = new String[] {"Unmodified","Standardized (0->1 per ftr)","Normalized (vector mag==1)"};
+	//types of possible mappings to particular map node as bmu
+	//corresponds to these values : ProspectTraining(0),ProspectTesting(1),Product(2)
+	public static final String[] nodeBMUMapTypes = new String[] {"Training", "Testing", "Products"};
 	//feature type used for training currently trained/loaded map
 	protected int curMapTrainFtrType;	
 	//feature type used for testing/finding proposals currently - comparing features to map
@@ -134,7 +139,7 @@ public abstract class SOMMapManager {
 		resetTrainDataAras();
 	}//ctor
 	//use this to set window/UI components, if exist
-	public void setPADispWinData(Straff_SOMMapUIWin _win, my_procApplet _pa) {
+	public void setPADispWinData(SOMMapUIWin _win, my_procApplet _pa) {
 		win=_win;
 		pa=_pa;
 		MessageObject.pa = _pa;
@@ -331,6 +336,8 @@ public abstract class SOMMapManager {
 	protected abstract int _getNumSecondaryMaps();
 	//only appropriate if using UI
 	public void setSaveLocClrImg(boolean val) {if (win != null) { win.setPrivFlags(win.saveLocClrImgIDX,val);}}
+	//whether or not distances between two datapoints assume that absent features in smaller-length datapoints are 0, or to ignore the values in the larger datapoints
+	public abstract void setMapExclZeroFtrs(boolean val);
 
 	//take existing map and use U-Matrix-distances to determine segment membership.Large distances > thresh (around .7) mean nodes are on a boundary
 	public void buildSegmentsOnMap() {//need to find closest
@@ -352,6 +359,9 @@ public abstract class SOMMapManager {
 		if(win!=null) {win.setMapSegmentImgClrs();}
 		getMsgObj().dispMessage("SOMMapManager","buildSegmentsOnMap","Finished building cluster map", MsgCodes.info5);			
 	}//buildSegmentsOnMap()
+	
+	public abstract SOMMap_DispExample buildTmpDataExampleFtrs(myPointf ptrLoc, TreeMap<Integer, Float> ftrs, float sens);
+	public abstract SOMMap_DispExample buildTmpDataExampleDists(myPointf ptrLoc, float dist, float sens);
 	
 	/////////////////////////////////////
 	// map node management - map nodes are represented by SOMExample objects called SOMMapNodes
@@ -861,6 +871,8 @@ public abstract class SOMMapManager {
 		pa.popStyle();pa.popMatrix();		
 	}
 	
+	//get ftr name/idx/instance-specific value based to save an image of current map
+	public abstract String getSOMLocClrImgForFtrFName(int ftrIDX);
 	//draw right sidebar data
 	public void drawResultBar(my_procApplet pa, float yOff) {
 		yOff-=4;

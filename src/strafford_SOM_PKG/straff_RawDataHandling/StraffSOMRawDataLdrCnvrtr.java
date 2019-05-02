@@ -8,11 +8,14 @@ import java.util.concurrent.Future;
 import base_SOM_Objects.som_examples.*;
 
 import base_Utils_Objects.*;
-import strafford_SOM_PKG.SOMProjConfigData;
-import strafford_SOM_PKG.StraffSOMMapManager;
 import strafford_SOM_PKG.straff_RawDataHandling.data_loaders.StraffordDataLoader;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.BaseRawData;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.ProspectData;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.TcTagData;
 import strafford_SOM_PKG.straff_SOM_Examples.CustProspectExample;
 import strafford_SOM_PKG.straff_SOM_Examples.ProductExample;
+import strafford_SOM_PKG.straff_SOM_Mapping.StraffSOMMapManager;
+import strafford_SOM_PKG.straff_Utils.SOMProjConfigData;
 
 /**
  * this class manages the loading of the raw data from either csv or from sql queries (TODO: SQL not implemented yet)

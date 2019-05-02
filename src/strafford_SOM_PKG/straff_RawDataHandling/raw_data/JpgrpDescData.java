@@ -1,4 +1,4 @@
-package strafford_SOM_PKG.straff_RawDataHandling;
+package strafford_SOM_PKG.straff_RawDataHandling.raw_data;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 

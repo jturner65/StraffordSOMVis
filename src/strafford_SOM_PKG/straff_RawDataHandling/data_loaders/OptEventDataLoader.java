@@ -1,7 +1,7 @@
 package strafford_SOM_PKG.straff_RawDataHandling.data_loaders;
 
-import strafford_SOM_PKG.straff_RawDataHandling.BaseRawData;
-import strafford_SOM_PKG.straff_RawDataHandling.OptEvent;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.BaseRawData;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.OptEvent;
 
 //stream opt Events and build the objects that will then decipher their json content and build the training/testing data based on them
 public class OptEventDataLoader extends StraffordDataLoader{

@@ -1,4 +1,4 @@
-package strafford_SOM_PKG;
+package strafford_SOM_PKG.straff_Utils;
 
 import java.util.*; 
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -8,11 +8,12 @@ import base_SOM_Objects.*;
 import base_Utils_Objects.FileIOManager;
 import base_Utils_Objects.MsgCodes;
 import base_Utils_Objects.Tuple;
-import strafford_SOM_PKG.straff_RawDataHandling.BaseRawData;
-import strafford_SOM_PKG.straff_RawDataHandling.JobPracticeData;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.BaseRawData;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.JobPracticeData;
 import strafford_SOM_PKG.straff_SOM_Examples.EvtDataType;
 import strafford_SOM_PKG.straff_SOM_Examples.ProductExample;
 import strafford_SOM_PKG.straff_SOM_Examples.ProspectExample;
+import strafford_SOM_PKG.straff_SOM_Mapping.StraffSOMMapManager;
 import base_Utils_Objects.MessageObject;
 
 //this class will monitor presence and counts of jpgroups and jps
@@ -192,11 +193,11 @@ public class MonitorJpJpgrp {
 	//this will return the appropriate jpgrp for the given jpIDX (ftr idx)
 	public int getUI_JPGrpFromFtrJP(int jpIdx, int curVal) {return trainingJpJpgData.getUI_JPGrpFromJP(jpIdx, curVal);}
 	//this will return the first(lowest) jp for a particular jpgrp
-	public int getUI_FirstJPFromFtrJPG(int jpgIdx, Integer curJPVal) { return trainingJpJpgData.getUI_FirstJPFromJPG(jpgIdx, curJPVal);}//getUI_FirstJPFromJPG	
+	public int getUI_FirstJPIdxFromFtrJPG(int jpgIdx, Integer curJPIdxVal) { return trainingJpJpgData.getUI_FirstJPIdxFromJPG(jpgIdx, curJPIdxVal);}//getUI_FirstJPFromJPG	
 	//this will return the appropriate jpgrp for the given jpIDX (ftr idx)
 	public int getUI_JPGrpFromAllJP(int jpIdx, int curVal) {return mapOfJPData.get(typeOfJpStrs[allExJpsIDX]).getUI_JPGrpFromJP(jpIdx, curVal);}
 	//this will return the first(lowest) jp for a particular jpgrp
-	public int getUI_FirstJPFromAllJPG(int jpgIdx, Integer curJPVal) { return mapOfJPData.get(typeOfJpStrs[allExJpsIDX]).getUI_FirstJPFromJPG(jpgIdx, curJPVal);}//getUI_FirstJPFromJPG	
+	public int getUI_FirstJPIdxFromAllJPG(int jpgIdx, Integer curJPIdxVal) { return mapOfJPData.get(typeOfJpStrs[allExJpsIDX]).getUI_FirstJPIdxFromJPG(jpgIdx, curJPIdxVal);}//getUI_FirstJPFromJPG	
 	//return how many times this JP has been seen
 	public int getCountJPSeen(int _type, Integer jp) {return mapOfJPData.get(typeOfJpStrs[_type]).getCountJPSeen(jp);}
 
@@ -557,19 +558,22 @@ abstract class JP_JPG_Data{
 		return jpgToIDX.get(jpgrp);		
 	}
 	//this will return the first(lowest) jp for a particular jpgrp
-	public int getUI_FirstJPFromJPG(int jpgIdx, Integer curJPVal) {
-		if(jpgsToJps.size() < jpgIdx) {return curJPVal;}
-		String msg = "Requested Job Practice Group : " + jpgIdx + " Cur JP : " + curJPVal;
+	public int getUI_FirstJPIdxFromJPG(int jpgIdx, Integer curJPIdxVal) {
+		if(jpgsToJps.size() < jpgIdx) {return curJPIdxVal;}
+		
+		int curJPVal = jpByIdx[curJPIdxVal];
+		
+		String msg = "Requested Job Practice Group Index : " + jpgIdx + " Cur JP : " + curJPVal + " Cur JP Idx : " + curJPIdxVal;
 		
 		TreeSet <Integer> jpList = jpgsToJps.get(jpgrpsByIdx[jpgIdx]);
-		if (jpList.contains(jpByIdx[curJPVal])) {			
+		if (jpList.contains(curJPVal)) {			
 			msgObj.dispMessage("MonitorJpJpgrp::JP_JPG_Data("+type+")","getUI_FirstJPFromJPG", msg+ " : JP Group contains current JP.", MsgCodes.info1);			
 		}//if in current jpgrp already, then return current value
 		else {//swapping to new jpgroup
-			curJPVal = jpToIDX.get(jpList.first());
-			msgObj.dispMessage("MonitorJpJpgrp::JP_JPG_Data("+type+")","getUI_FirstJPFromJPG", msg+ " : JP Group doesn't contain current JP val; JP changed to : " + curJPVal, MsgCodes.info1);			
+			curJPIdxVal = jpToIDX.get(jpList.first());
+			msgObj.dispMessage("MonitorJpJpgrp::JP_JPG_Data("+type+")","getUI_FirstJPFromJPG", msg+ " : JP Group doesn't contain current JP val; JP changed to : " + curJPVal + " Idx : " + curJPIdxVal, MsgCodes.info1);			
 		}
-		return curJPVal;	
+		return curJPIdxVal;	
 	}//getUI_FirstJPFromJPG
 	//debugging function to display all unique jps seen in data
 	public void dbgShowUniqueJPsSeen() {

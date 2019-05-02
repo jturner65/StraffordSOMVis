@@ -1,4 +1,4 @@
-package strafford_SOM_PKG;
+package strafford_SOM_PKG.straff_Utils;
 
 import java.io.*;
 import java.util.*;

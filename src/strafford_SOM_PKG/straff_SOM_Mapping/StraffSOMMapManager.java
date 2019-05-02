@@ -1,4 +1,4 @@
-package strafford_SOM_PKG;
+package strafford_SOM_PKG.straff_SOM_Mapping;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -8,9 +8,12 @@ import base_SOM_Objects.som_examples.*;
 import base_SOM_Objects.som_fileIO.*;
 import base_UI_Objects.*;
 import base_Utils_Objects.*;
-import strafford_SOM_PKG.straff_RawDataHandling.BaseRawData;
+import strafford_SOM_PKG.Straff_SOMMapUIWin;
 import strafford_SOM_PKG.straff_RawDataHandling.StraffSOMRawDataLdrCnvrtr;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.BaseRawData;
 import strafford_SOM_PKG.straff_SOM_Examples.*;
+import strafford_SOM_PKG.straff_Utils.MonitorJpJpgrp;
+import strafford_SOM_PKG.straff_Utils.StraffWeightCalc;
 
 
 //this class holds the data describing a SOM and the data used to both build and query the som
@@ -50,10 +53,6 @@ public class StraffSOMMapManager extends SOMMapManager {
 	private TreeMap<Integer, ArrayList<ProductExample>> productsByJpg, productsByJp;
 	//total # of jps in all data, including source events
 	private int numTtlJps;	
-	
-	//types of possible mappings to particular map node as bmu
-	//corresponds to these values : ProspectTraining(0),ProspectTesting(1),Product(2)
-	public static final String[] nodeBMUMapTypes = new String[] {"Training", "Testing", "Products"};
 	
 	public static final int 
 			jps_FtrIDX = 0,		//idx in delta structs (diffs, mins) for jps used for training ftrs (non virtual jps)
@@ -113,8 +112,8 @@ public class StraffSOMMapManager extends SOMMapManager {
 	public StraffSOMMapManager(String[] _dirs,float[] _dims) {this(null,_dirs, _dims);}
 
 	//set max display list values
-	public void setUI_JPFtrMaxVals(int jpGrpLen, int jpLen) {if (win != null) {win.setUI_JPFtrListMaxVals(jpGrpLen, jpLen);}}
-	public void setUI_JPAllSeenMaxVals(int jpGrpLen, int jpLen) {if (win != null) {win.setUI_JPAllSeenListMaxVals(jpGrpLen, jpLen);}}
+	public void setUI_JPFtrMaxVals(int jpGrpLen, int jpLen) {if (win != null) {((Straff_SOMMapUIWin)win).setUI_JPFtrListMaxVals(jpGrpLen, jpLen);}}
+	public void setUI_JPAllSeenMaxVals(int jpGrpLen, int jpLen) {if (win != null) {((Straff_SOMMapUIWin)win).setUI_JPAllSeenListMaxVals(jpGrpLen, jpLen);}}
 	protected int _getNumSecondaryMaps(){return jpJpgrpMon.getLenFtrJpGrpByIdx();}
 
 	//clear out existing validation map, which holds true prospects (generally defined as prospects without any order event history)
@@ -945,8 +944,15 @@ public class StraffSOMMapManager extends SOMMapManager {
 	// end drawing routines
 	//////////////////////////////////////////////////////
 	
-	public DispSOMMapExample buildTmpDataExampleFtrs(myPointf ptrLoc, TreeMap<Integer, Float> ftrs, float sens) {return new DispSOMMapExample(this, ptrLoc, ftrs, sens);}
-	public DispSOMMapExample buildTmpDataExampleDists(myPointf ptrLoc, float dist, float sens) {return new DispSOMMapExample(this, ptrLoc, dist, sens);}
+	@Override
+	public SOMMap_DispExample buildTmpDataExampleFtrs(myPointf ptrLoc, TreeMap<Integer, Float> ftrs, float sens) {return new DispSOMMapExample(this, ptrLoc, ftrs, sens);}
+	@Override
+	public SOMMap_DispExample buildTmpDataExampleDists(myPointf ptrLoc, float dist, float sens) {return new DispSOMMapExample(this, ptrLoc, dist, sens);}
+	
+	//whether or not distances between two datapoints assume that absent features in smaller-length datapoints are 0, or to ignore the values in the larger datapoints
+	@Override
+	public void setMapExclZeroFtrs(boolean val) {setPrivFlag(mapExclProdZeroFtrIDX, val);};
+
 	
 	private void initPrivFlags(){priv_stFlags = new int[1 + numFlags/32]; for(int i = 0; i<numFlags; ++i){setPrivFlag(i,false);}}
 	public void setAllPrivFlags(int[] idxs, boolean val) {for (int idx : idxs) {setPrivFlag(idx, val);}}
@@ -985,15 +991,15 @@ public class StraffSOMMapManager extends SOMMapManager {
 	//this will return the appropriate jpgrp for the given jpIDX (list idx)
 	public int getUI_JPGrpFromFtrJP(int jpIdx, int curVal) {		return jpJpgrpMon.getUI_JPGrpFromFtrJP(jpIdx, curVal);}
 	//this will return the first(lowest) jp for a particular jpgrp
-	public int getUI_FirstJPFromFtrJPG(int jpgIdx, int curJPVal) {	return jpJpgrpMon.getUI_FirstJPFromFtrJPG(jpgIdx, curJPVal);}	
+	public int getUI_FirstJPIdxFromFtrJPG(int jpgIdx, int curJPIdxVal) {	return jpJpgrpMon.getUI_FirstJPIdxFromFtrJPG(jpgIdx, curJPIdxVal);}	
 	//this will return the appropriate jpgrp for the given jpIDX (list idx)
 	public int getUI_JPGrpFromAllJP(int jpIdx, int curVal) {		return jpJpgrpMon.getUI_JPGrpFromAllJP(jpIdx, curVal);}
 	//this will return the first(lowest) jp for a particular jpgrp
-	public int getUI_FirstJPFromAllJPG(int jpgIdx, int curJPVal) {	return jpJpgrpMon.getUI_FirstJPFromAllJPG(jpgIdx, curJPVal);}	
+	public int getUI_FirstJPIdxFromAllJPG(int jpgIdx, int curJPIdxVal) {	return jpJpgrpMon.getUI_FirstJPIdxFromAllJPG(jpgIdx, curJPIdxVal);}	
 	
-	
+	@Override
 	//return appropriately pathed file name for map image of specified JP idx
-	public String getSOMLocClrImgForJPFName(int jpIDX) {
+	public String getSOMLocClrImgForFtrFName(int jpIDX) {
 		int jp = jpJpgrpMon.getFtrJpByIdx(jpIDX);
 		return projConfigData.getSOMLocClrImgForJPFName(jp);	
 	}	

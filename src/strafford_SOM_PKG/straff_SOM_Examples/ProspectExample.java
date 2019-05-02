@@ -8,6 +8,8 @@ import base_SOM_Objects.som_examples.*;
 import base_Utils_Objects.MsgCodes;
 import base_Utils_Objects.Tuple;
 import strafford_SOM_PKG.straff_RawDataHandling.*;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.BaseRawData;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.ProspectData;
 
 /**
  * class to manage a prospect example, either a past customer or a potential prospect
@@ -78,43 +80,7 @@ public abstract class ProspectExample extends StraffSOMExample{
 		eventsByDateMap = new TreeMap<String, TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>>>();
 		_initObjsIndiv();
 	}//initObjsData
-	
-//	//build data from csv record for type of event
-//	protected final void buildEventTrainDataFromCSVStr(String evntType, int numEvents, String allEventsStr, TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>> mapToAdd, EvtDataType type) {
-//		//String evntType = eventMapTypeKeys[type.getVal()];
-//		//int numEventsToShow = 0; boolean dbgOutput = false;
-//		String [] allEventsStrAra = allEventsStr.trim().split("EvSt,");
-//		//will have an extra entry holding OPT key
-//		if(allEventsStrAra.length != (numEvents+1)) {//means not same number of event listings in csv as there are events counted in original event list - shouldn't be possible
-//			msgObj.dispMessage("prospectExample","buildEventTrainDataFromCSVStr","Error building train data from csv file : " + evntType + " Event : "+allEventsStr + " string does not have expected # of events : " +allEventsStrAra.length + " vs. expected :" +numEvents,MsgCodes.error1 );
-//			return;
-//		}
-////		if ((type == EvtDataType.Order) &&(numEvents > numEventsToShow) && dbgOutput) {
-////			System.out.println("type : " +evntType  +" | AllEventsStr : " + allEventsStr );
-////		}
-//		for (String eventStr : allEventsStrAra) {
-//			if (eventStr.length() == 0 ) {continue;}
-//			String[] eventStrAra = eventStr.trim().split(",");
-//			String evType = eventStrAra[1];
-//			Integer evID = Integer.parseInt(eventStrAra[3]);
-//			String evDateStr = eventStrAra[5];
-//			//need to print out string to make sure that there is only a single instance of every event id in each record in csv files
-//			StraffEvntTrainData newEv = buildNewTrainDataFromStr(evID, evType, evDateStr, eventStr, type);
-////			if ((type == EvtDataType.Opt) &&(numEvents > numEventsToShow) && dbgOutput) {
-////				System.out.println("\tEvent : " + newEv.toString());
-////			}
-//			Date addDate = newEv.getEventDate();			
-//			
-//			TreeMap<Integer, StraffEvntTrainData> eventsOnDate = mapToAdd.get(addDate);
-//			if(null == eventsOnDate) {eventsOnDate = new TreeMap<Integer, StraffEvntTrainData>();}
-//			StraffEvntTrainData tmpEvTrainData = eventsOnDate.get(evID);
-//			if(null != tmpEvTrainData) {msgObj.dispMessage("prospectExample","buildEventTrainDataFromCSVStr","Possible issue : event being written over : old : "+ tmpEvTrainData.toString() + "\n\t replaced by new : " + newEv.toString(),MsgCodes.warning2 );}
-//			
-//			eventsOnDate.put(evID, newEv);
-//			mapToAdd.put(addDate, eventsOnDate);
-//		}		
-//	}//buildEventTrainDataFromCsvStr
-	
+
 	//build jpOccurrence struct from type-specific occurrence record
 	//example of csv string
 	//pr_000000331,2016-11-21 16:15:51,0,1,7,OPT|,LNK|,Occ_St,364,4,0,DtOccSt,2012-04-25 15:59:14,1,3,2,DtOccEnd,DtOccSt,2016-02-13 07:49:31,1,3,1,DtOccEnd,Occ_End,SRC|,Occ_St,69,4,1,DtOccSt,2007-09-21 21:53:32,1,11,1,DtOccEnd,DtOccSt,2009-02-06 05:53:38,1,57,1,DtOccEnd,Occ_End,Occ_St,131,4,1,DtOccSt,2009-02-06 05:53:49,1,57,1,DtOccEnd,DtOccSt,2017-10-03 03:07:09,1,92,1,DtOccEnd,Occ_End,Occ_St,227,20,1,DtOccSt,2010-01-04 22:22:49,1,41,1,DtOccEnd,Occ_End,Occ_St,231,64,1,DtOccSt,2010-03-05 01:49:47,1,41,1,DtOccEnd,Occ_End,Occ_St,232,8,1,DtOccSt,2009-12-18 23:15:20,1,41,1,DtOccEnd,Occ_End,Occ_St,237,1,1,DtOccSt,2009-12-18 23:15:03,1,41,1,DtOccEnd,Occ_End,Occ_St,274,64,1,DtOccSt,2017-10-03 03:07:09,1,92,1,DtOccEnd,Occ_End,
@@ -202,27 +168,6 @@ public abstract class ProspectExample extends StraffSOMExample{
 	@Override
 	//public final String getRawDescrForCSV() {	return useJPOccToPreProc ? getRawDescrForCSV_JPOcc() : getRawDescrForCSV_Event() ;}//getRawDescrForCSV()
 	public final String getRawDescrForCSV() {	return getRawDescrForCSV_JPOcc();}//getRawDescrForCSV()
-	
-//	//build off event map data 
-//	private String getRawDescrForCSV_Event() {
-//		//first build prospect data
-//		String dateStr = BaseRawData.buildStringFromDate(prs_LUDate);
-//		String res = ""+OID+","+dateStr+",";
-//		String[] eventMapTypeKeys = getEventMapTypeKeys();
-//		for (String key : eventMapTypeKeys) {
-//			res += getSizeOfDataMap(eventsByDateMap.get(key))+",";
-//		}
-//		//res += getSizeOfDataMap(orderEventsByDateMap)+"," + getSizeOfDataMap(optEventsByDateMap)+",";
-//		//now build res string for all event data objects
-//		String[] CSVSentinelLbls = getCSVSentinelLbls();
-//		for(int i=0;i<eventMapTypeKeys.length;++i) {
-//			String key = eventMapTypeKeys[i];
-//			res += CSVSentinelLbls[i];
-//			TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>> eventsByDate = eventsByDateMap.get(key);
-//			for (Date date : eventsByDate.keySet()) {			res += buildEventCSVString(date, eventsByDate.get(date));		}				
-//		}		
-//		return res;		
-//	}//getRawDescrForCSV_Event()
 	
 	//build off occurence structure - doing this to try to save memory space
 	private String getRawDescrForCSV_JPOcc() {
@@ -314,23 +259,6 @@ public abstract class ProspectExample extends StraffSOMExample{
 
 	//returns true if -any training-related- events are present in this record (i.e. not counting source "events")
 	protected abstract boolean hasRelevantTrainingData();
-
-//	//read in data from record
-//	protected final void buildDataFromCSVString_event(int[] numEvntsAra, String _csvDataStr, String[] _eventMapTypeKeys, String[] _CSVSentinelLbls) {
-//		//each type of event list exists between the sentinel flag and the subsequent sentinel flag
-//		for (int i = 0; i<numEvntsAra.length;++i) {
-//			if (numEvntsAra[i] > 0) {
-//				String key = _eventMapTypeKeys[i];
-//				String stSentFlag = _CSVSentinelLbls[i];
-//				String endSntnlFlag = (i <_eventMapTypeKeys.length-1 ? _CSVSentinelLbls[i+1] : null );
-//				String [] strAraBegin = _csvDataStr.trim().split(Pattern.quote(stSentFlag)); //idx 1 holds all event data	
-//				String strBegin = (strAraBegin.length < 2) ? "" : strAraBegin[1];
-//				String strEvents = (endSntnlFlag != null ? strBegin.trim().split(Pattern.quote(endSntnlFlag))[0] : strBegin).trim(); //idx 0 holds relevant data
-//				buildEventTrainDataFromCSVStr(key, numEvntsAra[i],strEvents,eventsByDateMap.get(key), EvtDataType.getVal(i));				
-//			}			
-//		}
-//	}//buildDataFromCSVString_event	
-	//read in data from record
 	
 	//example of csv string
 	//pr_000000331,2016-11-21 16:15:51,0,1,7,OPT|,LNK|,Occ_St,364,4,0,DtOccSt,2012-04-25 15:59:14,1,3,2,DtOccEnd,DtOccSt,2016-02-13 07:49:31,1,3,1,DtOccEnd,Occ_End,SRC|,Occ_St,69,4,1,DtOccSt,2007-09-21 21:53:32,1,11,1,DtOccEnd,DtOccSt,2009-02-06 05:53:38,1,57,1,DtOccEnd,Occ_End,Occ_St,131,4,1,DtOccSt,2009-02-06 05:53:49,1,57,1,DtOccEnd,DtOccSt,2017-10-03 03:07:09,1,92,1,DtOccEnd,Occ_End,Occ_St,227,20,1,DtOccSt,2010-01-04 22:22:49,1,41,1,DtOccEnd,Occ_End,Occ_St,231,64,1,DtOccSt,2010-03-05 01:49:47,1,41,1,DtOccEnd,Occ_End,Occ_St,232,8,1,DtOccSt,2009-12-18 23:15:20,1,41,1,DtOccEnd,Occ_End,Occ_St,237,1,1,DtOccSt,2009-12-18 23:15:03,1,41,1,DtOccEnd,Occ_End,Occ_St,274,64,1,DtOccSt,2017-10-03 03:07:09,1,92,1,DtOccEnd,Occ_End,

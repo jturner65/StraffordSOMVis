@@ -1,4 +1,4 @@
-package strafford_SOM_PKG;
+package strafford_SOM_PKG.straff_Utils;
 
 import java.util.*;
 import java.util.Map.Entry;
@@ -7,6 +7,7 @@ import base_UI_Objects.*;
 import base_Utils_Objects.*;
 import strafford_SOM_PKG.straff_SOM_Examples.JP_OccurrenceData;
 import strafford_SOM_PKG.straff_SOM_Examples.ProspectExample;
+import strafford_SOM_PKG.straff_SOM_Mapping.StraffSOMMapManager;
 
 /**
  * This class is intended to hold an object capable of calculation

@@ -1,6 +1,5 @@
-package strafford_SOM_PKG;
+package strafford_SOM_PKG.straff_SOM_Mapping;
 
-import java.io.*;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -10,6 +9,7 @@ import base_SOM_Objects.som_examples.*;
 
 import base_Utils_Objects.*;
 import strafford_SOM_PKG.straff_SOM_Examples.ProductExample;
+import strafford_SOM_PKG.straff_Utils.SOMProjConfigData;
 
 
 /**

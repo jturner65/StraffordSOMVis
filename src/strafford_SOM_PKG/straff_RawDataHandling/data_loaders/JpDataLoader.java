@@ -1,6 +1,8 @@
 package strafford_SOM_PKG.straff_RawDataHandling.data_loaders;
 
 import strafford_SOM_PKG.straff_RawDataHandling.*;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.BaseRawData;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.JpDescData;
 
 //stream jp data for descriptions
 public class JpDataLoader extends StraffordDataLoader{

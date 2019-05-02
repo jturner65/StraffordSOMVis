@@ -1,7 +1,7 @@
 package strafford_SOM_PKG.straff_RawDataHandling.data_loaders;
 
-import strafford_SOM_PKG.straff_RawDataHandling.BaseRawData;
-import strafford_SOM_PKG.straff_RawDataHandling.TcTagData;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.BaseRawData;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.TcTagData;
 
 //stream tcTagdata to build product examples
 public class TcTagDataLoader extends StraffordDataLoader{

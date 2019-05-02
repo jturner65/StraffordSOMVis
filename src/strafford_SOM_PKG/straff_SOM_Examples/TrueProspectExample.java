@@ -5,9 +5,11 @@ import java.util.TreeMap;
 
 import base_SOM_Objects.SOMMapManager;
 import base_SOM_Objects.som_examples.ExDataType;
-import strafford_SOM_PKG.StraffSOMMapManager;
-import strafford_SOM_PKG.StraffWeightCalc;
 import strafford_SOM_PKG.straff_RawDataHandling.*;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.BaseRawData;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.ProspectData;
+import strafford_SOM_PKG.straff_SOM_Mapping.StraffSOMMapManager;
+import strafford_SOM_PKG.straff_Utils.StraffWeightCalc;
 
 /**
  * This class will hold a reduced prospect that is defined as a true prospect - most likely defined as a prospect without any actual orders

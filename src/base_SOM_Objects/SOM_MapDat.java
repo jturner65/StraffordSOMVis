@@ -10,7 +10,7 @@ package base_SOM_Objects;
 import java.util.*;
 
 import base_Utils_Objects.*;
-import strafford_SOM_PKG.SOMProjConfigData;
+import strafford_SOM_PKG.straff_Utils.SOMProjConfigData;
 
 public class SOM_MapDat{
 	//object to faciliate printing to screen or log file
