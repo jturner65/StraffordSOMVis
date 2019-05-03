@@ -18,12 +18,14 @@ public class SOMExBMULoader implements Callable<Boolean>{
 	int thdIDX;
 	boolean useChiSqDist;
 	int ftrTypeUsedToTrain;
+	int typeOfEx;
 	HashMap<SOMMapNode, ArrayList<SOMExample>> bmusToExmpl;
-	public SOMExBMULoader(MessageObject _msgObj, int _ftrTypeUsedToTrain, boolean _useChiSqDist, HashMap<SOMMapNode, ArrayList<SOMExample>> _bmusToExmpl,int _thdIDX) {
+	public SOMExBMULoader(MessageObject _msgObj, int _ftrTypeUsedToTrain, boolean _useChiSqDist, int _typeOfEx, HashMap<SOMMapNode, ArrayList<SOMExample>> _bmusToExmpl, int _thdIDX) {
 		msgObj = _msgObj;
 		ftrTypeUsedToTrain = _ftrTypeUsedToTrain;
 		useChiSqDist =_useChiSqDist;
 		thdIDX= _thdIDX;	
+		typeOfEx = _typeOfEx;
 		bmusToExmpl = _bmusToExmpl;
 		int numExs = 0;
 		for (SOMMapNode tmpMapNode : bmusToExmpl.keySet()) {
@@ -38,12 +40,12 @@ public class SOMExBMULoader implements Callable<Boolean>{
 		if (useChiSqDist) {		
 			for (SOMMapNode tmpMapNode : bmusToExmpl.keySet()) {
 				ArrayList<SOMExample> exs = bmusToExmpl.get(tmpMapNode);
-				for(SOMExample ex : exs) {ex.setBMU_ChiSq(tmpMapNode, ftrTypeUsedToTrain);tmpMapNode.addExToBMUs(ex);	}
+				for(SOMExample ex : exs) {ex.setBMU_ChiSq(tmpMapNode, ftrTypeUsedToTrain);tmpMapNode.addExToBMUs(ex,typeOfEx);	}
 			}		
 		} else {		
 			for (SOMMapNode tmpMapNode : bmusToExmpl.keySet()) {
 				ArrayList<SOMExample> exs = bmusToExmpl.get(tmpMapNode);
-				for(SOMExample ex : exs) {ex.setBMU(tmpMapNode, ftrTypeUsedToTrain); tmpMapNode.addExToBMUs(ex);	}
+				for(SOMExample ex : exs) {ex.setBMU(tmpMapNode, ftrTypeUsedToTrain); tmpMapNode.addExToBMUs(ex,typeOfEx);	}
 			}
 		}	
 		return true;

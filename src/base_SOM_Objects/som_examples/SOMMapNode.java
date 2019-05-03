@@ -181,9 +181,14 @@ public abstract class SOMMapNode extends SOMExample{
 
 	public void clearBMUExs(int _typeIDX) {		BMUExampleNodes[_typeIDX].init();	}//addToBMUs
 	
+//	//add passed example to appropriate bmu construct depending on what type of example is passed (training, testing, product)
+//	public void addExToBMUs(SOMExample ex) {
+//		int _typeIDX = ex.type.getVal();
+//		BMUExampleNodes[_typeIDX].addExample(ex.get_sqDistToBMU(),ex);
+//	}//addToBMUs 
+	
 	//add passed example to appropriate bmu construct depending on what type of example is passed (training, testing, product)
-	public void addExToBMUs(SOMExample ex) {
-		int _typeIDX = ex.type.getVal();
+	public void addExToBMUs(SOMExample ex, int _typeIDX) {
 		BMUExampleNodes[_typeIDX].addExample(ex.get_sqDistToBMU(),ex);
 	}//addToBMUs 
 	

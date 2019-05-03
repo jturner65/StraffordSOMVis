@@ -189,16 +189,18 @@ public class StraffProdMapOutputBuilder {
 				SOMExample ex = prospectsToMap[i];
 				String exOutStr = ""+ex.OID + ","+String.format("%.6f",ex.get_sqDistToBMU())+",";
 				resCalcData.clear();
-				for (ProductExample prod : prodToMapNodes.keySet()) {
-					HashMap<SOMMapNode, Double> nodeConfsToProds = prodToMapNodes.get(prod);					
-					Double conf = nodeConfsToProds.get(ex.getBmu());//now find confidence of prod in this node's bmu
-					if(conf == 0.0) {continue;}
-					outRes = resCalcData.get(conf);
-					if(outRes == null) {outRes = "";}
-					outRes +=""+prod.OID+":"+String.format("%.6f",conf)+",";
-					resCalcData.put(conf, outRes);
+				SOMMapNode _exBMU = ex.getBmu();
+				if(_exBMU != null) {
+					for (ProductExample prod : prodToMapNodes.keySet()) {
+						HashMap<SOMMapNode, Double> nodeConfsToProds = prodToMapNodes.get(prod);					
+						Double conf = nodeConfsToProds.get(_exBMU);//now find confidence of prod in this node's bmu
+						if(conf == 0.0) {continue;}
+						outRes = resCalcData.get(conf);
+						if(outRes == null) {outRes = "";}
+						outRes +=""+prod.OID+":"+String.format("%.6f",conf)+",";
+						resCalcData.put(conf, outRes);
+					}
 				}
-			
 				if (resCalcData.size() > 0) {				
 					for(Double conf : resCalcData.keySet()){		exOutStr += resCalcData.get(conf);}
 					strList.add(exOutStr);
@@ -284,19 +286,22 @@ class StraffProspectOutMapper implements Callable<Boolean>{
 			SOMExample ex = prospectsToMap[i];
 			resCalcData.clear();
 			String exOutStr = ""+ex.OID + ","+String.format("%.6f",ex.get_sqDistToBMU())+",";
-			for (ProductExample prod : prodToMapNodes.keySet()) {//for every product
-				HashMap<SOMMapNode, Double> nodeConfsToProds = prodToMapNodes.get(prod);				
-				Double conf = nodeConfsToProds.get(ex.getBmu());//now find confidence of prod in this node's bmu
-				if((conf == null) || (conf == 0.0)) {continue;}
-				outRes = resCalcData.get(conf);
-				if(outRes == null) {outRes = "";}
-				outRes +=""+prod.OID+":"+String.format("%.6f",conf)+",";
-				resCalcData.put(conf, outRes);
+			SOMMapNode _exBMU = ex.getBmu();
+			if(_exBMU != null) {
+				for (ProductExample prod : prodToMapNodes.keySet()) {//for every product
+					HashMap<SOMMapNode, Double> nodeConfsToProds = prodToMapNodes.get(prod);				
+					Double conf = nodeConfsToProds.get(_exBMU);//now find confidence of prod in this node's bmu
+					if((conf == null) || (conf == 0.0)) {continue;}
+					outRes = resCalcData.get(conf);
+					if(outRes == null) {outRes = "";}
+					outRes +=""+prod.OID+":"+String.format("%.6f",conf)+",";
+					resCalcData.put(conf, outRes);
+				}
 			}
 			if (resCalcData.size() > 0) {				
 				for(Double conf : resCalcData.keySet()){		exOutStr += resCalcData.get(conf);}
 				strList.add(exOutStr);
-			} else {
+			} else {				
 				exOutStr += "No Mappings With Chosen Products";
 				strListNoMaps.add(exOutStr);
 			}

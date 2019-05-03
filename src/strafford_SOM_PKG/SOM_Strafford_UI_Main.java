@@ -1,12 +1,7 @@
 package strafford_SOM_PKG;
 
-import java.io.File;
-import java.nio.file.*;
-import java.util.*;
-import java.util.concurrent.*;			//used for threading
 
 import base_UI_Objects.*;
-import base_Utils_Objects.*;
 import processing.core.*;
 /**
  * Testbed to visually inspect and verify results from Strafford prospect mapping to a SOM
@@ -36,22 +31,31 @@ public class SOM_Strafford_UI_Main extends my_procApplet {
 ///////////////	
 	//////////////////////////////////////////////// code
 	
-	//needs main to run project
+	//needs main to run project - do not modify this code in any way
 	public static void main(String[] passedArgs) {		
 		String[] appletArgs = new String[] { "strafford_SOM_PKG.SOM_Strafford_UI_Main" };
 	    if (passedArgs != null) {PApplet.main(PApplet.concat(appletArgs, passedArgs)); } else {PApplet.main(appletArgs);		    }
 	}//main	
 	
-	public void settings(){
-		size((int)(displayWidth*.95f), (int)(displayHeight*.92f),P3D);
-		noSmooth();
-	}		
+	public void settings(){	size((int)(displayWidth*.95f), (int)(displayHeight*.92f),P3D);	noSmooth();}	
 
 	//instance-specific setup code
 	protected void setup_indiv() {setBkgrnd();}
 	
 	@Override
 	public void setBkgrnd(){background(bground[0],bground[1],bground[2],bground[3]);}//setBkgrnd
+	
+	/**
+	 * determine which main flags to show at upper left of menu 
+	 */
+	@Override
+	protected void initMainFlags_Priv() {
+		setMainFlagToShow_debugMode(false);
+		setMainFlagToShow_saveAnim(true); 
+		setMainFlagToShow_runSim(false);
+		setMainFlagToShow_singleStep(false);
+		setMainFlagToShow_showRtSideMenu(true);
+	}
 	
 	@Override
 	//build windows here
@@ -84,6 +88,8 @@ public class SOM_Strafford_UI_Main extends my_procApplet {
 		
 		//specify windows that cannot be shown simultaneously here
 		initXORWins(new int[]{showSOMMapUI},new int[]{dispSOMMapIDX});
+		
+		
 
 	}//	initVisOnce_Priv
 	

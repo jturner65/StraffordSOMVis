@@ -16,6 +16,7 @@ public enum ExDataType {
 			"Product Data (Product examples to be assigned to clusters)",
 			"Map Node (Represents a node on the SOM)",
 			"Mouse Over (Data query at mouse location)"};
+	public static String[] getListOfTypes() {return new String[] {"Training","Testing","Validation","Product","MapNode","MouseOver"};}
 	private static Map<Integer, ExDataType> map = new HashMap<Integer, ExDataType>(); 
 	static { for (ExDataType enumV : ExDataType.values()) { map.put(enumV.value, enumV);}}
 	private ExDataType(int _val){value = _val;} 

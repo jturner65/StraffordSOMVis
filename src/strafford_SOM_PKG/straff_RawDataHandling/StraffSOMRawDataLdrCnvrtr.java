@@ -164,14 +164,14 @@ public class StraffSOMRawDataLdrCnvrtr {
 				ArrayList<BaseRawData> existAra = rawDataArrays.get(dataDirTypeName);
 				if(existAra != null) {			datAra.addAll(existAra);			} //merge with existing array
 				rawDataArrays.put(dataDirTypeName, datAra);
-				mapMgr.setPrivFlag(straffObjFlagIDXs[idx], true);			//set flag corresponding to this type of data to be loaded
+				mapMgr.setFlag(straffObjFlagIDXs[idx], true);			//set flag corresponding to this type of data to be loaded
 			}
 		} catch (Exception e) {						e.printStackTrace();				}		
 		
 		//setFlag(straffObjFlagIDXs[idx], true);			//set flag corresponding to this type of data to be loaded
 	}//loadRawDataVals		
 	//set data type is done loading
-	public void setRawLoadDataTypeIsDone(int isDoneMapDataIDX) {mapMgr.setPrivFlag(isDoneMapDataIDX, true);}
+	public void setRawLoadDataTypeIsDone(int isDoneMapDataIDX) {mapMgr.setFlag(isDoneMapDataIDX, true);}
 	
 	
 	//////////////////////////////
@@ -221,7 +221,7 @@ public class StraffSOMRawDataLdrCnvrtr {
 			ProductExample ex = new ProductExample(mapMgr, (TcTagData)tcDat);
 			productMap.put(ex.OID, ex);
 		}
-		mapMgr.setPrivFlag(mapMgr.preProcProdDataLoadedIDX, true);
+		mapMgr.setFlag(StraffSOMMapManager.preProcProdDataLoadedIDX, true);
 		msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","procRawProductData","Finished processing  : " + tcTagRawData.size()+ " raw records.", MsgCodes.info5);		
 	}//procRawProductData
 	

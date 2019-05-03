@@ -559,19 +559,16 @@ abstract class JP_JPG_Data{
 	}
 	//this will return the first(lowest) jp for a particular jpgrp
 	public int getUI_FirstJPIdxFromJPG(int jpgIdx, Integer curJPIdxVal) {
-		if(jpgsToJps.size() < jpgIdx) {return curJPIdxVal;}
-		
-		int curJPVal = jpByIdx[curJPIdxVal];
-		
-		String msg = "Requested Job Practice Group Index : " + jpgIdx + " Cur JP : " + curJPVal + " Cur JP Idx : " + curJPIdxVal;
-		
+		if(jpgsToJps.size() < jpgIdx) {return curJPIdxVal;}		
+		int curJPVal = jpByIdx[curJPIdxVal];		
+		//String msg = "Requested Job Practice Group Index : " + String.format("%3d",jpgIdx) + " Cur JP : " +  String.format("%3d",curJPVal) + " Cur JP Idx : " + String.format("%3d", curJPIdxVal);		
 		TreeSet <Integer> jpList = jpgsToJps.get(jpgrpsByIdx[jpgIdx]);
-		if (jpList.contains(curJPVal)) {			
-			msgObj.dispMessage("MonitorJpJpgrp::JP_JPG_Data("+type+")","getUI_FirstJPFromJPG", msg+ " : JP Group contains current JP.", MsgCodes.info1);			
+		if (jpList.contains(curJPVal)) {		//shouldn't happen, only is called when jpgrp changes, so won't ever have current jp value since jps only belong to single groups
+			//msgObj.dispMessage("MonitorJpJpgrp::JP_JPG_Data("+type+")","getUI_FirstJPFromJPG", msg+ " : JP Group contains current JP.", MsgCodes.info1);			
 		}//if in current jpgrp already, then return current value
 		else {//swapping to new jpgroup
 			curJPIdxVal = jpToIDX.get(jpList.first());
-			msgObj.dispMessage("MonitorJpJpgrp::JP_JPG_Data("+type+")","getUI_FirstJPFromJPG", msg+ " : JP Group doesn't contain current JP val; JP changed to : " + curJPVal + " Idx : " + curJPIdxVal, MsgCodes.info1);			
+			//msgObj.dispMessage("MonitorJpJpgrp::JP_JPG_Data("+type+")","getUI_FirstJPFromJPG", msg+ " : JP Group doesn't contain current JP val; JP changed to : " + curJPVal + " Idx : " + curJPIdxVal, MsgCodes.info1);			
 		}
 		return curJPIdxVal;	
 	}//getUI_FirstJPFromJPG

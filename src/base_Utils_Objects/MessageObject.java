@@ -35,7 +35,7 @@ public class MessageObject {
 		if(supportsANSITerm == null) {supportsANSITerm = (System.console() != null && System.getenv().get("TERM") != null);	}
 		if(timeMgr == null) {timeMgr = new myTimeMgr(_mapMgrBuiltTime);}		
 	}	
-	public MessageObject(MessageObject _obj) {}//in case we ever use any instance-specific data for this	
+	public MessageObject(MessageObject _obj) {}//in case we ever use any instance-specific data for this - copy ctor	
 	
 	//define how the messages from this messageObj should be handled, and pass a file name if a log is to be saved
 	public void setOutputMethod(String _fileName, boolean dispInConsoleAlso) {

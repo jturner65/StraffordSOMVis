@@ -4,7 +4,6 @@ import java.io.File;
 import java.util.*;
 
 import base_SOM_Objects.*;
-import base_SOM_Objects.som_examples.*;
 import base_SOM_Objects.som_ui.*;
 import base_UI_Objects.*;
 import base_Utils_Objects.*;
@@ -45,11 +44,11 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 		uiRawDataSourceIDX 			= numSOMBaseGUIObjs + 0,			//source of raw data to be preprocced and used to train the map
 		uiFtrJPGToDispIDX			= numSOMBaseGUIObjs + 1,			//which group of jp's (a single jpg) to display on map
 		uiFtrJPToDispIDX			= numSOMBaseGUIObjs + 2,			//which JP Ftr IDX to display as map
-		uiAllJpgSeenToDispIDX		= numSOMBaseGUIObjs + 3,			//display products of this jpg
-		uiAllJpSeenToDispIDX		= numSOMBaseGUIObjs + 4,			//display products with this jp
-		uiProdZoneDistThreshIDX		= numSOMBaseGUIObjs + 5;			//max distance from a product that a map node should be considered to be covered by that product
+		//uiAllJpgSeenToDispIDX		= numSOMBaseGUIObjs + 3,			//display products of this jpg
+		uiAllJpSeenToDispIDX		= numSOMBaseGUIObjs + 3,			//display products with this jp
+		uiProdZoneDistThreshIDX		= numSOMBaseGUIObjs + 4;			//max distance from a product that a map node should be considered to be covered by that product
 	
-	public final int numGUIObjs = numSOMBaseGUIObjs + 6;
+	public final int numGUIObjs = numSOMBaseGUIObjs + 5;
 	
 	//types of data that can be used for calc analysis 
 	//private int[] calcAnalysisTypes = new int[] {StraffSOMMapManager.jps_FtrIDX,StraffSOMMapManager.jps_AllIDX};
@@ -58,8 +57,6 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 	
 	//raw data source : 0 == csv, 1 == sql
 	private int rawDataSource;
-	//type of examples using each map node as a bmu to display
-	private ExDataType mapNodeDispType;
 	//max sq_distance to display map nodes as under influence/influencing certain products
 	private double prodZoneDistThresh;
 	//////////////////////////////
@@ -89,7 +86,7 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 
 	//used to switch button name for 1st button to reflect whether performing csv-based load of raw data or sql query
 	private String[] menuLdRawFuncBtnNames = new String[] {"CSV", "SQL"};
-	private int loadRawBtnIDX = 0;
+	
 	
 	public Straff_SOMMapUIWin(my_procApplet _p, String _n, int _flagIdx, int[] fc, int[] sc, float[] rd, float[] rdClosed, String _winTxt, boolean _canDrawTraj) {
 		super(_p, _n, _flagIdx, fc, sc, rd, rdClosed, _winTxt, _canDrawTraj);
@@ -103,17 +100,17 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 	protected void initAllSOMPrivBtns_Indiv(String[] _baseTrueNames, String[] _baseFalseNames, int[] _baseFlags) {
 		String[] tmpTruePrivFlagNames = new String[]{								//needs to be in order of flags
 				//"Train W/Recs W/Event Data", 				
-				"Hide True Prospects",
+				"Hide Tru Prspct",
 				"Hide Products","Hide Cur Prod Zone",
-				"Show Calc Analysis on Ftr-specific JPs","Hide Cust Ex Calc Analysis", "Hide Tru Prspct Ex Calc Analysis", 
-				"Finding True Prospect BMUs",	"Saving Prospect Mappings for specified prods"
+				"Calc Plot on Ftr JPs","Hide Cust Calc Plot", "Hide Tru Prspct Calc Plot", 
+				"Map Tru Prspct BMUs",	"Saving Prospect Mappings for prods"
 		};
 		String[] tmpFalsePrivFlagNames = new String[]{			//needs to be in order of flags
 				//"Train W/All Recs",				
-				"Show True Prospects",
+				"Show Tru Prspct",
 				"Show Products","Show Cur Prod Zone",
-				"Show Calc Analysis on All JPs", "Show Cust Ex Calc Analysis", "Show Tru Prspct Ex Calc Analysis", 
-				"Find True Prospect BMUs",	"Save Prospect Mappings for specified prods"
+				"Calc Plot on All JPs", "Show Cust Calc Plot", "Show Tru Prspct Calc Plot", 
+				"Map Tru Prspct BMUs",	"Save Prospect Mappings for prods"
 		};
 		int[] tmpPrivModFlgIdxs = new int[]{
 				//useOnlyEvntsToTrainIDX, 				
@@ -206,14 +203,14 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 			case showSelJPIDX		 : {//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
 				break;}
 			case procTruProspectsIDX : {
-				if(val) {
-					((StraffSOMMapManager) mapMgr).buildAndSaveTrueProspectReport();	
-					addPrivBtnToClear(procTruProspectsIDX);					
-				}			
+//				if(val) {
+//					((StraffSOMMapManager) mapMgr).buildAndSaveTrueProspectReport();	
+//					addPrivBtnToClear(procTruProspectsIDX);					
+//				}			
 				break;}		//put true prospects on the SOM
 			case saveProdMapsOfPrspctsIDX : {
 				if(val) {
-					((StraffSOMMapManager) mapMgr).saveProductToSOMMappings(prodZoneDistThresh, true, true);		
+					((StraffSOMMapManager) mapMgr).saveAllExamplesToSOMMappings(prodZoneDistThresh, true, true);		
 					addPrivBtnToClear(saveProdMapsOfPrspctsIDX);			
 				}				
 				break;}		//save all product to prospect mappings given currently selected product jp and dist thresh
@@ -228,40 +225,36 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 	protected void setupGUIObjsArasIndiv(double [][] _baseGuiMinMaxModVals, double[] _baseGuiStVals, String[] _baseGuiObjNames, boolean [][] _baseGuiBoolVals) {
 		double [][] _tmpGuiMinMaxModVals = new double [][]{  
 			{0.0, uiRawDataSourceList.length-1, 1},			//uiRawDataSourceIDX
-			{0.0, 100, 1.0},			//uiJPGToDispIDX//which group of jp's (a single jpg) to display on map - idx into list of jps
-			{0.0, 260, 1.0},			//uiJPToDispIDX//which JP to display on map - idx into list of jps
-			{0.0, 100, 1.0},			//uiProdJpgToDispIDX//which products to display by jpg
-			{0.0, 260, 1.0},			//uiProdJpToDispIDX//which product jp to display
-			{0.0, 2, .01},				//uiProdZoneDistThreshIDX
-
-	
+			{0.0, 100, 1.0},			//uiFtrJPGToDispIDX		
+			{0.0, 260, 1.0},			//uiFtrJPToDispIDX	
+//		    {0.0, 100, 1.0},			//uiAllJpgSeenToDispIDX	
+			{0.0, 260, 1.0},			//uiAllJpSeenToDispIDX	
+			{0.0, 2, .01},				//uiProdZoneDistThreshIDX	
 		};					
 		double[] _tmpGuiStVals = new double[]{	
 			0,		//uiRawDataSourceIDX
-			0,      //uiJPGToDispIDX
-			0,     	//uiJPToDispIDX/
-			0,      //uiProdJpgToDispIDX
-			0,     	//uiProdJpToDispIDX/
+			0,      //uiFtrJPGToDispIDX		
+			0,     	//uiFtrJPToDispIDX	
+//			0,		//uiAllJpgSeenToDispIDX	
+			0,     	//uiAllJpSeenToDispIDX	
 			0.99,	//uiProdZoneDistThreshIDX
-
 		};								//starting value
 		String[] _tmpGuiObjNames = new String[]{
 			"Raw Data Source", 			//uiRawDataSourceIDX
-			"JPGrp Ftrs Shown",     	//uiJPGToDispIDX
-			"JP Ftr Shown", 			//uiJPToDispIDX
-			"All JPG to Show", 			//uiProdJpgToDispIDX  
-			"All JP to Show",   		//uiProdJpToDispIDX
-			"Prod Max Sq Dist",			//uiProdZoneDistThreshIDX
-			
+			"JPGrp Ftrs Shown",     	//uiFtrJPGToDispIDX		
+			"JP Ftr Shown", 			//uiFtrJPToDispIDX		
+//			"All JPGrp to Show",   		//uiAllJpgSeenToDispIDX	
+			"All JP to Show",   		//uiAllJpSeenToDispIDX	
+			"Prod Max Sq Dist",			//uiProdZoneDistThreshIDX			
 		};			//name/label of component	
 					
 		//idx 0 is treat as int, idx 1 is obj has list vals, idx 2 is object gets sent to windows, 3 is object allows for lclick-up/rclick-down mod
 		boolean [][] _tmpGuiBoolVals = new boolean [][]{
 			{true, true, true},			//uiRawDataSourceIDX
-			{true, true, true},			//uiJPGToDispIDX	
-			{true, true, true},			//uiJPToDispIDX
-			{true, true, true},			//uiProdJpgToDispIDX  
-			{true, true, true},			//uiProdJpToDispIDX
+			{true, true, true},			//uiFtrJPGToDispIDX		
+			{true, true, true},			//uiFtrJPToDispIDX		
+//			{true, true, true},			//uiAllJpgSeenToDispIDX	
+			{true, true, true},			//uiAllJpSeenToDispIDX	
 			{false, false, true}, 		//uiProdZoneDistThreshIDX
 		};						//per-object  list of boolean flags
 		
@@ -277,7 +270,7 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 			case uiRawDataSourceIDX 			: {return uiRawDataSourceList[validx % uiRawDataSourceList.length];}
 			case uiFtrJPGToDispIDX				: {return ((StraffSOMMapManager) mapMgr).getFtrJpGrpByIdxStr(validx); 	}	
 			case uiFtrJPToDispIDX				: {return ((StraffSOMMapManager) mapMgr).getFtrJpByIdxStr(validx); 	}	
-			case uiAllJpgSeenToDispIDX			: {return ((StraffSOMMapManager) mapMgr).getAllJpGrpByIdxStr(validx); 		}	
+			//case uiAllJpgSeenToDispIDX			: {return ((StraffSOMMapManager) mapMgr).getAllJpGrpByIdxStr(validx); 		}	
 			case uiAllJpSeenToDispIDX			: {return ((StraffSOMMapManager) mapMgr).getAllJpByIdxStr(validx); 		}	
 		}
 		return "";
@@ -301,7 +294,7 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 	public void setUI_JPAllSeenListMaxVals(int jpGrpLen, int jpLen) {
 		//refresh max size of guiobj - heavy handed, these values won't change often, and this is called -every draw frame-.
 		guiObjs[uiAllJpSeenToDispIDX].setNewMax(jpLen-1);
-		guiObjs[uiAllJpgSeenToDispIDX].setNewMax(jpGrpLen-1);	
+		//guiObjs[uiAllJpgSeenToDispIDX].setNewMax(jpGrpLen-1);	
 	}//setUI_JPListMaxVals
 	
 	private boolean settingJPGFromJp = false, settingJPFromJPG = false;
@@ -354,34 +347,34 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 				//msgObj.dispMessage("mySOMMapUIWin","setUIWinVals","uiJPToDispIDX : Setting UI JP Map to display to be idx :" + curMapImgIDX + " Corresponding to JP : " + mapMgr.getJpByIdxStr(curMapImgIDX) );					
 				break;}
 			
-			case uiAllJpgSeenToDispIDX		: {
-				if(!settingProdJPGFromJp) {
-					int curJPIdxVal = (int)guiObjs[uiAllJpSeenToDispIDX].getVal();
-					int jpIdxToSet = ((StraffSOMMapManager) mapMgr).getUI_FirstJPIdxFromAllJPG((int)guiObjs[uiAllJpgSeenToDispIDX].getVal(), curJPIdxVal);
-					//msgObj.dispInfoMessage("SOM WIN","setUIWinVals:uiJPGToDispIDX", "Attempt to modify uiJPToDispIDX : curJPVal : "  +curJPVal + " | jpToSet : " + jpToSet, MsgCodes.info1);
-					if(curJPIdxVal != jpIdxToSet) {
-						settingProdJPFromJPG = true;
-						guiObjs[uiAllJpSeenToDispIDX].setVal(jpIdxToSet);	
-						setUIWinValsIndiv(uiAllJpSeenToDispIDX);
-						uiVals[uiAllJpSeenToDispIDX] =guiObjs[uiAllJpSeenToDispIDX].getVal();
-						settingProdJPFromJPG = false;
-					}
-				}
-				break;}			
+//			case uiAllJpgSeenToDispIDX		: {
+//				if(!settingProdJPGFromJp) {
+//					int curJPIdxVal = (int)guiObjs[uiAllJpSeenToDispIDX].getVal();
+//					int jpIdxToSet = ((StraffSOMMapManager) mapMgr).getUI_FirstJPIdxFromAllJPG((int)guiObjs[uiAllJpgSeenToDispIDX].getVal(), curJPIdxVal);
+//					//msgObj.dispInfoMessage("SOM WIN","setUIWinVals:uiJPGToDispIDX", "Attempt to modify uiJPToDispIDX : curJPVal : "  +curJPVal + " | jpToSet : " + jpToSet, MsgCodes.info1);
+//					if(curJPIdxVal != jpIdxToSet) {
+//						settingProdJPFromJPG = true;
+//						guiObjs[uiAllJpSeenToDispIDX].setVal(jpIdxToSet);	
+//						setUIWinValsIndiv(uiAllJpSeenToDispIDX);
+//						uiVals[uiAllJpSeenToDispIDX] =guiObjs[uiAllJpSeenToDispIDX].getVal();
+//						settingProdJPFromJPG = false;
+//					}
+//				}
+//				break;}			
 			case uiAllJpSeenToDispIDX		: {
 				curAllJPToShowIDX = (int)guiObjs[uiAllJpSeenToDispIDX].getVal();
-				if(!settingProdJPFromJPG) {
-					int curJPGIdxVal = (int)guiObjs[uiAllJpgSeenToDispIDX].getVal();
-					int jpgIdxToSet = ((StraffSOMMapManager) mapMgr).getUI_JPGrpFromAllJP(curAllJPToShowIDX, curJPGIdxVal);
-					//msgObj.dispInfoMessage("SOM WIN","setUIWinVals::uiJPToDispIDX", "Attempt to modify uiJPGToDispIDX : cur JPG val : "+ curJPGVal + " | jpgToSet : " + jpgToSet, MsgCodes.info1);	
-					if(curJPGIdxVal != jpgIdxToSet) {
-						settingProdJPGFromJp = true;
-						guiObjs[uiAllJpgSeenToDispIDX].setVal(jpgIdxToSet);
-						setUIWinValsIndiv(uiAllJpgSeenToDispIDX);
-						uiVals[uiAllJpgSeenToDispIDX] =guiObjs[uiAllJpgSeenToDispIDX].getVal();
-						settingProdJPGFromJp = false;
-					}
-				}
+//				if(!settingProdJPFromJPG) {
+//					int curJPGIdxVal = (int)guiObjs[uiAllJpgSeenToDispIDX].getVal();
+//					int jpgIdxToSet = ((StraffSOMMapManager) mapMgr).getUI_JPGrpFromAllJP(curAllJPToShowIDX, curJPGIdxVal);
+//					//msgObj.dispInfoMessage("SOM WIN","setUIWinVals::uiJPToDispIDX", "Attempt to modify uiJPGToDispIDX : cur JPG val : "+ curJPGVal + " | jpgToSet : " + jpgToSet, MsgCodes.info1);	
+//					if(curJPGIdxVal != jpgIdxToSet) {
+//						settingProdJPGFromJp = true;
+//						guiObjs[uiAllJpgSeenToDispIDX].setVal(jpgIdxToSet);
+//						setUIWinValsIndiv(uiAllJpgSeenToDispIDX);
+//						uiVals[uiAllJpgSeenToDispIDX] =guiObjs[uiAllJpgSeenToDispIDX].getVal();
+//						settingProdJPGFromJp = false;
+//					}
+//				}
 				break;}	
 			case uiProdZoneDistThreshIDX : {//max distance for a node to be considered a part of a product's "region" of influence		
 				prodZoneDistThresh = this.guiObjs[uiProdZoneDistThreshIDX].getVal();			
@@ -429,7 +422,9 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 	//set flags that should be set on each frame - these are set at beginning of frame draw
 	protected void drawSetDispFlags() {
 		setPrivFlags(custExCalcedIDX, ((StraffSOMMapManager) mapMgr).isFtrCalcDone(StraffWeightCalc.custCalcObjIDX));
-		setPrivFlags(tpExCalcedIDX, ((StraffSOMMapManager) mapMgr).isFtrCalcDone(StraffWeightCalc.tpCalcObjIDX));				
+		setPrivFlags(tpExCalcedIDX, ((StraffSOMMapManager) mapMgr).isFtrCalcDone(StraffWeightCalc.tpCalcObjIDX));	
+		//checking flag to execute if true
+		if(getPrivFlags(procTruProspectsIDX)){	((StraffSOMMapManager) mapMgr).buildAndSaveTrueProspectReport();setPrivFlags(procTruProspectsIDX,false);	}			
 	}
 
 	//stuff to draw specific to this instance, before nodes are drawn
@@ -455,7 +450,6 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 		
 		if (getPrivFlags(mapDrawCustAnalysisVisIDX)){	_drawAnalysis(custExCalcedIDX, mapDrawCustAnalysisVisIDX);	} 
 		else if (getPrivFlags(mapDrawTPAnalysisVisIDX)){_drawAnalysis(tpExCalcedIDX, mapDrawTPAnalysisVisIDX);}
-		
 	}
 	
 	
@@ -651,15 +645,19 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 
 }//mySOMMapUIWin
 
-//class to manage buttons used by sidebar window
+/**
+ * class to manage buttons used by sidebar window - overrides base setup
+ * @author john
+ *
+ */
 class mySideBarMenu extends BaseBarMenu {
 	
 	public static final int 
 		//btnShowWinIdx = 0, 				//which window to show
 		btnAuxFunc1Idx = 0,			//aux functionality 1
 		btnAuxFunc2Idx = 1,			//aux functionality 2
-		btnDBGSelCmpIdx = 2,			//debug
-		btnFileCmdIdx = 3;				//load/save files
+		btnDBGSelCmpIdx = 2;			//debug
+		//btnFileCmdIdx = 3;				//load/save files
 
 
 	public mySideBarMenu(my_procApplet _p, String _n, int _flagIdx, int[] fc, int[] sc, float[] rd, float[] rdClosed,
@@ -669,7 +667,7 @@ class mySideBarMenu extends BaseBarMenu {
 
 	@Override
 	protected void initSideBarMenuBtns_Priv() {
-		guiBtnRowNames = new String[]{"Raw Data/Ftr Processing","Post Proc Load And Map Config/Exec","DEBUG","File"};
+		guiBtnRowNames = new String[]{"Raw Data/Ftr Processing","Post Proc Load And Map Config/Exec","DEBUG"};//,"File"};
 
 		//names for each row of buttons - idx 1 is name of row
 		guiBtnNames = new String[][]{
@@ -677,7 +675,7 @@ class mySideBarMenu extends BaseBarMenu {
 			new String[]{"Func 1","Func 2","Func 3"},						//per-window user functions - momentary
 			new String[]{"Func 1","Func 2","Func 3","Func 4","Func 5"},						//per-window user functions - momentary
 			new String[]{"Dbg 1","Dbg 2","Dbg 3","Dbg 4","Dbg 5"},						//DEBUG - momentary
-			new String[]{"Load Txt File","Save Txt File"}							//load an existing score, save an existing score - momentary		
+//			new String[]{"Load Txt File","Save Txt File"}							//load an existing score, save an existing score - momentary		
 		};
 		//default names, to return to if not specified by user
 		defaultUIBtnNames = new String[][]{
@@ -685,7 +683,7 @@ class mySideBarMenu extends BaseBarMenu {
 			new String[]{"Func 1","Func 2","Func 3"},					//per-window user functions - momentary
 			new String[]{"Func 1","Func 2","Func 3","Func 4","Func 5"},			//per-window user functions - momentary
 			new String[]{"Dbg 1","Dbg 2","Dbg 3","Dbg 4","Dbg 5"},						//DEBUG - momentary
-			new String[]{"Load Txt File","Save Txt File"}							//load an existing score, save an existing score - momentary		
+//			new String[]{"Load Txt File","Save Txt File"}							//load an existing score, save an existing score - momentary		
 		};
 		//whether buttons are momentary or not (on only while being clicked)
 		guiBtnInst = new boolean[][]{
@@ -693,7 +691,7 @@ class mySideBarMenu extends BaseBarMenu {
 			new boolean[]{false,false,false,false,false},                   //functionality - momentary
 			new boolean[]{false,false,false,false,false},                   //functionality - momentary
 			new boolean[]{false,false,false,false,false},                   		//debug - momentary
-			new boolean[]{true,true},			              			//load an existing score, save an existing score - momentary	
+//			new boolean[]{true,true},			              			//load an existing score, save an existing score - momentary	
 		};		
 		//whether buttons are waiting for processing to complete (for non-momentary buttons)
 		guiBtnWaitForProc = new boolean[][]{
@@ -701,7 +699,7 @@ class mySideBarMenu extends BaseBarMenu {
 			new boolean[]{false,false,false,false,false},                   //functionality - momentary
 			new boolean[]{false,false,false,false,false},                   //functionality - momentary
 			new boolean[]{false,false,false,false,false},                   		//debug - momentary
-			new boolean[]{false,false},			              			//load an existing score, save an existing score - momentary	
+//			new boolean[]{false,false},			              			//load an existing score, save an existing score - momentary	
 		};			
 		
 		//whether buttons are disabled(-1), enabled but not clicked/on (0), or enabled and on/clicked(1)
@@ -710,7 +708,7 @@ class mySideBarMenu extends BaseBarMenu {
 			new int[]{0,0,0,0,0},                   					//debug - momentary
 			new int[]{0,0,0,0,0},                   					//debug - momentary
 			new int[]{0,0,0,0,0},                   					//debug - momentary
-			new int[]{0,0}			              					//load an existing score, save an existing score - momentary	
+//			new int[]{0,0}			              					//load an existing score, save an existing score - momentary	
 		};	}
 
 	@Override
@@ -724,7 +722,7 @@ class mySideBarMenu extends BaseBarMenu {
 			case btnAuxFunc1Idx 		: //{pa.handleMenuBtnSelCmp(btnAuxFunc1Idx,col, val);break;}
 			case btnAuxFunc2Idx 		: //{pa.handleMenuBtnSelCmp(btnAuxFunc2Idx,col, val);break;}
 			case btnDBGSelCmpIdx  		: {pa.handleMenuBtnSelCmp(row, col, val);break;}//{pa.handleMenuBtnSelCmp(btnDBGSelCmpIdx,col, val);break;}
-			case btnFileCmdIdx 			: {pa.handleFileCmd(btnFileCmdIdx, col, val);break;}
+//			case btnFileCmdIdx 			: {pa.handleFileCmd(btnFileCmdIdx, col, val);break;}
 		}				
 	}	
 

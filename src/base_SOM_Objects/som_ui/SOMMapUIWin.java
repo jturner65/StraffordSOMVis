@@ -58,7 +58,7 @@ public abstract class SOMMapUIWin extends myDispWindow {
 		uiMapNHoodList = new String[] {"gaussian","bubble"},
 		uiMapRadClList = new String[] {"linear","exponential"},
 		uiMapLrnClList = new String[] {"linear","exponential"},
-		uiMapDrawExToBmuTypeList = SOMMapManager.nodeBMUMapTypes,
+		uiMapDrawExToBmuTypeList = SOMMapManager.getNodeBMUMapTypes(),
 		uiMapTestFtrTypeList = SOMMapManager.uiMapTrainFtrTypeList,//new String[] {"Unmodified","Standardized (0->1 per ftr)","Normalized (vector mag==1)"};
 		uiMapTrainFtrTypeList = SOMMapManager.uiMapTrainFtrTypeList;//new String[] {"Unmodified","Standardized (0->1 per ftr)","Normalized (vector mag==1)"};
 
@@ -167,17 +167,17 @@ public abstract class SOMMapUIWin extends myDispWindow {
 	public final void initAllPrivBtns(){
 		String[] _truePrivFlagNames = new String[]{								//needs to be in order of flags
 				//"Train W/Recs W/Event Data", 
-				"Building SOM", "Resetting Default UI Vals", 
-				"Using ChiSq for Ftr Distance", "Product Dist ignores 0-ftrs",	"Hide Train Data", "Hide Test Data",
-				"Hide Node Lbls","Hide Active Ftr Map Nodes (by Wt)","Hide Map Nodes (by Pop)", "Hide Map Nodes", 
-				"Showing U Mtrx Dists (Bi-Cubic)","Hide Clusters (U-Dist)", "Hide Cluster Image", 
+				"Building SOM", "Reset Dflt UI Vals", 
+				"Using ChiSq for Ftr Dist", "Prdct Dist ignores 0-ftrs", "Hide Train Data", "Hide Test Data",
+				"Hide Lbls","Hide Hot Ftr Nodes (by Wt)","Hide Nodes (by Pop)", "Hide Nodes", 
+				"Showing UMat (Bi-Cubic)","Hide Clstr (U-Dist)", "Hide Clstr Image", 
 		};
 		String[] _falsePrivFlagNames = new String[]{			//needs to be in order of flags
 				//"Train W/All Recs",
-				"Build New Map ","Reset Default UI Vals",
-				"Not Using ChiSq Distance", "Product Dist measures all ftrs","Show Train Data","Show Test Data",
-				"Show Node Lbls","Show Active Ftr Map Nodes (by Wt)","Show Map Nodes (by Pop)","Show Map Nodes", 
-				"Showing Per Feature Map", "Show Clusters (U-Dist)", "Show Cluster Image", 
+				"Build SOM ","Reset Dflt UI Vals",
+				"Not Using ChiSq Distance", "Prdct Dist w/all ftrs","Show Train Data","Show Test Data",
+				"Show Lbls","Show Hot Ftr Nodes (by Wt)","Show Nodes (by Pop)","Show Nodes", 
+				"Showing Ftr Map", "Show Clstr (U-Dist)", "Show Clstr Image", 
 		};
 		int[] _privModFlgIdxs = new int[]{
 				//useOnlyEvntsToTrainIDX, 
@@ -352,8 +352,6 @@ public abstract class SOMMapUIWin extends myDispWindow {
 	public void resetUIVals(){
 		for(int i=0; i<guiStVals.length;++i){				guiObjs[i].setVal(guiStVals[i]);		}
 	}	
-
-	
 	
 	///////////////////////////////////////////
 	// map image init	
@@ -554,7 +552,7 @@ public abstract class SOMMapUIWin extends myDispWindow {
 			case uiMapKTypIDX				: {return uiMapKTypList[validx % uiMapKTypList.length]; }
 			case uiMapNHdFuncIDX			: {return uiMapNHoodList[validx % uiMapNHoodList.length]; }
 			case uiMapRadCoolIDX			: {return uiMapRadClList[validx % uiMapRadClList.length]; }
-			case uiMapNodeBMUTypeToDispIDX 	: {return SOMMapManager.nodeBMUMapTypes[validx %  SOMMapManager.nodeBMUMapTypes.length];}
+			case uiMapNodeBMUTypeToDispIDX 	: {return uiMapDrawExToBmuTypeList[validx %  uiMapDrawExToBmuTypeList.length];}
 			case uiMapLrnCoolIDX			: {return uiMapLrnClList[validx % uiMapLrnClList.length]; }	
 			default 						: {return getUIListValStrIndiv(UIidx, validx);}
 		}
@@ -692,7 +690,6 @@ public abstract class SOMMapUIWin extends myDispWindow {
 	}//drawMapRectangle
 	
 	protected abstract void drawMapRectangleIndiv(int curImgNum);
-
 
 	/////////////////////////////////////////
 	// end draw routines

@@ -45,6 +45,8 @@ public abstract class BaseBarMenu extends myDispWindow{
 			};
 	
 	public int[][] pFlagColors;
+	private final List<Integer> mainFlagsToShow;
+	private final int numMainFlagsToShow;
 	
 	public final int clkFlgsStY = 10;
 	
@@ -69,7 +71,6 @@ public abstract class BaseBarMenu extends myDispWindow{
 	public float minBtnClkY;			//where buttons should start on side menu
 
 	public String[] guiBtnRowNames;
-
 	//names for each row of buttons - idx 1 is name of row
 	public String[][] guiBtnNames;
 	//default names, to return to if not specified by user
@@ -89,6 +90,9 @@ public abstract class BaseBarMenu extends myDispWindow{
 
 	public BaseBarMenu(my_procApplet _p, String _n, int _flagIdx, int[] fc, int[] sc, float[] rd, float[] rdClosed, String _winTxt, boolean _canDrawTraj) {
 		super(_p, _n, _flagIdx, fc, sc,  rd, rdClosed, _winTxt, _canDrawTraj);
+		numMainFlagsToShow = pa.getNumFlagsToShow();
+		mainFlagsToShow = pa.getMainFlagsToShow();
+		
 		guiBtnStFillClr = new int[]{		//button colors based on state
 				my_procApplet.gui_White,								//disabled color for buttons
 				my_procApplet.gui_LightGray,								//not clicked button color
@@ -149,8 +153,7 @@ public abstract class BaseBarMenu extends myDispWindow{
 		int flIDX = idx/32, mask = 1<<(idx%32);
 		privFlags[flIDX] = (val ?  privFlags[flIDX] | mask : privFlags[flIDX] & ~mask);
 		switch (idx) {//special actions for each flag
-			case mseClickedInBtnsIDX : {
-				
+			case mseClickedInBtnsIDX : {				
 			}
 		}
 	}
@@ -165,15 +168,13 @@ public abstract class BaseBarMenu extends myDispWindow{
 		//idx 0 is treat as int, idx 1 is obj has list vals, idx 2 is object gets sent to windows
 		guiBoolVals = new boolean [][]{{}};
 		
-		minBtnClkY = (pa.numFlagsToShow+3) * yOff + clkFlgsStY;										//start of buttons from under boolean flags	
-		initUIClickCoords(rectDim[0] + .1f * rectDim[2],minBtnClkY + (guiBtnRowNames.length * 2.0f) * yOff,rectDim[0] + .99f * rectDim[2],0);//last val over-written by actual value in buildGuiObjs
+		minBtnClkY = (numMainFlagsToShow+3) * yOff + clkFlgsStY;										//start of buttons from under boolean flags
+		//all ui ojbects for all windows will follow this format and share the x[0] value
+		initUIClickCoords(rectDim[0] + .02f * rectDim[2],minBtnClkY + (guiBtnRowNames.length * 2.0f) * yOff,rectDim[0] + .99f * rectDim[2],0);//last val over-written by actual value in buildGuiObjs
 		guiObjs = new myGUIObj[numGUIObjs];			//list of modifiable gui objects
-		if(0!=numGUIObjs){
-			buildGUIObjs(guiObjNames,guiStVals,guiMinMaxModVals,guiBoolVals, new double[]{xOff,yOff});
-		} else {
-			uiClkCoords[3] = uiClkCoords[1];		//set y start values
-		}
-	}
+		if(0!=numGUIObjs){			buildGUIObjs(guiObjNames,guiStVals,guiMinMaxModVals,guiBoolVals, new double[]{xOff,yOff});		} 
+		else {			uiClkCoords[3] = uiClkCoords[1];	}	//set y start values
+	}//setupGUIObjsAras
 	
 	//check if buttons clicked
 	private boolean checkButtons(int mseX, int mseY){
@@ -249,8 +250,8 @@ public abstract class BaseBarMenu extends myDispWindow{
 	protected boolean hndlMouseClickIndiv(int mouseX, int mouseY, myPoint mseClckInWorld, int mseBtn) {	
 		if((!pa.ptInRange(mouseX, mouseY, rectDim[0], rectDim[1], rectDim[0]+rectDim[2], rectDim[1]+rectDim[3]))){return false;}//not in this window's bounds, quit asap for speedz
 		int i = (int)((mouseY-(yOff + yOff + clkFlgsStY))/(yOff));					//TODO Awful - needs to be recalced, dependent on menu being on left
-		if((i>=0) && (i<pa.numFlagsToShow)){
-			pa.setBaseFlag(pa.flagsToShow.get(i),!pa.getBaseFlag(pa.flagsToShow.get(i)));return true;	}
+		if((i>=0) && (i<numMainFlagsToShow)){
+			pa.setBaseFlag(mainFlagsToShow.get(i),!pa.getBaseFlag(mainFlagsToShow.get(i)));return true;	}
 		else if(pa.ptInRange(mouseX, mouseY, 0, minBtnClkY, uiClkCoords[2], uiClkCoords[1])){
 			boolean clkInBtnRegion = checkButtons(mouseX, mouseY);
 			if(clkInBtnRegion) { this.setPrivFlags(mseClickedInBtnsIDX, true);}
@@ -271,8 +272,8 @@ public abstract class BaseBarMenu extends myDispWindow{
 		pa.setColorValFill(my_procApplet.gui_Black);
 		pa.text("Boolean Flags",0,yOff*.20f);
 		pa.translate(0,clkFlgsStY);
-		for(int idx =0; idx<pa.numFlagsToShow; ++idx){
-			int i = pa.flagsToShow.get(idx);
+		for(int idx =0; idx<numMainFlagsToShow; ++idx){
+			int i = mainFlagsToShow.get(idx);
 			if(pa.getBaseFlag(i) ){												dispMenuTxtLat(truePFlagNames[i],pFlagColors[i], true);			}
 			else {	if(truePFlagNames[i].equals(falsePFlagNames[i])) {		dispMenuTxtLat(truePFlagNames[i],new int[]{180,180,180}, false);}	
 					else {													dispMenuTxtLat(falsePFlagNames[i],new int[]{0,255-pFlagColors[i][1],255-pFlagColors[i][2]}, true);}		

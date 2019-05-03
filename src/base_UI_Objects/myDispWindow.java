@@ -19,7 +19,7 @@ public abstract class myDispWindow {
 	public float[] curVisScrDims;
 
 	public static final float xOff = 20 , yOff = 18.0f * (my_procApplet.txtSz/12.0f), btnLblYOff = 2 * yOff, rowStYOff = yOff*.15f;
-	private static final float maxBtnWidthMult = .9f;
+	private static final float maxBtnWidthMult = .95f;
 	public static final int topOffY = 40;			//offset values to render boolean menu on side of screen - offset at top before drawing
 	public static final float clkBxDim = 10;//size of interaction/close window box in pxls
 	
@@ -259,6 +259,9 @@ public abstract class myDispWindow {
 	//calculate button length
 	private static final float ltrLen = 5.0f;private static final int btnStep = 5;
 	private float calcBtnLength(String tStr, String fStr){return btnStep * (int)(((PApplet.max(tStr.length(),fStr.length())+4) * ltrLen)/btnStep);}
+	
+	private void setBtnDims(int idx, float oldBtnLen, float btnLen) {privFlagBtns[idx]= new float[] {(float)(uiClkCoords[0])+oldBtnLen, (float) uiClkCoords[3], btnLen, yOff };}
+	
 	//set up child class button rectangles TODO
 	//yDisp is displacement for button to be drawn
 	protected void initPrivBtnRects(float yDisp, int numBtns){
@@ -279,7 +282,8 @@ public abstract class myDispWindow {
 					privFlagBtns[i-1][2] = maxBtnLen;
 					this.uiClkCoords[3] += yOff;
 				}
-				privFlagBtns[i]= new float[] {(float)(uiClkCoords[0]-xOff), (float) uiClkCoords[3], btnLen, yOff };				
+				setBtnDims(i, 0, btnLen);
+				//privFlagBtns[i]= new float[] {(float)(uiClkCoords[0]-xOff), (float) uiClkCoords[3], btnLen, yOff };				
 				this.uiClkCoords[3] += yOff;
 				startNewLine = true;
 				lastBtnHalfStLine = false;
@@ -287,11 +291,13 @@ public abstract class myDispWindow {
 				btnLen = halfBtnLen;
 				if(startNewLine){//button is starting new line
 					lastBtnHalfStLine = true;
-					privFlagBtns[i]= new float[] {(float)(uiClkCoords[0]-xOff), (float) uiClkCoords[3], btnLen, yOff };
+					setBtnDims(i, 0, btnLen);
+					//privFlagBtns[i]= new float[] {(float)(uiClkCoords[0]-xOff), (float) uiClkCoords[3], btnLen, yOff };
 					startNewLine = false;
 				} else {//should only get here if 2nd of two <1/2 width buttons in a row
 					lastBtnHalfStLine = false;
-					privFlagBtns[i]= new float[] {(float)(uiClkCoords[0]-xOff)+oldBtnLen, (float) uiClkCoords[3], btnLen, yOff };
+					setBtnDims(i, oldBtnLen, btnLen);
+					//privFlagBtns[i]= new float[] {(float)(uiClkCoords[0]-xOff)+oldBtnLen, (float) uiClkCoords[3], btnLen, yOff };
 					this.uiClkCoords[3] += yOff;
 					startNewLine = true;					
 				}

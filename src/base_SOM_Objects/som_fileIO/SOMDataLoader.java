@@ -175,6 +175,8 @@ public class SOMDataLoader implements Runnable {
 			bmusToExs[i] = new HashMap<SOMMapNode, ArrayList<SOMExample>>();
 		}
 		int mapNodeX, mapNodeY, dpIdx;
+		SOMExample[] _trainData = mapMgr.getTrainingData();
+		int typeOfData = _trainData[0].getTypeVal();
 		for (int i=2;i<strs.length;++i){//load in data on all bmu's
 			tkns = strs[i].split(mapMgr.SOM_FileToken);
 			if(tkns.length < 2){continue;}//shouldn't happen	
@@ -184,7 +186,7 @@ public class SOMDataLoader implements Runnable {
 			Tuple<Integer,Integer> mapLoc = new Tuple<Integer, Integer>(mapNodeX,mapNodeY);//map locations in bmu data are in (y,x) order (row major)
 			SOMMapNode tmpMapNode = mapMgr.getMapNodeLoc(mapLoc);//mapMgr.MapNodes.get(mapLoc);
 			if(null==tmpMapNode){ msgObj.dispMessage("DataLoader","loadSOM_BMUs","!!!!!!!!!Map node stated as best matching unit for training example " + tkns[0] + " not found in map ... somehow. ", MsgCodes.error2); return false;}//catastrophic error shouldn't be possible
-			SOMExample tmpDataPt = mapMgr.trainData[dpIdx];
+			SOMExample tmpDataPt = _trainData[dpIdx];
 			if(null==tmpDataPt){ msgObj.dispMessage("DataLoader","loadSOM_BMUs","!!Training Datapoint given by idx in BMU file str tok : " + tkns[0] + " of string : --" + strs[i] + "-- not found in training data. ", MsgCodes.error2); return false;}//catastrophic error shouldn't happen
 			//partition bmu and its subsequent child examples to a different list depending on location of bmu
 			bmuListIDX = ((mapNodeX * numMapCols) + mapNodeY) % numThds;
@@ -199,11 +201,13 @@ public class SOMDataLoader implements Runnable {
 		}//for each training data point			
 		msgObj.dispMessage("DataLoader","loadSOM_BMUs","Built bmus map, now calc dists for examples", MsgCodes.info1);
 		boolean doMT = mapMgr.isMTCapable();
+		//mapping bmus to training examples
+		mapMgr.setTrainDataBMUsRdyToSave(false);
 		if (doMT) {
 			List<Future<Boolean>> bmuDataBldFtrs;
 			List<SOMExBMULoader> bmuDataLoaders = new ArrayList<SOMExBMULoader>();
 			////////////////////
-			for(int i=0;i<numThds;++i) {bmuDataLoaders.add(new SOMExBMULoader(mapMgr.buildMsgObj(),ftrTypeUsedToTrain,useChiSqDist, bmusToExs[i],i));	}
+			for(int i=0;i<numThds;++i) {bmuDataLoaders.add(new SOMExBMULoader(mapMgr.buildMsgObj(),ftrTypeUsedToTrain,useChiSqDist, typeOfData, bmusToExs[i],i));	}
 			try {bmuDataBldFtrs = mapMgr.getTh_Exec().invokeAll(bmuDataLoaders);for(Future<Boolean> f: bmuDataBldFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }		
 		} else {		
 			//below is the slowest section of this code - to improve performance this part should be multithreaded
@@ -211,19 +215,19 @@ public class SOMDataLoader implements Runnable {
 				for (HashMap<SOMMapNode, ArrayList<SOMExample>> bmuToExsMap : bmusToExs) {
 					for (SOMMapNode tmpMapNode : bmuToExsMap.keySet()) {
 						ArrayList<SOMExample> exs = bmuToExsMap.get(tmpMapNode);
-						for(SOMExample ex : exs) {ex.setBMU_ChiSq(tmpMapNode, ftrTypeUsedToTrain);tmpMapNode.addExToBMUs(ex);	}
+						for(SOMExample ex : exs) {ex.setBMU_ChiSq(tmpMapNode, ftrTypeUsedToTrain);tmpMapNode.addExToBMUs(ex,typeOfData);	}
 					}
 				}				
 			} else {
 				for (HashMap<SOMMapNode, ArrayList<SOMExample>> bmuToExsMap : bmusToExs) {
 					for (SOMMapNode tmpMapNode : bmuToExsMap.keySet()) {
 						ArrayList<SOMExample> exs = bmuToExsMap.get(tmpMapNode);
-						for(SOMExample ex : exs) {ex.setBMU(tmpMapNode, ftrTypeUsedToTrain);tmpMapNode.addExToBMUs(ex);	}
+						for(SOMExample ex : exs) {ex.setBMU(tmpMapNode, ftrTypeUsedToTrain);tmpMapNode.addExToBMUs(ex,typeOfData);	}
 					}
 				}				
 			}
 		}//if mt else single thd
-		
+		mapMgr.setTrainDataBMUsRdyToSave(true);
 		msgObj.dispMessage("DataLoader","loadSOM_BMUs","Start Pruning No-Example list", MsgCodes.info5);
 		//remove all examples that have been mapped to
 		mapMgr.filterExFromNoEx(ExDataType.Training);
