@@ -151,7 +151,7 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 		//provide default values used by program
 		_argsMap.put("configDir", "StraffordProject" + File.separator+"config" + File.separator);
 		_argsMap.put("dataDir", "StraffordProject" + File.separator);
-		_argsMap.put("logLevel",2);
+		_argsMap.put("logLevel",0);//0 is console alone,1 is log file alone, 2 is both
 		
 		return new Straff_SOMMapManager(SOM_mapDims, _argsMap);
 	}
