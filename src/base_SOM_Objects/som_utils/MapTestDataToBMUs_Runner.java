@@ -49,7 +49,6 @@ public class MapTestDataToBMUs_Runner implements Runnable {
 		numUsableThreads = mapMgr.getNumUsableThreads()-1;
 		useChiSqDist = mapMgr.getUseChiSqDist();
 		canMultiThread = mapMgr.isMTCapable();
-		
 		th_exec = _th_exec;
 		exData = _exData;
 		dataTypName = _dataTypName;
@@ -108,14 +107,6 @@ public class MapTestDataToBMUs_Runner implements Runnable {
 			}
 			//last one probably won't end at endIDX, so use length
 			if(stIDX < dataEnd) {testMappers.add(new MapTestDataToBMUs(mapMgr,stIDX, dataEnd, exData, numUsableThreads-1 + numExistThds, dataTypName+partStr,useChiSqDist));}
-//			testMapperFtrs = new ArrayList<Future<Boolean>>();
-//			try {testMapperFtrs = th_exec.invokeAll(testMappers);for(Future<Boolean> f: testMapperFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }		
-//		} else {//for every product find closest map node
-////			if (useChiSqDist) {			for (int i=dataSt;i<dataEnd;++i) {	exData[i].findBMUFromNodes_ChiSq(MapNodes, curMapTestFtrType);incrTTLProgress(i,dataEnd-dataSt);		}}			
-////			else {						for (int i=dataSt;i<dataEnd;++i) {	exData[i].findBMUFromNodes(MapNodes, curMapTestFtrType);	incrTTLProgress(i,dataEnd-dataSt);		}	}			
-//			if (useChiSqDist) {			for (int i=dataSt;i<dataEnd;++i) {	exData[i].findBMUFromFtrNodes_ChiSq(MapNodesByFtr, curMapTestFtrType);incrTTLProgress(i,dataEnd-dataSt);		}}			
-//			else {						for (int i=dataSt;i<dataEnd;++i) {	exData[i].findBMUFromFtrNodes(MapNodesByFtr, curMapTestFtrType);	incrTTLProgress(i,dataEnd-dataSt);		}	}			
-//		}
 	}//runner
 
 	@Override
@@ -134,38 +125,16 @@ public class MapTestDataToBMUs_Runner implements Runnable {
 				dataSt = dataEnd;
 				dataEnd +=numPerPartition;			
 			}
-			runner(dataSt, exData.length, numPartitions-1,numPartitions);
-			
+			runner(dataSt, exData.length, numPartitions-1,numPartitions);			
 			
 			testMapperFtrs = new ArrayList<Future<Boolean>>();
 			try {testMapperFtrs = th_exec.invokeAll(testMappers);for(Future<Boolean> f: testMapperFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }		
 
 		} else {//for every product find closest map node
 			ttlProgress=-.1;
-//			if (useChiSqDist) {			for (int i=0;i<exData.length;++i) {	exData[i].findBMUFromNodes_ChiSq(MapNodes, curMapTestFtrType);incrTTLProgress(i,exData.length);		}}			
-//			else {						for (int i=0;i<exData.length;++i) {	exData[i].findBMUFromNodes(MapNodes, curMapTestFtrType);	incrTTLProgress(i,exData.length);		}	}			
 			if (useChiSqDist) {			for (int i=0;i<exData.length;++i){	exData[i].findBMUFromFtrNodes_ChiSq(MapNodesByFtr, curMapTestFtrType);incrTTLProgress(i,exData.length);		}}			
 			else {						for (int i=0;i<exData.length;++i) {	exData[i].findBMUFromFtrNodes(MapNodesByFtr, curMapTestFtrType);	incrTTLProgress(i,exData.length);		}	}			
 		}
-//		if(canMultiThread) {
-//			List<Future<Boolean>> testMapperFtrs = new ArrayList<Future<Boolean>>();
-//			List<MapTestDataToBMUs> testMappers = new ArrayList<MapTestDataToBMUs>();
-//			int numForEachThrd = calcNumPerThd(exData.length, numUsableThreads);
-//			//use this many for every thread but last one
-//			int stIDX = 0;
-//			int endIDX = numForEachThrd;		
-//			for (int i=0; i<(numUsableThreads-1);++i) {				
-//				testMappers.add(new MapTestDataToBMUs(mapMgr,stIDX, endIDX,  exData, i, dataTypName, useChiSqDist));
-//				stIDX = endIDX;
-//				endIDX += numForEachThrd;
-//			}
-//			//last one probably won't end at endIDX, so use length
-//			if(stIDX < exData.length) {testMappers.add(new MapTestDataToBMUs(mapMgr,stIDX, exData.length, exData, numUsableThreads-1, dataTypName,useChiSqDist));}
-//			try {testMapperFtrs = th_exec.invokeAll(testMappers);for(Future<Boolean> f: testMapperFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }		
-//		} else {//for every product find closest map node
-//			if (useChiSqDist) {			for (int i=0;i<exData.length;++i) {	exData[i].findBMUFromNodes_ChiSq(MapNodes, curMapTestFtrType);incrTTLProgress(i,exData.length);		}}			
-//			else {						for (int i=0;i<exData.length;++i) {	exData[i].findBMUFromNodes(MapNodes, curMapTestFtrType);	incrTTLProgress(i,exData.length);		}	}			
-//		}
 		
 		//go through every test example, if any, and attach prod to bmu - needs to be done synchronously because don't want to concurrently modify bmus from 2 different test examples		
 		mapMgr.getMsgObj().dispMessage("MapTestDataToBMUs_Runner","run","Finished finding bmus for all " +exData.length + " "+dataTypName+" data. Start adding "+dataTypName+" data to appropriate bmu's list.", MsgCodes.info1);

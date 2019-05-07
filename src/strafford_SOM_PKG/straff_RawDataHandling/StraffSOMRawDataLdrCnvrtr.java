@@ -6,7 +6,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import base_SOM_Objects.som_examples.*;
-
+import base_SOM_Objects.som_utils.SOMProjConfigData;
 import base_Utils_Objects.*;
 import strafford_SOM_PKG.straff_RawDataHandling.data_loaders.StraffordDataLoader;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.BaseRawData;
@@ -14,8 +14,7 @@ import strafford_SOM_PKG.straff_RawDataHandling.raw_data.ProspectData;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.TcTagData;
 import strafford_SOM_PKG.straff_SOM_Examples.CustProspectExample;
 import strafford_SOM_PKG.straff_SOM_Examples.ProductExample;
-import strafford_SOM_PKG.straff_SOM_Mapping.StraffSOMMapManager;
-import strafford_SOM_PKG.straff_Utils.SOMProjConfigData;
+import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 
 /**
  * this class manages the loading of the raw data from either csv or from sql queries (TODO: SQL not implemented yet)
@@ -24,7 +23,7 @@ import strafford_SOM_PKG.straff_Utils.SOMProjConfigData;
  */
 public class StraffSOMRawDataLdrCnvrtr {
 	//owning som map mgr
-	public static StraffSOMMapManager mapMgr;
+	public static Straff_SOMMapManager mapMgr;
 	//message object for logging/displaying results to screen
 	private static MessageObject msgObj;
 	//struct maintaining complete project configuration and information from config files - all file name data and building needs to be done by this object
@@ -43,12 +42,12 @@ public class StraffSOMRawDataLdrCnvrtr {
 	private static final int[] straffEventDataIDXs = new int[] {orderEvntIDX, optEvntIDX, linkEvntIDX, srcEvntIDX};
 	//list of idxs related to each table for data
 	public static final int[] straffObjFlagIDXs = new int[] {
-			StraffSOMMapManager.prospectDataLoadedIDX, StraffSOMMapManager.orderDataLoadedIDX, StraffSOMMapManager.optDataLoadedIDX, 
-			StraffSOMMapManager.linkDataLoadedIDX, StraffSOMMapManager.sourceDataLoadedIDX, StraffSOMMapManager.tcTagsDataLoadedIDX, 
-			StraffSOMMapManager.jpDataLoadedIDX, StraffSOMMapManager.jpgDataLoadedIDX};
+			Straff_SOMMapManager.prospectDataLoadedIDX, Straff_SOMMapManager.orderDataLoadedIDX, Straff_SOMMapManager.optDataLoadedIDX, 
+			Straff_SOMMapManager.linkDataLoadedIDX, Straff_SOMMapManager.sourceDataLoadedIDX, Straff_SOMMapManager.tcTagsDataLoadedIDX, 
+			Straff_SOMMapManager.jpDataLoadedIDX, Straff_SOMMapManager.jpgDataLoadedIDX};
 	
 	//file names for specific file dirs/types, keyed by dir - looks up in directory and gets all csv files to use as sources
-	private TreeMap<String, String[]> straffDataFileNames;
+	private TreeMap<String, String[]> straffRawDataFileNames;
 	//whether each table uses json as final field to hold important info or not
 	private static final boolean[] straffRawDatUsesJSON = new boolean[] {true, true, true, true, true, false, true, true};
 	//whether we want to debug the loading of a particular type of raw data
@@ -70,14 +69,14 @@ public class StraffSOMRawDataLdrCnvrtr {
 	public TreeMap<String, StraffordDataLoader>straffDataLoaders;
 	//executor
 	private ExecutorService th_exec;
-	public StraffSOMRawDataLdrCnvrtr(StraffSOMMapManager _mapMgr, SOMProjConfigData _projConfig) {
+	public StraffSOMRawDataLdrCnvrtr(Straff_SOMMapManager _mapMgr, SOMProjConfigData _projConfig) {
 		mapMgr=_mapMgr;
 		msgObj = mapMgr.buildMsgObj();
 		fileIO = new FileIOManager(new MessageObject(msgObj),"StraffSOMRawDataLdrCnvrtr");
 		projConfigData = _projConfig;
 		th_exec = mapMgr.getTh_Exec();
 		//load all raw data file names based on exploring directory structure for all csv files
-		straffDataFileNames = projConfigData.buildFileNameMap(straffDataDirNames);	
+		straffRawDataFileNames = projConfigData.buildRawFileNameMap(straffDataDirNames);	
 		
 		try {
 			straffObjLoaders = new Class[straffClassLdrNames.length];//{Class.forName("SOM_Strafford_PKG.ProspectDataLoader"),  Class.forName("SOM_Strafford_PKG.OrderEventDataLoader"),Class.forName("SOM_Strafford_PKG.OptEventDataLoader"),Class.forName("SOM_Strafford_PKG.LinkEventDataLoader")};
@@ -101,7 +100,7 @@ public class StraffSOMRawDataLdrCnvrtr {
 		//numStraffDataTypes
 		try {
 			for (int idx=0;idx<straffDataDirNames.length;++idx) {
-				String[] fileNameAra = straffDataFileNames.get(straffDataDirNames[idx]);
+				String[] fileNameAra = straffRawDataFileNames.get(straffDataDirNames[idx]);
 				for (int fidx = 0;fidx < fileNameAra.length;++fidx) {
 					String dataLoaderKey = fileNameAra[fidx];				
 					straffDataLoaders.put(dataLoaderKey,(StraffordDataLoader) straffObjLoaders[idx].getDeclaredConstructor(args).newInstance(true, dataLoaderKey));
@@ -128,7 +127,7 @@ public class StraffSOMRawDataLdrCnvrtr {
 			buildStraffDataLoaders();
 			for (int idx=0;idx<straffDataDirNames.length;++idx) {//build a thread per data type //straffRawDatDebugLoad
 				boolean[] flags = new boolean[] {fromCSVFiles,straffRawDatUsesJSON[idx], straffRawDatDebugLoad[idx]};
-				String[] fileNameAra = straffDataFileNames.get(straffDataDirNames[idx]);
+				String[] fileNameAra = straffRawDataFileNames.get(straffDataDirNames[idx]);
 				for (int fidx =0;fidx <fileNameAra.length;++fidx) {
 					String fullFileName = projConfigData.getRawDataLoadInfo(fromCSVFiles,straffDataDirNames[idx],fileNameAra[fidx]);
 					straffDataLoaders.get(fileNameAra[fidx]).setLoadData(this, mapMgr.buildMsgObj(), straffDataDirNames[idx],  fullFileName, flags, straffObjFlagIDXs[idx], fidx);
@@ -139,7 +138,7 @@ public class StraffSOMRawDataLdrCnvrtr {
 		} else {
 			for (int idx=0;idx<straffDataDirNames.length;++idx) {
 				boolean[] flags = new boolean[] {fromCSVFiles,straffRawDatUsesJSON[idx], straffRawDatDebugLoad[idx]};
-				String[] fileNameAra = straffDataFileNames.get(straffDataDirNames[idx]);
+				String[] fileNameAra = straffRawDataFileNames.get(straffDataDirNames[idx]);
 				for (int fidx =0;fidx <fileNameAra.length;++fidx) {
 					String fullFileName = projConfigData.getRawDataLoadInfo(fromCSVFiles,straffDataDirNames[idx],fileNameAra[fidx]);
 					loadRawDataVals(straffDataDirNames[idx], fullFileName, flags,idx, fidx);
@@ -221,7 +220,7 @@ public class StraffSOMRawDataLdrCnvrtr {
 			ProductExample ex = new ProductExample(mapMgr, (TcTagData)tcDat);
 			productMap.put(ex.OID, ex);
 		}
-		mapMgr.setFlag(StraffSOMMapManager.preProcProdDataLoadedIDX, true);
+		mapMgr.setFlag(Straff_SOMMapManager.preProcProdDataLoadedIDX, true);
 		msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","procRawProductData","Finished processing  : " + tcTagRawData.size()+ " raw records.", MsgCodes.info5);		
 	}//procRawProductData
 	

@@ -25,5 +25,9 @@
 	<classpathentry kind="lib" path="libs/jogl-all-natives-windows-amd64.jar"/>
 	<classpathentry kind="lib" path="libs/jogl-all-natives-windows-i586.jar"/>
 	<classpathentry kind="lib" path="libs/jogl-all.jar"/>
+	<classpathentry kind="lib" path="libs/argparse4j-0.8.1.jar"/>
+	<classpathentry kind="lib" path="libs/gluegen-rt-natives-linux-aarch64.jar"/>
+	<classpathentry kind="lib" path="libs/jogl-all-natives-linux-aarch64.jar"/>
+	<classpathentry kind="lib" path="libs/argparse4j-0.8.1-javadoc.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

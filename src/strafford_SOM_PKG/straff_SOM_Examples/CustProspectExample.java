@@ -1,6 +1,7 @@
 package strafford_SOM_PKG.straff_SOM_Examples;
 
 import java.util.Date;
+import java.util.HashSet;
 import java.util.TreeMap;
 
 import base_SOM_Objects.SOMMapManager;
@@ -14,7 +15,7 @@ import strafford_SOM_PKG.straff_RawDataHandling.raw_data.OptEvent;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.OrderEvent;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.ProspectData;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.SourceEvent;
-import strafford_SOM_PKG.straff_SOM_Mapping.StraffSOMMapManager;
+import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 import strafford_SOM_PKG.straff_Utils.StraffWeightCalc;
 
 /**
@@ -162,22 +163,18 @@ public class CustProspectExample extends ProspectExample{
 	protected void buildFeaturesMap() {
 		//access calc object		
 		if (allProdJPs.size() > 0) {			
-			StraffWeightCalc calc = ((StraffSOMMapManager)mapMgr).ftrCalcObj;
+			StraffWeightCalc calc = ((Straff_SOMMapManager)mapMgr).ftrCalcObj;
 			ftrMaps[ftrMapTypeKey] = calc.calcTrainFtrVec(this,allProdJPs,JpOccurrences.get("orders"), JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"));			
 		}
 		else {ftrMaps[ftrMapTypeKey] = new TreeMap<Integer, Float>();}
 		//now, if there's a non-null posOptAllEventObj then for all jps who haven't gotten an opt conribution to calculation, add positive opt-all result
 	}//buildFeaturesMap
 	
-	@Override
-	//called after all features of this kind of object are built
-	public void postFtrVecBuild() {
-		if(nonProdJpgJps.size() > 0) {
-			StraffWeightCalc calc = ((StraffSOMMapManager)mapMgr).ftrCalcObj;
-			compValMaps[ftrMapTypeKey] = calc.calcTrainFtrCompareDat(this,allProdJPs,nonProdJpgJps,prodJPsForNonProdJPGroups, JpOccurrences.get("orders"), JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"));
-		} 
-		else {compValMaps[ftrMapTypeKey] =  new TreeMap<Integer, Float>(); }
-	}//postFtrVecBuild
+	//this will build the training-ftr configured vector contribution for this example to all non-product jps this example has.
+	public void buildNonProdJpFtrVec() {
+		if(nonProdJpgJps.size() > 0) {		((Straff_SOMMapManager)mapMgr).ftrCalcObj.buildCustNonProdFtrVecs(this, nonProdJpgJps, JpOccurrences.get("sources"));}
+	}
+	
 
 	@Override
 	public String toString() {	

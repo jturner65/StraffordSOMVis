@@ -40,12 +40,12 @@ public class SOMExBMULoader implements Callable<Boolean>{
 		if (useChiSqDist) {		
 			for (SOMMapNode tmpMapNode : bmusToExmpl.keySet()) {
 				ArrayList<SOMExample> exs = bmusToExmpl.get(tmpMapNode);
-				for(SOMExample ex : exs) {ex.setBMU_ChiSq(tmpMapNode, ftrTypeUsedToTrain);tmpMapNode.addExToBMUs(ex,typeOfEx);	}
+				for(SOMExample ex : exs) {ex.setTrainingExBMU_ChiSq(tmpMapNode, ftrTypeUsedToTrain);tmpMapNode.addExToBMUs(ex,typeOfEx);	}
 			}		
 		} else {		
 			for (SOMMapNode tmpMapNode : bmusToExmpl.keySet()) {
 				ArrayList<SOMExample> exs = bmusToExmpl.get(tmpMapNode);
-				for(SOMExample ex : exs) {ex.setBMU(tmpMapNode, ftrTypeUsedToTrain); tmpMapNode.addExToBMUs(ex,typeOfEx);	}
+				for(SOMExample ex : exs) {ex.setTrainingExBMU(tmpMapNode, ftrTypeUsedToTrain); tmpMapNode.addExToBMUs(ex,typeOfEx);	}
 			}
 		}	
 		return true;

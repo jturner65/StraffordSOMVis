@@ -9,7 +9,7 @@ import base_UI_Objects.my_procApplet;
 import base_Utils_Objects.MsgCodes;
 import base_Utils_Objects.Tuple;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.TcTagData;
-import strafford_SOM_PKG.straff_SOM_Mapping.StraffSOMMapManager;
+import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 
 public 
 /**
@@ -20,7 +20,7 @@ public
  * This is an important distinction for the SOM-from this we will learn about folks whose interest overlap into multiple jp regions.
  * @author john
  */
-class ProductExample extends StraffSOMExample{
+class ProductExample extends Straff_SOMExample{
 //		//column names for csv output of this SOM example
 	private static final String csvColDescrPrfx = "ID,NumJPs";
 	protected TcTagTrainData trainPrdctData;		
@@ -36,13 +36,13 @@ class ProductExample extends StraffSOMExample{
 	//color to illustrate map (around bmu) region corresponding to this product - use distance as alpha value
 	private int[] prodClr;
 		
-	public ProductExample(StraffSOMMapManager _map, TcTagData data) {
+	public ProductExample(Straff_SOMMapManager _map, TcTagData data) {
 		super(_map,ExDataType.Product,data.OID);
 		trainPrdctData = new TcTagTrainData(data);	
 		initProdBMUMaps();		
 	}//ctor
 	
-	public ProductExample(StraffSOMMapManager _map,String _OID, String _csvDataStr) {
+	public ProductExample(Straff_SOMMapManager _map,String _OID, String _csvDataStr) {
 		super(_map,ExDataType.Product,_OID);
 		trainPrdctData = new TcTagTrainData(_csvDataStr);
 		initProdBMUMaps();
@@ -92,13 +92,27 @@ class ProductExample extends StraffSOMExample{
 	
 	@Override
 	//this is called after an individual example's features are built
-	protected void _PostBuildFtrVec_Priv() {
+	protected void _buildFeatureVectorEnd_Priv() {
 		//features and std ftrs should be the same, since we only assign a 1 to values that are present
 		buildStdFtrsMap();
+		//set comparator == to feature vectors
+		buildCompFtrVector(0.0f);
 	}//_PostBuildFtrVec_Priv
 	@Override
 	//called after all features of this kind of object are built
 	public void postFtrVecBuild() {}
+	
+	/**
+	 *  this will build the comparison feature vector array that is used as the comparison vector 
+	 *  in distance measurements - for most cases this will just be a copy of the ftr vector array
+	 *  but in some instances, there might be an alternate vector to be used to handle when, for 
+	 *  example, an example has ftrs that do not appear on the map
+	 * @param _ignored : ignored
+	 */
+	public final void buildCompFtrVector(float _ignored) {
+		compFtrMaps = ftrMaps;
+	}
+
 
 	
 	//required info for this example to build feature data  - this is ignored. these objects can be rebuilt on demand.
@@ -264,7 +278,14 @@ class ProductExample extends StraffSOMExample{
 			this.ftrVecMag = (float) Math.sqrt(ttlVal);
 		}
 	}//buildFeaturesMap
-	
+//	/**
+//	 * this function is not relevant for product example
+//	 * @param _MapNodesByFtr
+//	 * @return
+//	 */
+//	@Override
+//	protected final void buildMapNodeDistsFromGroupings(TreeMap<Double, ArrayList<SOMMapNode>> _mapNodesByDist,TreeMap<Integer, HashSet<SOMMapNode>> _MapNodesByFtr){}
+
 	@Override
 	protected void buildStdFtrsMap() {
 		ftrMaps[stdFtrMapTypeKey] = new TreeMap<Integer, Float>();

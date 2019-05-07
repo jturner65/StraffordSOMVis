@@ -1,0 +1,5 @@
+Preproc Data directory
+
+When raw data is processed to preproc data (first step of Strafford SOM process) the preprocessed data is written to a time-stamped subdirectory within the PreprocData directory.  When data is read to build a map, the program currently expects the data to be located in the "default" subdirectory of the PreprocData dir.  Therefore, it is required that the user manually move the data from the time-stamped directory to the default directory to train a map on freshly preprocessed data.  This extra step is in place in part to guarantee the integrity of the training process.  Since the preprocessing of the data and the training of the map might conceivably be performed at the same time, we don't want to introduce conflicts by writing the preproc data to the same directory holding the data the SOM is being trained from.
+
+An automated process to update the "default" directory could be used, in conjunction with the SOM training, to make sure the SOM is always trained on the most recent data.  Also, an automated clean-up process might be a wise development, since this data takes up a lot of space.

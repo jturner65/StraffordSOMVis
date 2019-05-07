@@ -1,9 +1,13 @@
-# project-wide configuration file - do not delete this file or modify the tags with BEGIN or END;  also, do not modify the -key (==<variable name>) - values in any way without modifying the code in the SOMProjConfigData.java.
+# project-wide configuration file - do not delete this file or modify the tags that include BEGIN or END - the program relies on these to delimit zones within the config file; 
+# also do not use variables or variable names that contain #, BEGIN, or END.  These are keywords for the parser and will crash things if found in inappropriate locations 
+# also, do not modify the -key (==<variable name>) - values in any way without modifying the code in the SOMProjConfigData.java.
+# all non-value lines should have '#' which denotes comments
 #	all values should be <variable name>,<value>
 #	quotes can be used for strings, they will be ignored
 ###########  directories and file locations ##################
 #
 #BEGIN CONFIG FILE NAMES
+#changing any of these names might render old runs of the program invalid
 #
 #	name of file holding configs (_train and _compare) for calc object - do not include .txt extension!
 #no date decay
@@ -19,25 +23,32 @@ calcWtFileName,"WeightEqConfig_allDecay_p01_optWt_p01_srcWt_p01"
 reqProdConfigFileName,"ProductsToMap_Test.txt"
 #
 # 	default SOM exe map configuration file name
-SOMDfltConfigFileName,"SOM_MapConfig_default.txt"
+SOMDfltConfigFileName,"SOM_MapConfig_5050.txt"
 #
 #END CONFIG FILE NAMES
 #BEGIN SUBDIR DEFS
+#changing any of these names might render old runs of the program invalid
 #
 #	subdir to hold prospect and product suggestions
-straffProdSuggest,"PerProdSuggestions"
+SOM_ProdSuggest,"PerProdSuggestions"
 #
 #	subdir to put preproc data files
-straffPreProc,"PreprocData"
+SOM_PreProc,"PreprocData"
+#
+#	subdir to use for customers and prospects to compare to map - the products must have the same format as those used to train the map
+SOM_MapPrspctSrc,"preprocData_2019_05_06_11_15"
 #
 #	subdir to hold source csv files
-straffSourceCSV,"source_csvs"
+SOM_SourceCSV,"source_csvs"
 #
-#	subdir for all sql info - connect config file
-straffSQLProc,"Sql"
+#	subdir for all sql info - connect config file. 
+SOM_SQLProc,"Sql"
 #
 #	subdir for all SOM functionality
-straffSOMProc,"SOM"
+SOM_MapProc,"SOM"
+#
+#   subdir for all log files
+SOM_Logs,"Logs"
 #
 #END SUBDIR DEFS
 #BEGIN MISC GLOBAL VARS
@@ -45,6 +56,18 @@ straffSOMProc,"SOM"
 #  0 : cust has order event, prospect does not but has source and possibly other events
 #  1 : cust has some non-source event, prospect does not have customer event but does have source event
 custTruePrsTypeEvents, "0"
+#Name of SOM Executable - do not include any extensions or pathing information!!
+SOMExeName_base,"straff_SOM"
+#
+#short name to be used in file names to specify this project - should only be a simple string!
+SOMProjName,"straff"
+#
+#whether to use dense or sparse training and testing data - should always use sparse data
+useSparseTrainingData,"true"
+#
+useSparseTestingData,"true"
+#
+#
 #
 #Directory for prebuilt map : 
 #all the following use the new data as of 3/25/19

@@ -8,7 +8,7 @@ import base_SOM_Objects.som_examples.ExDataType;
 import strafford_SOM_PKG.straff_RawDataHandling.*;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.BaseRawData;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.ProspectData;
-import strafford_SOM_PKG.straff_SOM_Mapping.StraffSOMMapManager;
+import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 import strafford_SOM_PKG.straff_Utils.StraffWeightCalc;
 
 /**
@@ -30,7 +30,7 @@ public class TrueProspectExample extends ProspectExample{
 	private static final String[] CSVSentinelLbls = new String[] {"OPT|,", "LNK|,", "SRC|," };
 	
 	//build this object based on prospectData object 
-	public TrueProspectExample(StraffSOMMapManager _map,ProspectData _prspctData) {	super(_map,ExDataType.Validation,_prspctData);	}//prospectData ctor
+	public TrueProspectExample(Straff_SOMMapManager _map,ProspectData _prspctData) {	super(_map,ExDataType.Validation,_prspctData);	}//prospectData ctor
 	
 	//build this object based on csv string - rebuild data from csv string columns 4+
 	public TrueProspectExample(SOMMapManager _map,String _OID, String _csvDataStr) {
@@ -68,7 +68,7 @@ public class TrueProspectExample extends ProspectExample{
 	protected void buildFeaturesMap() {	//TODO do we wish to modify this for prospects?  probably
 		//access calc object
 		if (allProdJPs.size() > 0) {//getting from orders should yield empty list, might yield null - has no order occurrences by definition	
-			StraffWeightCalc calc = ((StraffSOMMapManager)mapMgr).ftrCalcObj;
+			StraffWeightCalc calc = ((Straff_SOMMapManager)mapMgr).ftrCalcObj;
 			ftrMaps[ftrMapTypeKey] = calc.calcTruePrspctFtrVec(this,allProdJPs, JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"));			
 		}
 		else {ftrMaps[ftrMapTypeKey] = new TreeMap<Integer, Float>(); }
@@ -106,16 +106,6 @@ public class TrueProspectExample extends ProspectExample{
 		}
 	}//finalize
 	
-	@Override
-	//called after all features of this kind of object are built
-	public void postFtrVecBuild() {
-		if(nonProdJpgJps.size() > 0) {
-			StraffWeightCalc calc = ((StraffSOMMapManager)mapMgr).ftrCalcObj;
-			compValMaps[ftrMapTypeKey] = calc.calcTruePrspctCompareDat(this,allProdJPs,nonProdJpgJps, prodJPsForNonProdJPGroups, JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"));
-		} 
-		else {compValMaps[ftrMapTypeKey] =  new TreeMap<Integer, Float>(); }
-		
-	}//postFtrVecBuild
 
 
 	//column names for raw descriptorCSV output

@@ -8,7 +8,6 @@ import base_Utils_Objects.*;
 
 //save all training/testing data to appropriate format for SOM
 public class SOMTrainDataWriter implements Callable<Boolean>{
-	//public SOM_StraffordMain pa;
 	private SOMMapManager mapMgr;	
 	private MessageObject msgObj;
 	private int dataFrmt, numFtrs,numSmpls;
@@ -50,6 +49,7 @@ public class SOMTrainDataWriter implements Callable<Boolean>{
 	//write file to save all data samples in appropriate format for 
 	private void saveLRNData() {
 		String[] outStrings = buildInitLRN();
+		msgObj.dispMessage("SOMTrainDataWriter","saveLRNData","Finished saving .lrn file with " + outStrings.length+ " elements to file : "+ fileName, MsgCodes.info5);			
 		int strIDX = 4;
 		for (int i=0;i<exAra.length; ++i) {outStrings[i+strIDX]=exAra[i].toLRNString(dataFrmt, " ");	}
 		fileIO.saveStrings(fileName,outStrings);		
@@ -60,6 +60,7 @@ public class SOMTrainDataWriter implements Callable<Boolean>{
 	private void saveCSVData() {
 		//use buildInitLRN for test and train
 		String[] outStrings = buildInitLRN();
+		msgObj.dispMessage("SOMTrainDataWriter","saveCSVData","Start saving .csv file with " + outStrings.length+ " elements to file : "+ fileName, MsgCodes.info5);			
 		int strIDX = 4;
 		for (int i=0;i<exAra.length; ++i) {outStrings[i+strIDX]=exAra[i].toCSVString(dataFrmt);	}
 		fileIO.saveStrings(fileName,outStrings);		
@@ -70,6 +71,7 @@ public class SOMTrainDataWriter implements Callable<Boolean>{
 	private void saveSVMData() {
 		//need to save a vector to determine the 
 		String[] outStrings = new String[numSmpls];
+		msgObj.dispMessage("SOMTrainDataWriter","saveSVMData","Start saving .svm (sparse) file with " + outStrings.length+ " elements to file : "+ fileName, MsgCodes.info5);			
 		for (int i=0;i<exAra.length; ++i) {outStrings[i]=exAra[i].toSVMString(dataFrmt);	}
 		fileIO.saveStrings(fileName,outStrings);		
 		msgObj.dispMessage("SOMTrainDataWriter","saveSVMData","Finished saving .svm (sparse) file with " + outStrings.length+ " elements to file : "+ fileName, MsgCodes.info5);			

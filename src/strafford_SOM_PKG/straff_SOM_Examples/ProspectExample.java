@@ -7,9 +7,9 @@ import base_SOM_Objects.*;
 import base_SOM_Objects.som_examples.*;
 import base_Utils_Objects.MsgCodes;
 import base_Utils_Objects.Tuple;
-import strafford_SOM_PKG.straff_RawDataHandling.*;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.BaseRawData;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.ProspectData;
+import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 
 /**
  * class to manage a prospect example, either a past customer or a potential prospect
@@ -17,7 +17,7 @@ import strafford_SOM_PKG.straff_RawDataHandling.raw_data.ProspectData;
  *
  */
 
-public abstract class ProspectExample extends StraffSOMExample{
+public abstract class ProspectExample extends Straff_SOMExample{
 	//this is to control whether we build pre-proc data from event map or from jpoccurences map TODO
 	//want to change to this so that we can drastically reduce the memory footprint - 
 	//shouldn't ever need to keep "eventsByDateMap" around once we have occurrence structure built
@@ -27,9 +27,20 @@ public abstract class ProspectExample extends StraffSOMExample{
 	//structs to hold all event occurences of each JP for this OID, keyed by event type
 	protected TreeMap<String, TreeMap<Integer, JP_OccurrenceData>> JpOccurrences;
 	//may have multiple events on same date/time, map by event ID 	
-	protected TreeMap<String, TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>>> eventsByDateMap;	
-	//sets of existing, production jps for jpgroups seen in non-prod jps (may be present in prod jps as well, in fact better be);
-	protected TreeMap<Integer, TreeSet<Integer>> prodJPsForNonProdJPGroups;
+	protected TreeMap<String, TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>>> eventsByDateMap;
+		
+	//all product jpgroups seen - this may include jps that are not prod jps 
+	//(i.e. don't correspond to real products, and so don't have training feature presence);
+	//nonProdJpGrps are jpgroups that have no products - should be rare - 
+	//these will denote examples that we have no way of mapping to the SOM, so hopefully they are rare
+	protected HashSet<Integer> allProdJpGrps, nonProdJpGrps;
+
+	//all jps in this example that do not correspond to actual products - these are for intra-jpgroup comparisons, 
+	//and for matching true prospects (who may have "virtual" and "venn" jps) to products - 
+	//uses jpgjp tuple since actual comparison will be build by jp group 
+	//these will only be seen in source event records
+	protected HashSet<Tuple<Integer,Integer>> nonProdJpgJps; 
+
 	
 	//this object denotes a positive or non-positive opt-all event for a user (i.e. an opts occurrence with a jp of -9)
 	private JP_OccurrenceData posOptAllEventObj = null, negOptAllEventObj = null;
@@ -44,7 +55,9 @@ public abstract class ProspectExample extends StraffSOMExample{
 	//build this object based on prospectData object from raw data
 	public ProspectExample(SOMMapManager _map, ExDataType _type, ProspectData _prspctData) {
 		super(_map,_type,_prspctData.OID);	
-		prodJPsForNonProdJPGroups = new TreeMap<Integer, TreeSet<Integer>>();
+		allProdJpGrps = new HashSet<Integer>();
+		nonProdJpGrps = new HashSet<Integer>();
+		nonProdJpgJps = new HashSet<Tuple<Integer,Integer>>();
 		initObjsData();
 		prs_LUDate = _prspctData.getDate();
 		jpOccNotBuiltYet = true;
@@ -53,7 +66,8 @@ public abstract class ProspectExample extends StraffSOMExample{
 	//build this object based on csv string - rebuild data from csv string columns 4+
 	public ProspectExample(SOMMapManager _map, ExDataType _type, String _OID, String _csvDataStr) {
 		super(_map,_type,_OID);		
-		prodJPsForNonProdJPGroups = new TreeMap<Integer, TreeSet<Integer>>();
+		allProdJpGrps = new HashSet<Integer>();nonProdJpGrps = new HashSet<Integer>();
+		nonProdJpgJps = new HashSet<Tuple<Integer,Integer>>();
 		initObjsData();	
 		jpOccNotBuiltYet = false;		//is built directly from saved data
 	}//csv string ctor
@@ -66,7 +80,9 @@ public abstract class ProspectExample extends StraffSOMExample{
 		eventsByDateMap = _otr.eventsByDateMap;
 		posOptAllEventObj = _otr.posOptAllEventObj;
 		negOptAllEventObj = _otr.negOptAllEventObj;
-		prodJPsForNonProdJPGroups = _otr.prodJPsForNonProdJPGroups;
+		nonProdJpgJps = _otr.nonProdJpgJps;
+		allProdJpGrps = _otr.allProdJpGrps;
+		nonProdJpGrps = _otr.nonProdJpGrps;
 	}//copy ctor	
 	
 	//return configuration of expected counts of different events as stored in this example
@@ -102,9 +118,13 @@ public abstract class ProspectExample extends StraffSOMExample{
 	
 	@Override
 	//standardize this feature vector - across each feature, set value to be between 0 and 1
-	protected void buildStdFtrsMap() {		
-		if (allNonZeroFtrIDXs.size() > 0) {ftrMaps[stdFtrMapTypeKey] = calcStdFtrVector(ftrMaps[ftrMapTypeKey], allNonZeroFtrIDXs, mapMgr.getTrainFtrMins(), mapMgr.getTrainFtrDiffs());}
+	protected final void buildStdFtrsMap() {		
+		if (allNonZeroFtrIDXs.size() > 0) {ftrMaps[stdFtrMapTypeKey] = calcStdFtrVector(ftrMaps[ftrMapTypeKey], mapMgr.getTrainFtrMins(), mapMgr.getTrainFtrDiffs());}
 		else {ftrMaps[stdFtrMapTypeKey] = new TreeMap<Integer, Float>();}
+		if(compValFtrMapSqMag != 0.0) {//only calculate this if we have non-zero compValFtrMapSqrMag, which means we have calculated the non-product-jp contribution vector already and it has a non-zero magnitude
+			compValMaps[stdFtrMapTypeKey] = calcStdFtrVector(compValMaps[ftrMapTypeKey],  mapMgr.getTrainFtrMins(), mapMgr.getTrainFtrDiffs());
+		}
+
 		setFlag(stdFtrsBuiltIDX,true);
 	}//buildStdFtrsMap
 	
@@ -119,7 +139,7 @@ public abstract class ProspectExample extends StraffSOMExample{
 	}//_buildIndivOccStructs
 	//build occurence structures based on mappings - must be called once mappings are completed but before the features are built
 	//feature vec is built from occurrence structure
-	protected void buildOccurrenceStructs(String[] eventMapTypeKeys, boolean[] jpOccMapUseOccData) { // should be executed when finished building all xxxEventsByDateMap(s)
+	protected final void buildOccurrenceStructs(String[] eventMapTypeKeys, boolean[] jpOccMapUseOccData) { // should be executed when finished building all xxxEventsByDateMap(s)
 		//occurrence structures - map keyed by event type of map of 
 		JpOccurrences = new TreeMap<String, TreeMap<Integer, JP_OccurrenceData>> ();
 		//for orders and opts, pivot structure to build map holding occurrence records keyed by jp - must be done after all events are aggregated for each prospect
@@ -132,21 +152,21 @@ public abstract class ProspectExample extends StraffSOMExample{
 	}//buildOccurrenceStructs
 	
 	//provide shallow copy of jpOcc struct - only copying passed event type key values
-	protected TreeMap<String, TreeMap<Integer, JP_OccurrenceData>> copyJPOccStruct(String[] eventMapTypeKeys) {
+	protected final TreeMap<String, TreeMap<Integer, JP_OccurrenceData>> copyJPOccStruct(String[] eventMapTypeKeys) {
 		TreeMap<String, TreeMap<Integer, JP_OccurrenceData>> tmpJpOccurrences = new TreeMap<String, TreeMap<Integer, JP_OccurrenceData>> ();
 		for(String key : eventMapTypeKeys) {		tmpJpOccurrences.put(key, JpOccurrences.get(key)); 	}
 		return tmpJpOccurrences;
 	}//copyJPOccStruct
 	
 	//provide shallow copy of jpOcc struct - only copying passed event type key values
-	protected TreeMap<String, TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>>> copyEventsByDateMap(String[] eventMapTypeKeys) {
+	protected final TreeMap<String, TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>>> copyEventsByDateMap(String[] eventMapTypeKeys) {
 		TreeMap<String, TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>>> tmpEventsByDateMap = new TreeMap<String, TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>>> ();
 		for(String key : eventMapTypeKeys) {		tmpEventsByDateMap.put(key, eventsByDateMap.get(key)); 	}
 		return tmpEventsByDateMap;
 	}//copyJPOccStruct
 	
 	
-	protected String buildEventCSVString(Date date, TreeMap<Integer, StraffEvntTrainData> submap) {		
+	protected final String buildEventCSVString(Date date, TreeMap<Integer, StraffEvntTrainData> submap) {		
 		String res = "";
 		for (StraffEvntTrainData eventObj : submap.values()) {	res += eventObj.buildCSVString();}		
 		return res;
@@ -156,7 +176,7 @@ public abstract class ProspectExample extends StraffSOMExample{
 	// getters/setters	
 	
 	//return # of values in data map
-	protected int getSizeOfDataMap(TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>> map) {
+	protected final int getSizeOfDataMap(TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>> map) {
 		int res = 0;
 		for (Date date : map.keySet()) {for (Integer eid :  map.get(date).keySet()) {res+=1;}	}	
 		return res;
@@ -170,7 +190,7 @@ public abstract class ProspectExample extends StraffSOMExample{
 	public final String getRawDescrForCSV() {	return getRawDescrForCSV_JPOcc();}//getRawDescrForCSV()
 	
 	//build off occurence structure - doing this to try to save memory space
-	private String getRawDescrForCSV_JPOcc() {
+	private final String getRawDescrForCSV_JPOcc() {
 		//first build prospect data
 		String dateStr = BaseRawData.buildStringFromDate(prs_LUDate);
 		String res = ""+OID+","+dateStr+",";
@@ -188,32 +208,32 @@ public abstract class ProspectExample extends StraffSOMExample{
 	}//getRawDescrForCSV_JPOcc
 	
 	//return all jpg/jps in this prospect record 
-	public HashSet<Tuple<Integer,Integer>> getSetOfAllJpgJpData(){
+	public final HashSet<Tuple<Integer,Integer>> getSetOfAllJpgJpData(){
 		HashSet<Tuple<Integer,Integer>> res = new HashSet<Tuple<Integer,Integer>>();
 		for(TreeMap<Integer, JP_OccurrenceData> occs : JpOccurrences.values()) {for (JP_OccurrenceData occ :occs.values()) {res.add(occ.getJpgJp());}	}
 		return res;
 	}///getSetOfAllJpgJpData
 	
 	//return occurence map
-	public TreeMap<Integer, JP_OccurrenceData> getOcccurenceMap(String key) {
+	public final TreeMap<Integer, JP_OccurrenceData> getOcccurenceMap(String key) {
 		TreeMap<Integer, JP_OccurrenceData> res = JpOccurrences.get(key);
 		if (res==null) {msgObj.dispMessage("ProspectExample","getOcccurenceMap","JpOccurrences map does not have key : " + key, MsgCodes.warning2); return null;}
 		return res;
 	}
 	
 	//remove occurences with passed jp
-	public void removeAllJPOccs(Integer jp) {
+	public final void removeAllJPOccs(Integer jp) {
 		for(TreeMap<Integer, JP_OccurrenceData> jpOccType : JpOccurrences.values()) {
 			jpOccType.put(jp, null);
 		}
 	}//removeAllJPOccs
 	
     //these set/get this StraffSOMExample's object that denotes a positive or non-positive opt setting for all jps
-	public JP_OccurrenceData getPosOptAllOccObj() {		return posOptAllEventObj;	}
-	public void setPosOptAllOccObj(JP_OccurrenceData _optAllOcc) {posOptAllEventObj = _optAllOcc;	}
+	public final JP_OccurrenceData getPosOptAllOccObj() {		return posOptAllEventObj;	}
+	public final void setPosOptAllOccObj(JP_OccurrenceData _optAllOcc) {posOptAllEventObj = _optAllOcc;	}
 		
-	public JP_OccurrenceData getNegOptAllOccObj() {		return negOptAllEventObj;	}
-	public void setNegOptAllOccObj(JP_OccurrenceData _optAllOcc) {negOptAllEventObj = _optAllOcc;	}
+	public final JP_OccurrenceData getNegOptAllOccObj() {		return negOptAllEventObj;	}
+	public final void setNegOptAllOccObj(JP_OccurrenceData _optAllOcc) {negOptAllEventObj = _optAllOcc;	}
 
 	
 	//whether this record has any information to be used to train - presence of prospect jpg/jp can't be counted on
@@ -232,7 +252,7 @@ public abstract class ProspectExample extends StraffSOMExample{
 	protected abstract void _initObjsIndiv();
 
 	//if this prospect has any events
-	public boolean hasEventData() {
+	public final boolean hasEventData() {
 		for (String key : eventsByDateMap.keySet()) {if (eventsByDateMap.get(key).size() > 0) {return true;}	}
 		return false;
 	}
@@ -288,20 +308,98 @@ public abstract class ProspectExample extends StraffSOMExample{
 				alljpgjps.add(occ.getJpgJp());
 			}	
 		}
-		if(alljpgjps.size() == 0) {setIsBadExample(true);		}//means there's no valid jps in this record's occurence data
+		if(alljpgjps.size() == 0) {setIsBadExample(true);		}//means there's no valid jps in this record's occurence data - valid here means only that there are jps that actually correspond to integers
 		//build allprodJps from allJps
 		allProdJPs = new HashSet<Integer>();
+		allProdJpGrps = new HashSet<Integer>();
+		nonProdJpGrps = new HashSet<Integer>();
 		nonProdJpgJps = new HashSet<Tuple<Integer,Integer>>();
-		prodJPsForNonProdJPGroups = new TreeMap<Integer, TreeSet<Integer>>();
+		//prodJPsForNonProdJPGroups = new TreeMap<Integer, TreeSet<Integer>>();
 		for(Tuple<Integer,Integer> jpgJp : alljpgjps) {
 			Integer jp = jpgJp.y;
-			Integer jpIDX = jpJpgMon.getFtrJpToIDX(jp);
-			if(jpIDX==null) {
-				nonProdJpgJps.add(jpgJp); 
-				prodJPsForNonProdJPGroups.put(jpgJp.x, jpJpgMon.getProdJPsforSpecifiedJpgrp(jpgJp.x));
-			} else {allProdJPs.add(jp);}
-		}		
+			//Integer jpIDX = jpJpgMon.getFtrJpToIDX(jp);
+			//this gets all product jps for a jpgroup that a non-prod jp belongs to
+			if(jpJpgMon.checkIfFtrJpPresent(jpgJp.y)) {		allProdJPs.add(jpgJp.y);} else {		nonProdJpgJps.add(jpgJp); }			
+			if(jpJpgMon.checkIfFtrJpGrpPresent(jpgJp.x)) {	allProdJpGrps.add(jpgJp.x);	} else {	nonProdJpGrps.add(jpgJp.x);}
+			//We want to perform this look up (as opposed to just using the jpgJp.x value above)
+			//if jpGrp is null then that means the group holding this jp is not present in product data 
+			//if null then this data(the jp data) needs to be ignored - no way to build any kind of comparison with map from it
+		}
+		
 	}//buildJPListsAndSetBadExample
+	
+	@Override
+	//called after all features of this kind of object are built HashSet<Integer> nonProdJpGrps
+	public final void postFtrVecBuild() {
+		
+	}//postFtrVecBuild
+	
+	protected final void calcComValMaps() {
+		//build prod and non-prod jpgroup data here	
+		compValMaps[normFtrMapTypeKey] =  new TreeMap<Integer, Float>();
+		compValMaps[stdFtrMapTypeKey] = new TreeMap<Integer, Float>();
+		if(nonProdJpgJps.size() > 0) {
+			compValMaps[ftrMapTypeKey] = ((Straff_SOMMapManager)mapMgr).ftrCalcObj.calcNonProdJpTrainFtrContribVec(this, nonProdJpgJps,JpOccurrences.get("sources"));
+			//build normalized comparison vector also
+			if(compValFtrMapSqMag != 0.0) {
+				for(Integer key : compValMaps[ftrMapTypeKey].keySet()) {	compValMaps[normFtrMapTypeKey].put(key,  compValMaps[ftrMapTypeKey].get(key)/compValFtrMapSqMag);}	
+			}
+		} 
+		else {compValMaps[ftrMapTypeKey] =  new TreeMap<Integer, Float>(); }
+		
+	}//calcComValMaps()
+	
+	
+	@Override
+	/**
+	 *  this will build the comparison feature vector array that is used as the comparison vector in distance measurements
+	 * @param _ratio
+	 */
+	public final void buildCompFtrVector(float _ratio) {
+		//ratio needs to be [0..1], is ratio of compValMaps value to ftr value
+		if(_ratio <=0) {compFtrMaps = ftrMaps;}
+		else {  
+			//must be called after compValMaps have been populated by customer data
+			calcComValMaps();
+			if(_ratio >= 1) {compFtrMaps = compValMaps;}
+			else {
+				compFtrMaps = new TreeMap[ftrMapTypeKeysAra.length];		
+				for (int i=0;i<compFtrMaps.length;++i) {			compFtrMaps[i] = new TreeMap<Integer, Float>(); 		}
+			
+				for(int mapIdx = 0; mapIdx < ftrMaps.length;++mapIdx) {
+					TreeMap<Integer, Float> ftrMap = ftrMaps[mapIdx];
+					TreeMap<Integer, Float> compMap = compValMaps[mapIdx];
+					Set<Integer> allIdxs = new HashSet<Integer>(ftrMap.keySet());
+					allIdxs.addAll(compMap.keySet());
+					for (Integer key : allIdxs) {//either map will have this key
+						Float frmVal = ftrMap.get(key);if(frmVal == null) {frmVal = 0.0f;}
+						Float toVal = compMap.get(key);if(toVal == null) {toVal = 0.0f;}
+						Float val = (_ratio * toVal) + (1.0f - _ratio)*frmVal;
+						compFtrMaps[mapIdx].put(key, val);					
+					}//for all idxs			
+				}//for map idx
+			}//if ration >= 1 else
+		}
+	}//buildCompFtrVector
+	
+//	/**
+//	 * adds map nodes by distance to mapNodesByDist, who share ftr groupings with this node but where this node may not have any actual ftrs with
+//	 * This is to cover features this node may have specifically defined but that do not directly correspond to 
+//	 * features in the map. The nature of this mapping will be application/node definition specific.
+//	 * @param mapNodesByDist : currently allocated map corresponding to distances and arrays of nodes at that distance
+//	 * @param _MapNodesByFtr : map of all nodes keyed by feature index containing non-zero index
+//	 * @return
+//	 */
+//	@Override
+//	protected void buildMapNodeDistsFromGroupings(TreeMap<Double, ArrayList<SOMMapNode>> mapNodesByDist,TreeMap<Integer, HashSet<SOMMapNode>> _MapNodesByFtr){
+//		//query allProdJPGroups for all jpgroups with non-zero jps/features for this example and add map node
+//		for(Integer jpGroup : allProdJpGrps) {
+//			
+//			
+//			
+//		}		
+//	}//buildMapNodeDistsFromGroupings
+
 
 	protected String toStringDateMap(TreeMap<Date, TreeMap<Integer, StraffEvntTrainData>> map, String mapName) {
 		String res = "\n# of " + mapName + " in Date Map (count of unique dates - multiple " + mapName + " per same date possible) : "+ map.size()+"\n";		

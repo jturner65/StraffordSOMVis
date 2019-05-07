@@ -6,10 +6,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import base_SOM_Objects.som_examples.*;
-
+import base_SOM_Objects.som_utils.SOMProjConfigData;
 import base_Utils_Objects.*;
 import strafford_SOM_PKG.straff_SOM_Examples.ProductExample;
-import strafford_SOM_PKG.straff_Utils.SOMProjConfigData;
 
 
 /**
@@ -22,7 +21,7 @@ public class StraffProdMapOutputBuilder {
 	private MessageObject msgObj;
 	public static final String fileComment = "#";
 	public String fileName;
-	public StraffSOMMapManager mapMgr;
+	public Straff_SOMMapManager mapMgr;
 	private FileIOManager fileIO;
 	private SOMProjConfigData projConfigData;
 	private ProductExample[] prodsToMap;
@@ -33,7 +32,7 @@ public class StraffProdMapOutputBuilder {
 	private int prodDistType;
 	private double prodZoneDistThresh;
 
-	public StraffProdMapOutputBuilder(StraffSOMMapManager _mapMgr, String _fileName, ExecutorService _th_exec, int _pDistType, double _pZnDistThresh) {
+	public StraffProdMapOutputBuilder(Straff_SOMMapManager _mapMgr, String _fileName, ExecutorService _th_exec, int _pDistType, double _pZnDistThresh) {
 		mapMgr = _mapMgr; msgObj = _mapMgr.buildMsgObj();
 		fileIO = new FileIOManager(msgObj,"StraffProdMapOutputBuilder");
 		projConfigData = mapMgr.projConfigData;th_exec = _th_exec;
@@ -231,7 +230,7 @@ class StraffProdOutMapper implements Callable<Boolean>{
 	private double prodZoneDistThresh;
 	private SOMProjConfigData projConfigData;
 	
-	public StraffProdOutMapper(StraffSOMMapManager _mapMgr, int _stIDX, int _endIDX, int _thdIDX, int _pDistType, double _pZnDistThresh, ProductExample[] _prodsToMap, String[] _fullQualOutDirs) {
+	public StraffProdOutMapper(Straff_SOMMapManager _mapMgr, int _stIDX, int _endIDX, int _thdIDX, int _pDistType, double _pZnDistThresh, ProductExample[] _prodsToMap, String[] _fullQualOutDirs) {
 		msgObj = _mapMgr.buildMsgObj();		projConfigData = _mapMgr.projConfigData;
 		prodsToMap = _prodsToMap;	fullQualOutDirs = _fullQualOutDirs;	
 		stIDX = _stIDX;		endIDX = _endIDX;		thdIDX = _thdIDX;		prodDistType = _pDistType; prodZoneDistThresh = _pZnDistThresh;

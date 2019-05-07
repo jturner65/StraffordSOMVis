@@ -1,0 +1,74 @@
+# This is a default file to be used to maintain expected format for this type of config file
+#project-wide configuration file - do not delete this file or modify the tags that include BEGIN or END - the program relies on these to delimit zones within the config file; 
+# also do not use variables or variable names that contain #, BEGIN, or END.  These are keywords for the parser and will crash things if found in inappropriate locations 
+# also, do not modify the -key (==<variable name>) - values in any way without modifying the code in the SOMProjConfigData.java.
+# all non-value lines should have '#' which denotes comments
+#	all values should be <variable name>,<value>
+#	quotes can be used for strings, they will be ignored
+###########  directories and file locations ##################
+#
+#BEGIN CONFIG FILE NAMES
+#changing any of these names might render old runs of the program invalid
+#
+#	name of file holding configs (_train and _compare) for calc object - do not include .txt extension!
+#no date decay
+#calcWtFileName,"WeightEqConfig"
+#
+#calc with .01 decay all event dates and weight .01 opts
+#calcWtFileName,"WeightEqConfig_allDecay_p01_optWt_p01"
+#
+#calc with .01 decay all event dates and weight .01 opts and .01 source weights
+calcWtFileName,"WeightEqConfig_allDecay_p01_optWt_p01_srcWt_p01"
+#
+#	file name of requested products to map to prospects
+reqProdConfigFileName,"ProductsToMap_Test.txt"
+#
+# 	default SOM exe map configuration file name
+SOMDfltConfigFileName,"SOM_MapConfig_default.txt"
+#
+#END CONFIG FILE NAMES
+#BEGIN SUBDIR DEFS
+#changing any of these names might render old runs of the program invalid
+#
+#	subdir to hold prospect and product suggestions
+SOM_ProdSuggest,"PerProdSuggestions"
+#
+#	subdir to put preproc data files
+SOM_PreProc,"PreprocData"
+#
+#	subdir to hold source csv files
+SOM_SourceCSV,"source_csvs"
+#
+#	subdir for all sql info - connect config file. 
+SOM_SQLProc,"Sql"
+#
+#	subdir for all SOM functionality
+SOM_MapProc,"SOM"
+#   subdir for all log files
+SOM_LogDirs,"Logs"
+#
+#END SUBDIR DEFS
+#BEGIN MISC GLOBAL VARS
+#Type of event membership to define customer and true prospect
+#  0 : cust has order event, prospect does not but has source and possibly other events
+#  1 : cust has some non-source event, prospect does not have customer event but does have source event
+custTruePrsTypeEvents, "0"
+#Name of SOM Executable - do not include any extensions or pathing information!!
+SOMExeName_base,"straff_SOM"
+#
+#short name to be used in file names to specify this project - should only be a simple string!
+SOMProjName,"straff"
+#
+#whether to use dense or sparse training and testing data - should always use sparse data
+useSparseTrainingData,"true"
+#
+useSparseTestingData,"true"
+#
+#
+#Directory for prebuilt map : 
+#all the following use the new data as of 3/25/19
+#
+#built using "WeightEqConfig_allDecay_p01_optWt_p01_srcWt_p01"
+#preBuiltMapDir,"StraffSOM_2019_04_22_12_32"
+preBuiltMapDir,"StraffSOM_2019_04_26_08_00"
+#END MISC GLOBAL VARS

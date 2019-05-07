@@ -35,6 +35,7 @@ public abstract class SOMMapNode extends SOMExample{
 		super(_map, ExDataType.MapNode,"Node_"+_mapNode.x+"_"+_mapNode.y);
 		if(_ftrs.length != 0){	setFtrsFromFloatAra(_ftrs);	}
 		initMapNode( _mapNode);
+		
 	}
 	
 	//build a map node from a string array of features
@@ -70,6 +71,7 @@ public abstract class SOMMapNode extends SOMExample{
 	public Integer[] getNonZeroIDXs() {return nonZeroIDXs;}
 	
 	//this will map feature values to some representation of the underlying feature description - this is specific to undelrying data
+	//and should be called from instance class ctor
 	protected abstract void _initDataFtrMappings();
 	
 	private void initMapNode(Tuple<Integer,Integer> _mapNode){
@@ -142,6 +144,17 @@ public abstract class SOMMapNode extends SOMExample{
 			}
 		}
 	}//buildNeighborWtVals
+	
+	/**
+	 *  this will build the comparison feature vector array that is used as the comparison vector 
+	 *  in distance measurements - for most cases this will just be a copy of the ftr vector array
+	 *  but in some instances, there might be an alternate vector to be used to handle when, for 
+	 *  example, an example has ftrs that do not appear on the map
+	 * @param _ignored : ignored
+	 */
+	public final void buildCompFtrVector(float _ignored) {
+		compFtrMaps = ftrMaps;
+	}
 	
 	//////////////////////////////////
 	// interpolation for UMatrix dists
@@ -283,11 +296,11 @@ class SOMMapNodeBMUExamples{
 	}//init
 	
 	//add passed example
-	public void addExample(SOMExample straffSOMExample) {addExample(straffSOMExample.get_sqDistToBMU(),straffSOMExample);}
-	public void addExample(double dist, SOMExample straffSOMExample) {
+	public void addExample(SOMExample _ex) {addExample(_ex.get_sqDistToBMU(),_ex);}
+	public void addExample(double dist, SOMExample _ex) {
 		ArrayList<SOMExample> tmpList = examplesBMU.get(dist);
 		if(tmpList == null) {tmpList = new ArrayList<SOMExample>();}
-		tmpList.add(straffSOMExample);		
+		tmpList.add(_ex);		
 		examplesBMU.put(dist, tmpList);		
 		numMappedEx = examplesBMU.size();		
 	}//addExample

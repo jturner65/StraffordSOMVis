@@ -13,10 +13,8 @@ public class MessageObject {
 	private static Boolean supportsANSITerm = null;
 	private static myTimeMgr timeMgr = null;
 	
-	
 	//delimiter for display or output to log
-	private static final String dispDelim = " | ", logDelim = ", ";
-
+	private static final String dispDelim = " | ", logDelim = ", ", newLineDelim = "\\r?\\n";
 	
 	//int to encode what to do with output
 	//0 : print to console
@@ -38,23 +36,57 @@ public class MessageObject {
 	public MessageObject(MessageObject _obj) {}//in case we ever use any instance-specific data for this - copy ctor	
 	
 	//define how the messages from this messageObj should be handled, and pass a file name if a log is to be saved
-	public void setOutputMethod(String _fileName, boolean dispInConsoleAlso) {
-		if((_fileName == null) || (_fileName.length() < 3)) {outputMethod = 0; return;}
+	public void setOutputMethod(String _fileName, int _logLevel) {
 		fileName = _fileName;
-		outputMethod = (dispInConsoleAlso ? 2 : 1);
-		fileIO = new FileIOManager(this, "Logger");
-		
+		if((fileName == null) || (fileName.length() < 3) || (_logLevel==0)) {outputMethod = 0;}
+		else {
+			fileName = _fileName;
+			outputMethod = _logLevel;
+			fileIO = new FileIOManager(this, "Logger");	
+		}
+		_dispMessage_base_console(timeMgr.getWallTimeAndTimeFromStart(dispDelim), "messageObject","setOutputMethod","Setting log level :  "+ outputMethod + " : " + getOutputMethod(outputMethod)+ " | File name specified for log (if used) : " + fileName +" | File IO Object created : " + (fileIO !=null), MsgCodes.info1,true);
 	}//setOutputMethod
+	
+	public String getOutputMethod(int outputMethod) {		
+		switch(outputMethod) {
+		case 0 : return "Console output only.";
+		case 1 : return "Log output only to file specified.";
+		case 2 : return "Console output and log output to file";
+		default :return "Unknown output method :"+outputMethod;
+		}
+	}
+
 	
 	//finish any logging and write to file - this should be done when program closes
 	public void FinishLog() {
-		if((fileName == null) || (outputMethod == 0) || (logMsgQueue.size()==0)) {return;}
-		_dispMessage_base_console(timeMgr.getWallTimeAndTimeFromStart(dispDelim), "messageObject","FinishLog","Saving last " + logMsgQueue.size() + " queued messages to log file.", MsgCodes.info1,true);
+		if((fileName == null) || (fileIO == null) || (outputMethod == 0) || (logMsgQueue.size()==0)) {return;}
+		_dispMessage_base_console(timeMgr.getWallTimeAndTimeFromStart(dispDelim), "messageObject","FinishLog","Saving last " + logMsgQueue.size() + " queued messages to log file before exiting program.", MsgCodes.info1,true);
 		ArrayList<String> outList = new ArrayList<String>();
 		for(String key : logMsgQueue.keySet()) {	outList.add(logMsgQueue.get(key));}
 		fileIO.saveStrings(fileName, outList, true);		
 	}//FinishLog
 	
+	//pass an array to display
+	public void dispMessageAra(String[] _sAra, String _callingClass, String _callingMethod, int _perLine, MsgCodes useCode) {dispMessageAra( _sAra,  _callingClass, _callingMethod, _perLine,  useCode, true);}
+	//show array of strings, either just to console or to applet window
+	public void dispMessageAra(String[] _sAra, String _callingClass, String _callingMethod, int _perLine, MsgCodes useCode, boolean onlyConsole) {		
+		for(int i=0;i<_sAra.length; i+=_perLine){
+			String s = "";
+			for(int j=0; j<_perLine; ++j){	
+				if((i+j >= _sAra.length)) {continue;}
+				s+= _sAra[i+j]+ "\t";}
+			_dispMessage_base( _callingClass,_callingMethod,s, useCode,onlyConsole);
+		}
+	}//dispMessageAra
+	//pass single-line messages - only 1 display of timestamp and class/method prefix
+	public void dispInfoMessage(String srcClass, String srcMethod, String msgText){										_dispMessage_base(srcClass,srcMethod,msgText, MsgCodes.info1,true);	}	
+	public void dispMessage(String srcClass, String srcMethod, String msgText, MsgCodes useCode){						_dispMessage_base(srcClass,srcMethod,msgText, useCode,true);}	
+	public void dispMessage(String srcClass, String srcMethod, String msgText, MsgCodes useCode, boolean onlyConsole) {	_dispMessage_base(srcClass,srcMethod,msgText, useCode,onlyConsole);	}	
+	//parse string on \n characters
+	public void dispMultiLineInfoMessage(String srcClass, String srcMethod, String msgTextWithNewLines){String[] _sAra = msgTextWithNewLines.split(newLineDelim);dispMessageAra(_sAra, srcClass,srcMethod,1, MsgCodes.info1,true);}	
+	public void dispMultiLineMessage(String srcClass, String srcMethod, String msgTextWithNewLines, MsgCodes useCode){String[] _sAra = msgTextWithNewLines.split(newLineDelim);dispMessageAra(_sAra, srcClass,srcMethod,1, useCode,true);}	
+	public void dispMultiLineMessage(String srcClass, String srcMethod, String msgTextWithNewLines, MsgCodes useCode, boolean onlyConsole) {String[] _sAra = msgTextWithNewLines.split(newLineDelim);dispMessageAra(_sAra, srcClass,srcMethod,1, useCode,onlyConsole);}	
+
 	private String buildClrStr(ConsoleCLR bk, ConsoleCLR clr, String str) {return bk.toString() + clr.toString() + str + ConsoleCLR.RESET.toString();	}
 	private String _processMsgCode(String src, MsgCodes useCode) {
 		if (!supportsANSITerm) {return src;}
@@ -81,20 +113,6 @@ public class MessageObject {
 		return src;
 	}//_processMsgCode
 	
-	public void dispMessageAra(String[] _sAra, String _callingClass, String _callingMethod, int _perLine, MsgCodes useCode) {dispMessageAra( _sAra,  _callingClass, _callingMethod, _perLine,  useCode, true);}
-	//show array of strings, either just to console or to applet window
-	public void dispMessageAra(String[] _sAra, String _callingClass, String _callingMethod, int _perLine, MsgCodes useCode, boolean onlyConsole) {		
-		for(int i=0;i<_sAra.length; i+=_perLine){
-			String s = "";
-			for(int j=0; j<_perLine; ++j){	
-				if((i+j >= _sAra.length)) {continue;}
-				s+= _sAra[i+j]+ "\t";}
-			_dispMessage_base( _callingClass,_callingMethod,s, useCode,onlyConsole);
-		}
-	}//dispMessageAra
-	public void dispInfoMessage(String srcClass, String srcMethod, String msgText){										_dispMessage_base(srcClass,srcMethod,msgText, MsgCodes.info1,true);	}	
-	public void dispMessage(String srcClass, String srcMethod, String msgText, MsgCodes useCode){						_dispMessage_base(srcClass,srcMethod,msgText, useCode,true);}	
-	public void dispMessage(String srcClass, String srcMethod, String msgText, MsgCodes useCode, boolean onlyConsole) {	_dispMessage_base(srcClass,srcMethod,msgText, useCode,onlyConsole);	}	
 	
 	private void _dispMessage_base(String srcClass, String srcMethod, String msgText, MsgCodes useCode, boolean onlyConsole) {		
 		switch(outputMethod) {

@@ -6,8 +6,8 @@ import java.util.concurrent.*;
 
 import base_SOM_Objects.*;
 import base_SOM_Objects.som_examples.*;
+import base_SOM_Objects.som_utils.SOMProjConfigData;
 import base_Utils_Objects.*;
-import strafford_SOM_PKG.straff_Utils.SOMProjConfigData;
 
 //class that describes the hierarchy of files required for running and analysing a SOM
 public class SOMDataLoader implements Runnable {
@@ -50,6 +50,7 @@ public class SOMDataLoader implements Runnable {
 			msgObj.dispMessage("DataLoader","run","Data loader Failed : Required files not all loaded or file IO error ", MsgCodes.error2);
 		}
 		mapMgr.resetButtonState();
+		msgObj.dispMessage("DataLoader","run","Finished data loader", MsgCodes.info5);			
 	}//run
 	
 	//load results from map processing - fnames needs to be modified to handle this
@@ -215,14 +216,14 @@ public class SOMDataLoader implements Runnable {
 				for (HashMap<SOMMapNode, ArrayList<SOMExample>> bmuToExsMap : bmusToExs) {
 					for (SOMMapNode tmpMapNode : bmuToExsMap.keySet()) {
 						ArrayList<SOMExample> exs = bmuToExsMap.get(tmpMapNode);
-						for(SOMExample ex : exs) {ex.setBMU_ChiSq(tmpMapNode, ftrTypeUsedToTrain);tmpMapNode.addExToBMUs(ex,typeOfData);	}
+						for(SOMExample ex : exs) {ex.setTrainingExBMU_ChiSq(tmpMapNode, ftrTypeUsedToTrain);tmpMapNode.addExToBMUs(ex,typeOfData);	}
 					}
 				}				
 			} else {
 				for (HashMap<SOMMapNode, ArrayList<SOMExample>> bmuToExsMap : bmusToExs) {
 					for (SOMMapNode tmpMapNode : bmuToExsMap.keySet()) {
 						ArrayList<SOMExample> exs = bmuToExsMap.get(tmpMapNode);
-						for(SOMExample ex : exs) {ex.setBMU(tmpMapNode, ftrTypeUsedToTrain);tmpMapNode.addExToBMUs(ex,typeOfData);	}
+						for(SOMExample ex : exs) {ex.setTrainingExBMU(tmpMapNode, ftrTypeUsedToTrain);tmpMapNode.addExToBMUs(ex,typeOfData);	}
 					}
 				}				
 			}
@@ -272,21 +273,6 @@ public class SOMDataLoader implements Runnable {
 	}//addMappedNodesToEmptyNodes
 	
 	
-	//verify that map node coords are in proper order (row-col vs x-y)
-	private void dbgVerifyBMUs(SOMMapNode tmpMapNode, SOMExample tmpDataPt, Integer x, Integer y) {
-		//this is alternate node with column-major key
-		Tuple<Integer,Integer> mapAltLoc = new Tuple<Integer, Integer>(x,y);//verifying correct row/col order - tmpMapNode should be closer to mapMgr.trainData[dpIdx] than to tmpAltMapNode
-		SOMMapNode tmpAltMapNode = mapMgr.getMapNodeLoc(mapAltLoc);//mapMgr.MapNodes.get(mapAltLoc);
-		//if using chi-sq dist, must know mapMgr.map_ftrsVar by now
-		//double tmpDist =  mapMgr.dpDistFunc(tmpAltMapNode, tmpDataPt);
-		double tmpDist;
-		if (useChiSqDist) {			tmpDist =  tmpDataPt.getSqDistFromFtrType_ChiSq(tmpAltMapNode, ftrTypeUsedToTrain);  }//mapMgr.dpDistFunc(tmpAltMapNode, tmpDataPt);
-		else {						tmpDist =  tmpDataPt.getSqDistFromFtrType(tmpAltMapNode,ftrTypeUsedToTrain);  }//mapMgr.dpDistFunc(tmpAltMapNode, tmpDataPt);
-		if(tmpDist < tmpDataPt.get_sqDistToBMU() ) {
-			msgObj.dispMessage("DataLoader","loadSOM_BMUs:dbgVerifyBMUs","Somehow bmu calc is incorrect - x/y order of map node location perhaps is swapped? dataPt " + tmpDataPt.OID + " is closer to "+ tmpAltMapNode.OID + " than to predicted BMU : " + tmpMapNode.OID+" : dists : " +tmpDist + " vs. " +tmpDataPt.get_sqDistToBMU(), MsgCodes.warning2);
-		}
-	}//dbgVerifyBMUs	
-		
 	//load the u-matrix data used to build the node distance visualization
 	private boolean loadSOM_nodeDists() {
 		String uMtxBMUFname =  projConfigData.getSOMResFName(projConfigData.umtxIDX);

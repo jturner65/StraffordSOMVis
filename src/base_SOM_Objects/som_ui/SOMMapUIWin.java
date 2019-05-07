@@ -451,9 +451,6 @@ public abstract class SOMMapUIWin extends myDispWindow {
 		setPrivFlags(mapDrawAllMapNodesIDX, false);
 	}//setFlagsDoneMapBuild
 	
-	
-	
-	
 	//first verify that new .lrn file exists, then
 	//build new SOM_MAP map using UI-entered values, then load resultant data
 	protected final void buildNewSOMMap(){
@@ -683,7 +680,6 @@ public abstract class SOMMapUIWin extends myDispWindow {
 				if(getPrivFlags(mapDrawPopMapNodesIDX)) {	mapMgr.drawExMapNodesNoLbl(pa, mapNodeDispType);}				
 			}
 	
-			//if(getPrivFlags(mapDrawUMatrixIDX)) {		mapMgr.drawUMatrixVals((SOM_StraffordMain)pa);}//shows U Matrix as large blocks around nodes
 			if(getPrivFlags(mapDrawSegMembersIDX)) {		mapMgr.drawSegments(pa);}
 			pa.lights();
 		pa.popStyle();pa.popMatrix();	
@@ -797,12 +793,10 @@ public abstract class SOMMapUIWin extends myDispWindow {
 		int endTime = pa.millis();
 		msgObj.dispMessage("mySOMMapUIWin", "setMapImgClrs", "Time to build all vis imgs : "  + ((endTime-stTime)/1000.0f) + "s | Threading : " + (mtCapable ? "Multi ("+numThds+")" : "Single" ), MsgCodes.info5);
 	}//setMapImgClrs
-
 	
 	//get x and y locations relative to upper corner of map
 	public final float getSOMRelX (float x){return (x - SOM_mapLoc[0]);}
-	public final float getSOMRelY (float y){return (y - SOM_mapLoc[1]);}
-	
+	public final float getSOMRelY (float y){return (y - SOM_mapLoc[1]);}	
 	
 	//given pixel location relative to upper left corner of map, return map node
 	protected final float[] getMapNodeLocFromPxlLoc(float mapPxlX, float mapPxlY, float sclVal){	return new float[]{(sclVal* mapPxlX * mapMgr.getNodePerPxlCol()) - .5f, (sclVal* mapPxlY * mapMgr.getNodePerPxlRow()) - .5f};}	

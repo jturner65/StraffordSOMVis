@@ -9,8 +9,8 @@ package base_SOM_Objects;
 
 import java.util.*;
 
+import base_SOM_Objects.som_utils.SOMProjConfigData;
 import base_Utils_Objects.*;
-import strafford_SOM_PKG.straff_Utils.SOMProjConfigData;
 
 public class SOM_MapDat{
 	//object to faciliate printing to screen or log file
@@ -59,11 +59,11 @@ public class SOM_MapDat{
 		mapFloats = _mapFloats;
 		mapStrings = _mapStrings;
 		msgObj = _config.buildMsgObj();
-		setAllDirs(_config);
+		//setAllDirs(_config);
 	}//SOM_MapDat ctor from data	
 	
 	public void setAllDirs(SOMProjConfigData _config) {
-		execDir = _config.getSOM_FullExecPath();
+		execDir = _config.getSOMExec_FullPath();
 		execSOMStr = _config.getSOM_Map_EXECSTR();
 		trainDataDenseFN = _config.getSOMMapLRNFileName();
 		trainDataSparseFN = _config.getSOMMapSVMFileName();

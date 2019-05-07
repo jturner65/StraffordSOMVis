@@ -6,10 +6,10 @@ import base_SOM_Objects.som_examples.*;
 import base_UI_Objects.*;
 import base_Utils_Objects.*;
 
-import strafford_SOM_PKG.straff_SOM_Mapping.StraffSOMMapManager;
+import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 
 //this class is for a simple object to just represent a mouse-over on the visualization of the map
-public class DispSOMMapExample extends StraffSOMExample implements SOMMap_DispExample{
+public class DispSOMMapExample extends Straff_SOMExample implements SOMMap_DispExample{
 	private float ftrThresh;
 	private int mapType;
 	private int[] clrVal = new int[] {255,255,0,255};
@@ -18,7 +18,7 @@ public class DispSOMMapExample extends StraffSOMExample implements SOMMap_DispEx
 
 	//need to support all ftr types from map - what type of ftrs are these? only using/displaying -training- features
 	//this is called when mse-over on ftr map
-	public DispSOMMapExample(StraffSOMMapManager _map, myPointf ptrLoc, TreeMap<Integer, Float> _ftrs, float _thresh) {
+	public DispSOMMapExample(Straff_SOMMapManager _map, myPointf ptrLoc, TreeMap<Integer, Float> _ftrs, float _thresh) {
 		super(_map, ExDataType.MouseOver,"Mse_"+ptrLoc.toStrBrf());//(" + String.format("%.4f",this.x) + ", " + String.format("%.4f",this.y) + ", " + String.format("%.4f",this.z)+")
 		//type of features used for currently trained map
 		mapType = mapMgr.getCurrentTrainDataFormat();
@@ -63,7 +63,7 @@ public class DispSOMMapExample extends StraffSOMExample implements SOMMap_DispEx
 		mseLabelDims = new float[] {10, -10.0f,longestLine*6.0f, mseLabelAra.length*10.0f + 15.0f};
 	}//ctor	
 	//need to support all ftr types from map - this is built by distance/UMatrix map
-	public DispSOMMapExample(StraffSOMMapManager _map, myPointf ptrLoc, float distData, float _thresh) {
+	public DispSOMMapExample(Straff_SOMMapManager _map, myPointf ptrLoc, float distData, float _thresh) {
 		super(_map, ExDataType.MouseOver,"Mse_"+ptrLoc.toStrBrf());//(" + String.format("%.4f",this.x) + ", " + String.format("%.4f",this.y) + ", " + String.format("%.4f",this.z)+")
 		//type of features used for currently trained map
 		mapType = mapMgr.getCurrentTrainDataFormat();
@@ -83,14 +83,10 @@ public class DispSOMMapExample extends StraffSOMExample implements SOMMap_DispEx
 	}//ctor		
 	
 	@Override
-	public void buildMseLbl_Ftrs() {
-		
-	}
+	public void buildMseLbl_Ftrs() {	}
 	@Override
-	public void buildMseLbl_Dists() {
-		
-	}
-	
+	public void buildMseLbl_Dists() {	}
+
 	//not used by this object
 	@Override
 	protected HashSet<Tuple<Integer, Integer>> getSetOfAllJpgJpData() {	return null;}//getSetOfAllJpgJpData
@@ -108,7 +104,16 @@ public class DispSOMMapExample extends StraffSOMExample implements SOMMap_DispEx
 	@Override
 	//called after all features of this kind of object are built
 	public void postFtrVecBuild() {}
-	
+
+	/**
+	 *  this will build the comparison feature vector array that is used as the comparison vector 
+	 *  in distance measurements - for most cases this will just be a copy of the ftr vector array
+	 *  but in some instances, there might be an alternate vector to be used to handle when, for 
+	 *  example, an example has ftrs that do not appear on the map
+	 * @param _ignored : ignored
+	 */
+	public final void buildCompFtrVector(float _ignored) {	compFtrMaps = ftrMaps;}
+
 	@Override
 	//specified by interface
 	public void drawMeLblMap(my_procApplet p){
@@ -122,9 +127,11 @@ public class DispSOMMapExample extends StraffSOMExample implements SOMMap_DispEx
 
 	@Override
 	protected void buildStdFtrsMap() {			
-		if (allNonZeroFtrIDXs.size() > 0) {ftrMaps[stdFtrMapTypeKey] = calcStdFtrVector(ftrMaps[ftrMapTypeKey], allNonZeroFtrIDXs, mapMgr.getTrainFtrMins(), mapMgr.getTrainFtrDiffs());}
+		if (allNonZeroFtrIDXs.size() > 0) {ftrMaps[stdFtrMapTypeKey] = calcStdFtrVector(ftrMaps[ftrMapTypeKey], mapMgr.getTrainFtrMins(), mapMgr.getTrainFtrDiffs());}
 		else {ftrMaps[stdFtrMapTypeKey] = new TreeMap<Integer, Float>();}
+		buildCompFtrVector(0.0f);
 		setFlag(stdFtrsBuiltIDX,true);
 	}
+
 
 }//DispSOMMapExample

@@ -40,7 +40,7 @@ public abstract class MapDataToBMUs implements Callable<Boolean>{
 	protected void incrProgress(int idx) {
 		if(((idx-stIdx) % progressBnd) == 0) {		
 			progress += progAmt;	
-			msgObj.dispInfoMessage("MapDataToBMUs","incrProgress::thdIDX=" + String.format("%02d", thdIDX)+" ", "Progress for dataType : " +dataType +" at : " + String.format("%.4f",progress));
+			msgObj.dispInfoMessage("MapDataToBMUs","incrProgress::thdIDX=" + String.format("%02d", thdIDX)+" ", "Progress for dataType : " +dataType +" at : " + String.format("%.2f",progress));
 		}
 		if(progress > 1.0) {progress = 1.0;}
 	}
