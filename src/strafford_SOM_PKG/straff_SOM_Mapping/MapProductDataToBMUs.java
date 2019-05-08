@@ -19,30 +19,7 @@ public class MapProductDataToBMUs extends MapDataToBMUs{
 	}	
 	@Override
 	protected boolean mapAllDataToBMUs() {
-//		//for every product example find closest map node for both shared and all ftrs being compared
-//		msgObj.dispMessage("mapTestDataToBMUs", "Run Thread : " +thdIDX, "Starting "+dataType+" data to BMU mapping using " + (endIdx-stIdx) + " of " + exs.length+" examples ["+stIdx+":"+endIdx+"] with " + ftrTypeDesc + " Features and both including and excluding unshared features in distance.", MsgCodes.info5);
-//		TreeMap<Double, ArrayList<SOMMapNode>> mapNodesByDist;
-//		if (useChiSqDist) {	
-//			for (int i=stIdx;i<endIdx;++i) {
-//				//perform excluded zero ftrs last so that this is what is set to be product's bmu
-//				mapNodesByDist = exs[i].findBMUFromNodes_ChiSq(MapNodes, curMapFtrType); 
-//				exs[i].setMapNodesStruct(ProductExample.AllFtrsIDX, mapNodesByDist);  
-//				mapNodesByDist = exs[i].findBMUFromNodes_ChiSq_Excl(MapNodes, curMapFtrType); 
-//				exs[i].setMapNodesStruct(ProductExample.SharedFtrsIDX, mapNodesByDist);
-//				incrProgress(i);
-//			}
-//		} else {							
-//			for (int i=stIdx;i<endIdx;++i) {
-//				//perform excluded zero ftrs last so that this is what is set to be product's bmu
-//				mapNodesByDist = exs[i].findBMUFromNodes(MapNodes,  curMapFtrType); 
-//				exs[i].setMapNodesStruct(ProductExample.AllFtrsIDX, mapNodesByDist);
-//				mapNodesByDist = exs[i].findBMUFromNodes_Excl(MapNodes,  curMapFtrType); 
-//				exs[i].setMapNodesStruct(ProductExample.SharedFtrsIDX, mapNodesByDist);
-//				incrProgress(i);
-//			}
-//		}					
-//		msgObj.dispMessage("mapTestDataToBMUs", "Run Thread : " +thdIDX, "Finished "+dataType+" data to BMU mapping", MsgCodes.info5);
-		
+	
 		//for every product example find closest map node for both shared and all ftrs being compared
 		msgObj.dispMessage("mapTestDataToBMUs", "Run Thread : " +thdIDX, "Starting "+dataType+" data to BMU mapping using " + (endIdx-stIdx) + " of " + exs.length+" examples ["+stIdx+":"+endIdx+"] with " + ftrTypeDesc + " Features and both including and excluding unshared features in distance.", MsgCodes.info5);
 		TreeMap<Double, ArrayList<SOMMapNode>> mapNodesByDist;

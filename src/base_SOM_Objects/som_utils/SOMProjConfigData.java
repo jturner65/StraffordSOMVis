@@ -606,7 +606,7 @@ public class SOMProjConfigData {
 	public String getCurrLog_FileName() { return getDirNameAndBuild(subDirLocs.get("SOM_Logs"), true);}
 	
 	public String getSOMMapOutFileBase(String sffx) {	SOMOutExpSffx = sffx; return getSOMMapOutFileBase();}
-	private String getSOMMapOutFileBase() { 			return getSOMExec_FullPath()  + SOMFileNamesAra[0] + SOMOutExpSffx;}
+	private String getSOMMapOutFileBase() { 	return getSOMExec_FullPath()  + SOMFileNamesAra[0] + SOMOutExpSffx;}
 	public String getSOMMapLRNFileName(){	return getSOMExec_FullPath() + SOMFileNamesAra[1];	}
 	public String getSOMMapSVMFileName(){	return getSOMExec_FullPath() + SOMFileNamesAra[2];	}
 	public String getSOMMapTestFileName(){	return getSOMExec_FullPath() + SOMFileNamesAra[3];	}
@@ -675,13 +675,13 @@ public class SOMProjConfigData {
 			setFlag(isDirty, true);		//"false"'s all flags for each file, if first time dirty is set
 		}
 		setFlag(_typ,true);		//flag idx is same as string idx
-		setFlag(isDirty,!allReqFilesLoaded());	//should clear dirty flag when all files are loaded
+		setFlag(isDirty,!allReqFileNamesSet());	//should clear dirty flag when all files are loaded
 	}//setFileName
 	
 	//call only 1 time, when setting isDirty to true - only run once per dirty flag being in true state
 	private void setDirty(){for(int i=0;i<reqFileNameFlags.length;++i){setFlag(reqFileNameFlags[i],false);}}	
 	//return true if all required files are loaded
-	public boolean allReqFilesLoaded(){for(int i=0;i<reqFileNameFlags.length;++i){if(!getFlag(reqFileNameFlags[i])){return false;}}return true;}
+	public boolean allReqFileNamesSet(){for(int i=0;i<reqFileNameFlags.length;++i){if(!getFlag(reqFileNameFlags[i])){return false;}}return true;}
 	
 	public String getAllDirtyFiles(){
 		String res = "";
