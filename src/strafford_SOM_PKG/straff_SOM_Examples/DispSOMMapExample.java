@@ -9,7 +9,7 @@ import base_Utils_Objects.*;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 
 //this class is for a simple object to just represent a mouse-over on the visualization of the map
-public class DispSOMMapExample extends Straff_SOMExample implements SOMMap_DispExample{
+public class DispSOMMapExample extends Straff_SOMExample implements ISOMMap_DispExample{
 	private float ftrThresh;
 	private int mapType;
 	private int[] clrVal = new int[] {255,255,0,255};
@@ -127,7 +127,7 @@ public class DispSOMMapExample extends Straff_SOMExample implements SOMMap_DispE
 
 	@Override
 	protected void buildStdFtrsMap() {			
-		if (allNonZeroFtrIDXs.size() > 0) {ftrMaps[stdFtrMapTypeKey] = calcStdFtrVector(ftrMaps[ftrMapTypeKey], mapMgr.getTrainFtrMins(), mapMgr.getTrainFtrDiffs());}
+		if (allNonZeroFtrIDXs.size() > 0) {calcStdFtrVector(ftrMaps[ftrMapTypeKey], ftrMaps[stdFtrMapTypeKey], mapMgr.getTrainFtrMins(), mapMgr.getTrainFtrDiffs());}
 		else {ftrMaps[stdFtrMapTypeKey] = new TreeMap<Integer, Float>();}
 		buildCompFtrVector(0.0f);
 		setFlag(stdFtrsBuiltIDX,true);

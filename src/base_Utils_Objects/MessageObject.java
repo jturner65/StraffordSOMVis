@@ -1,5 +1,6 @@
 package base_Utils_Objects;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentSkipListMap;
 
@@ -41,6 +42,8 @@ public class MessageObject {
 		if((fileName == null) || (fileName.length() < 3) || (_logLevel==0)) {outputMethod = 0;}
 		else {
 			fileName = _fileName;
+			File directory = new File(fileName);
+		    if (! directory.exists()){ directory.mkdir(); }
 			outputMethod = _logLevel;
 			fileIO = new FileIOManager(this, "Logger");	
 		}
@@ -55,7 +58,6 @@ public class MessageObject {
 		default :return "Unknown output method :"+outputMethod;
 		}
 	}
-
 	
 	//finish any logging and write to file - this should be done when program closes
 	public void FinishLog() {

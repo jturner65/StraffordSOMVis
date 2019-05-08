@@ -13,8 +13,10 @@ import base_SOM_Objects.som_utils.SOMProjConfigData;
 import base_Utils_Objects.*;
 
 public class SOM_MapDat{
+	//project config object
+	private SOMProjConfigData config;
 	//object to faciliate printing to screen or log file
-	private MessageObject msgObj;
+	private MessageObject msgObj = null;
 	//os currently running - use to modify exec string for mac/linux
 	private final String curOS;		
 	//SOM_MAP execution directory
@@ -27,50 +29,105 @@ public class SOM_MapDat{
 	private HashMap<String, String> mapStrings;			// mapGridShape, mapBounds, mapRadCool, mapNHood, mapLearnCool;	
 	
 	//file names used for SOM
-	private String trainDataDenseFN,		//training data file name for dense data
-			trainDataSparseFN,				//for sparse data
-			outFilesPrefix;					//output from map prefix
+	private String trainDataDenseFN,		//training data file name for dense data, including -relative- path
+		trainDataSparseFN,				//for sparse data, including -relative- path
+		outFilesPrefix;					//output from map prefix, including -relative- path
+	private String trainDataDenseFN_fullPath,		//training data file name for dense data, including -relative- path
+		trainDataSparseFN_fullPath,				//for sparse data, including -relative- path
+		outFilesPrefix_fullPath;					//output from map prefix, including -relative- path
 	private boolean isSparse;
 	private String[] execStrAra;			//holds arg list sent to som executable
-	private String dbgExecStr;				//string to be executed on command line, built for ease in debugging	
-	
-	//boolean state flags
-	private int[] stFlags;						//state flags - bits in array holding relevant process info
-	private static int 
-		debugIDX 		= 0,
-		rdyToTrainIDX	= 1,
-		trainedIDX		= 2;	
-	private static int numFlags = 3;	
+	private String dbgExecStr;				//string to be executed on command line, built for ease in debugging		
 		
-	//
-	public SOM_MapDat(MessageObject _msgObj, String _curOS) {
+	//not ready to be used until given data
+	public SOM_MapDat(SOMProjConfigData _config, String _curOS) {
 		curOS = _curOS;
+		config = _config;
 		mapInts = new HashMap<String, Integer>();			// mapCols (x), mapRows (y), mapEpochs, mapKType, mapStRad, mapEndRad;
 		mapFloats = new HashMap<String, Float>();			// mapStLrnRate, mapEndLrnRate;
 		mapStrings	= new HashMap<String, String>();		// mapGridShape, mapBounds, mapRadCool, mapNHood, mapLearnCool;	
-		msgObj = _msgObj;
+		msgObj = config.buildMsgObj();
 	}//ctor
 		
-	//set all SOM data from UI values passed from map manager TODO this will be deprecated - these values should be set as UI input changes
-	//public void setUIMapData(String _SOM_Dir, String _execStr, HashMap<String, Integer> _mapInts, HashMap<String, Float> _mapFloats, HashMap<String, String> _mapStrings, String _trndDenseFN, String _trndSparseFN, String _outPfx){
-	public void setArgsMapData(SOMProjConfigData _config, HashMap<String, Integer> _mapInts, HashMap<String, Float> _mapFloats, HashMap<String, String> _mapStrings){
-		mapInts = _mapInts;
+	//set current configuration of map
+	public void setArgsMapData(HashMap<String, Integer> _mapInts, HashMap<String, Float> _mapFloats, HashMap<String, String> _mapStrings){
+		mapInts.clear();
+		mapFloats.clear();
+		mapStrings.clear();
+		for(String key : _mapInts.keySet()) {mapInts.put(key, _mapInts.get(key));}
+		for(String key : _mapFloats.keySet()) {mapFloats.put(key, _mapFloats.get(key));}
+		for(String key : _mapStrings.keySet()) {mapStrings.put(key, _mapStrings.get(key));}
+		//mapInts = _mapInts;
+		//mapFloats = _mapFloats;
+		//mapStrings = _mapStrings;
+		
 		isSparse = (mapInts.get("mapKType") > 1);//0 and 1 are dense cpu/gpu, 2 is sparse cpu
-		mapFloats = _mapFloats;
-		mapStrings = _mapStrings;
-		msgObj = _config.buildMsgObj();
 		//setAllDirs(_config);
+		updateMapState();
 	}//SOM_MapDat ctor from data	
 	
-	public void setAllDirs(SOMProjConfigData _config) {
-		execDir = _config.getSOMExec_FullPath();
-		execSOMStr = _config.getSOM_Map_EXECSTR();
-		trainDataDenseFN = _config.getSOMMapLRNFileName();
-		trainDataSparseFN = _config.getSOMMapSVMFileName();
-		outFilesPrefix = _config.getSOMMapOutFileBase(getOutNameSuffix());
+	//must be called -every time- any internal map data is changed
+	public void updateMapState() {
+		setAllDirs();
 		init();
 	}//setAllDirs
+	//set local refs to directories
+	private void setAllDirs() {
+		execDir = config.getSOMExec_FullPath();
+		execSOMStr = config.getSOM_Map_EXECSTR();
+		trainDataDenseFN = config.getSOMMap_lclLRNFileName();
+		trainDataDenseFN_fullPath = execDir + trainDataDenseFN;
+		trainDataSparseFN = config.getSOMMap_lclSVMFileName();
+		trainDataSparseFN_fullPath = execDir + trainDataSparseFN;
+		outFilesPrefix = config.getSOMMap_lclOutFileBase(getOutNameSuffix());	
+		outFilesPrefix_fullPath = execDir + outFilesPrefix;
+	}//setAllDirs	
+	
+	//after-construction initialization code whenever map values are changed
+	private void init() {
+		execStrAra = buildExecStrAra();					//build execution string array used by processbuilder
+		dbgExecStr = execDir + execSOMStr;
+		for(int i=0;i<execStrAra.length;++i) {	dbgExecStr += " "+execStrAra[i];}
+	}//init		
 
+	/**
+	 * update map descriptor int values
+	 * @param key 
+	 * @param val
+	 */
+	public void updateMapDat_Integer(String key, Integer val) {
+		Integer oldVal = mapInts.get(key);
+		if(oldVal==val) {return;}
+		mapInts.put(key, val);
+		isSparse = (mapInts.get("mapKType") > 1);//0 and 1 are dense cpu/gpu, 2 is sparse cpu
+		init();
+	}//updateMapDat_Int
+	
+	/**
+	 * update map descriptor Float values
+	 * @param key 
+	 * @param val
+	 */
+	public void updateMapDat_Float(String key, Float val) {
+		Float oldVal = mapFloats.get(key);
+		if(oldVal==val) {return;}
+		mapFloats.put(key, val);
+		init();
+	}//updateMapDat_Int
+	
+	/**
+	 * update map descriptor String values
+	 * @param key 
+	 * @param val
+	 */
+	public void updateMapDat_String(String key, String val) {
+		String oldVal = mapStrings.get(key);
+		if(oldVal==val) {return;}
+		mapStrings.put(key, val);
+		init();
+	}//updateMapDat_Int
+	
+	
 	//return output name suffix used for this map's data files
 	public String getOutNameSuffix() {	return "_x"+mapInts.get("mapCols")+"_y"+mapInts.get("mapRows")+"_k"+mapInts.get("mapKType");}	
 	
@@ -94,11 +151,17 @@ public class SOM_MapDat{
 		//read in method vars
 		tmpVars = _readArrayIntoStringMap(idxAra, numLines, SOMProjConfigData.fileComment, _descrAra);// mapInts descriptors", _descrAra);
 		if (tmpVars == null) {return;}
-		execDir = tmpVars.get("execDir").trim();
-		execSOMStr = tmpVars.get("execSOMStr").trim();
+		//need to set these from application call/config?
+		//execDir = tmpVars.get("execDir").trim();	//should always be retrieved from current execution environment
+		execDir = config.getSOMExec_FullPath();
+		execSOMStr = config.getSOM_Map_EXECSTR();
 		trainDataDenseFN = tmpVars.get("trainDataDenseFN").trim();
 		trainDataSparseFN = tmpVars.get("trainDataSparseFN").trim();
 		outFilesPrefix = tmpVars.get("outFilesPrefix").trim();
+		trainDataDenseFN_fullPath = execDir + trainDataDenseFN;
+		trainDataSparseFN_fullPath = execDir + trainDataSparseFN;
+		outFilesPrefix_fullPath = execDir + outFilesPrefix;
+		
 		isSparse = (tmpVars.get("isSparse").trim().toLowerCase().contains("true") ? true : false);
 		//integer SOM cmnd line args
 		tmpVars = _readArrayIntoStringMap(idxAra, numLines, SOMProjConfigData.fileComment, _descrAra);// mapFloats descriptors", _descrAra);
@@ -115,13 +178,6 @@ public class SOM_MapDat{
 		init();
 	}//SOM_MapDat ctor from string ara 	
 	
-	//after-construction initialization code for both ctors
-	private void init() {
-		execStrAra = buildExecStrAra();					//build execution string array used by processbuilder
-		dbgExecStr = execDir + execSOMStr;
-		for(int i=0;i<execStrAra.length;++i) {	dbgExecStr += " "+execStrAra[i];}
-	}//init
-		
 	//read string array into map of string-string key-value pairs.  idx passed as reference (in array)
 	private HashMap<String, String> _readArrayIntoStringMap(int[] idx, int numLines, String _partitionStr, String[] _descrAra){
 		HashMap<String, String> tmpVars = new HashMap<String, String>();
@@ -145,8 +201,8 @@ public class SOM_MapDat{
 		res.add(SOMProjConfigData.fileComment + " This file holds description of SOM map experiment execution settings");
 		res.add(SOMProjConfigData.fileComment + " It should be used to build a SOM_MapDat object which then is consumed to control the execution of the SOM.");
 		res.add(SOMProjConfigData.fileComment + " Base Vars");
-		res.add("execDir,"+execDir);
-		res.add("execSOMStr,"+execSOMStr);
+		//res.add("execDir,"+execDir); //should always be retrieved from current execution environment
+		//res.add("execSOMStr,"+execSOMStr); //should always be retrieved from current execution environment
 		res.add("isSparse,"+isSparse);
 		res.add("trainDataDenseFN,"+trainDataDenseFN);
 		res.add("trainDataSparseFN,"+trainDataSparseFN);
@@ -170,7 +226,7 @@ public class SOM_MapDat{
 		"-l",""+String.format("%.4f",mapFloats.get("mapStLrnRate")),"-L",""+String.format("%.4f",mapFloats.get("mapEndLrnRate")), 
 		"-m",""+mapStrings.get("mapBounds"),"-g",""+mapStrings.get("mapGridShape"),"-n",""+mapStrings.get("mapNHood"), "-T",""+mapStrings.get("mapLearnCool"), 
 		"-v", "2",
-		"-t",""+mapStrings.get("mapRadCool"), useQts +(isSparse ? trainDataSparseFN : trainDataDenseFN) + useQts , useQts + outFilesPrefix +  useQts};
+		"-t",""+mapStrings.get("mapRadCool"), useQts +(isSparse ? trainDataSparseFN_fullPath : trainDataDenseFN_fullPath) + useQts , useQts + outFilesPrefix_fullPath +  useQts};
 		return res;		
 	}//execString
 	
@@ -193,7 +249,9 @@ public class SOM_MapDat{
 		res += "Kernel(k) : "+mapInts.get("mapKType") + "\t#Cols : " + mapInts.get("mapCols") + "\t#Rows : " + mapInts.get("mapRows") + "\t#Epochs : " + mapInts.get("mapEpochs") + "\tStart Radius : " +mapInts.get("mapStRad") + "\tEnd Radius : " + +mapInts.get("mapEndRad")+"\n";
 		res += "Start Learning Rate : " + String.format("%.4f",mapFloats.get("mapStLrnRate"))+"\tEnd Learning Rate : " + String.format("%.4f",mapFloats.get("mapEndLrnRate"))+"\n";
 		res += "Boundaries : "+mapStrings.get("mapBounds") + "\tGrid Shape : "+mapStrings.get("mapGridShape")+"\tNeighborhood Function : " + mapStrings.get("mapNHood") + "\nLearning Cooling: " + mapStrings.get("mapLearnCool") + "\tRadius Cooling : "+ mapStrings.get("mapRadCool")+"\n";		
+		res += "Training data (full path) : "+(isSparse ? ".svm (Sparse) file name : " + trainDataSparseFN_fullPath :  ".lrn (dense) file name : " + trainDataDenseFN_fullPath) + "\nOutput files prefix (full path) : " + outFilesPrefix_fullPath +"\n";
 		res += "Training data : "+(isSparse ? ".svm (Sparse) file name : " + trainDataSparseFN :  ".lrn (dense) file name : " + trainDataDenseFN) + "\nOutput files prefix : " + outFilesPrefix +"\n";
+		res +="\n dbgString of exec string : "+dbgExecStr+"\n";
 		return res;
 	}
 	

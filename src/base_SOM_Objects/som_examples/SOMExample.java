@@ -102,6 +102,9 @@ public abstract class SOMExample extends baseDataPtVis{
 		setBmu(_otr.getBmu());
 		stFlags = _otr.stFlags;		
 	}//copy ctor
+	
+	//clear instead of reinstance
+	protected void clearFtrMaps() {for (int i=0;i<ftrMaps.length;++i) {			ftrMaps[i].clear();}}
 
 	//build feature vector
 	protected abstract void buildFeaturesMap();	
@@ -369,7 +372,7 @@ public abstract class SOMExample extends baseDataPtVis{
 	//build normalized vector of data - only after features have been set
 	protected final void buildNormFtrData() {
 		if(!getFlag(ftrsBuiltIDX)) {mapMgr.getMsgObj().dispMessage("SOMExample","buildNormFtrData","OID : " + OID + " : Features not built, cannot normalize feature data", MsgCodes.warning2);return;}
-		ftrMaps[normFtrMapTypeKey]=new TreeMap<Integer, Float>();
+		ftrMaps[normFtrMapTypeKey].clear();
 		if(this.ftrVecMag == 0) {return;}
 		for (Integer IDX : ftrMaps[ftrMapTypeKey].keySet()) {
 			Float val  = ftrMaps[ftrMapTypeKey].get(IDX)/this.ftrVecMag;
@@ -384,21 +387,20 @@ public abstract class SOMExample extends baseDataPtVis{
 	//exemplar objects (those that represent a particular product, for example)
 	//MUST BE SET WITH APPROPRIATE MINS AND DIFFS
 	//protected final TreeMap<Integer, Float> calcStdFtrVector(TreeMap<Integer, Float> ftrs, ArrayList<Integer> jpIdxs, Float[] mins, Float[] diffs) {
-	protected final TreeMap<Integer, Float> calcStdFtrVector(TreeMap<Integer, Float> ftrs, Float[] mins, Float[] diffs) {
-		TreeMap<Integer, Float> sclFtrs = new TreeMap<Integer, Float>();
-		for (Integer destIDX : ftrs.keySet()) {
+	protected final void calcStdFtrVector(TreeMap<Integer, Float> from_ftrs, TreeMap<Integer, Float> to_sclFtrs, Float[] mins, Float[] diffs) {
+		to_sclFtrs.clear();
+		for (Integer destIDX : from_ftrs.keySet()) {
 			Float lb = mins[destIDX], 	diff = diffs[destIDX];
 			Float val = 0.0f;
 			if (diff==0) {//same min and max
 				if (lb > 0) { val = 1.0f;}//only a single value same min and max-> set feature value to 1.0
 				else {		  val = 0.0f;}
 			} else {
-				val = (ftrs.get(destIDX)-lb)/diff;
+				val = (from_ftrs.get(destIDX)-lb)/diff;
 			}	
-			sclFtrs.put(destIDX,val);
+			to_sclFtrs.put(destIDX,val);
 			
 		}//for each jp
-		return sclFtrs;
 	}//standardizeFeatureVector		getSqDistFromFtrType
 		
 	//initialize structures used to aggregate and report the ranking of particular ftrs for this example

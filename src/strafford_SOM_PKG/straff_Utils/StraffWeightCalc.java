@@ -220,9 +220,10 @@ public class StraffWeightCalc {
 	// calculate feature vectors - currently only works on product features - and comparator vectors - built off membership in jpgroups
 
 	//calculate feature vector for true prospect example on actual product-based features
-	public TreeMap<Integer, Float> calcTruePrspctFtrVec(ProspectExample ex, HashSet<Integer> jps, TreeMap<Integer, JP_OccurrenceData> linkOccs,
-			TreeMap<Integer, JP_OccurrenceData> optOccs,TreeMap<Integer, JP_OccurrenceData> srcOccs) {
-		TreeMap<Integer, Float> res = new TreeMap<Integer, Float>();
+	public void calcTruePrspctFtrVec(ProspectExample ex, HashSet<Integer> jps,TreeMap<Integer, Float> ftrDest,
+			TreeMap<Integer, JP_OccurrenceData> linkOccs,TreeMap<Integer, JP_OccurrenceData> optOccs,
+			TreeMap<Integer, JP_OccurrenceData> srcOccs) {
+		ftrDest.clear();
 		float ftrVecSqMag = 0.0f;
 		JP_OccurrenceData optOcc;
 		//for each jp present in ex, perform calculation
@@ -242,19 +243,18 @@ public class StraffWeightCalc {
 				isZeroMagExample = false;
 				ftrVecSqMag += (val*val);
 			}
-			res.put(destIDX,val);		//add zero value 			
+			ftrDest.put(destIDX,val);		//add zero value 			
 			checkValInBnds(bndAra_TrainJPsIDX,jp,destIDX, val);
 		}		
 		ex.ftrVecMag = (float) Math.sqrt(ftrVecSqMag);
 		ex.setIsBadExample(isZeroMagExample);
-		return res;
 	}//calcFeatureVector	
 
 	//calculate feature vector for this customer example on actual product-based features
-	public TreeMap<Integer, Float> calcTrainFtrVec(ProspectExample ex, HashSet<Integer> jps,
+	public void calcTrainFtrVec(ProspectExample ex, HashSet<Integer> jps,TreeMap<Integer, Float> ftrDest,
 			TreeMap<Integer, JP_OccurrenceData> orderOccs,TreeMap<Integer, JP_OccurrenceData> linkOccs, 
 			TreeMap<Integer, JP_OccurrenceData> optOccs,TreeMap<Integer, JP_OccurrenceData> srcOccs) {
-		TreeMap<Integer, Float> res = new TreeMap<Integer, Float>();
+		ftrDest.clear();
 		float ftrVecSqMag = 0.0f;
 		JP_OccurrenceData optOcc;
 		//for each jp present in ex, perform calculation
@@ -274,12 +274,11 @@ public class StraffWeightCalc {
 				isZeroMagExample = false;
 				ftrVecSqMag += (val*val);
 			}
-			res.put(destIDX,val);		//add zero value 			
+			ftrDest.put(destIDX,val);		//add zero value 			
 			checkValInBnds(bndAra_TrainJPsIDX,jp,destIDX, val);
 		}		
 		ex.ftrVecMag = (float) Math.sqrt(ftrVecSqMag);
 		ex.setIsBadExample(isZeroMagExample);
-		return res;
 	}//calcFeatureVector
 	
 	//initialize and finalize all calcs for CUSTOMER data - this builds the exemplar training data vector for each non-prod jp
@@ -323,9 +322,8 @@ public class StraffWeightCalc {
 	
 	
 	//this will calculate for every non-product jp the contribution that ex should get based on srcOccs wt calc for each non-product jp present in ex
-	public TreeMap<Integer, Float> calcNonProdJpTrainFtrContribVec(ProspectExample ex, HashSet<Tuple<Integer,Integer>> nonProdJpgJps, TreeMap<Integer, JP_OccurrenceData> srcOccs) {
-		TreeMap<Integer, Float> res = new TreeMap<Integer, Float>();
-		ex.compValFtrMapSqMag = 0.0f;
+	public void calcNonProdJpTrainFtrContribVec(ProspectExample ex, HashSet<Tuple<Integer,Integer>> nonProdJpgJps,TreeMap<Integer, Float> destMap, TreeMap<Integer, JP_OccurrenceData> srcOccs) {
+		destMap.clear();
 		float ttlContrib = 0.0f;
 		for(Tuple<Integer,Integer> jpJpgrp : nonProdJpgJps) {
 			Integer nonProdJP = jpJpgrp.y;
@@ -338,20 +336,21 @@ public class StraffWeightCalc {
 			ttlContrib += srcContrib;
 			TreeMap<Integer, Float> res2 = jpEq.calcNonProdWtVec(ex, srcContrib);
 			for(Integer key : res2.keySet()) {
-				Float val1 = res.get(key);
+				Float val1 = destMap.get(key);
 				if(val1 == null) {val1 = 0.0f;}
 				val1 += res2.get(key);
-				res.put(key, val1);
+				destMap.put(key, val1);
 			}			
 		}
-		if(ttlContrib==0.0f) {return res;}
+		if(ttlContrib==0.0f) {ex.compValFtrMapMag = 0.0f; destMap.clear();return;}
 		//divide entire res map by ttlContrib to normalize weighting
-		for(Integer key : res.keySet()) {	
-			float val = res.get(key)/ttlContrib;
-			ex.compValFtrMapSqMag += val*val;
-			res.put(key, val);
+		float sqVal = 0.0f;
+		for(Integer key : destMap.keySet()) {	
+			float val = destMap.get(key)/ttlContrib;
+			sqVal += val*val;
+			destMap.put(key, val);
 		}		
-		return res;
+		ex.compValFtrMapMag = (float) Math.sqrt(sqVal);
 	}//calcCompareObj
 
 	//this will build the non-product jp training vectors based on weighting each passed example by the example's srcOccs data

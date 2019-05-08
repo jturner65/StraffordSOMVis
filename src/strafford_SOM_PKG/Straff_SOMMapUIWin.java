@@ -82,7 +82,7 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 	public String[][] menuBtnNames = new String[][] {	//each must have literals for every button defined in side bar menu, or ignored
 		{"Load All Raw ---", "Func 01","Recalc Features"},	//row 1
 		{"Train data","Prspcts", "SOM Cfg", "All->Bld Map", "Prblt Map"},	//row 2
-		{"Show Raw","Show Proced","Show JpJpg","Dbg 4","Dbg 5"}	
+		{"Raw","Proced","JpJpg","MapDat","Dbg 5"}	
 	};
 
 	//used to switch button name for 1st button to reflect whether performing csv-based load of raw data or sql query
@@ -562,7 +562,8 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 					((Straff_SOMMapManager) mapMgr).dbgShowJpJpgrpData();
 					resetButtonState();
 					break;}
-				case 3 : {	
+				case 3 : {//show current mapdat status
+					((Straff_SOMMapManager) mapMgr).dbgShowSOM_MapDat();
 					resetButtonState();
 					break;}
 				case 4 : {						
@@ -649,7 +650,6 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 		String res = super.toString();
 		return res;
 	}
-
 
 }//mySOMMapUIWin
 

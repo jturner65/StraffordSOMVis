@@ -50,7 +50,7 @@ public abstract class SOMMapNode extends SOMExample{
 	}
 	//build feature vector from passed feature array
 	private void setFtrsFromFloatAra(float[] _ftrs) {
-		ftrMaps[ftrMapTypeKey] = new TreeMap<Integer, Float>();
+		ftrMaps[ftrMapTypeKey].clear();
 		ArrayList<Integer> nonZeroIDXList = new ArrayList<Integer>();
 		float ftrVecSqMag = 0.0f;
 		for(int i = 0; i < _ftrs.length; ++i) {	

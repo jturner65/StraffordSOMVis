@@ -13,13 +13,15 @@ import base_Utils_Objects.*;
 //structure to hold all the file names, file configurations and general program configurations required to run the SOM project
 //will manage that all file names need to be reset when any are changed
 public class SOMProjConfigData {
+	//owning map manager
+	protected SOMMapManager mapMgr;
 	//object to manage screen and log output
 	protected MessageObject msgObj;
 	//manage IO in this object
-	private FileIOManager fileIO;
-	
+	private FileIOManager fileIO;	
 	//ref to SOM_MapDat SOM executiond descriptor object
 	protected SOM_MapDat SOMExeDat;	
+	
 	//string delimiter defining a comment in a file
 	public static final String fileComment = "#";
 	
@@ -92,13 +94,14 @@ public class SOMProjConfigData {
 	//all flags corresponding to file names required to run SOM
 	private int[] reqFileNameFlags = new int[]{trainDatFNameIDX, somResFPrfxIDX, diffsFNameIDX, minsFNameIDX, csvSavFNameIDX};
 	private String[] reqFileNames = new String[]{"trainDatFNameIDX", "somResFPrfxIDX", "diffsFNameIDX", "minsFNameIDX", "csvSavFNameIDX"};
-	//idx 0 = file name for SOM training data -> .lrn file, 1 = file name for sphere sample data -> .csv file	
+	//
 	private String[] SOMFileNamesAra;
 	//this string holds experiment-specific string used for output files - x,y and k of map used to generate output.  this is set 
 	//separately from calls to setSOM_ExpFileNames because experimental parameters can change between the saving of training data and the running of the experiment
 	private String SOMOutExpSffx = "x-1_y-1_k-1";//illegal values set on purpose, needs to be set/overridden by config
 	
 	public SOMProjConfigData(SOMMapManager _mapMgr, TreeMap<String, Object> _argsMap) {
+		mapMgr = _mapMgr;
 		msgObj = _mapMgr.buildMsgObj();
 		//_argsMap is map of command line/control params.  useful here for config and data dir
 		String _configDir = (String) _argsMap.get("configDir");
@@ -131,7 +134,10 @@ public class SOMProjConfigData {
 		fnames = new String[numFiles];
 		for(int i=0;i<numFiles;++i){fnames[i]="";}
 		initFlags();
-		SOMExeDat = new SOM_MapDat(buildMsgObj(),getOSUsed());	
+		SOMExeDat = new SOM_MapDat(this, OSUsed);	
+		//load default data for this map dat
+		loadDefaultSOMExp_Config();
+		
 		dateTimeStrAra = getDateTimeString(false, "_");
 	}//ctor
 
@@ -286,21 +292,26 @@ public class SOMProjConfigData {
 	
 	//SOM_EXP_Format_default
 	//this will load all essential information for a SOM-based experimental run, from loading preprocced data, configuring map
-	public void loadDefaultSOMExp_Config(SOMMapManager mapMgr) {
+	public void loadDefaultSOMExp_Config() {
 		String dfltSOMConfigFName = SOM_QualifiedConfigDir + configFileNames.get("SOMDfltConfigFileName"); 
 		msgObj.dispMessage("SOMProjConfigData","loadDefaultSOMExp_Config","Default file name  :" + dfltSOMConfigFName, MsgCodes.info1);
-		loadSOMMap_Config(mapMgr,dfltSOMConfigFName);
+		loadSOMMap_Config(dfltSOMConfigFName);
 	}
-	public void loadSOMMap_Config(SOMMapManager mapMgr) {loadSOMMap_Config(mapMgr,getSOMMapConfigFileName());}  
-	public void loadSOMMap_Config(SOMMapManager mapMgr, String expFileName) {
+	public void loadSOMMap_Config() {loadSOMMap_Config(getSOMMapConfigFileName());}  
+	public void loadSOMMap_Config(String expFileName) {
 		msgObj.dispMessage("SOMProjConfigData","loadSOMMap_Config","Start loading SOM Exe config data from " + expFileName, MsgCodes.info5);
 		//build file describing experiment and put at this location
 		//NOTE! if running a debug run, be sure to have the line dateTimeStrAra[0],<date_time_value>_DebugRun in proj config file, otherwise will crash
 		String[] expStrAra = fileIO.loadFileIntoStringAra(expFileName, "SOM_MapDat Config File loaded", "SOM_MapDat Config File Failed to load");
+		//set values from string array from file read
 		SOMExeDat.buildFromStringArray(expStrAra);
-		mapMgr.setUIValsFromLoad(SOMExeDat);
+		//send current map data to map mgr to set ui values
+		setUIValsFromLoad();
 		msgObj.dispMessage("SOMProjConfigData","loadSOMMap_Config","Finished loading SOM Exe config data from " + expFileName, MsgCodes.info5);
 	}//loadSOM_Exp
+	//send current map data to map mgr to set ui values
+	public void setUIValsFromLoad(){mapMgr.setUIValsFromLoad(SOMExeDat);}
+	
 	//load a specific configuration based on a previously run experiment
 	public void loadProjConfigForSOMExe() {	loadProjConfigForSOMExe( getProjConfigForSOMExeFileName());}
 	private void loadProjConfigForSOMExe(String configFileName) {
@@ -345,7 +356,7 @@ public class SOMProjConfigData {
 	}//setExpConfigData	
 		
 	//save test/train data in multiple threads
-	public void launchTestTrainSaveThrds(ExecutorService th_exec, SOMMapManager mapMgr, int curMapFtrType, int numTrainFtrs, SOMExample[] trainData, SOMExample[] testData) {
+	public void launchTestTrainSaveThrds(ExecutorService th_exec, int curMapFtrType, int numTrainFtrs, SOMExample[] trainData, SOMExample[] testData) {
 		//set exp names
 		int numTtlEx = trainData.length + testData.length;
 		setSOM_ExpFileNames(numTtlEx, trainData.length, testData.length);
@@ -367,9 +378,74 @@ public class SOMProjConfigData {
 			saveFileName = getSOMMapTestFileName();
 			SOMDataWrite.add(new SOMTrainDataWriter(mapMgr, curMapFtrType, numTrainFtrs, saveFileName, useSparseTestingData ? "sparseSVMData" : "denseLRNData", testData));
 		}
-		try {SOMDataWriteFutures = th_exec.invokeAll(SOMDataWrite);for(Future<Boolean> f: SOMDataWriteFutures) { f.get(); }} catch (Exception e) { e.printStackTrace(); }		
-		
+		try {SOMDataWriteFutures = th_exec.invokeAll(SOMDataWrite);for(Future<Boolean> f: SOMDataWriteFutures) { f.get(); }} catch (Exception e) { e.printStackTrace(); }			
 	}//launchTestTrainSaveThrds	
+	
+	//call this before running SOM experiment
+	public void setSOM_MapArgs(HashMap<String, Integer> mapInts, HashMap<String, Float> mapFloats, HashMap<String, String> mapStrings) {		
+		SOMExeDat.setArgsMapData(mapInts, mapFloats, mapStrings);		
+	}//setSOM_ExperimentRun
+	
+	//uses existing SOMExeDat
+	public boolean runSOMExperiment() {
+		SOMExeDat.updateMapState();
+		boolean res = true;
+		msgObj.dispMessage("SOMProjConfigData","setSOM_ExperimentRun","SOM map descriptor : \n" + SOMExeDat.toString() + "SOMOutExpSffx str : " + SOMOutExpSffx, MsgCodes.info5);		
+		//save configuration data
+		saveSOM_Exp();
+		//launch in a thread? - needs to finish to be able to proceed, so not necessary
+		boolean runSuccess = mapMgr.buildNewMap(SOMExeDat);
+		if(!runSuccess) {			return false;		}
+		mapMgr.setLoaderRtnFalse();
+		setAllFileNames();
+		return res;			
+	}	
+	
+	//return if map is toroidal
+	public boolean isToroidal(){
+		if(null==SOMExeDat){return false;}
+		return SOMExeDat.isToroidal();
+	}
+	
+	/**
+	 * update map descriptor Float values
+	 * @param key : key descriptor of value
+	 * @param val
+	 * @param updateMap : whether this update should be passed to map config
+	 * @param updateUI : whether this update should be passed to UI
+	 */
+	public void updateMapDat_Integer(String key, Integer val, boolean updateMap, boolean updateUI) {
+		if(updateMap) {		SOMExeDat.updateMapDat_Integer(key,val);	}		//updating map data
+		if(updateUI) {		mapMgr.updateUIMapData_Integer(key,val);	}		//update UI with change
+	}//updateMapDat_Int
+	public void updateMapDat_Integer_MapCols(Integer val, boolean updateMap, boolean updateUI) {updateMapDat_Integer("mapCols", val, updateMap, updateUI);}
+	public void updateMapDat_Integer_MapRows(Integer val, boolean updateMap, boolean updateUI) {updateMapDat_Integer("mapRows", val, updateMap, updateUI);}
+	
+	/**
+	 * update map descriptor Float values
+	 * @param key : key descriptor of value
+	 * @param val
+	 * @param updateMap : whether this update should be passed to map config
+	 * @param updateUI : whether this update should be passed to UI
+	 */
+	public void updateMapDat_Float(String key, Float val, boolean updateMap, boolean updateUI) {
+		if(updateMap) {		SOMExeDat.updateMapDat_Float(key,val);	}		//updating map data
+		if(updateUI) {		mapMgr.updateUIMapData_Float(key,val);	}		//update UI with change
+	}//updateMapDat_Float
+	
+	/**
+	 * update map descriptor String values
+	 * @param key : key descriptor of value
+	 * @param val
+	 * @param updateMap : whether this update should be passed to map config
+	 * @param updateUI : whether this update should be passed to UI
+	 */
+	public void updateMapDat_String(String key, String val, boolean updateMap, boolean updateUI) {
+		if(updateMap) {		SOMExeDat.updateMapDat_String(key,val);	}		//updating map data
+		if(updateUI) {		mapMgr.updateUIMapData_String(key,val);	}		//update UI with change
+	}//updateMapDat_String
+	
+	
 	
 	//build a date with each component separated by token
 	private String[] getDateTimeString(){return getDateTimeString(false,".");}
@@ -399,9 +475,11 @@ public class SOMProjConfigData {
 		expNumSmpls = _numSmpls;
 		expNumTrain = _numTrain;
 		expNumTest = _numTest;
-		String nowDir = getDirNameAndBuild(subDirLocs.get("SOM_MapProc") + SOMProjNameCap + "SOM_"+dateTimeStrAra[0]+File.separator);
+		String nowSubDir = SOMProjNameCap + "SOM_"+dateTimeStrAra[0]+File.separator;
+		String nowDir = getDirNameAndBuild(subDirLocs.get("SOM_MapProc") + nowSubDir, true);
 		String fileNow = dateTimeStrAra[1];
-		setSOM_ExpFileNames( fileNow, nowDir);		
+		//setSOM_ExpFileNames( fileNow, nowDir);		
+		setSOM_ExpFileNames( fileNow, nowSubDir);		//lacking hardcoded ref to 	subDirLocs.get("SOM_MapProc") 
 		msgObj.dispMessage("SOMProjConfigData","setSOM_ExpFileNames","Finished setting file names and example counts", MsgCodes.info5);
 	}//setSOM_ExpFileNames
 	
@@ -426,62 +504,37 @@ public class SOMProjConfigData {
 	}//setSOM_ExpFileNames	
 
 	//return subdirectory to use to write results for product with passed OID
-	public String getPerProdOutSubDirName(String fullBaseDir,  String OID) {return getDirNameAndBuild(fullBaseDir, OID+File.separator);}
+	public String getPerProdOutSubDirName(String fullBaseDir,  String OID) {return getDirNameAndBuild(fullBaseDir, OID+File.separator, true);}
 	public String getFullProdOutMapperBaseDir(String sfx) {
 		String [] tmpNow = getDateTimeString(false, "_");
-		return getDirNameAndBuild(subDirLocs.get("SOM_ProdSuggest") + "PerProdMaps_"+sfx+"_"+ tmpNow[1] + "_data_" +dateTimeStrAra[0]+File.separator);}
+		return getDirNameAndBuild(subDirLocs.get("SOM_ProdSuggest") + "PerProdMaps_"+sfx+"_"+ tmpNow[1] + "_data_" +dateTimeStrAra[0]+File.separator, true);}
 	
 	//log file name
 	public String getFullLogFileNameString() {
 		String [] tmpNow = getDateTimeString(false, "_");
-		String logDirName= getDirNameAndBuild(subDirLocs.get("SOM_Logs") + "log_"+tmpNow[1] +File.separator);
+		String logDirName= getDirNameAndBuild(subDirLocs.get("SOM_Logs") + "log_"+tmpNow[1] +File.separator, false);
 		return logDirName + "SOM_Run_Log.txt";
 	}
 	//these file names are specified above but may be modified/set via a config file in future
 	public String getFullCalcInfoFileName(){ return SOM_QualifiedConfigDir + configFileNames.get("calcWtFileName");}
 	public String getFullProdOutMapperInfoFileName(){ return SOM_QualifiedConfigDir + configFileNames.get("reqProdConfigFileName");}
 	//call this to set up debug map call - TODO replace this with just loading from a default config file
-	public void setSOM_UsePreBuilt(SOMMapManager mapMgr) {		//TOOD replace this when saved file with appropriate format
+	public void setSOM_UsePreBuilt() {		//TOOD replace this when saved file with appropriate format
 		//load map values from pre-trained map using this data - IGNORES VALUES SET IN UI	
 		//build file name to load
-		String configFileName = getDirNameAndBuild(subDirLocs.get("SOM_MapProc") + preBuiltMapDir) + expProjConfigFileName;
+		String configFileName = getDirNameAndBuild(subDirLocs.get("SOM_MapProc") + preBuiltMapDir, true) + expProjConfigFileName;
 		//load project config for this SOM execution
 		loadProjConfigForSOMExe(configFileName);		
 		//load and map config
-		loadSOMMap_Config(mapMgr);
+		loadSOMMap_Config();
 		//structure holding SOM_MAP specific cmd line args and file names and such
-		SOMExeDat.setAllDirs(this);
+		SOMExeDat.updateMapState();
 		//now load new map data and configure SOMMapManager obj to hold all appropriate data
 		mapMgr.setLoaderRtnFalse();
 		setAllFileNames();		
 	}//setSOM_UseDBGMap
 	
-	//call this before running SOM experiment
-	public boolean setSOM_ExperimentRun(SOMMapManager mapMgr, HashMap<String, Integer> mapInts, HashMap<String, Float> mapFloats, HashMap<String, String> mapStrings) {		
-		SOMExeDat.setArgsMapData(this, mapInts, mapFloats, mapStrings);		
-		return runSOMExperiment(mapMgr);
-	}//setSOM_ExperimentRun
-	
-	//uses existing SOMExeDat
-	public boolean runSOMExperiment(SOMMapManager mapMgr) {
-		SOMExeDat.setAllDirs(this);
-		boolean res = true;
-		msgObj.dispMessage("SOMProjConfigData","setSOM_ExperimentRun","SOM map descriptor : \n" + SOMExeDat.toString() + "SOMOutExpSffx str : " + SOMOutExpSffx, MsgCodes.info5);		
-		//save configuration data
-		saveSOM_Exp();
-		//launch in a thread? - needs to finish to be able to proceed, so not necessary
-		boolean runSuccess = mapMgr.buildNewMap(SOMExeDat);
-		if(!runSuccess) {			return false;		}
-		mapMgr.setLoaderRtnFalse();
-		setAllFileNames();
-		return res;			
-	}	
-	
-	//return if map is toroidal
-	public boolean isToroidal(){
-		if(null==SOMExeDat){return false;}
-		return SOMExeDat.isToroidal();
-	}
+	public String SOM_MapDat_ToString() {return SOMExeDat.toString();}
 	
 	//get location for raw data files
 	//baseDirName : directory/file type name
@@ -509,7 +562,7 @@ public class SOMProjConfigData {
 	public String[] buildProccedDataCSVFNames(boolean eventsOnly, String _desSuffix) {
 		String[] dateTimeStrAra = getDateTimeString(false, "_");
 		String subDir = "preprocData_" + dateTimeStrAra[0] + File.separator;
-		return _buildDataCSVFNames(getDirNameAndBuild(subDirLocs.get("SOM_PreProc")),subDir, eventsOnly,_desSuffix);
+		return _buildDataCSVFNames(getDirNameAndBuild(subDirLocs.get("SOM_PreProc"), true),subDir, eventsOnly,_desSuffix);
 	}//buildPrspctDataCSVFNames
 	
 	//public 
@@ -520,11 +573,11 @@ public class SOMProjConfigData {
 	//_desSuffix is text suffix describing file type
 	public String[] buildProccedDataCSVFNames(String subDir, boolean eventsOnly, String _desSuffix) {
 		//build root preproc data dir if doesn't exist
-		return _buildDataCSVFNames(getDirNameAndBuild(subDirLocs.get("SOM_PreProc")), subDir, eventsOnly, _desSuffix);
+		return _buildDataCSVFNames(getDirNameAndBuild(subDirLocs.get("SOM_PreProc"), true), subDir, eventsOnly, _desSuffix);
 	}
 	private String[] _buildDataCSVFNames(String rootDestDir, String subDir, boolean eventsOnly, String _desSuffix) {
 		//build subdir based on date, if doesn't exist
-		String destDir = getDirNameAndBuild(rootDestDir, subDir);
+		String destDir = getDirNameAndBuild(rootDestDir, subDir, true);
 		String suffix;
 		if (eventsOnly) {	suffix = _desSuffix + "Evnts";}
 		else {				suffix = _desSuffix;}		
@@ -534,12 +587,12 @@ public class SOMProjConfigData {
 	
 	//this will retrieve a subdirectory name under the main directory of this project and build the subdir if it doesn't exist
 	//subdir assumed to have file.separator already appended (might not be necessary)
-	private String getDirNameAndBuild(String subdir) {return getDirNameAndBuild(SOM_QualifiedDataDir,subdir);} 
+	private String getDirNameAndBuild(String subdir, boolean _buildDir) {return getDirNameAndBuild(SOM_QualifiedDataDir,subdir,_buildDir);} 
 	//baseDir must exist already
-	public String getDirNameAndBuild(String baseDir, String subdir) {
+	public String getDirNameAndBuild(String baseDir, String subdir, boolean _buildDir) {
 		String dirName = baseDir +subdir;
 		File directory = new File(dirName);
-	    if (! directory.exists()){ directory.mkdir(); }
+	    if (_buildDir && (! directory.exists())){ directory.mkdir(); }
 		return dirName;
 	}//getDirNameAndBuild
 	
@@ -549,22 +602,32 @@ public class SOMProjConfigData {
 	public Calendar getInstancedNow() {return instancedNow;}
 	
 	public String getSOMProjName() { return SOMProjName;}
-	public String getSOMExec_FullPath() { return getDirNameAndBuild(subDirLocs.get("SOM_MapProc"));}
-	public String getCurrLog_FileName() { return getDirNameAndBuild(subDirLocs.get("SOM_Logs"));}
+	public String getSOMExec_FullPath() { return getDirNameAndBuild(subDirLocs.get("SOM_MapProc"), true);}
+	public String getCurrLog_FileName() { return getDirNameAndBuild(subDirLocs.get("SOM_Logs"), true);}
 	
 	public String getSOMMapOutFileBase(String sffx) {	SOMOutExpSffx = sffx; return getSOMMapOutFileBase();}
-	private String getSOMMapOutFileBase() { 			return SOMFileNamesAra[0] + SOMOutExpSffx;}
-	public String getSOMMapLRNFileName(){	return SOMFileNamesAra[1];	}
-	public String getSOMMapSVMFileName(){	return SOMFileNamesAra[2];	}
-	public String getSOMMapTestFileName(){	return SOMFileNamesAra[3];	}
-	public String getSOMMapMinsFileName(){	return SOMFileNamesAra[4];	}
-	public String getSOMMapDiffsFileName(){	return SOMFileNamesAra[5];	}	
+	private String getSOMMapOutFileBase() { 			return getSOMExec_FullPath()  + SOMFileNamesAra[0] + SOMOutExpSffx;}
+	public String getSOMMapLRNFileName(){	return getSOMExec_FullPath() + SOMFileNamesAra[1];	}
+	public String getSOMMapSVMFileName(){	return getSOMExec_FullPath() + SOMFileNamesAra[2];	}
+	public String getSOMMapTestFileName(){	return getSOMExec_FullPath() + SOMFileNamesAra[3];	}
+	public String getSOMMapMinsFileName(){	return getSOMExec_FullPath() + SOMFileNamesAra[4];	}
+	public String getSOMMapDiffsFileName(){	return getSOMExec_FullPath() + SOMFileNamesAra[5];	}	
+	
+	//return local directories lacking base directory structure - these are all relative to baseDir + subDirLocs.get("SOM_MapProc")
+	public String getSOMMap_lclLRNFileName(){	return SOMFileNamesAra[1];	}
+	public String getSOMMap_lclSVMFileName(){	return SOMFileNamesAra[2];	}
+	public String getSOMMap_lclTestFileName(){	return SOMFileNamesAra[3];	}
+	public String getSOMMap_lclMinsFileName(){	return SOMFileNamesAra[4];	}
+	public String getSOMMap_lclDiffsFileName(){	return SOMFileNamesAra[5];	}	
+	public String getSOMMap_lclOutFileBase(String sffx) {	SOMOutExpSffx = sffx; return getSOMMap_lclOutFileBase();}
+	private String getSOMMap_lclOutFileBase() { 			return SOMFileNamesAra[0] + SOMOutExpSffx;}
+	
 	
 	public String getSOMLocClrImgForJPFName(int jp) {return "jp_"+jp+"_"+SOMFileNamesAra[6];}	
 	//ref to file name for map configuration setup
-	public String getSOMMapConfigFileName() {return SOMFileNamesAra[7];	}	
+	public String getSOMMapConfigFileName() {return getSOMExec_FullPath() + SOMFileNamesAra[7];	}	
 	//ref to file name for data and project configuration relevant for current SOM execution
-	public String getProjConfigForSOMExeFileName() {return SOMFileNamesAra[8];	}	
+	public String getProjConfigForSOMExeFileName() {return getSOMExec_FullPath() + SOMFileNamesAra[8];	}	
 	
 	//set training size partition -> fraction of entire data set that is training data
 	public void setTrainTestPartition(float _ratio) {trainTestPartition = _ratio;}

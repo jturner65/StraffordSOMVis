@@ -1,13 +1,10 @@
 package strafford_SOM_PKG.straff_SOM_Examples;
 
-import java.util.Date;
-import java.util.TreeMap;
+import java.util.*;
 
 import base_SOM_Objects.SOMMapManager;
-import base_SOM_Objects.som_examples.ExDataType;
-import strafford_SOM_PKG.straff_RawDataHandling.*;
-import strafford_SOM_PKG.straff_RawDataHandling.raw_data.BaseRawData;
-import strafford_SOM_PKG.straff_RawDataHandling.raw_data.ProspectData;
+import base_SOM_Objects.som_examples.*;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.*;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 import strafford_SOM_PKG.straff_Utils.StraffWeightCalc;
 
@@ -68,10 +65,8 @@ public class TrueProspectExample extends ProspectExample{
 	protected void buildFeaturesMap() {	//TODO do we wish to modify this for prospects?  probably
 		//access calc object
 		if (allProdJPs.size() > 0) {//getting from orders should yield empty list, might yield null - has no order occurrences by definition	
-			StraffWeightCalc calc = ((Straff_SOMMapManager)mapMgr).ftrCalcObj;
-			ftrMaps[ftrMapTypeKey] = calc.calcTruePrspctFtrVec(this,allProdJPs, JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"));			
-		}
-		else {ftrMaps[ftrMapTypeKey] = new TreeMap<Integer, Float>(); }
+			((Straff_SOMMapManager)mapMgr).ftrCalcObj.calcTruePrspctFtrVec(this,allProdJPs,ftrMaps[ftrMapTypeKey], JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"));			
+		} else {ftrMaps[ftrMapTypeKey].clear(); }
 		//now, if there's a non-null posOptAllEventObj then for all jps who haven't gotten an opt conribution to calculation, add positive opt-all result
 	}//buildFeaturesMap	
 

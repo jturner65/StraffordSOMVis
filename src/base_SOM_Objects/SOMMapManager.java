@@ -26,6 +26,9 @@ public abstract class SOMMapManager {
 	public SOMProjConfigData projConfigData;	
 	//object to manage messages for display and potentially logging
 	private MessageObject msgObj;
+	//object to manage interface with a UI, to make sure map data stays synchronized
+	public SOMUIToMapCom mapUIAPI;
+	
 	//////////////////////////////
 	//map descriptors
 	
@@ -126,6 +129,7 @@ public abstract class SOMMapManager {
 		pa=null;//assigned by win if it exists
 		win=_win;			
 		mapDims = _dims;
+		mapUIAPI = buildSOM_UI_Interface();
 		initFlags();		
 		//message object manages displaying to screen and potentially to log files - needs to be built first
 		long mapMgrBuiltTime  = Instant.now().toEpochMilli();
@@ -161,6 +165,12 @@ public abstract class SOMMapManager {
 	 */	
 	protected abstract SOMProjConfigData buildProjConfigData(TreeMap<String, Object> _argsMap);
 	
+	/**
+	 * build an interface to manage communications between UI and SOM map dat
+	 * This interface will need to include a reference to an application-specific UI window
+	 */
+	protected abstract SOMUIToMapCom buildSOM_UI_Interface();
+	
 	public static String[] getNodeBMUMapTypes() {
 		String[] typeList = ExDataType.getListOfTypes();
 		if (nodeBMUMapTypes==null) {
@@ -175,6 +185,7 @@ public abstract class SOMMapManager {
 		win=_win;
 		pa=_pa;
 		MessageObject.pa = _pa;
+		projConfigData.setUIValsFromLoad();
 	}//setPAWindowData
 
 	//determine how many values should be per thread, if 
@@ -255,7 +266,7 @@ public abstract class SOMMapManager {
 		//build file names, including info for data type used to train map
 		if (isBuildingNewMap) {//will save results to new directory
 			projConfigData.buildDateTimeStrAraAndDType(getDataTypeNameFromCurFtrTrainType());
-			projConfigData.launchTestTrainSaveThrds(th_exec, this, curMapTrainFtrType, numTrnFtrs,trainData,testData);				//save testing and training data
+			projConfigData.launchTestTrainSaveThrds(th_exec, curMapTrainFtrType, numTrnFtrs,trainData,testData);				//save testing and training data
 		} 
 		msgObj.dispMessage("SOMMapManager","setInputTestTrainDataArasShuffle","Finished Shuffling Input, Building Training and Testing Partitions. Train size : " + numTrainData+ " Testing size : " + numTestData+".", MsgCodes.info5);
 	}//setInputTestTrainDataArasShuffle
@@ -286,10 +297,10 @@ public abstract class SOMMapManager {
 		//load customer data into preproc  -this must be data used to build map
 		loadPreProcTestTrainData();
 		//for prebuilt map
-		projConfigData.setSOM_UsePreBuilt(this);	
+		projConfigData.setSOM_UsePreBuilt();	
 		//build data partitions - use partition size set via constants in debug
 		buildTestTrainFromPartition(projConfigData.getTrainTestPartition(), false);	
-		msgObj.dispMessage("SOMMapManager","loadPretrainedExistingMap","Current projConfigData before dataLoader Call : " + projConfigData.toString(), MsgCodes.info3);
+		msgObj.dispMultiLineInfoMessage("SOMMapManager","loadPretrainedExistingMap","Current projConfigData before dataLoader Call : " + projConfigData.toString());
 		//th_exec.execute(new SOMDataLoader(this,projConfigData));//fire and forget load task 
 		SOMDataLoader ldr = new SOMDataLoader(this,projConfigData);//fire and forget load task 
 		ldr.run();
@@ -299,9 +310,13 @@ public abstract class SOMMapManager {
 	//build new SOM_MAP map using UI-entered values, then load resultant data
 	//with maps of required SOM exe params
 	//TODO this will be changed to not pass values from UI, but rather to finalize and save values already set in SOM_MapDat object from UI or other user input
-	public boolean buildNewSOMMap(HashMap<String, Integer> mapInts, HashMap<String, Float> mapFloats, HashMap<String, String> mapStrings){
+	public void updateAllMapArgsFromUI(HashMap<String, Integer> mapInts, HashMap<String, Float> mapFloats, HashMap<String, String> mapStrings){
 		//set and save configurations
-		boolean runSuccess = projConfigData.setSOM_ExperimentRun(this, mapInts, mapFloats, mapStrings);
+		projConfigData.setSOM_MapArgs(mapInts, mapFloats, mapStrings);
+	}
+		
+	public boolean runSOMExperiment() {
+		boolean runSuccess = projConfigData.runSOMExperiment();
 		if(!runSuccess) {			return false;		}
 		msgObj.dispMessage("SOMMapManager","buildNewSOMMap","Current projConfigData before dataLoader Call : " + projConfigData.toString(), MsgCodes.info1);
 		//th_exec.execute(new SOMDataLoader(this,projConfigData));//fire and forget load task 
@@ -311,16 +326,14 @@ public abstract class SOMMapManager {
 	}//buildNewSOMMap	
 	
 	//this will load the default map training configuration
-	public void loadSOMConfig() {		
-		projConfigData.loadDefaultSOMExp_Config(this);		
-	}//loadSOMConfig
+	public void loadSOMConfig() {	projConfigData.loadDefaultSOMExp_Config();	}//loadSOMConfig
 	
 	//load all training data, default map configuration, and build map
 	public void loadTrainDataMapConfigAndBuildMap() {
 		msgObj.dispMessage("SOMMapManager","loadTrainDataMapConfigAndBuildMap","Start Loading training data and building map.", MsgCodes.info1);
 		loadPreprocAndBuildTestTrainPartitions();
-		projConfigData.loadDefaultSOMExp_Config(this);		
-		boolean success = projConfigData.runSOMExperiment(this);
+		projConfigData.loadDefaultSOMExp_Config();		
+		boolean success = projConfigData.runSOMExperiment();
 		msgObj.dispMessage("SOMMapManager","loadTrainDataMapConfigAndBuildMap","Finished Loading training data and building map. Success : " + success, MsgCodes.info1);
 	}//loadTrainDataMapConfigAndBuildMap()
 	
@@ -333,7 +346,7 @@ public abstract class SOMMapManager {
 		//load customer data into preproc  -this must be data used to build map
 		loadPreProcTestTrainData();
 		//for prebuilt map
-		projConfigData.setSOM_UsePreBuilt(this);	
+		projConfigData.setSOM_UsePreBuilt();	
 		//build data partitions - use partition size set via constants in debug
 		buildTestTrainFromPartition(projConfigData.getTrainTestPartition(), false);	
 		msgObj.dispMessage("SOMMapManager","loadPretrainedExistingMap","Current projConfigData before dataLoader Call : " + projConfigData.toString(), MsgCodes.info3);
@@ -438,8 +451,8 @@ public abstract class SOMMapManager {
 		msgObj.dispMessage("SOMMapManager","buildSegmentsOnMap","Finished building cluster map", MsgCodes.info5);			
 	}//buildSegmentsOnMap()
 	
-	public abstract SOMMap_DispExample buildTmpDataExampleFtrs(myPointf ptrLoc, TreeMap<Integer, Float> ftrs, float sens);
-	public abstract SOMMap_DispExample buildTmpDataExampleDists(myPointf ptrLoc, float dist, float sens);
+	public abstract ISOMMap_DispExample buildTmpDataExampleFtrs(myPointf ptrLoc, TreeMap<Integer, Float> ftrs, float sens);
+	public abstract ISOMMap_DispExample buildTmpDataExampleDists(myPointf ptrLoc, float dist, float sens);
 	
 	/////////////////////////////////////
 	// map node management - map nodes are represented by SOMExample objects called SOMMapNodes
@@ -498,7 +511,6 @@ public abstract class SOMMapManager {
 	protected void _dispMappingNotDoneMsg(String callingClass, String callingMethod, String _datType) {
 		msgObj.dispMessage(callingClass,callingMethod, "Mapping "+_datType+" examples to BMUs not yet complete so no mappings are being saved - please try again later", MsgCodes.warning4);		
 	}
-	
 	
 	public void clearBMUNodesWithExs(ExDataType _type) {							nodesWithEx.get(_type).clear();}
 	public void clearBMUNodesWithNoExs(ExDataType _type) {							nodesWithNoEx.get(_type).clear();}
@@ -648,8 +660,59 @@ public abstract class SOMMapManager {
 	public abstract SOMMapNode buildMapNode(Tuple<Integer,Integer>mapLoc, String[] tkns);
 
 	///////////////////////////
-	// end mapNodes obj
+	// end mapNodes 
 	
+	///////////////////////////
+	// map data <--> ui  update code
+	
+	/**
+	 * update map descriptor Float values from UI
+	 * @param key : key descriptor of value
+	 * @param val
+	 */
+	public void updateMapDatFromUI_Integer(String key, Integer val) {	projConfigData.updateMapDat_Integer(key,val, true, false);	}//updateMapDatFromUI_Integer
+	
+	/**
+	 * update map descriptor Float values
+	 * @param key : key descriptor of value
+	 * @param val
+	 */
+	public void updateMapDatFromUI_Float(String key, Float val) {	projConfigData.updateMapDat_Float(key,val, true, false);	}//updateMapDatFromUI_Float
+	
+	/**
+	 * update map descriptor String values
+	 * @param key : key descriptor of value
+	 * @param val
+	 */
+	public void updateMapDatFromUI_String(String key, String val) {	projConfigData.updateMapDat_String(key,val, true, false);	}//updateMapDatFromUI_String
+	
+	
+	/**
+	 * update UI from map data change (called from projConfig only
+	 * @param key : key descriptor of value
+	 * @param val
+	 */
+	public void updateUIMapData_Integer(String key, Integer val) {	mapUIAPI.updateUIFromMapDat_Integer(key, val);}//updateUIMapData_Integer
+	
+	/**
+	 * update UI from map data change (called from projConfig only
+	 * @param key : key descriptor of value
+	 * @param val
+	 */
+	public void updateUIMapData_Float(String key, Float val) {		mapUIAPI.updateUIFromMapDat_Float(key, val);}//updateUIMapData_Float
+	
+	/**
+	 * update UI from map data change (called from projConfig only
+	 * @param key : key descriptor of value
+	 * @param val
+	 */
+	public void updateUIMapData_String(String key, String val) {	mapUIAPI.updateUIFromMapDat_String(key, val);}//updateUIMapData_String
+	
+	
+	///////////////////////////
+	// end map data <--> ui  update code
+	
+
 	
 	private Float[] _convStrAraToFloatAra(String[] tkns) {
 		ArrayList<Float> tmpData = new ArrayList<Float>();
@@ -1183,19 +1246,21 @@ public abstract class SOMMapManager {
 		//need to update UI value in win
 		mapNodeCols = _x;
 		nodeXPerPxl = mapNodeCols/this.mapDims[0];
-		if (win != null) {			
-			boolean didSet = win.setWinToUIVals(SOMMapUIWin.uiMapColsIDX, mapNodeCols);
-			if(!didSet){msgObj.dispMessage("SOMMapManager","setMapX","Setting ui map x value failed for x = " + _x, MsgCodes.error2);}
-		}
+		projConfigData.updateMapDat_Integer_MapCols(_x, true,true);
+//		if (win != null) {			
+//			boolean didSet = win.setWinToUIVals(SOMMapUIWin.uiMapColsIDX, mapNodeCols);
+//			if(!didSet){msgObj.dispMessage("SOMMapManager","setMapX","Setting ui map x value failed for x = " + _x, MsgCodes.error2);}
+//		}
 	}//setMapX
 	public void setMapNumRows(int _y){
 		//need to update UI value in win
 		mapNodeRows = _y;
 		nodeYPerPxl = mapNodeRows/this.mapDims[1];
-		if (win != null) {			
-			boolean didSet = win.setWinToUIVals(SOMMapUIWin.uiMapRowsIDX, mapNodeRows);
-			if(!didSet){msgObj.dispMessage("SOMMapManager","setMapY","Setting ui map y value failed for y = " + _y, MsgCodes.error2);}
-		}
+		projConfigData.updateMapDat_Integer_MapRows(_y, true,true);
+//		if (win != null) {			
+//			boolean didSet = win.setWinToUIVals(SOMMapUIWin.uiMapRowsIDX, mapNodeRows);
+//			if(!didSet){msgObj.dispMessage("SOMMapManager","setMapY","Setting ui map y value failed for y = " + _y, MsgCodes.error2);}
+//		}
 	}//setMapY
 
 	public String toString(){

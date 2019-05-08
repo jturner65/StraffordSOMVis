@@ -253,7 +253,7 @@ class ProductExample extends Straff_SOMExample{
 	//take loaded data and convert to output data
 	@Override
 	protected void buildFeaturesMap() {
-		ftrMaps[ftrMapTypeKey] = new TreeMap<Integer, Float>();	
+		ftrMaps[ftrMapTypeKey].clear();	
 		//order map gives order value of each jp - provide multiplier for higher vs lower priority jps
 		TreeMap<Integer, Integer> orderMap = trainPrdctData.getJPOrderMap();
 		int numJPs = orderMap.size();
@@ -288,7 +288,7 @@ class ProductExample extends Straff_SOMExample{
 
 	@Override
 	protected void buildStdFtrsMap() {
-		ftrMaps[stdFtrMapTypeKey] = new TreeMap<Integer, Float>();
+		ftrMaps[stdFtrMapTypeKey].clear();
 		for (Integer IDX : ftrMaps[ftrMapTypeKey].keySet()) {ftrMaps[stdFtrMapTypeKey].put(IDX,ftrMaps[ftrMapTypeKey].get(IDX));}//since features are all weighted to sum to 1, can expect ftrmap == strdizedmap
 		setFlag(stdFtrsBuiltIDX,true);
 	}//buildStdFtrsMap

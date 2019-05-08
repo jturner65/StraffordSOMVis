@@ -119,11 +119,8 @@ public abstract class ProspectExample extends Straff_SOMExample{
 	@Override
 	//standardize this feature vector - across each feature, set value to be between 0 and 1
 	protected final void buildStdFtrsMap() {		
-		if (allNonZeroFtrIDXs.size() > 0) {ftrMaps[stdFtrMapTypeKey] = calcStdFtrVector(ftrMaps[ftrMapTypeKey], mapMgr.getTrainFtrMins(), mapMgr.getTrainFtrDiffs());}
-		else {ftrMaps[stdFtrMapTypeKey] = new TreeMap<Integer, Float>();}
-		if(compValFtrMapSqMag != 0.0) {//only calculate this if we have non-zero compValFtrMapSqrMag, which means we have calculated the non-product-jp contribution vector already and it has a non-zero magnitude
-			compValMaps[stdFtrMapTypeKey] = calcStdFtrVector(compValMaps[ftrMapTypeKey],  mapMgr.getTrainFtrMins(), mapMgr.getTrainFtrDiffs());
-		}
+		if (allNonZeroFtrIDXs.size() > 0) {calcStdFtrVector(ftrMaps[ftrMapTypeKey],ftrMaps[stdFtrMapTypeKey], mapMgr.getTrainFtrMins(), mapMgr.getTrainFtrDiffs());}
+		else {ftrMaps[stdFtrMapTypeKey].clear();}
 
 		setFlag(stdFtrsBuiltIDX,true);
 	}//buildStdFtrsMap
@@ -332,40 +329,39 @@ public abstract class ProspectExample extends Straff_SOMExample{
 	//called after all features of this kind of object are built HashSet<Integer> nonProdJpGrps
 	public final void postFtrVecBuild() {
 		
+		
 	}//postFtrVecBuild
 	
-	protected final void calcComValMaps() {
+	protected final void calcCompValMaps() {
 		//build prod and non-prod jpgroup data here	
-		compValMaps[normFtrMapTypeKey] =  new TreeMap<Integer, Float>();
-		compValMaps[stdFtrMapTypeKey] = new TreeMap<Integer, Float>();
+		clearCompValMaps();
 		if(nonProdJpgJps.size() > 0) {
-			compValMaps[ftrMapTypeKey] = ((Straff_SOMMapManager)mapMgr).ftrCalcObj.calcNonProdJpTrainFtrContribVec(this, nonProdJpgJps,JpOccurrences.get("sources"));
+			((Straff_SOMMapManager)mapMgr).ftrCalcObj.calcNonProdJpTrainFtrContribVec(this, nonProdJpgJps,compValMaps[ftrMapTypeKey], JpOccurrences.get("sources"));
 			//build normalized comparison vector also
-			if(compValFtrMapSqMag != 0.0) {
-				for(Integer key : compValMaps[ftrMapTypeKey].keySet()) {	compValMaps[normFtrMapTypeKey].put(key,  compValMaps[ftrMapTypeKey].get(key)/compValFtrMapSqMag);}	
-			}
+			if(compValFtrMapMag != 0.0) {
+				for(Integer key : compValMaps[ftrMapTypeKey].keySet()) {	compValMaps[normFtrMapTypeKey].put(key,  compValMaps[ftrMapTypeKey].get(key)/compValFtrMapMag);}	
+				calcStdFtrVector(compValMaps[ftrMapTypeKey],  compValMaps[stdFtrMapTypeKey], mapMgr.getTrainFtrMins(), mapMgr.getTrainFtrDiffs());
+			}			
 		} 
-		else {compValMaps[ftrMapTypeKey] =  new TreeMap<Integer, Float>(); }
-		
 	}//calcComValMaps()
 	
 	
 	@Override
 	/**
 	 *  this will build the comparison feature vector array that is used as the comparison vector in distance measurements
-	 * @param _ratio
+	 * @param _ratio : 0 means all base ftrs, 1 means all compValMap for features
 	 */
 	public final void buildCompFtrVector(float _ratio) {
 		//ratio needs to be [0..1], is ratio of compValMaps value to ftr value
 		if(_ratio <=0) {compFtrMaps = ftrMaps;}
 		else {  
 			//must be called after compValMaps have been populated by customer data
-			calcComValMaps();
+			calcCompValMaps();
 			if(_ratio >= 1) {compFtrMaps = compValMaps;}
 			else {
 				compFtrMaps = new TreeMap[ftrMapTypeKeysAra.length];		
 				for (int i=0;i<compFtrMaps.length;++i) {			compFtrMaps[i] = new TreeMap<Integer, Float>(); 		}
-			
+				Float val;
 				for(int mapIdx = 0; mapIdx < ftrMaps.length;++mapIdx) {
 					TreeMap<Integer, Float> ftrMap = ftrMaps[mapIdx];
 					TreeMap<Integer, Float> compMap = compValMaps[mapIdx];
@@ -373,8 +369,8 @@ public abstract class ProspectExample extends Straff_SOMExample{
 					allIdxs.addAll(compMap.keySet());
 					for (Integer key : allIdxs) {//either map will have this key
 						Float frmVal = ftrMap.get(key);if(frmVal == null) {frmVal = 0.0f;}
-						Float toVal = compMap.get(key);if(toVal == null) {toVal = 0.0f;}
-						Float val = (_ratio * toVal) + (1.0f - _ratio)*frmVal;
+						Float toVal = compMap.get(key);
+						val = (toVal == null) ? frmVal : (_ratio * toVal) + (1.0f - _ratio)*frmVal;
 						compFtrMaps[mapIdx].put(key, val);					
 					}//for all idxs			
 				}//for map idx

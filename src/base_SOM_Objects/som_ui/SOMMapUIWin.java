@@ -16,9 +16,11 @@ import processing.core.PImage;
  * @author john
  *
  */
-public abstract class SOMMapUIWin extends myDispWindow {
+public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapDat{
 	//map manager that is instanced 
 	public SOMMapManager mapMgr;
+	//interface to facilitate keeping UI and the SOM MapData object synched w/respect to map data values
+	public SOMUIToMapCom mapUIAPI;
 	//msgObj responsible for displaying messages to console and printing to log file
 	protected MessageObject msgObj;
 	
@@ -68,6 +70,7 @@ public abstract class SOMMapUIWin extends myDispWindow {
 		uiTrainDataFrmtIDX			= 0,			//format that training data should take : unmodified, normalized or standardized
 		uiTestDataFrmtIDX			= 1,			//format of vectors to use when comparing examples to nodes on map
 		uiTrainDatPartIDX			= 2,			//partition % of training data out of total data (rest is testing)
+		
 		uiMapRowsIDX 				= 3,            //map rows
 		uiMapColsIDX				= 4,			//map cols
 		uiMapEpochsIDX				= 5,			//# of training epochs
@@ -91,6 +94,16 @@ public abstract class SOMMapUIWin extends myDispWindow {
 	//instancing class will specify numGUIObjs
 	
 	protected double[] uiVals;				//raw values from ui components
+	//
+	//match descriptor string to index and index to string, to facilitate access
+	public TreeMap<String, Integer> mapDatDescrToUIIdx;
+	public TreeMap<Integer,String> mapUIIdxToMapDatDescr;
+	//array of gui object idxs corresponding positionally with map dat names specified above
+	public static final int[] mapObjUIIdxs = new int[] {
+		uiMapColsIDX, uiMapRowsIDX, uiMapEpochsIDX, uiMapKTypIDX,uiMapRadStIDX, uiMapRadEndIDX,uiMapLrnStIDX,uiMapLrnEndIDX,
+		uiMapShapeIDX ,uiMapBndsIDX,uiMapRadCoolIDX,uiMapNHdFuncIDX, uiMapLrnCoolIDX
+	};	
+	
 	//threshold of wt value to display map node
 	protected float mapNodeWtDispThresh;
 	//type of examples using each map node as a bmu to display
@@ -116,13 +129,45 @@ public abstract class SOMMapUIWin extends myDispWindow {
 	//scaling value - use this to decrease the image size and increase the scaling so it is rendered the same size
 	protected static final float mapScaleVal = 10.0f;
 	
-	protected SOMMap_DispExample mseOvrData;//location and label of mouse-over point in map
+	protected ISOMMap_DispExample mseOvrData;//location and label of mouse-over point in map
 	
 	
 	public SOMMapUIWin(my_procApplet _p, String _n, int _flagIdx, int[] fc, int[] sc, float[] rd, float[] rdClosed,	String _winTxt, boolean _canDrawTraj) {
 		super(_p, _n, _flagIdx, fc, sc, rd, rdClosed, _winTxt, _canDrawTraj);
+		initAndSetSOMDatUIMaps();
 	}//ctor
 	
+	//set convenience maps to more easily access UI objects related to map data/args
+	private void initAndSetSOMDatUIMaps() {
+		//build map descriptor index to mapdat descriptor string map. 
+		mapDatDescrToUIIdx = new TreeMap<String, Integer>();
+		mapUIIdxToMapDatDescr = new TreeMap<Integer,String> ();
+		//mapDatNames mapObjUIIdxs
+		for(int i=0;i<mapDatNames.length;++i) {
+			String mapDatName = mapDatNames[i];
+			Integer uiObjIDX = mapObjUIIdxs[i];
+			mapDatDescrToUIIdx.put(mapDatName, uiObjIDX);
+			mapUIIdxToMapDatDescr.put(uiObjIDX,mapDatName);
+		}
+	}//initAndSetSOMDatUIMaps
+	
+	/**
+	 * Given a UI object's IDX value, provide the string MapDat key corresponding to it
+	 * @param UIidx
+	 * @return
+	 */
+	@Override
+	public String getMapKeyStringFromUIidx(int UIidx) {		return mapUIIdxToMapDatDescr.get(UIidx);	}
+
+	/**
+	 * Given MapDat key, return an int corresponding to the appropriate ui object in the instancing window
+	 * @param UIidx
+	 * @return
+	 */
+	@Override
+	public int getUIidxFromMapKeyString(String mapKey){		return mapDatDescrToUIIdx.get(mapKey);	}
+
+
 	@Override
 	protected final void initMe() {
 		//initUIBox();				//set up ui click region to be in sidebar menu below menu's entries	
@@ -130,6 +175,7 @@ public abstract class SOMMapUIWin extends myDispWindow {
 		float width = rectDim[3]-(2*xOff);//actually also height, but want it square, and space is wider than high, so we use height as constraint - ends up being 834.8 x 834.8 with default screen dims and without side menu
 		SOM_mapDims = new float[] {width,width};
 		mapMgr = buildMapMgr();
+		mapUIAPI = mapMgr.mapUIAPI;
 		setVisScreenWidth(rectDim[2]);
 		//only set for visualization - needs to reset static refs in msgObj
 		mapMgr.setPADispWinData(this, pa);
@@ -361,9 +407,7 @@ public abstract class SOMMapUIWin extends myDispWindow {
 		int format = pa.RGB; 
 		int w = (int) (SOM_mapDims[0]/mapScaleVal), h = (int) (SOM_mapDims[1]/mapScaleVal);
 		mapPerFtrWtImgs = new PImage[numFtrVals];
-		for(int i=0;i<mapPerFtrWtImgs.length;++i) {
-			mapPerFtrWtImgs[i] = pa.createImage(w, h, format);
-		}		
+		for(int i=0;i<mapPerFtrWtImgs.length;++i) {			mapPerFtrWtImgs[i] = pa.createImage(w, h, format);	}		
 		mapCubicUMatrixImg = pa.createImage(w, h, format);			
 		reInitMapCubicSegments();
 		//instancing-window specific initializations
@@ -451,45 +495,50 @@ public abstract class SOMMapUIWin extends myDispWindow {
 		setPrivFlags(mapDrawAllMapNodesIDX, false);
 	}//setFlagsDoneMapBuild
 	
-	//first verify that new .lrn file exists, then
-	//build new SOM_MAP map using UI-entered values, then load resultant data
-	protected final void buildNewSOMMap(){
-		msgObj.dispMessage("mySOMMapUIWin","buildNewSOMMap","Starting Map Build", MsgCodes.info5);
-		int kVal = (int)this.guiObjs[uiMapKTypIDX].getVal();
-		//verify sphere train/test data exists, otherwise save it
-		if(!mapMgr.mapCanBeTrained(kVal)){
-			msgObj.dispMessage("mySOMMapUIWin","buildNewSOMMap","No Training Data Found, unable to build SOM", MsgCodes.warning2);
-			setPrivFlags(buildSOMExe, false);
-			return;
-		}
-		
+	protected void sendAllUIValsToMapDat() {
 		//build structures used to describe map from UI inputs
 		//TODO : will derive these values from config file once optimal configuration has been determined
 		HashMap<String, Integer> mapInts = new HashMap<String, Integer>(); 
 		mapInts.put("mapCols", (int)this.guiObjs[uiMapColsIDX].getVal());
 		mapInts.put("mapRows", (int)this.guiObjs[uiMapRowsIDX].getVal());
 		mapInts.put("mapEpochs", (int)this.guiObjs[uiMapEpochsIDX].getVal());
-		mapInts.put("mapKType", kVal);
+		mapInts.put("mapKType", (int)this.guiObjs[uiMapKTypIDX].getVal());
 		mapInts.put("mapStRad", (int)this.guiObjs[uiMapRadStIDX].getVal());
 		mapInts.put("mapEndRad", (int)this.guiObjs[uiMapRadEndIDX].getVal());
-		for (String key : mapInts.keySet()) {msgObj.dispMessage("mySOMMapUIWin","buildNewSOMMap","mapInts["+key+"] = "+mapInts.get(key), MsgCodes.info1);}		
+		for (String key : mapInts.keySet()) {msgObj.dispMessage("SOMMapUIWin","buildNewSOMMap","mapInts["+key+"] = "+mapInts.get(key), MsgCodes.info1);}		
 		HashMap<String, Float> mapFloats = new HashMap<String, Float>(); 
 		mapFloats.put("mapStLrnRate",(float)this.guiObjs[uiMapLrnStIDX].getVal());
 		mapFloats.put("mapEndLrnRate",(float)this.guiObjs[uiMapLrnEndIDX].getVal());
-		for (String key : mapFloats.keySet()) {msgObj.dispMessage("mySOMMapUIWin","buildNewSOMMap","mapFloats["+key+"] = "+ String.format("%.4f",mapFloats.get(key)), MsgCodes.info1);}		
+		for (String key : mapFloats.keySet()) {msgObj.dispMessage("SOMMapUIWin","buildNewSOMMap","mapFloats["+key+"] = "+ String.format("%.4f",mapFloats.get(key)), MsgCodes.info1);}		
 		HashMap<String, String> mapStrings = new HashMap<String, String> ();
 		mapStrings.put("mapGridShape", getUIListValStr(uiMapShapeIDX, (int)this.guiObjs[uiMapShapeIDX].getVal()));	
 		mapStrings.put("mapBounds", getUIListValStr(uiMapBndsIDX, (int)this.guiObjs[uiMapBndsIDX].getVal()));	
 		mapStrings.put("mapRadCool", getUIListValStr(uiMapRadCoolIDX, (int)this.guiObjs[uiMapRadCoolIDX].getVal()));	
 		mapStrings.put("mapNHood", getUIListValStr(uiMapNHdFuncIDX, (int)this.guiObjs[uiMapNHdFuncIDX].getVal()));	
 		mapStrings.put("mapLearnCool", getUIListValStr(uiMapLrnCoolIDX, (int)this.guiObjs[uiMapLrnCoolIDX].getVal()));	
-		for (String key : mapStrings.keySet()) {msgObj.dispMessage("mySOMMapUIWin","buildNewSOMMap","mapStrings["+key+"] = "+mapStrings.get(key), MsgCodes.info1);}
+		for (String key : mapStrings.keySet()) {msgObj.dispMessage("SOMMapUIWin","buildNewSOMMap","mapStrings["+key+"] = "+mapStrings.get(key), MsgCodes.info1);}
+		//call map mgr object to build data
+		mapMgr.updateAllMapArgsFromUI(mapInts, mapFloats, mapStrings);				
+	}//
+	
+	//first verify that new .lrn file exists, then
+	//build new SOM_MAP map using UI-entered values, then load resultant data
+	protected final void buildNewSOMMap(){
+		msgObj.dispMessage("SOMMapUIWin","buildNewSOMMap","Starting Map Build", MsgCodes.info5);
+		int kVal = (int)this.guiObjs[uiMapKTypIDX].getVal();
+		//verify sphere train/test data exists, otherwise save it
+		if(!mapMgr.mapCanBeTrained(kVal)){
+			msgObj.dispMessage("SOMMapUIWin","buildNewSOMMap","No Training Data Found, unable to build SOM", MsgCodes.warning2);
+			setPrivFlags(buildSOMExe, false);
+			return;
+		}
+		sendAllUIValsToMapDat();
 		
-		//call map data object to build and execute map call
-		boolean returnCode = mapMgr.buildNewSOMMap(mapInts, mapFloats, mapStrings);
+		//call map mgr object execute map run call
+		boolean returnCode = mapMgr.runSOMExperiment();
 		//returnCode is whether map was built and trained successfully
 		setFlagsDoneMapBuild();
-		msgObj.dispMessage("mySOMMapUIWin","buildNewSOMMap","Map Build " + (returnCode ? "Completed Successfully." : "Failed due to error."), MsgCodes.info5);
+		msgObj.dispMessage("SOMMapUIWin","buildNewSOMMap","Map Build " + (returnCode ? "Completed Successfully." : "Failed due to error."), MsgCodes.info5);
 		setPrivFlags(buildSOMExe, false);
 	}//buildNewSOMMap	
 
@@ -540,7 +589,7 @@ public abstract class SOMMapUIWin extends myDispWindow {
 	//if any ui values have a string behind them for display
 	@Override
 	public final String getUIListValStr(int UIidx, int validx) {		
-		//msgObj.dispMessage("mySOMMapUIWin","getUIListValStr","UIidx : " + UIidx + "  Val : " + validx );
+		//msgObj.dispMessage("SOMMapUIWin","getUIListValStr","UIidx : " + UIidx + "  Val : " + validx );
 		switch(UIidx){//pa.score.staffs.size()
 			case uiTrainDataFrmtIDX 		: {return uiMapTrainFtrTypeList[validx % uiMapTrainFtrTypeList.length];}
 			case uiTestDataFrmtIDX			: {return uiMapTestFtrTypeList[validx % uiMapTestFtrTypeList.length];}
@@ -555,34 +604,94 @@ public abstract class SOMMapUIWin extends myDispWindow {
 		}
 	}//getUIListValStr
 	protected abstract String getUIListValStrIndiv(int UIidx, int validx);
+	
+	///////////////////////////////
+	// map <--> ui sync functions
+	//
+	@Override
+	public void setMapDataVal_Integer(int UIidx, double val) {	mapMgr.updateMapDatFromUI_Integer(getMapKeyStringFromUIidx(UIidx), (int) val);}	
+	@Override
+	public void setMapDataVal_Float(int UIidx, double val) {	mapMgr.updateMapDatFromUI_Float(getMapKeyStringFromUIidx(UIidx), (float) val);}
+	@Override
+	public void setMapDataVal_String(int UIidx, double val) {	mapMgr.updateMapDatFromUI_String(getMapKeyStringFromUIidx(UIidx), getUIListValStr(UIidx, (int)val));}
+	
+	// set UI vals from map mgr - these are changes resulting from non-UI made changes to map
+	@Override
+	public void updateUIDataVal_Integer(String key, Integer val) {
+		if(!isMapNameOfType(mapDatNames_Ints, key)) {
+			msgObj.dispMessage("SOMMapUIWin","updateUIDataVal_Integer","Attempting to set UI object with unknown Key : " +key + " using integer value " + val +".",MsgCodes.warning1);	
+			return;}
+		Integer uiObjIDX = getUIidxFromMapKeyString(key);
+		uiVals[uiObjIDX] = guiObjs[uiObjIDX].setVal(val);
+		switch (uiObjIDX) {
+			//integer values
+			case uiMapRowsIDX 	    : {guiObjs[uiMapRadStIDX].setVal(.5*Math.min(val, guiObjs[uiMapColsIDX].getVal()));	break;}
+			case uiMapColsIDX	    : {guiObjs[uiMapRadStIDX].setVal(.5*Math.min(guiObjs[uiMapRowsIDX].getVal(), val));break;}
+			case uiMapEpochsIDX	    : {break;}
+			case uiMapKTypIDX	    : {break;}
+			case uiMapRadStIDX	    : {if(val <= guiObjs[uiMapRadEndIDX].getVal()+guiMinMaxModVals[uiObjIDX][2]) {uiVals[uiObjIDX] = guiObjs[uiObjIDX].setVal(guiObjs[uiMapRadEndIDX].getVal()+guiMinMaxModVals[uiObjIDX][2]);}break;}
+			case uiMapRadEndIDX	    : {if(val >= guiObjs[uiMapRadStIDX].getVal()-guiMinMaxModVals[uiObjIDX][2]) { uiVals[uiObjIDX] = guiObjs[uiObjIDX].setVal(guiObjs[uiMapRadStIDX].getVal()-guiMinMaxModVals[uiObjIDX][2]);}break;}
+		}
+	}//setUIDataVal_Integer	
 
+	@Override
+	public void updateUIDataVal_Float(String key, Float val) {
+		if(!isMapNameOfType(mapDatNames_Floats, key)) {
+			msgObj.dispMessage("SOMMapUIWin","updateUIDataVal_Float","Attempting to set UI object with unknown Key : " +key + " using integer value " + val +".",MsgCodes.warning1);	
+			return;}
+		Integer uiObjIDX = getUIidxFromMapKeyString(key);
+		uiVals[uiObjIDX] = guiObjs[uiObjIDX].setVal(val);
+		switch (uiObjIDX) {
+		case uiMapLrnStIDX	    : {	if(val <= guiObjs[uiMapLrnEndIDX].getVal()+guiMinMaxModVals[uiObjIDX][2]) {	uiVals[uiObjIDX] = guiObjs[uiObjIDX].setVal(guiObjs[uiMapLrnEndIDX].getVal()+guiMinMaxModVals[uiObjIDX][2]);}break;}
+		case uiMapLrnEndIDX	    : {	if(val >= guiObjs[uiMapLrnStIDX].getVal()-guiMinMaxModVals[uiObjIDX][2]) {	uiVals[uiObjIDX] = guiObjs[uiObjIDX].setVal(guiObjs[uiMapLrnStIDX].getVal()-guiMinMaxModVals[uiObjIDX][2]);}break;}
+		}
+	}//setUIDataVal_Float
+	
+	@Override
+	public void updateUIDataVal_String(String key, String val) {
+		if(!isMapNameOfType(mapDatNames_Strings, key)) {
+			msgObj.dispMessage("SOMMapUIWin","updateUIDataVal_String","Attempting to set UI object with unknown Key : " +key + " using String value " + val +".",MsgCodes.warning1);
+			return;}
+		Integer uiObjIDX = getUIidxFromMapKeyString(key);
+		uiVals[uiObjIDX] = guiObjs[uiObjIDX].setVal(getIdxFromListString(uiObjIDX,val));
+	}//setUIDataVal_String
+	
+	///////////////////////////////
+	// end map <--> ui sync functions
+	//
+	//this sets the window's uiVals array to match the ui object's internal state - if object is set but this is not called, subordinate code for object (in switch below) will not get run
 	@Override
 	protected final void setUIWinVals(int UIidx) {
 		double val = guiObjs[UIidx].getVal(); 
 		if(uiVals[UIidx] != val){uiVals[UIidx] = val;} else {return;}//set values in raw array and only proceed if values have changed
 		//int intVal = (int)val;
 		switch(UIidx){
-			case uiMapRowsIDX 	    : {guiObjs[uiMapRadStIDX].setVal(.5*Math.min(val, guiObjs[uiMapColsIDX].getVal()));break;}
-			case uiMapColsIDX	    : {guiObjs[uiMapRadStIDX].setVal(.5*Math.min(guiObjs[uiMapRowsIDX].getVal(), val));break;}
-			case uiMapEpochsIDX	    : {break;}
-			case uiMapShapeIDX	    : {break;}
-			case uiMapBndsIDX	    : {break;}
-			case uiMapKTypIDX	    : {break;}
-			case uiMapNHdFuncIDX	: {break;}
-			case uiMapRadCoolIDX	: {break;}
-			case uiMapLrnCoolIDX	: {break;}
-			case uiMapLrnStIDX	    : {
-				if(val <= guiObjs[uiMapLrnEndIDX].getVal()+guiMinMaxModVals[UIidx][2]) { guiObjs[UIidx].setVal(guiObjs[uiMapLrnEndIDX].getVal()+guiMinMaxModVals[UIidx][2]);}				
-				break;}
-			case uiMapLrnEndIDX	    : {
-				if(val >= guiObjs[uiMapLrnStIDX].getVal()-guiMinMaxModVals[UIidx][2]) { guiObjs[UIidx].setVal(guiObjs[uiMapLrnStIDX].getVal()-guiMinMaxModVals[UIidx][2]);}				
-				break;}
+			//integer values
+			case uiMapRowsIDX 	    : {setMapDataVal_Integer(UIidx,val);guiObjs[uiMapRadStIDX].setVal(.5*Math.min(val, guiObjs[uiMapColsIDX].getVal()));	break;}
+			case uiMapColsIDX	    : {setMapDataVal_Integer(UIidx,val);guiObjs[uiMapRadStIDX].setVal(.5*Math.min(guiObjs[uiMapRowsIDX].getVal(), val));break;}
+			case uiMapEpochsIDX	    : {setMapDataVal_Integer(UIidx,val);break;}
+			case uiMapKTypIDX	    : {setMapDataVal_Integer(UIidx,val);break;}
 			case uiMapRadStIDX	    : {
-				if(val <= guiObjs[uiMapRadEndIDX].getVal()+guiMinMaxModVals[UIidx][2]) { guiObjs[UIidx].setVal(guiObjs[uiMapRadEndIDX].getVal()+guiMinMaxModVals[UIidx][2]);}
-				break;}
+				if(val <= guiObjs[uiMapRadEndIDX].getVal()+guiMinMaxModVals[UIidx][2]) {val = guiObjs[UIidx].setVal(guiObjs[uiMapRadEndIDX].getVal()+guiMinMaxModVals[UIidx][2]);uiVals[UIidx] = val;}
+				setMapDataVal_Integer(UIidx,val);		break;}
 			case uiMapRadEndIDX	    : {
-				if(val >= guiObjs[uiMapRadStIDX].getVal()-guiMinMaxModVals[UIidx][2]) { guiObjs[UIidx].setVal(guiObjs[uiMapRadStIDX].getVal()-guiMinMaxModVals[UIidx][2]);}
-				break;}
+				if(val >= guiObjs[uiMapRadStIDX].getVal()-guiMinMaxModVals[UIidx][2]) { val = guiObjs[UIidx].setVal(guiObjs[uiMapRadStIDX].getVal()-guiMinMaxModVals[UIidx][2]);uiVals[UIidx] = val;}
+				setMapDataVal_Integer(UIidx,val);		break;}
+			//end of integer values |start of float values
+			case uiMapLrnStIDX	    : {
+				if(val <= guiObjs[uiMapLrnEndIDX].getVal()+guiMinMaxModVals[UIidx][2]) {val = guiObjs[UIidx].setVal(guiObjs[uiMapLrnEndIDX].getVal()+guiMinMaxModVals[UIidx][2]);uiVals[UIidx] = val;}			
+				setMapDataVal_Float(UIidx,val);			break;}
+			case uiMapLrnEndIDX	    : {
+				if(val >= guiObjs[uiMapLrnStIDX].getVal()-guiMinMaxModVals[UIidx][2]) {	val = guiObjs[UIidx].setVal(guiObjs[uiMapLrnStIDX].getVal()-guiMinMaxModVals[UIidx][2]);uiVals[UIidx] = val;}		
+				setMapDataVal_Float(UIidx,val);			break;}
+			//end of float values | start of string/list values
+			case uiMapNHdFuncIDX	: {setMapDataVal_String(UIidx,val); break;}
+			case uiMapRadCoolIDX	: {setMapDataVal_String(UIidx,val); break;}
+			case uiMapLrnCoolIDX	: {setMapDataVal_String(UIidx,val); break;}
+			case uiMapShapeIDX	    : {setMapDataVal_String(UIidx,val); break;}
+			case uiMapBndsIDX	    : {setMapDataVal_String(UIidx,val); break;}
+			//end map arg-related string/list values
+			
 			case uiTrainDataFrmtIDX : {//format of training data
 				mapMgr.setCurrentTrainDataFormat((int)(this.guiObjs[uiTrainDataFrmtIDX].getVal()));
 				break;}
@@ -607,9 +716,7 @@ public abstract class SOMMapUIWin extends myDispWindow {
 	}//setUIWinVals
 	protected abstract void setUIWinValsIndiv(int UIidx);
 	
-	protected float getTrainTestDatPartition() {
-		return (float)(.01*this.guiObjs[uiTrainDatPartIDX].getVal());
-	}
+	protected float getTrainTestDatPartition() {	return (float)(.01*this.guiObjs[uiTrainDatPartIDX].getVal());}
 	
 	
 	/////////////////////////////////////////
@@ -791,7 +898,7 @@ public abstract class SOMMapUIWin extends myDispWindow {
 		}
 		for (int i=0;i<mapPerFtrWtImgs.length;++i) {	mapPerFtrWtImgs[i].updatePixels();		}
 		int endTime = pa.millis();
-		msgObj.dispMessage("mySOMMapUIWin", "setMapImgClrs", "Time to build all vis imgs : "  + ((endTime-stTime)/1000.0f) + "s | Threading : " + (mtCapable ? "Multi ("+numThds+")" : "Single" ), MsgCodes.info5);
+		msgObj.dispMessage("SOMMapUIWin", "setMapImgClrs", "Time to build all vis imgs : "  + ((endTime-stTime)/1000.0f) + "s | Threading : " + (mtCapable ? "Multi ("+numThds+")" : "Single" ), MsgCodes.info5);
 	}//setMapImgClrs
 	
 	//get x and y locations relative to upper corner of map
@@ -816,9 +923,9 @@ public abstract class SOMMapUIWin extends myDispWindow {
 		}
 	}//chkMouseOvr
 	//get datapoint at passed location in map coordinates (so should be in frame of map's upper right corner) - assume map is square and not hex
-	protected final SOMMap_DispExample getDataPointAtLoc(float x, float y, myPointf locPt){//, boolean useScFtrs){
+	protected final ISOMMap_DispExample getDataPointAtLoc(float x, float y, myPointf locPt){//, boolean useScFtrs){
 		float sensitivity = (float) guiObjs[uiMseRegionSensIDX].getVal();
-		SOMMap_DispExample dp; 
+		ISOMMap_DispExample dp; 
 		if (this.getPrivFlags(mapDrawUMatrixIDX)) {
 			float dist = mapMgr.getBiCubicInterpUMatVal(x, y);
 			dp = mapMgr.buildTmpDataExampleDists(locPt, dist, sensitivity);			

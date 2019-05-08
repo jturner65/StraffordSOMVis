@@ -6,6 +6,7 @@ import java.util.concurrent.*;
 import base_SOM_Objects.*;
 import base_SOM_Objects.som_examples.*;
 import base_SOM_Objects.som_fileIO.*;
+import base_SOM_Objects.som_ui.SOMUIToMapCom;
 import base_SOM_Objects.som_utils.MapExFtrCalcs_Runner;
 import base_SOM_Objects.som_utils.SOMProjConfigData;
 import base_UI_Objects.*;
@@ -117,6 +118,14 @@ public class Straff_SOMMapManager extends SOMMapManager {
 	 */
 	@Override
 	protected SOMProjConfigData buildProjConfigData(TreeMap<String, Object> _argsMap) {				return new SOMProjConfigData(this,_argsMap);	}
+	
+	/**
+	 * build an interface to manage communications between UI and SOM map dat
+	 * This interface will need to include a reference to an application-specific UI window
+	 */
+	@Override
+	protected SOMUIToMapCom buildSOM_UI_Interface() {	return new SOMUIToMapCom(this, win);}
+
 
 	//set max display list values
 	public void setUI_JPFtrMaxVals(int jpGrpLen, int jpLen) {if (win != null) {((Straff_SOMMapUIWin)win).setUI_JPFtrListMaxVals(jpGrpLen, jpLen);}}
@@ -756,6 +765,13 @@ public class Straff_SOMMapManager extends SOMMapManager {
 //
 //	}//buildFtrBasedRpt
 		
+	//debug - display current state of SOM_MapDat object describing SOM command line and execution
+	public void dbgShowSOM_MapDat() {
+		getMsgObj().dispMessage("StraffSOMMapManager","dbgShowSOM_MapDat","Starting displaying current SOM_MapDat object.", MsgCodes.info5);
+		getMsgObj().dispMultiLineInfoMessage("StraffSOMMapManager","dbgShowSOM_MapDat","\n"+projConfigData.SOM_MapDat_ToString()+"\n");		
+		getMsgObj().dispMessage("StraffSOMMapManager","dbgShowSOM_MapDat","End displaying current SOM_MapDat object.", MsgCodes.info5);
+	}
+	
 	//debug - display spans of weights of all features in products after products are built
 	public void dbgDispProductWtSpans() {
 		//debug - display spans of weights of all features in products
@@ -1011,9 +1027,9 @@ public class Straff_SOMMapManager extends SOMMapManager {
 	//////////////////////////////////////////////////////
 	
 	@Override
-	public SOMMap_DispExample buildTmpDataExampleFtrs(myPointf ptrLoc, TreeMap<Integer, Float> ftrs, float sens) {return new DispSOMMapExample(this, ptrLoc, ftrs, sens);}
+	public ISOMMap_DispExample buildTmpDataExampleFtrs(myPointf ptrLoc, TreeMap<Integer, Float> ftrs, float sens) {return new DispSOMMapExample(this, ptrLoc, ftrs, sens);}
 	@Override
-	public SOMMap_DispExample buildTmpDataExampleDists(myPointf ptrLoc, float dist, float sens) {return new DispSOMMapExample(this, ptrLoc, dist, sens);}
+	public ISOMMap_DispExample buildTmpDataExampleDists(myPointf ptrLoc, float dist, float sens) {return new DispSOMMapExample(this, ptrLoc, dist, sens);}
 	
 	//whether or not distances between two datapoints assume that absent features in smaller-length datapoints are 0, or to ignore the values in the larger datapoints
 	@Override

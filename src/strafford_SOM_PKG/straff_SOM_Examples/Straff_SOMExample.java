@@ -40,7 +40,7 @@ public abstract class Straff_SOMExample extends SOMExample{
 	//each array element map corresponds to a type of ftr map - ftr, norm and std
 	//each map has key == to _jpg_ and value == multiplier
 	protected TreeMap<Integer, Float>[] compValMaps;
-	public float compValFtrMapSqMag = 0.0f;
+	public float compValFtrMapMag = 0.0f;
 
 	//idxs corresponding to types of events
 	
@@ -49,7 +49,7 @@ public abstract class Straff_SOMExample extends SOMExample{
 		jpJpgMon = ((Straff_SOMMapManager) mapMgr).jpJpgrpMon;
 		allProdJPs = new HashSet<Integer> ();	
 		compValMaps = new TreeMap[ftrMapTypeKeysAra.length];
-		for (int i=0;i<ftrMaps.length;++i) {			compValMaps[i] = new TreeMap<Integer, Float>(); 		}
+		for (int i=0;i<compValMaps.length;++i) {			compValMaps[i] = new TreeMap<Integer, Float>(); 		}
 
 	}//ctor
 	
@@ -58,6 +58,9 @@ public abstract class Straff_SOMExample extends SOMExample{
 		allProdJPs = _otr.allProdJPs;		
 		compValMaps = _otr.compValMaps;
 	}//copy ctor
+	//instead of rebuilding these, just clear them
+	protected void clearCompValMaps() {		for (int i=0;i<compValMaps.length;++i) {			compValMaps[i].clear(); 		}}
+	
 	
 	////////////////
 	// event processing 
