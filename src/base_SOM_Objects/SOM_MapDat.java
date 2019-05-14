@@ -7,6 +7,7 @@ package base_SOM_Objects;
  * @author john
  */
 
+import java.io.File;
 import java.util.*;
 
 import base_SOM_Objects.som_utils.SOMProjConfigData;
@@ -28,6 +29,8 @@ public class SOM_MapDat{
 	private HashMap<String, Float> mapFloats;			// mapStLrnRate, mapEndLrnRate;
 	private HashMap<String, String> mapStrings;			// mapGridShape, mapBounds, mapRadCool, mapNHood, mapLearnCool;	
 	
+	//instance directory within execDir for som data - does not have separator
+	private String SOM_instanceDirName;
 	//file names used for SOM
 	private String trainDataDenseFN,		//training data file name for dense data, including -relative- path
 		trainDataSparseFN,				//for sparse data, including -relative- path
@@ -75,13 +78,19 @@ public class SOM_MapDat{
 	private void setAllDirs() {
 		execDir = config.getSOMExec_FullPath();
 		execSOMStr = config.getSOM_Map_EXECSTR();
+		SOM_instanceDirName = config.getSOMMap_CurrSubDirNoSep();
+		
 		trainDataDenseFN = config.getSOMMap_lclLRNFileName();
-		trainDataDenseFN_fullPath = execDir + trainDataDenseFN;
 		trainDataSparseFN = config.getSOMMap_lclSVMFileName();
-		trainDataSparseFN_fullPath = execDir + trainDataSparseFN;
 		outFilesPrefix = config.getSOMMap_lclOutFileBase(getOutNameSuffix());	
-		outFilesPrefix_fullPath = execDir + outFilesPrefix;
+		setAllFullPathNames();
 	}//setAllDirs	
+	
+	private void setAllFullPathNames() {
+		trainDataDenseFN_fullPath = execDir +SOM_instanceDirName + File.separator + trainDataDenseFN;
+		trainDataSparseFN_fullPath = execDir +SOM_instanceDirName + File.separator + trainDataSparseFN;
+		outFilesPrefix_fullPath = execDir +SOM_instanceDirName + File.separator + outFilesPrefix;		
+	}
 	
 	//after-construction initialization code whenever map values are changed
 	private void init() {
@@ -155,12 +164,11 @@ public class SOM_MapDat{
 		//execDir = tmpVars.get("execDir").trim();	//should always be retrieved from current execution environment
 		execDir = config.getSOMExec_FullPath();
 		execSOMStr = config.getSOM_Map_EXECSTR();
+		SOM_instanceDirName = tmpVars.get("SOM_instanceDirName").trim();
 		trainDataDenseFN = tmpVars.get("trainDataDenseFN").trim();
 		trainDataSparseFN = tmpVars.get("trainDataSparseFN").trim();
 		outFilesPrefix = tmpVars.get("outFilesPrefix").trim();
-		trainDataDenseFN_fullPath = execDir + trainDataDenseFN;
-		trainDataSparseFN_fullPath = execDir + trainDataSparseFN;
-		outFilesPrefix_fullPath = execDir + outFilesPrefix;
+		setAllFullPathNames();
 		
 		isSparse = (tmpVars.get("isSparse").trim().toLowerCase().contains("true") ? true : false);
 		//integer SOM cmnd line args
@@ -204,6 +212,7 @@ public class SOM_MapDat{
 		//res.add("execDir,"+execDir); //should always be retrieved from current execution environment
 		//res.add("execSOMStr,"+execSOMStr); //should always be retrieved from current execution environment
 		res.add("isSparse,"+isSparse);
+		res.add("SOM_instanceDirName,"+SOM_instanceDirName);
 		res.add("trainDataDenseFN,"+trainDataDenseFN);
 		res.add("trainDataSparseFN,"+trainDataSparseFN);
 		res.add("outFilesPrefix,"+outFilesPrefix);

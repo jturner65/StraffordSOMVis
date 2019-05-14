@@ -1,0 +1,22 @@
+# Below is config data for a particular experimental setup
+# Base Configuration Data
+useSparseTrainingData,true
+useSparseTestingData,true
+trainTestPartition,1.000000
+expNumSmpls,112405
+expNumTrain,112405
+expNumTest,0
+dataType,stdFtrs
+dateTimeStrAra[0],2019_05_14_13_54
+dateTimeStrAra[1],05_14_13_54
+SOMFileNamesAra[0],Out_straff_Smp_112405
+SOMFileNamesAra[1],Train_straff_Smp_112405_of_112405_typ_stdFtrs_Dt_05_14_13_54.lrn
+SOMFileNamesAra[2],Train_straff_Smp_112405_of_112405_typ_stdFtrs_Dt_05_14_13_54.svm
+SOMFileNamesAra[3],Test_straff_Smp_0_of_112405_typ_stdFtrs_Dt_05_14_13_54.svm
+SOMFileNamesAra[4],Mins_straff_Smp_112405_Dt_05_14_13_54_typ_stdFtrs.csv
+SOMFileNamesAra[5],Diffs_straff_Smp_112405_Dt_05_14_13_54_typ_stdFtrs.csv
+SOMFileNamesAra[6],SOMImg_straff_Smp_112405_Dt_05_14_13_54_typ_stdFtrs.png
+SOMFileNamesAra[7],SOM_MapConfig_straff_Smp_112405_Dt_05_14_13_54.txt
+SOMFileNamesAra[8],SOM_EXEC_Proj_Config.txt
+SOMFileNamesAra[9],StraffSOM_2019_05_14_13_54
+# End Configuration Data

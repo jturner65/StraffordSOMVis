@@ -23,7 +23,7 @@ calcWtFileName,"WeightEqConfig_allDecay_p01_optWt_p01_srcWt_p01"
 reqProdConfigFileName,"ProductsToMap_Test.txt"
 #
 # 	default SOM exe map configuration file name
-SOMDfltConfigFileName,"SOM_MapConfig_5050.txt"
+SOMDfltConfigFileName,"SOM_MapConfig_default.txt"
 #
 #END CONFIG FILE NAMES
 #BEGIN SUBDIR DEFS
@@ -68,9 +68,8 @@ useSparseTrainingData,"true"
 useSparseTestingData,"true"
 #
 #
-#
 #Directory for prebuilt map : 
-#all the following use the new data as of 3/25/19
+#all the following use the new data as of 5/1/19
 #
 #built using "WeightEqConfig_allDecay_p01_optWt_p01_srcWt_p01"
 #preBuiltMapDir,"StraffSOM_2019_04_26_08_00"

@@ -85,6 +85,7 @@ public class SOMProjConfigData {
 		outputSffxSetIDX	= 6;				//output suffix has been set to match current experimental parameters
 	private static final int numFlags = 7;		
 	
+
 	public static final String[] SOMResExtAra = new String[]{".wts", ".bm",".umx"};			//extensions for different SOM output file types
 	//idxs of different kinds of SOM output files
 	public static final int
@@ -96,6 +97,21 @@ public class SOMProjConfigData {
 	private String[] reqFileNames = new String[]{"trainDatFNameIDX", "somResFPrfxIDX", "diffsFNameIDX", "minsFNameIDX", "csvSavFNameIDX"};
 	//
 	private String[] SOMFileNamesAra;
+	//indexes in fname array of individual file names/file name prefixes
+	public final static int 
+		fName_OutPrfx_IDX = 0,
+		fName_TrainLRN_IDX = 1,
+		fName_TrainSVM_IDX = 2,
+		fName_TestSVM_IDX = 3,
+		fName_MinsCSV_IDX = 4,
+		fName_DiffsCSV_IDX = 5,
+		fName_SOMImgPNG_IDX = 6,
+		fName_SOMMapConfig_IDX = 7,
+		fName_EXECProjConfig_IDX = 8,
+		fName_SOMBaseDir_IDX = 9;	
+	public final static int numFileNames = 10;
+	
+	
 	//this string holds experiment-specific string used for output files - x,y and k of map used to generate output.  this is set 
 	//separately from calls to setSOM_ExpFileNames because experimental parameters can change between the saving of training data and the running of the experiment
 	private String SOMOutExpSffx = "x-1_y-1_k-1";//illegal values set on purpose, needs to be set/overridden by config
@@ -226,8 +242,8 @@ public class SOMProjConfigData {
 		TreeMap<String, String[]> rawDataFileNames = new TreeMap<String, String[]>();
 		//for each directory, find all file names present, stripping ".csv" from name
 		for (int dIdx = 0; dIdx < dataDirNames.length;++dIdx) {
-			String dirName = SOM_QualifiedDataDir + subDirLocs.get("SOM_SourceCSV") + dataDirNames[dIdx];
-			File folder = new File(dirName);
+			String dirName = SOM_QualifiedDataDir + subDirLocs.get("SOM_SourceCSV") + dataDirNames[dIdx];			
+			File folder = new File(dirName);			
 			File[] listOfFiles = folder.listFiles();
 			ArrayList<String> resList = new ArrayList<String>();
 			for (File file : listOfFiles) {
@@ -475,34 +491,81 @@ public class SOMProjConfigData {
 		expNumSmpls = _numSmpls;
 		expNumTrain = _numTrain;
 		expNumTest = _numTest;
-		String nowSubDir = SOMProjNameCap + "SOM_"+dateTimeStrAra[0]+File.separator;
-		String nowDir = getDirNameAndBuild(subDirLocs.get("SOM_MapProc") + nowSubDir, true);
+		String nowSubDirNoSep = SOMProjNameCap + "SOM_"+dateTimeStrAra[0];
+		String nowDir = getDirNameAndBuild(subDirLocs.get("SOM_MapProc") + nowSubDirNoSep, true);
 		String fileNow = dateTimeStrAra[1];
 		//setSOM_ExpFileNames( fileNow, nowDir);		
-		setSOM_ExpFileNames( fileNow, nowSubDir);		//lacking hardcoded ref to 	subDirLocs.get("SOM_MapProc") 
+		setSOM_ExpFileNames( fileNow, nowSubDirNoSep);		//lacking hardcoded ref to 	subDirLocs.get("SOM_MapProc") 
 		msgObj.dispMessage("SOMProjConfigData","setSOM_ExpFileNames","Finished setting file names and example counts", MsgCodes.info5);
 	}//setSOM_ExpFileNames
 	
+			
 	//file names used specifically for SOM data
 	private void setSOM_ExpFileNames(String fileNow, String nowDir){
-		String[] tmp = {"Out_"+SOMProjName+"_Smp_"+expNumSmpls,
-						"Train_"+SOMProjName+"_Smp_"+expNumTrain+"_of_"+expNumSmpls+"_typ_" +dataType + "_Dt_"+fileNow+".lrn",
-						"Train_"+SOMProjName+"_Smp_"+expNumTrain+"_of_"+expNumSmpls+"_typ_" + dataType+"_Dt_"+fileNow+".svm",				
-						"Test_"+SOMProjName+"_Smp_"+expNumTest+"_of_"+expNumSmpls+"_typ_" +dataType +"_Dt_"+fileNow+".svm",
-						"Mins_"+SOMProjName+"_Smp_"+expNumSmpls+"_Dt_"+fileNow+"_typ_" +dataType +".csv",
-						"Diffs_"+SOMProjName+"_Smp_"+expNumSmpls+"_Dt_"+fileNow+"_typ_" +dataType +".csv",
-						"SOMImg_"+SOMProjName+"_Smp_"+expNumSmpls+"_Dt_"+fileNow+"_typ_" +dataType +".png",
-						"SOM_MapConfig_"+SOMProjName+"_Smp_"+expNumSmpls+"_Dt_"+fileNow+".txt",						//map configuration
-						expProjConfigFileName					//
-						};
-		SOMFileNamesAra = new String[tmp.length];		
+		SOMFileNamesAra = new String[numFileNames];
+		SOMFileNamesAra[fName_SOMBaseDir_IDX] = nowDir;
+		SOMFileNamesAra[fName_OutPrfx_IDX] = "Out_"+SOMProjName+"_Smp_"+expNumSmpls;
+		SOMFileNamesAra[fName_TrainLRN_IDX] = "Train_"+SOMProjName+"_Smp_"+expNumTrain+"_of_"+expNumSmpls+"_typ_" +dataType + "_Dt_"+fileNow+".lrn";
+		SOMFileNamesAra[fName_TrainSVM_IDX] = "Train_"+SOMProjName+"_Smp_"+expNumTrain+"_of_"+expNumSmpls+"_typ_" + dataType+"_Dt_"+fileNow+".svm";				
+		SOMFileNamesAra[fName_TestSVM_IDX] = "Test_"+SOMProjName+"_Smp_"+expNumTest+"_of_"+expNumSmpls+"_typ_" +dataType +"_Dt_"+fileNow+".svm";
+		SOMFileNamesAra[fName_MinsCSV_IDX] = "Mins_"+SOMProjName+"_Smp_"+expNumSmpls+"_Dt_"+fileNow+"_typ_" +dataType +".csv";
+		SOMFileNamesAra[fName_DiffsCSV_IDX] = "Diffs_"+SOMProjName+"_Smp_"+expNumSmpls+"_Dt_"+fileNow+"_typ_" +dataType +".csv";
+		SOMFileNamesAra[fName_SOMImgPNG_IDX] = "SOMImg_"+SOMProjName+"_Smp_"+expNumSmpls+"_Dt_"+fileNow+"_typ_" +dataType +".png";
+		SOMFileNamesAra[fName_SOMMapConfig_IDX] = "SOM_MapConfig_"+SOMProjName+"_Smp_"+expNumSmpls+"_Dt_"+fileNow+".txt";						//map configuration
+		SOMFileNamesAra[fName_EXECProjConfig_IDX] = expProjConfigFileName;					//
+					;
 		for(int i =0; i<SOMFileNamesAra.length;++i){	
 			//build dir as well
-			SOMFileNamesAra[i] = nowDir + tmp[i];
 			msgObj.dispMessage("SOMProjConfigData","setSOM_ExpFileNames","Built Dir : " + SOMFileNamesAra[i], MsgCodes.info3);
 		}				
 	}//setSOM_ExpFileNames	
-
+	
+//	//file names used specifically for SOM data
+//	private void setSOM_ExpFileNames_old(String fileNow, String nowDir){
+//		
+//		String[] tmp = {"Out_"+SOMProjName+"_Smp_"+expNumSmpls,
+//						"Train_"+SOMProjName+"_Smp_"+expNumTrain+"_of_"+expNumSmpls+"_typ_" +dataType + "_Dt_"+fileNow+".lrn",
+//						"Train_"+SOMProjName+"_Smp_"+expNumTrain+"_of_"+expNumSmpls+"_typ_" + dataType+"_Dt_"+fileNow+".svm",				
+//						"Test_"+SOMProjName+"_Smp_"+expNumTest+"_of_"+expNumSmpls+"_typ_" +dataType +"_Dt_"+fileNow+".svm",
+//						"Mins_"+SOMProjName+"_Smp_"+expNumSmpls+"_Dt_"+fileNow+"_typ_" +dataType +".csv",
+//						"Diffs_"+SOMProjName+"_Smp_"+expNumSmpls+"_Dt_"+fileNow+"_typ_" +dataType +".csv",
+//						"SOMImg_"+SOMProjName+"_Smp_"+expNumSmpls+"_Dt_"+fileNow+"_typ_" +dataType +".png",
+//						"SOM_MapConfig_"+SOMProjName+"_Smp_"+expNumSmpls+"_Dt_"+fileNow+".txt",						//map configuration
+//						expProjConfigFileName					//
+//						};
+//		SOMFileNamesAra = new String[tmp.length];		
+//		for(int i =0; i<SOMFileNamesAra.length;++i){	
+//			//build dir as well
+//			SOMFileNamesAra[i] = nowDir + tmp[i];
+//			msgObj.dispMessage("SOMProjConfigData","setSOM_ExpFileNames","Built Dir : " + SOMFileNamesAra[i], MsgCodes.info3);
+//		}				
+//	}//setSOM_ExpFileNames	
+	
+	
+	
+	public String getSOMMapOutFileBase(String sffx) {	SOMOutExpSffx = sffx; return getSOMMapOutFileBase();}
+	private String getSOMMapOutFileBase() { 	return getSOMExec_FullPath() + getSOMMap_CurrSubDir() + SOMFileNamesAra[fName_OutPrfx_IDX] + SOMOutExpSffx;}
+	public String getSOMMapLRNFileName(){	return getSOMExec_FullPath() + getSOMMap_CurrSubDir() + SOMFileNamesAra[fName_TrainLRN_IDX];	}
+	public String getSOMMapSVMFileName(){	return getSOMExec_FullPath() + getSOMMap_CurrSubDir() + SOMFileNamesAra[fName_TrainSVM_IDX];	}
+	public String getSOMMapTestFileName(){	return getSOMExec_FullPath() + getSOMMap_CurrSubDir() + SOMFileNamesAra[fName_TestSVM_IDX];	}
+	public String getSOMMapMinsFileName(){	return getSOMExec_FullPath() + getSOMMap_CurrSubDir() + SOMFileNamesAra[fName_MinsCSV_IDX];	}
+	public String getSOMMapDiffsFileName(){	return getSOMExec_FullPath() + getSOMMap_CurrSubDir() + SOMFileNamesAra[fName_DiffsCSV_IDX];	}	
+	
+	//return local directories lacking base directory structure - these are all relative to baseDir + subDirLocs.get("SOM_MapProc")
+	public String getSOMMap_lclLRNFileName(){	return SOMFileNamesAra[fName_TrainLRN_IDX];	}
+	public String getSOMMap_lclSVMFileName(){	return SOMFileNamesAra[fName_TrainSVM_IDX];	}
+	public String getSOMMap_lclTestFileName(){	return SOMFileNamesAra[fName_TestSVM_IDX];	}
+	public String getSOMMap_lclMinsFileName(){	return SOMFileNamesAra[fName_MinsCSV_IDX];	}
+	public String getSOMMap_lclDiffsFileName(){	return SOMFileNamesAra[fName_DiffsCSV_IDX];	}	
+	public String getSOMMap_lclOutFileBase(String sffx) {	SOMOutExpSffx = sffx; return getSOMMap_lclOutFileBase();}
+	private String getSOMMap_lclOutFileBase() { 			return SOMFileNamesAra[fName_OutPrfx_IDX] + SOMOutExpSffx;}
+	
+	
+	public String getSOMLocClrImgForJPFName(int jp) {return "jp_"+jp+"_"+SOMFileNamesAra[fName_SOMImgPNG_IDX];}	
+	//ref to file name for map configuration setup
+	public String getSOMMapConfigFileName() {return getSOMExec_FullPath() + getSOMMap_CurrSubDir()+ SOMFileNamesAra[fName_SOMMapConfig_IDX];	}	
+	//ref to file name for data and project configuration relevant for current SOM execution
+	public String getProjConfigForSOMExeFileName() {return getSOMExec_FullPath() + getSOMMap_CurrSubDir()+ SOMFileNamesAra[fName_EXECProjConfig_IDX];	}	
 	//return subdirectory to use to write results for product with passed OID
 	public String getPerProdOutSubDirName(String fullBaseDir,  String OID) {return getDirNameAndBuild(fullBaseDir, OID+File.separator, true);}
 	public String getFullProdOutMapperBaseDir(String sfx) {
@@ -602,32 +665,10 @@ public class SOMProjConfigData {
 	public Calendar getInstancedNow() {return instancedNow;}
 	
 	public String getSOMProjName() { return SOMProjName;}
-	public String getSOMExec_FullPath() { return getDirNameAndBuild(subDirLocs.get("SOM_MapProc"), true);}
+	public String getSOMExec_FullPath() { return getDirNameAndBuild(subDirLocs.get("SOM_MapProc"), true);}//full path to where SOM executable lives/where specific instance sub directory lives
+	public String getSOMMap_CurrSubDir() {return SOMFileNamesAra[fName_SOMBaseDir_IDX]+File.separator;}
+	public String getSOMMap_CurrSubDirNoSep() {return SOMFileNamesAra[fName_SOMBaseDir_IDX];}	//return directory name without file sep, for inter-OS useage
 	public String getCurrLog_FileName() { return getDirNameAndBuild(subDirLocs.get("SOM_Logs"), true);}
-	
-	public String getSOMMapOutFileBase(String sffx) {	SOMOutExpSffx = sffx; return getSOMMapOutFileBase();}
-	private String getSOMMapOutFileBase() { 	return getSOMExec_FullPath()  + SOMFileNamesAra[0] + SOMOutExpSffx;}
-	public String getSOMMapLRNFileName(){	return getSOMExec_FullPath() + SOMFileNamesAra[1];	}
-	public String getSOMMapSVMFileName(){	return getSOMExec_FullPath() + SOMFileNamesAra[2];	}
-	public String getSOMMapTestFileName(){	return getSOMExec_FullPath() + SOMFileNamesAra[3];	}
-	public String getSOMMapMinsFileName(){	return getSOMExec_FullPath() + SOMFileNamesAra[4];	}
-	public String getSOMMapDiffsFileName(){	return getSOMExec_FullPath() + SOMFileNamesAra[5];	}	
-	
-	//return local directories lacking base directory structure - these are all relative to baseDir + subDirLocs.get("SOM_MapProc")
-	public String getSOMMap_lclLRNFileName(){	return SOMFileNamesAra[1];	}
-	public String getSOMMap_lclSVMFileName(){	return SOMFileNamesAra[2];	}
-	public String getSOMMap_lclTestFileName(){	return SOMFileNamesAra[3];	}
-	public String getSOMMap_lclMinsFileName(){	return SOMFileNamesAra[4];	}
-	public String getSOMMap_lclDiffsFileName(){	return SOMFileNamesAra[5];	}	
-	public String getSOMMap_lclOutFileBase(String sffx) {	SOMOutExpSffx = sffx; return getSOMMap_lclOutFileBase();}
-	private String getSOMMap_lclOutFileBase() { 			return SOMFileNamesAra[0] + SOMOutExpSffx;}
-	
-	
-	public String getSOMLocClrImgForJPFName(int jp) {return "jp_"+jp+"_"+SOMFileNamesAra[6];}	
-	//ref to file name for map configuration setup
-	public String getSOMMapConfigFileName() {return getSOMExec_FullPath() + SOMFileNamesAra[7];	}	
-	//ref to file name for data and project configuration relevant for current SOM execution
-	public String getProjConfigForSOMExeFileName() {return getSOMExec_FullPath() + SOMFileNamesAra[8];	}	
 	
 	//set training size partition -> fraction of entire data set that is training data
 	public void setTrainTestPartition(float _ratio) {trainTestPartition = _ratio;}
