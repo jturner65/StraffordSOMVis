@@ -76,8 +76,7 @@ public class StraffSOMRawDataLdrCnvrtr {
 		projConfigData = _projConfig;
 		th_exec = mapMgr.getTh_Exec();
 		//load all raw data file names based on exploring directory structure for all csv files
-		straffRawDataFileNames = projConfigData.buildRawFileNameMap(straffDataDirNames);	
-		
+		straffRawDataFileNames = projConfigData.buildRawFileNameMap(straffDataDirNames);			
 		try {
 			straffObjLoaders = new Class[straffClassLdrNames.length];//{Class.forName("SOM_Strafford_PKG.ProspectDataLoader"),  Class.forName("SOM_Strafford_PKG.OrderEventDataLoader"),Class.forName("SOM_Strafford_PKG.OptEventDataLoader"),Class.forName("SOM_Strafford_PKG.LinkEventDataLoader")};
 			for (int i=0;i<straffClassLdrNames.length;++i) {straffObjLoaders[i]=(Class<StraffordDataLoader>) Class.forName(_baseStraffDataLdrsLoc + straffClassLdrNames[i]);			}

@@ -13,7 +13,7 @@
 #                 
 # The first record of this file should be the default values record    
 #<jp id>, M_ord, O_ord, D_ord, M_opt, O_opt, D_opt, M_lnk, O_lnk, D_lnk, M_src, O_src, D_src
-default, 1.0, 0.0, 0.01, 1.0, 0.0, 0.01, 0.1, 0.0, 0.01, 0.1, 0.0, 0.0
+default, .0, 0.0, 0.01, 1.0, 0.0, 0.01, 0.1, 0.0, 0.01, 0.1, 0.0, 0.0
 #
 #--add additional, jp-specific, weightings below following the format given above for default, but using jp instead of 'default'
 # the expected format of these records is :  (add more sources such as link at the end) 

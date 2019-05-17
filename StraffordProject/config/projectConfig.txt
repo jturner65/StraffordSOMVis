@@ -19,6 +19,9 @@
 #calc with .01 decay all event dates and weight .01 opts and .01 source weights
 calcWtFileName,"WeightEqConfig_allDecay_p01_optWt_p01_srcWt_p01"
 #
+#calc with .01 decay all event dates; -0 wt on actual orders-
+#calcWtFileName,"WeightEqConfig_allDecay_p01_0wtOrdr"
+#
 #	file name of requested products to map to prospects
 reqProdConfigFileName,"ProductsToMap_Test.txt"
 #

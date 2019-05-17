@@ -109,9 +109,9 @@ public class Straff_SOMMapManager extends SOMMapManager {
 		rawDataLdr = new StraffSOMRawDataLdrCnvrtr(this, projConfigData);
 		
 	}//ctor	
-	//ctor from non-UI stub main
-	public Straff_SOMMapManager(float[] _dims, TreeMap<String, Object> _argsMap) {this(null,_dims, _argsMap);}	
 	
+	//ctor from non-UI stub main
+	public Straff_SOMMapManager(float[] _dims, TreeMap<String, Object> _argsMap) {this(null,_dims, _argsMap);}		
 	
 	/**
 	 * build instance-specific project file configuration 
@@ -476,6 +476,18 @@ public class Straff_SOMMapManager extends SOMMapManager {
 		getMsgObj().dispMessage("StraffSOMMapManager","rebuildCalcObj","Finished loading calc object, calculating all feature vectors for prospects and products, calculating mins and diffs, and saving all results.", MsgCodes.info5);
 	}//calcFtrsDiffsMinsAndSave()
 	
+	private void dispAllNumOrderCounts() {
+		getMsgObj().dispMessage("StraffSOMMapManager","buildPrspctFtrVecs->dispAllNumOrderCounts","# of customers with particular order count : ", MsgCodes.info1);
+		getMsgObj().dispMessage("StraffSOMMapManager","buildPrspctFtrVecs->dispAllNumOrderCounts","\t# of Unique JPs\t# of Customers with this many Unique Jps",MsgCodes.info1);
+		int ttlOrders = 0;
+		for(Integer numJPs : CustProspectExample.ttlOrderCount.keySet()) {
+			Integer[] orderDat = CustProspectExample.ttlOrderCount.get(numJPs);
+			getMsgObj().dispMessage("StraffSOMMapManager","buildPrspctFtrVecs->dispAllNumOrderCounts","\t"+numJPs+"\t\t"+orderDat[0]+"\t\t"+orderDat[1],MsgCodes.info1);
+			ttlOrders += orderDat[1];
+		}
+		getMsgObj().dispMessage("StraffSOMMapManager","buildPrspctFtrVecs->dispAllNumOrderCounts","\tTotal # of Orders across all customers : " + ttlOrders,MsgCodes.info1);
+	}//dispAllNumOrderCounts
+	
 	//build either customer or true prospect feature vectors
 	private void buildPrspctFtrVecs(Collection<SOMExample> exs, int type) {
 		ftrCalcObj.resetCalcObjs(type);
@@ -483,6 +495,7 @@ public class Straff_SOMMapManager extends SOMMapManager {
 		_ftrVecBuild(exs,0,exType);		
 		
 		if(type == StraffWeightCalc.custCalcObjIDX) {
+			dispAllNumOrderCounts();
 			getMsgObj().dispMessage("StraffSOMMapManager","buildPrspctFtrVecs : " + exType + " Examples","Begin Setting Non-Product Jp Eqs training ftr vectors from Customer examples.", MsgCodes.info1);
 			ftrCalcObj.initAllEqsForCustNonTrainCalc();	
 			//build per-non-prod jp ftr vector contribution
@@ -497,28 +510,6 @@ public class Straff_SOMMapManager extends SOMMapManager {
 		ftrCalcObj.finishFtrCalcs(type);	
 	}//buildFtrVecs
 	
-	//execute post-feature vector build code in multiple threads if supported
-	protected void _ftrVecBuild(Collection<SOMExample> exs, int _typeOfProc, String exType) {
-		getMsgObj().dispMessage("StraffSOMMapManager","_postFtrVecBuild : " + exType + " Examples","Begin "+exs.size()+" example processing.", MsgCodes.info1);
-		boolean canMultiThread=isMTCapable();//if false this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
-		if((canMultiThread) && (exs.size()>MapExFtrCalcs_Runner.rawNumPerPartition*2)){
-			//MapExFtrCalcs_Runner(SOMMapManager _mapMgr, ExecutorService _th_exec, SOMExample[] _exData, String _dataTypName, ExDataType _dataType, int _typeOfProc)
-			MapExFtrCalcs_Runner calcRunner = new MapExFtrCalcs_Runner(this, th_exec, exs.toArray(new SOMExample[0]), exType, _typeOfProc);
-			calcRunner.run();
-		} else {//called after all features of this kind of object are built - this calculates alternate compare object
-			if(_typeOfProc==0) {
-				getMsgObj().dispMessage("StraffSOMMapManager","_ftrVecBuild : " + exType + " Examples","Begin build "+exs.size()+" feature vector.", MsgCodes.info1);
-				for (SOMExample ex : exs) {			ex.buildFeatureVector();	}
-				getMsgObj().dispMessage("StraffSOMMapManager","_ftrVecBuild : " + exType + " Examples","Finished build "+exs.size()+" feature vector.", MsgCodes.info1);
-			} else {
-				getMsgObj().dispMessage("StraffSOMMapManager","_ftrVecBuild : " + exType + " Examples","Begin "+exs.size()+" Post Feature Vector Build.", MsgCodes.info1);
-				for (SOMExample ex : exs) {			ex.postFtrVecBuild();	}		
-				getMsgObj().dispMessage("StraffSOMMapManager","_ftrVecBuild : " + exType + " Examples","Finished "+exs.size()+" Post Feature Vector Build.", MsgCodes.info1);
-			}			
-		}
-		getMsgObj().dispMessage("StraffSOMMapManager","_postFtrVecBuild : " + exType + " Examples","Finished "+exs.size()+" example processing.", MsgCodes.info1);
-	}//_postFtrVecBuild
-
 	//finish building the prospect map - finalize each prospect example and then perform calculation to derive weight vector
 	private void finishSOMExampleBuild() {
 		if((prospectExamples.get(custExKey).size() != 0) || (productMap.size() != 0)) {
@@ -530,6 +521,7 @@ public class Straff_SOMMapManager extends SOMMapManager {
 			//reset calc analysis objects before building feature vectors to enable new analytic info to be aggregated - only build features on customers
 			//feature vector only corresponds to actual -customers- since this is what is used to build the map
 			Collection<SOMExample> exs = customerMap.values();
+			CustProspectExample.ttlOrderCount.clear();
 			//these calls to initAllEqsForCustNonTrainCalc and finalizeAllEqsCustForNonTrainCalc manage for each non-product 
 			//jp the exemplar ftr vector that most closely described their data - this will then be applied to each true prospect 
 			buildPrspctFtrVecs(exs, StraffWeightCalc.custCalcObjIDX);

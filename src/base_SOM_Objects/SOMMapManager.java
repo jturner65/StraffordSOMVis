@@ -247,6 +247,29 @@ public abstract class SOMMapManager {
 		}		
 	}//getDataFrmtTypeFromName
 
+	//execute post-feature vector build code in multiple threads if supported
+	protected void _ftrVecBuild(Collection<SOMExample> exs, int _typeOfProc, String exType) {
+		getMsgObj().dispMessage("SOMMapManager","_postFtrVecBuild : " + exType + " Examples","Begin "+exs.size()+" example processing.", MsgCodes.info1);
+		boolean canMultiThread=isMTCapable();//if false this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
+		if((canMultiThread) && (exs.size()>MapExFtrCalcs_Runner.rawNumPerPartition*2)){
+			//MapExFtrCalcs_Runner(SOMMapManager _mapMgr, ExecutorService _th_exec, SOMExample[] _exData, String _dataTypName, ExDataType _dataType, int _typeOfProc)
+			MapExFtrCalcs_Runner calcRunner = new MapExFtrCalcs_Runner(this, th_exec, exs.toArray(new SOMExample[0]), exType, _typeOfProc);
+			calcRunner.run();
+		} else {//called after all features of this kind of object are built - this calculates alternate compare object
+			if(_typeOfProc==0) {
+				getMsgObj().dispMessage("SOMMapManager","_ftrVecBuild : " + exType + " Examples","Begin build "+exs.size()+" feature vector.", MsgCodes.info1);
+				for (SOMExample ex : exs) {			ex.buildFeatureVector();	}
+				getMsgObj().dispMessage("SOMMapManager","_ftrVecBuild : " + exType + " Examples","Finished build "+exs.size()+" feature vector.", MsgCodes.info1);
+			} else {
+				getMsgObj().dispMessage("SOMMapManager","_ftrVecBuild : " + exType + " Examples","Begin "+exs.size()+" Post Feature Vector Build.", MsgCodes.info1);
+				for (SOMExample ex : exs) {			ex.postFtrVecBuild();	}		
+				getMsgObj().dispMessage("SOMMapManager","_ftrVecBuild : " + exType + " Examples","Finished "+exs.size()+" Post Feature Vector Build.", MsgCodes.info1);
+			}			
+		}
+		getMsgObj().dispMessage("SOMMapManager","_postFtrVecBuild : " + exType + " Examples","Finished "+exs.size()+" example processing.", MsgCodes.info1);
+	}//_postFtrVecBuild
+	
+	
 	//set input data and shuffle it; partition test and train arrays 
 	protected void setInputTestTrainDataArasShuffle(SOMExample[] _inData, float trainTestPartition, boolean isBuildingNewMap) {		
 		msgObj.dispMessage("SOMMapManager","setInputTestTrainDataArasShuffle","Shuffling Input, Building Training and Testing Partitions.", MsgCodes.info5);

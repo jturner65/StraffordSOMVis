@@ -81,13 +81,13 @@ public class SOM_Strafford_Main {
         	.dest("configDir")
         	.type(String.class)
         	.setDefault("StraffordProject" + File.separator+"config"+File.separator)
-        	.help("Specify the directory where project configuration files can be found.");
+        	.help("Specify the directory where project configuration files can be found (relative to current execution directory).");
 		
         parser.addArgument("-d","--datadir")
         	.dest("dataDir")
         	.type(String.class)
         	.setDefault("StraffordProject" + File.separator)
-        	.help("Specify the directory where all data files can be found (in their respective subdirectories).");
+        	.help("Specify the directory where all data files can be found (in their respective subdirectories)(relative to current execution directory).");
         
         parser.addArgument("-l","--log")
 	    	.dest("logLevel")

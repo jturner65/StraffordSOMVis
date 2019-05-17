@@ -1,7 +1,6 @@
 package strafford_SOM_PKG.straff_SOM_Examples;
 
-import java.util.Date;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.Map.Entry;
 
 import base_Utils_Objects.Tuple;
@@ -9,6 +8,7 @@ import strafford_SOM_PKG.straff_RawDataHandling.raw_data.BaseRawData;
 
 /**
  * this class is a simple struct to hold a single jp's jpg, and the count and date of all occurrences for a specific OID/prospect
+ * Objects of this class are intended to be referenced by type of event and then by JP
  */
 public class JP_OccurrenceData{
 	public static final String occRecStTag = "Occ_St,",occRecEndTag = "Occ_End,", 
@@ -104,6 +104,13 @@ public class JP_OccurrenceData{
 		//each string is per date occurence data
 	}//parseStringToOccVals
 	
+	//# of this type of event for this jp across all dates
+	public int getNumberOfOccurrences() {
+		int numOccs = 0;
+		for(TreeMap<Integer, Integer> valsAtDate : occurrences.values()) {for(Integer count : valsAtDate.values()) {		numOccs += count;}}		
+		return numOccs;
+	}
+	
 	//return a representation of this occurence struct as a comma sep string, to save to file
 	public String toCSVString() {
 		String res = occRecStTag + ""+jp+","+jpg+"," + (usesOpt ? "1,":"0,");
@@ -137,3 +144,5 @@ public class JP_OccurrenceData{
 		return res;
 	}		
 }//class jpOccurenceData
+
+

@@ -45,10 +45,6 @@ public class CustProspectExample extends ProspectExample{
 		//get # of events - need to accommodate source events
 		int[] numEvsAra = _getCSVNumEvsAra(dataAra);
 		//Build data here from csv string
-		//example of csv string
-		//pr_000000331,2016-11-21 16:15:51,0,1,7,OPT|,LNK|,Occ_St,364,4,0,DtOccSt,2012-04-25 15:59:14,1,3,2,DtOccEnd,DtOccSt,2016-02-13 07:49:31,1,3,1,DtOccEnd,Occ_End,SRC|,Occ_St,69,4,1,DtOccSt,2007-09-21 21:53:32,1,11,1,DtOccEnd,DtOccSt,2009-02-06 05:53:38,1,57,1,DtOccEnd,Occ_End,Occ_St,131,4,1,DtOccSt,2009-02-06 05:53:49,1,57,1,DtOccEnd,DtOccSt,2017-10-03 03:07:09,1,92,1,DtOccEnd,Occ_End,Occ_St,227,20,1,DtOccSt,2010-01-04 22:22:49,1,41,1,DtOccEnd,Occ_End,Occ_St,231,64,1,DtOccSt,2010-03-05 01:49:47,1,41,1,DtOccEnd,Occ_End,Occ_St,232,8,1,DtOccSt,2009-12-18 23:15:20,1,41,1,DtOccEnd,Occ_End,Occ_St,237,1,1,DtOccSt,2009-12-18 23:15:03,1,41,1,DtOccEnd,Occ_End,Occ_St,274,64,1,DtOccSt,2017-10-03 03:07:09,1,92,1,DtOccEnd,Occ_End,
-		//if(useJPOccToPreProc){		buildDataFromCSVString_jpOcc(numEvsAra, _csvDataStr,eventMapTypeKeys,CSVSentinelLbls);	buildJPListsAndSetBadExample();} 
-		//else {						buildDataFromCSVString_event(numEvsAra, _csvDataStr,eventMapTypeKeys,CSVSentinelLbls);		}
 		buildDataFromCSVString_jpOcc(numEvsAra, _csvDataStr,jpOccTypeKeys,CSVSentinelLbls);	
 		buildJPListsAndSetBadExample();
 	}//csv string ctor
@@ -150,11 +146,24 @@ public class CustProspectExample extends ProspectExample{
 		for (String key : trainingEventMapTypeKeys) {if (JpOccurrences.get(key).size() > 0) {return true;}	}
 		return res;
 	}//hasRelelventEvents	
-    //take loaded data and convert to feature data via calc object
+    //take loaded data and convert to feature data via calc object 
+	public static TreeMap<Integer,Integer[]> ttlOrderCount = new TreeMap<Integer,Integer[]>();
+	private void addOrderCountToTTLMap() {
+		TreeMap<Integer, JP_OccurrenceData> map = JpOccurrences.get("orders");
+		int numOrders = map.size();//# of different jps having orders
+		Integer[] orderDat = ttlOrderCount.get(numOrders);//array of values - first value is count of different jp occurrences, 2nd value is count of all orders for all jps
+		if(orderDat==null) {orderDat = new Integer[2];orderDat[0]=0;orderDat[1]=0;}
+		orderDat[0] +=1;								//this customer has this many different unique jp orders
+		int numOccsAllOrders = 0;						//this customer has this many unique order dates of all jps
+		for(JP_OccurrenceData occ  : map.values()) {			numOccsAllOrders += occ.getNumberOfOccurrences();		}
+		orderDat[1] += numOccsAllOrders;
+		ttlOrderCount.put(numOrders, orderDat);
+	}
 	@Override
 	protected void buildFeaturesMap() {
 		//access calc object		
-		if (allProdJPs.size() > 0) {			
+		if (allProdJPs.size() > 0) {
+			addOrderCountToTTLMap();
 			((Straff_SOMMapManager)mapMgr).ftrCalcObj.calcTrainFtrVec(this,allProdJPs, ftrMaps[ftrMapTypeKey],JpOccurrences.get("orders"), JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"));			
 		} else {ftrMaps[ftrMapTypeKey].clear();}
 		//now, if there's a non-null posOptAllEventObj then for all jps who haven't gotten an opt conribution to calculation, add positive opt-all result
