@@ -7,7 +7,7 @@ import base_SOM_Objects.*;
 import base_SOM_Objects.som_examples.*;
 import base_SOM_Objects.som_utils.*;
 import base_Utils_Objects.MsgCodes;
-import strafford_SOM_PKG.straff_SOM_Examples.ProductExample;
+import strafford_SOM_PKG.straff_SOM_Examples.products.ProductExample;
 
 //maps products to all map nodes, not just bmu
 public class MapProductDataToBMUs extends MapDataToBMUs{
@@ -26,23 +26,23 @@ public class MapProductDataToBMUs extends MapDataToBMUs{
 		if (useChiSqDist) {	
 			for (int i=stIdx;i<endIdx;++i) {
 				//perform excluded zero ftrs last so that this is what is set to be product's bmu
-				mapNodesByDist = exs[i].findBMUFromFtrNodes_ChiSq_Excl(MapNodesByFtr, curMapFtrType); 
-				if(mapNodesByDist == null) {msgObj.dispMessage("mapTestDataToBMUs", "Run Thread : " +thdIDX, "ERROR!!! Product " + exs[i].OID + " does not have any features that map to Map Nodes in SOM!", MsgCodes.error5);}
-				else {exs[i].setMapNodesStruct(ProductExample.SharedFtrsIDX, mapNodesByDist);}
-				mapNodesByDist = exs[i].findBMUFromFtrNodes_ChiSq(MapNodesByFtr, curMapFtrType); 
+				mapNodesByDist = exs[i].findBMUFromFtrNodes(MapNodesByFtr,exs[i]::getSqDistFromFtrType_ChiSq, curMapFtrType); 
 				if(mapNodesByDist == null) {msgObj.dispMessage("mapTestDataToBMUs", "Run Thread : " +thdIDX, "ERROR!!! Product " + exs[i].OID + " does not have any features that map to Map Nodes in SOM!", MsgCodes.error5);}
 				else {exs[i].setMapNodesStruct(ProductExample.AllFtrsIDX, mapNodesByDist); }
+				mapNodesByDist = exs[i].findBMUFromFtrNodes(MapNodesByFtr,exs[i]::getSqDistFromFtrType_ChiSq_Exclude, curMapFtrType); 
+				if(mapNodesByDist == null) {msgObj.dispMessage("mapTestDataToBMUs", "Run Thread : " +thdIDX, "ERROR!!! Product " + exs[i].OID + " does not have any features that map to Map Nodes in SOM!", MsgCodes.error5);}
+				else {exs[i].setMapNodesStruct(ProductExample.SharedFtrsIDX, mapNodesByDist);}
 				incrProgress(i);
 			}
 		} else {							
 			for (int i=stIdx;i<endIdx;++i) {
-				//perform excluded zero ftrs last so that this is what is set to be product's bmu
-				mapNodesByDist = exs[i].findBMUFromFtrNodes_Excl(MapNodesByFtr,  curMapFtrType); 
-				if(mapNodesByDist == null) {msgObj.dispMessage("mapTestDataToBMUs", "Run Thread : " +thdIDX, "ERROR!!! Product " + exs[i].OID + " does not have any features that map to Map Nodes in SOM!", MsgCodes.error5);}
-				else {exs[i].setMapNodesStruct(ProductExample.SharedFtrsIDX, mapNodesByDist);}
-				mapNodesByDist = exs[i].findBMUFromFtrNodes(MapNodesByFtr,  curMapFtrType); 
+				mapNodesByDist = exs[i].findBMUFromFtrNodes(MapNodesByFtr,exs[i]::getSqDistFromFtrType, curMapFtrType); 
 				if(mapNodesByDist == null) {msgObj.dispMessage("mapTestDataToBMUs", "Run Thread : " +thdIDX, "ERROR!!! Product " + exs[i].OID + " does not have any features that map to Map Nodes in SOM!", MsgCodes.error5);}
 				else {exs[i].setMapNodesStruct(ProductExample.AllFtrsIDX, mapNodesByDist);}
+				//perform excluded zero ftrs last so that this is what is set to be product's bmu
+				mapNodesByDist = exs[i].findBMUFromFtrNodes(MapNodesByFtr,exs[i]::getSqDistFromFtrType_Exclude, curMapFtrType); 
+				if(mapNodesByDist == null) {msgObj.dispMessage("mapTestDataToBMUs", "Run Thread : " +thdIDX, "ERROR!!! Product " + exs[i].OID + " does not have any features that map to Map Nodes in SOM!", MsgCodes.error5);}
+				else {exs[i].setMapNodesStruct(ProductExample.SharedFtrsIDX, mapNodesByDist);}
 				incrProgress(i);
 			}
 		}					

@@ -1,6 +1,7 @@
 package base_Utils_Objects;
 
 import java.io.File;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentSkipListMap;
 
@@ -28,15 +29,36 @@ public class MessageObject {
 	private static FileIOManager fileIO = null;
 	
 	private static ConcurrentSkipListMap<String, String> logMsgQueue = new ConcurrentSkipListMap<String, String>();	
+	private static boolean termCondSet = false;
 	
-	public MessageObject(my_procApplet _pa,long _mapMgrBuiltTime) {
+	private MessageObject(my_procApplet _pa,long _exeBuiltTime) {
 		pa=_pa; 
 		if(supportsANSITerm == null) {supportsANSITerm = (System.console() != null && System.getenv().get("TERM") != null);	}
-		if(timeMgr == null) {timeMgr = new myTimeMgr(_mapMgrBuiltTime);}		
+		if(timeMgr == null) {timeMgr = new myTimeMgr(_exeBuiltTime);}		
 	}	
-	public MessageObject(MessageObject _obj) {}//in case we ever use any instance-specific data for this - copy ctor	
+	private MessageObject() {}//in case we ever use any instance-specific data for this - copy ctor	
 	
-	//define how the messages from this messageObj should be handled, and pass a file name if a log is to be saved
+	//pa can also be set directly externally
+	public static MessageObject buildMe() { 
+		if(!termCondSet) {		return buildMe(null);	} 
+		else {					return new MessageObject();}	//returns another instance
+	}
+	
+	public static MessageObject buildMe(my_procApplet _pa) {
+		MessageObject obj;
+		//ignore _pa==null if pa is already set
+		if(pa==null) {	obj = new MessageObject(_pa,Instant.now().toEpochMilli());} 
+		else obj = new MessageObject(pa,Instant.now().toEpochMilli());
+		
+		if(!termCondSet) {
+			//this is to make sure we always save the log file - this will be executed on shutdown, similar to code in a destructor in c++
+			Runtime.getRuntime().addShutdownHook(new Thread() {public void run() {	if(obj==null) {return;}obj.dispInfoMessage("MessageObject", "Shutdown Hook", "Running msgObj finish log code");	obj.FinishLog();}});
+			termCondSet=true;
+		}
+		return obj;
+	}//buildMe
+	
+	//define how the messages from this and all other messageObj should be handled, and pass a file name if a log is to be saved
 	public void setOutputMethod(String _fileName, int _logLevel) {
 		fileName = _fileName;
 		if((fileName == null) || (fileName.length() < 3) || (_logLevel==0)) {outputMethod = 0;}

@@ -60,8 +60,8 @@ public class SOMDataLoader implements Runnable {
 		//must load jp's and jpg's that were used for this map
 		//load map weights for all map nodes
 		boolean success = loadSOMWts();	
-		//set u-matrix fo all map nodes
-		success = loadSOM_nodeDists();
+		//set u-matrix for all map nodes
+		success = loadSOM_UMatrixDists();
 		//load mins and diffs of data used to train map
 		success = mapMgr.loadDiffsMins();		
 		//load SOM's best matching units for training data - must be after map wts and training data has been loaded
@@ -142,7 +142,46 @@ public class SOMDataLoader implements Runnable {
 		for(int d=1;d<ftrData.length;++d) {res += ", " + String.format("%.4f", ftrData[d]);		}
 		res +="\n";
 		msgObj.dispMessage("SOMDataLoader","dbgDispFtrAra",res, MsgCodes.warning1);
-	}//dbgDispFtrAra
+	}//dbgDispFtrAra	
+	
+	//load the u-matrix data used to build the node distance visualization
+	private boolean loadSOM_UMatrixDists() {
+		String uMtxBMUFname =  projConfigData.getSOMResFName(projConfigData.umtxIDX);
+		msgObj.dispMessage("SOMDataLoader","loadSOM_UMatrixDists","Start Loading U-Matrix File : "+uMtxBMUFname, MsgCodes.info5);
+		if(uMtxBMUFname.length() < 1){return false;}
+		String [] strs= fileIO.loadFileIntoStringAra(uMtxBMUFname, "Loaded U Matrix data file : "+uMtxBMUFname, "Error reading U Matrix data file : "+uMtxBMUFname);
+		if(strs==null){return false;}
+		int numEx = 0, mapX=1, mapY=1,numWtData = 0;
+		String[] tkns;
+		Tuple<Integer, Integer> mapLoc;
+		SOMMapNode dpt;
+		int row;
+		for (int i=0;i<strs.length;++i){//load in data 
+			if(i < 1){//line 0 is map row/col count
+				tkns = strs[i].replace('%', ' ').trim().split(mapMgr.SOM_FileToken);
+				//set map size in nodes
+				mapY = Integer.parseInt(tkns[0]);
+				mapX = Integer.parseInt(tkns[1]);	
+				//TODO compare values here to set values
+				continue;
+			}//if first 2 lines in wts file
+			tkns = strs[i].trim().split(mapMgr.SOM_FileToken);
+			//System.out.println("String : ---"+strs[i]+"---- has length : "+ tkns.length);
+			if(tkns.length < 2){continue;}
+			row = i-1;
+			for (int col=0;col<tkns.length;++col) {
+				mapLoc = new Tuple<Integer, Integer>(col, row);//map locations in som data are increasing in x first, then y (row major)
+				dpt = mapMgr.getMapNodeLoc(mapLoc);//mapMgr.MapNodes.get(mapLoc);//give each map node its features
+				dpt.setUMatDist(Float.parseFloat(tkns[col].trim()));
+			}	
+		}//
+		//update each map node's neighborhood member's UMatrix weight values
+		mapMgr.buildAllMapNodeNeighborhood_Dists();//for(SOMMapNode ex : mapMgr.MapNodes.values()) {	ex.buildNeighborWtVals();	}
+		//calculate segments of nodes
+		mapMgr.buildSegmentsOnMap();
+		msgObj.dispMessage("SOMDataLoader","loadSOM_UMatrixDists","Finished loading and processing U-Matrix File : "+uMtxBMUFname, MsgCodes.info5);		
+		return true;
+	}//loadSOM_UMatrixDists
 	
 	//verify the best matching units file is as we expect it to be
 	private boolean checkBMUHeader(String[] hdrStrAra, String bmFileName) {
@@ -177,19 +216,30 @@ public class SOMDataLoader implements Runnable {
 		}
 		int mapNodeX, mapNodeY, dpIdx;
 		SOMExample[] _trainData = mapMgr.getTrainingData();
+		//this should always be training data
 		int typeOfData = _trainData[0].getTypeVal();
 		for (int i=2;i<strs.length;++i){//load in data on all bmu's
 			tkns = strs[i].split(mapMgr.SOM_FileToken);
 			if(tkns.length < 2){continue;}//shouldn't happen	
 			mapNodeX = Integer.parseInt(tkns[2]);
 			mapNodeY = Integer.parseInt(tkns[1]);
-			dpIdx = Integer.parseInt(tkns[0]);	//datapoint index in training data		
-			Tuple<Integer,Integer> mapLoc = new Tuple<Integer, Integer>(mapNodeX,mapNodeY);//map locations in bmu data are in (y,x) order (row major)
-			SOMMapNode tmpMapNode = mapMgr.getMapNodeLoc(mapLoc);//mapMgr.MapNodes.get(mapLoc);
+			dpIdx = Integer.parseInt(tkns[0]);	//datapoint index in training data	
+			
+			//map locations in bmu data are in (y,x) order (row major)
+			Tuple<Integer,Integer> mapLoc = new Tuple<Integer, Integer>(mapNodeX,mapNodeY);
+			SOMMapNode tmpMapNode = mapMgr.getMapNodeLoc(mapLoc);
+				//should never happen, if map was built with specified configuration - this would mean trying to load data from different maps
 			if(null==tmpMapNode){ msgObj.dispMessage("SOMDataLoader","loadSOM_BMUs","!!!!!!!!!Map node stated as best matching unit for training example " + tkns[0] + " not found in map ... somehow. ", MsgCodes.error2); return false;}//catastrophic error shouldn't be possible
+			
+			//get data point at dpIdx - this is node for which tmpMapNode is BMU
 			SOMExample tmpDataPt = _trainData[dpIdx];
+				//should never happen, if map was built with this data 
 			if(null==tmpDataPt){ msgObj.dispMessage("SOMDataLoader","loadSOM_BMUs","!!Training Datapoint given by idx in BMU file str tok : " + tkns[0] + " of string : --" + strs[i] + "-- not found in training data. ", MsgCodes.error2); return false;}//catastrophic error shouldn't happen
-			//partition bmu and its subsequent child examples to a different list depending on location of bmu
+			
+			//this is for spot verification - check if 0 0 bmus match what is expected, and look like each other
+			//if((mapNodeX==0) &&(mapNodeY==0)) {				msgObj.dispMessage("SOMDataLoader","loadSOM_BMUs","------------- > Map Node 0 0 is BMU for data point IDX : " + dpIdx + " : "+ tmpDataPt.toSVMString(ftrTypeUsedToTrain), MsgCodes.info3);}
+			
+			//for multi-threading : partition bmu and its subsequent child examples to a different list depending on location of bmu
 			bmuListIDX = ((mapNodeX * numMapCols) + mapNodeY) % numThds;
 			ArrayList<SOMExample> bmuExs = bmusToExs[bmuListIDX].get(tmpMapNode);
 			if(bmuExs == null) {bmuExs = new ArrayList<SOMExample>(); bmusToExs[bmuListIDX].put(tmpMapNode, bmuExs);}
@@ -216,14 +266,14 @@ public class SOMDataLoader implements Runnable {
 				for (HashMap<SOMMapNode, ArrayList<SOMExample>> bmuToExsMap : bmusToExs) {
 					for (SOMMapNode tmpMapNode : bmuToExsMap.keySet()) {
 						ArrayList<SOMExample> exs = bmuToExsMap.get(tmpMapNode);
-						for(SOMExample ex : exs) {ex.setTrainingExBMU_ChiSq(tmpMapNode, ftrTypeUsedToTrain);tmpMapNode.addExToBMUs(ex,typeOfData);	}
+						for(SOMExample ex : exs) {ex.setTrainingExBMU_ChiSq(tmpMapNode, ftrTypeUsedToTrain);tmpMapNode.addTrainingExToBMUs(ex,typeOfData);	}
 					}
 				}				
 			} else {
 				for (HashMap<SOMMapNode, ArrayList<SOMExample>> bmuToExsMap : bmusToExs) {
 					for (SOMMapNode tmpMapNode : bmuToExsMap.keySet()) {
 						ArrayList<SOMExample> exs = bmuToExsMap.get(tmpMapNode);
-						for(SOMExample ex : exs) {ex.setTrainingExBMU(tmpMapNode, ftrTypeUsedToTrain);tmpMapNode.addExToBMUs(ex,typeOfData);	}
+						for(SOMExample ex : exs) {ex.setTrainingExBMU(tmpMapNode, ftrTypeUsedToTrain);tmpMapNode.addTrainingExToBMUs(ex,typeOfData);	}
 					}
 				}				
 			}
@@ -241,95 +291,86 @@ public class SOMDataLoader implements Runnable {
 		return true;
 	}//loadSOM_BMs
 	
+//	//any map nodes that do not have best matching features may still have other examples that map to them.  These nodes must be managed 
+	//so give these unmapped nodes the same "tags" (bmus, or classes) that the closest map node to them has
 	public void addMappedNodesToEmptyNodes(ExDataType _type) {
-		msgObj.dispMessage("SOMMapManager","addMappedNodesToEmptyNodes","Start assigning map nodes that are not BMUs to any examples to have nearest map node to them as BMU.", MsgCodes.info5);		
+		msgObj.dispMessage("SOMMapManager","addMappedNodesToEmptyNodes","Start assigning map nodes that are not BMUs to any training examples to have nearest map node to them as BMU.", MsgCodes.info5);		
 		boolean isTorroid = mapMgr.isToroidal();
-		float dist,minDist;
-	
+		float sqDist,minSqDist;
+		int typeVal = _type.getVal();
 		HashSet<SOMMapNode> withMap = mapMgr.getNodesWithExOfType(_type),withOutMap = mapMgr.getNodesWithNoExOfType(_type);	
 		//set all empty mapnodes to have a label based on the closest mapped node's label
 		if (isTorroid) {//minimize in-loop if checks
-			for(SOMMapNode node : withOutMap){//node has no label mappings, so need to determine label
-				minDist = 1000000;
-				SOMMapNode closestMapNode  = node;					//will never be added
-				for(SOMMapNode node2 : withMap){		//this is adding a -map- node
-					dist = getSqMapDist_torr(node2, node);			//actual map topology dist - need to handle wrapping!
-					if (dist < minDist) {minDist = dist;		closestMapNode = node2;}
+			for(SOMMapNode emptyNode : withOutMap){//node has no label mappings, so need to determine label
+				minSqDist = 1000000;
+				SOMMapNode closestMapNode  = emptyNode;					//will never be added
+				for(SOMMapNode node2 : withMap){					//this is adding a -map- node
+					sqDist = getSqMapDist_torr(node2, emptyNode);			//actual map topology dist - need to handle wrapping!
+					if (sqDist < minSqDist) {minSqDist = sqDist;		closestMapNode = node2;}
 				}	
-				node.addExToBMUs(minDist, closestMapNode);			//adds single closest -map- node we know has a label, or itself if none found
+				emptyNode.addMapNodeExToBMUs(minSqDist, closestMapNode, typeVal);			//adds single closest -map- node we know has a label, or itself if none found
 			}
 		} else {
-			for(SOMMapNode node : withOutMap){//node has no label mappings, so need to determine label
-				minDist = 1000000;
-				SOMMapNode closestMapNode  = node;					//will never be added
-				for(SOMMapNode node2 : withMap){		//this is adding a -map- node
-					dist = getSqMapDist_flat(node2, node);			//actual map topology dist - need to handle wrapping!
-					if (dist < minDist) {minDist = dist;		closestMapNode = node2;}
+			for(SOMMapNode emptyNode : withOutMap){//node has no label mappings, so need to determine label
+				minSqDist = 1000000;
+				SOMMapNode closestMapNode  = emptyNode;					//will never be added
+				for(SOMMapNode node2 : withMap){					//this is adding a -map- node
+					sqDist = getSqMapDist_flat(node2, emptyNode);			//actual map topology dist - need to handle wrapping!
+					if (sqDist < minSqDist) {minSqDist = sqDist;		closestMapNode = node2;}
 				}	
-				node.addExToBMUs(minDist, closestMapNode);			//adds single closest -map- node we know has a label, or itself if none found
+				emptyNode.addMapNodeExToBMUs(minSqDist, closestMapNode,typeVal);			//adds single closest -map- node we know has a label, or itself if none found
 			}			
 		}		
 		msgObj.dispMessage("SOMMapManager","addMappedNodesToEmptyNodes","Finished assigning map nodes that are not BMUs to any examples to have nearest map node to them as BMU.", MsgCodes.info5);		
 	}//addMappedNodesToEmptyNodes
 	
-	
-	//load the u-matrix data used to build the node distance visualization
-	private boolean loadSOM_nodeDists() {
-		String uMtxBMUFname =  projConfigData.getSOMResFName(projConfigData.umtxIDX);
-		msgObj.dispMessage("SOMDataLoader","loadSOM_nodeDists","Start Loading U-Matrix File : "+uMtxBMUFname, MsgCodes.info5);
-		if(uMtxBMUFname.length() < 1){return false;}
-		String [] strs= fileIO.loadFileIntoStringAra(uMtxBMUFname, "Loaded U Matrix data file : "+uMtxBMUFname, "Error reading U Matrix data file : "+uMtxBMUFname);
-		if(strs==null){return false;}
-		int numEx = 0, mapX=1, mapY=1,numWtData = 0;
-		String[] tkns;
-		Tuple<Integer, Integer> mapLoc;
-		SOMMapNode dpt;
-		int row;
-		for (int i=0;i<strs.length;++i){//load in data 
-			if(i < 1){//line 0 is map row/col count
-				tkns = strs[i].replace('%', ' ').trim().split(mapMgr.SOM_FileToken);
-				//set map size in nodes
-				mapY = Integer.parseInt(tkns[0]);
-				mapX = Integer.parseInt(tkns[1]);	
-				//TODO compare values here to set values
-				continue;
-			}//if first 2 lines in wts file
-			tkns = strs[i].trim().split(mapMgr.SOM_FileToken);
-			//System.out.println("String : ---"+strs[i]+"---- has length : "+ tkns.length);
-			if(tkns.length < 2){continue;}
-			row = i-1;
-			for (int col=0;col<tkns.length;++col) {
-				mapLoc = new Tuple<Integer, Integer>(col, row);//map locations in som data are increasing in x first, then y (row major)
-				dpt = mapMgr.getMapNodeLoc(mapLoc);//mapMgr.MapNodes.get(mapLoc);//give each map node its features
-				dpt.setUMatDist(Float.parseFloat(tkns[col].trim()));
-			}	
-		}//
-		//update each map node's neighborhood member's weight values
-		mapMgr.buildAllMapNodeNeighborhoods();//for(SOMMapNode ex : mapMgr.MapNodes.values()) {	ex.buildNeighborWtVals();	}
-		//calculate segments of nodes
-		mapMgr.buildSegmentsOnMap();
-		msgObj.dispMessage("SOMDataLoader","loadSOM_nodeDists","Finished loading and processing U-Matrix File : "+uMtxBMUFname, MsgCodes.info5);		
-		return true;
-	}//loadSOM_nodeDists
+//	//any map nodes that do not have best matching features may still have other examples that map to them.  These nodes must be managed 
+//	//so give these unmapped nodes the same "tags" (bmus, or classes) that the closest map node to them has
+//	//this used map topology, but this structure is wrong since there will always be 4 closest nodes - can just as easily just find 4 closest nodes by node map address
+//	//and this also doesn't account for nodes that are surrounded by empty nodes
+//	public void addMappedNodesToEmptyNodes_old(ExDataType _type) {
+//		msgObj.dispMessage("SOMMapManager","addMappedNodesToEmptyNodes","Start assigning map nodes that are not BMUs to any training examples to have nearest map node to them as BMU.", MsgCodes.info5);		
+//		boolean isTorroid = mapMgr.isToroidal();
+//		float sqDist,minSqDist;
+//		int typeVal = _type.getVal();
+//		HashSet<SOMMapNode> withMap = mapMgr.getNodesWithExOfType(_type),withOutMap = mapMgr.getNodesWithNoExOfType(_type);	
+//		//set all empty mapnodes to have a label based on the closest mapped node's label
+//		if (isTorroid) {//minimize in-loop if checks
+//			for(SOMMapNode emptyNode : withOutMap){//node has no label mappings, so need to determine label
+//				minSqDist = 1000000;
+//				SOMMapNode closestMapNode  = emptyNode;					//will never be added
+//				for(SOMMapNode node2 : withMap){					//this is adding a -map- node
+//					sqDist = getSqMapDist_torr(node2, emptyNode);			//actual map topology dist - need to handle wrapping!
+//					if (sqDist < minSqDist) {minSqDist = sqDist;		closestMapNode = node2;}
+//				}	
+//				emptyNode.addMapNodeExToBMUs(minSqDist, closestMapNode, typeVal);			//adds single closest -map- node we know has a label, or itself if none found
+//			}
+//		} else {
+//			for(SOMMapNode emptyNode : withOutMap){//node has no label mappings, so need to determine label
+//				minSqDist = 1000000;
+//				SOMMapNode closestMapNode  = emptyNode;					//will never be added
+//				for(SOMMapNode node2 : withMap){					//this is adding a -map- node
+//					sqDist = getSqMapDist_flat(node2, emptyNode);			//actual map topology dist - need to handle wrapping!
+//					if (sqDist < minSqDist) {minSqDist = sqDist;		closestMapNode = node2;}
+//				}	
+//				emptyNode.addMapNodeExToBMUs(minSqDist, closestMapNode,typeVal);			//adds single closest -map- node we know has a label, or itself if none found
+//			}			
+//		}		
+//		msgObj.dispMessage("SOMMapManager","addMappedNodesToEmptyNodes","Finished assigning map nodes that are not BMUs to any examples to have nearest map node to them as BMU.", MsgCodes.info5);		
+//	}//addMappedNodesToEmptyNodes
+
+
 	
 	//returns sq distance between two map locations - needs to handle wrapping if map built torroidally
 	public float getSqMapDist_flat(SOMMapNode a, SOMMapNode b){		return (a.mapLoc._SqrDist(b.mapLoc));	}//	
 	//returns sq distance between two map locations - needs to handle wrapping if map built torroidally
 	public float getSqMapDist_torr(SOMMapNode a, SOMMapNode b){
 		float 
-			oldXa = a.mapLoc.x - b.mapLoc.x, oldXaSq = oldXa*oldXa,
-			newXa = oldXa + mapMgr.getMapWidth(), newXaSq = newXa*newXa,
-			oldYa = a.mapLoc.y - b.mapLoc.y, oldYaSq = oldYa*oldYa,
-			newYa = oldYa + mapMgr.getMapHeight(), newYaSq = newYa*newYa;
+			oldXa = a.mapLoc.x - b.mapLoc.x, oldXaSq = oldXa*oldXa,			//a is to right of b
+			newXa = oldXa + mapMgr.getMapWidth(), newXaSq = newXa*newXa,	//a is to left of b
+			oldYa = a.mapLoc.y - b.mapLoc.y, oldYaSq = oldYa*oldYa,			//a is below b
+			newYa = oldYa + mapMgr.getMapHeight(), newYaSq = newYa*newYa;	//a is above b
 		return (oldXaSq < newXaSq ? oldXaSq : newXaSq ) + (oldYaSq < newYaSq ? oldYaSq : newYaSq);
 	}//
-	
-	
 }//dataLoader
-
-
-
-
-
-
 

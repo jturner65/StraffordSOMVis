@@ -10,7 +10,8 @@ import base_Utils_Objects.MsgCodes;
 import base_Utils_Objects.MessageObject;
 
  
-//load best matching units for each provided example - 
+//load best matching units for each provided training example - 
+//this is only called when loading bmus with training data
 public class SOMExBMULoader implements Callable<Boolean>{
 	//object that manages message displays on screen
 	private MessageObject msgObj;
@@ -18,7 +19,7 @@ public class SOMExBMULoader implements Callable<Boolean>{
 	int thdIDX;
 	boolean useChiSqDist;
 	int ftrTypeUsedToTrain;
-	int typeOfEx;
+	int typeOfEx;	//should always be training
 	HashMap<SOMMapNode, ArrayList<SOMExample>> bmusToExmpl;
 	public SOMExBMULoader(MessageObject _msgObj, int _ftrTypeUsedToTrain, boolean _useChiSqDist, int _typeOfEx, HashMap<SOMMapNode, ArrayList<SOMExample>> _bmusToExmpl, int _thdIDX) {
 		msgObj = _msgObj;
@@ -40,12 +41,12 @@ public class SOMExBMULoader implements Callable<Boolean>{
 		if (useChiSqDist) {		
 			for (SOMMapNode tmpMapNode : bmusToExmpl.keySet()) {
 				ArrayList<SOMExample> exs = bmusToExmpl.get(tmpMapNode);
-				for(SOMExample ex : exs) {ex.setTrainingExBMU_ChiSq(tmpMapNode, ftrTypeUsedToTrain);tmpMapNode.addExToBMUs(ex,typeOfEx);	}
+				for(SOMExample ex : exs) {ex.setTrainingExBMU_ChiSq(tmpMapNode, ftrTypeUsedToTrain);tmpMapNode.addTrainingExToBMUs(ex,typeOfEx);	}
 			}		
 		} else {		
 			for (SOMMapNode tmpMapNode : bmusToExmpl.keySet()) {
 				ArrayList<SOMExample> exs = bmusToExmpl.get(tmpMapNode);
-				for(SOMExample ex : exs) {ex.setTrainingExBMU(tmpMapNode, ftrTypeUsedToTrain); tmpMapNode.addExToBMUs(ex,typeOfEx);	}
+				for(SOMExample ex : exs) {ex.setTrainingExBMU(tmpMapNode, ftrTypeUsedToTrain); tmpMapNode.addTrainingExToBMUs(ex,typeOfEx);	}
 			}
 		}	
 		return true;

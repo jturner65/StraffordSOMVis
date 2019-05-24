@@ -8,7 +8,7 @@ import java.util.concurrent.Future;
 import base_SOM_Objects.som_examples.*;
 import base_SOM_Objects.som_utils.SOMProjConfigData;
 import base_Utils_Objects.*;
-import strafford_SOM_PKG.straff_SOM_Examples.ProductExample;
+import strafford_SOM_PKG.straff_SOM_Examples.products.ProductExample;
 
 
 /**
@@ -62,9 +62,9 @@ public class StraffProdMapOutputBuilder {
 			}
 		}//for each line in config file	
 		//verify prod ids are found in loaded productMap
-		ArrayList<ProductExample> prodsToMapLst = new ArrayList<ProductExample>();
+		ArrayList<SOMExample> prodsToMapLst = new ArrayList<SOMExample>();
 		for (String pId : prodIDsToMapInit) {
-			ProductExample ex = mapMgr.getProductByID(pId);
+			SOMExample ex = mapMgr.getProductByID(pId);
 			if(ex == null) {msgObj.dispMessage("StraffProdMapper", "loadConfigAndSetVars", "Error! Product ID : " + pId + " is not present in currently loaded product listings.  Ignoring this product.", MsgCodes.warning2);}
 			else {				prodsToMapLst.add(ex);			}
 		}				

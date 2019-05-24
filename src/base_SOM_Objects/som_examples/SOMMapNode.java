@@ -23,8 +23,13 @@ public abstract class SOMMapNode extends SOMExample{
 	protected float[] dispBoxDims;		//box upper left corner x,y and box width,height
 	protected int[] uMatClr, segClr;
 	protected int segClrAsInt;
-	public Tuple<Integer,Integer>[][] neighborMapCoords;				//array of arrays of row x col of neighbors to this node.  This node is 1,1 - this is for square map to use bicubic interpolation
+	//array of arrays of row x col of neighbors to this node.  This node is 1,1 - this is for square map to use bicubic interpolation
+	//uses 1 higher because display is offset by 1/2 node in positive x, positive y (center of node square)
+	public Tuple<Integer,Integer>[][] neighborMapCoords;				
+	//similarity to neighbors as given by UMatrix calculation from SOM Exe
 	public float[][] neighborUMatWts;
+	//actual L2 distance to each neighbor comparing features - idx 1,1 should be 0
+	public double[][] neighborSqDistVals;
 	
 	private Integer[] nonZeroIDXs;
 	//owning segment for this map node
@@ -34,8 +39,7 @@ public abstract class SOMMapNode extends SOMExample{
 	public SOMMapNode(SOMMapManager _map, Tuple<Integer,Integer> _mapNode, float[] _ftrs) {
 		super(_map, ExDataType.MapNode,"Node_"+_mapNode.x+"_"+_mapNode.y);
 		if(_ftrs.length != 0){	setFtrsFromFloatAra(_ftrs);	}
-		initMapNode( _mapNode);
-		
+		initMapNode( _mapNode);		
 	}
 	
 	//build a map node from a string array of features
@@ -83,9 +87,7 @@ public abstract class SOMMapNode extends SOMExample{
 		mapNodeLoc.set(mapLoc);
 		uMatClr = new int[3];
 		BMUExampleNodes = new SOMMapNodeBMUExamples[ExDataType.getNumVals()];
-		for(int i=0;i<BMUExampleNodes.length;++i) {
-			BMUExampleNodes[i] = new SOMMapNodeBMUExamples(this);
-		}
+		for(int i=0;i<BMUExampleNodes.length;++i) {	BMUExampleNodes[i] = new SOMMapNodeBMUExamples(this);	}
 		clearSeg();
 	}//initMapNode
 	
@@ -110,16 +112,17 @@ public abstract class SOMMapNode extends SOMExample{
 	}//	addToSeg
 	
 	//called by neighbor map node to see if this node should be added to segment
-	public boolean shouldAddToSegment(float _thresh) {return (seg==null) && (uMatDist < _thresh);}	
+	public boolean shouldAddToSegment(float _thresh) {return (seg==null) && (uMatDist < _thresh);}	//TODO this needs to be modified - segments need to be based purely on inter-node distance
 	public SOMMapSegment getSegment() {return seg;}
 	public int getSegClrAsInt() {return segClrAsInt;}
 	
-	public void setUMatDist(float _d) {uMatDist = _d; int clr=(int) (255*uMatDist); uMatClr = new int[] {clr,clr,clr};}
+	//UMatrix distance as calculated by SOM Executable
+	public void setUMatDist(float _d) {uMatDist = (_d < 0 ? 0.0f : _d > 1.0f ? 1.0f : _d); int clr=(int) (255*uMatDist); uMatClr = new int[] {clr,clr,clr};}
 	public float getUMatDist() {return uMatDist;}	
 
 	//initialize 4-neighbor node neighborhood - grid of adjacent 4x4 nodes
 	//this is for individual visualization calculations - 
-	//1 node lesser and 2 nodes greater than this node, with location in question being >= this node's location
+	//1 node lesser and 2 nodes greater than this node, with location in question being > this node's location
 	private void initNeighborMap() {
 		int xLoc,yLoc;
 		neighborMapCoords = new Tuple[4][];
@@ -133,14 +136,26 @@ public abstract class SOMMapNode extends SOMExample{
 		}		
 	}//initNeighborMap()
 	
-	//2d array of all weights for neighors of this node, for bi-cubic interp
-	public void buildNeighborWtVals() {
-		neighborUMatWts = new float[neighborMapCoords.length][];	
+	//build a structure to hold the SQ L2 distance between this map node and its neighbor map nodes
+	public void buildMapNodeNeighborSqDistVals() {//only build immediate neighborhood
+		neighborSqDistVals = new double[3][];
+		TreeMap<Tuple<Integer,Integer>, SOMMapNode> mapNodes = mapMgr.getMapNodes();
+		for(int row=0;row<neighborSqDistVals.length;++row) {			
+			neighborSqDistVals[row]=new double[3];
+			for(int col=0;col<neighborSqDistVals[row].length;++col) {
+				neighborSqDistVals[row][col] = getSqDistFromFtrType(mapNodes.get(neighborMapCoords[row][col]).ftrMaps[ftrMapTypeKey],ftrMaps[ftrMapTypeKey]);
+			}
+		}		
+	}//buildMapNodeNeighborSqDistVals
+	
+	//2d array of all umatrix weights and L2 Distances for neighors of this node, for bi-cubic interp
+	public void buildMapNodeNeighborUMatrixVals() {
+		neighborUMatWts = new float[neighborMapCoords.length][];				
 		TreeMap<Tuple<Integer,Integer>, SOMMapNode> mapNodes = mapMgr.getMapNodes();
 		for(int row=0;row<neighborUMatWts.length;++row) {
-			neighborUMatWts[row]=new float[neighborMapCoords[row].length];
+			neighborUMatWts[row]=new float[neighborMapCoords[row].length];			
 			for(int col=0;col<neighborUMatWts[row].length;++col) {
-				neighborUMatWts[row][col] = mapNodes.get(neighborMapCoords[row][col]).getUMatDist();
+				neighborUMatWts[row][col] = mapNodes.get(neighborMapCoords[row][col]).getUMatDist();				
 			}
 		}
 	}//buildNeighborWtVals
@@ -152,21 +167,20 @@ public abstract class SOMMapNode extends SOMExample{
 	 *  example, an example has ftrs that do not appear on the map
 	 * @param _ignored : ignored
 	 */
-	public final void buildCompFtrVector(float _ignored) {
-		compFtrMaps = ftrMaps;
-	}
+	public final void buildCompFtrVector(float _ignored) {		compFtrMaps = ftrMaps;	}
 	
 	//////////////////////////////////
 	// interpolation for UMatrix dists
 	//cubic formula in 1 dim
 	private float findCubicVal(float[] p, float t) { 	return p[1]+0.5f*t*(p[2]-p[0] + t*(2.0f*p[0]-5.0f*p[1]+4.0f*p[2]-p[3] + t*(3.0f*(p[1]-p[2])+p[3]-p[0]))); }
-	//return bicubic interpolation of each neighbor's UMatWt
-	public float biCubicInterp(float tx, float ty) {
+	//return bicubic interpolation of each neighbor's UMatWt 
+	public float biCubicInterp_UMatrix(float tx, float ty) {
 		float [] aAra = new float[neighborUMatWts.length];
 		for (int row=0;row<neighborUMatWts.length;++row) {aAra[row]=findCubicVal(neighborUMatWts[row], tx);}
 		float val = findCubicVal(aAra, ty);
-		return ((val <= 0.0f) ? 0.0f : (val > 1.0f) ? 1.0f : val);
-	}//biCubicInterp
+		return ((val <= 0.0f) ? 0.0f : (val >= 1.0f) ? 1.0f : val);
+	}//biCubicInterp_UMatrix
+	
 	//map nodes are never going to be training examples
 	@Override
 	protected void setIsTrainingDataIDX_Priv() {mapMgr.getMsgObj().dispMessage("SOMMapNode","setIsTrainingDataIDX_Priv","Calling inappropriate setIsTrainingDataIDX_Priv for SOMMapNode - should never have training index set.", MsgCodes.warning2);	}
@@ -194,22 +208,34 @@ public abstract class SOMMapNode extends SOMExample{
 
 	public void clearBMUExs(int _typeIDX) {		BMUExampleNodes[_typeIDX].init();	}//addToBMUs
 	
-//	//add passed example to appropriate bmu construct depending on what type of example is passed (training, testing, product)
-//	public void addExToBMUs(SOMExample ex) {
-//		int _typeIDX = ex.type.getVal();
-//		BMUExampleNodes[_typeIDX].addExample(ex.get_sqDistToBMU(),ex);
-//	}//addToBMUs 
+	//add passed example to appropriate bmu construct depending on what type of example is passed (training, testing, product)
+	public void addTrainingExToBMUs(SOMExample ex, int _typeIDX) {
+		double sqDist = ex.get_sqDistToBMU();
+		BMUExampleNodes[_typeIDX].addExample(sqDist,ex);
+		//add relelvant tags/classes, if any, for training examples
+		addTrainingExToBMUs_Priv(sqDist,ex);
+	}//addToBMUs 
 	
 	//add passed example to appropriate bmu construct depending on what type of example is passed (training, testing, product)
 	public void addExToBMUs(SOMExample ex, int _typeIDX) {
-		BMUExampleNodes[_typeIDX].addExample(ex.get_sqDistToBMU(),ex);
+		double sqDist = ex.get_sqDistToBMU();
+		BMUExampleNodes[_typeIDX].addExample(sqDist,ex);
 	}//addToBMUs 
 	
-	//add passed example to appropriate bmu construct depending on what type of example is passed (training, testing, product)
-	public void addExToBMUs(double dist, SOMExample ex) {
-		int _typeIDX = ex.type.getVal();
+	//add passed map node example to appropriate bmu construct depending on what type of example is passed (training, testing, product)
+	public void addMapNodeExToBMUs(double dist, SOMMapNode ex, int _typeIDX) {
+		//int _typeIDX = ex.type.getVal();
 		BMUExampleNodes[_typeIDX].addExample(dist,ex);
+		//add relelvant tags, if any, for training examples - 
+		addMapNodeExToBMUs_Priv(dist,ex);
 	}//addToBMUs 
+	//manage instancing map node handlign - specifically, handle using 2ndary features as node markers (like a product tag)
+	protected abstract void addTrainingExToBMUs_Priv(double dist, SOMExample ex);
+	protected abstract void addMapNodeExToBMUs_Priv(double dist, SOMMapNode ex);
+	
+	//this will return the training label(s) of this example - a map node -never- is used as training
+	//they should not be used for supervision during/after training (not sure how that could even happen)
+	public TreeMap<Integer,Integer> getTrainingLabels() {return null;}
 	
 	//finalize all calculations for examples using this node as a bmu - this calculates quantities based on totals derived, used for visualizations
 	//MUST BE CALLED after adding all examples but before any visualizations will work
@@ -271,7 +297,6 @@ class SOMMapNodeBMUExamples{
 	private SOMMapNode node;
 	//map of examples that consider node to be their bmu; keyed by euclidian distance
 	private TreeMap<Double,ArrayList<SOMExample>> examplesBMU;
-
 	//size of examplesBMU
 	private int numMappedEx;
 	//log size of examplesBMU +1, used for visualization radius

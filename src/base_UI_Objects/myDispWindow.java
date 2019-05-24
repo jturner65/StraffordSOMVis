@@ -1292,6 +1292,7 @@ public abstract class myDispWindow {
 	//these are launched in threads to allow UI to respond to user input
 	public void resetButtonState() {resetButtonState(true);}
 	public void resetButtonState(boolean isSlowProc) {
+		if (curCustBtnType == -1) {return;}
 		if (curCustBtn[curCustBtnType] == -1) {return;}
 		pa.clearBtnState(curCustBtnType,curCustBtn[curCustBtnType], isSlowProc);
 		curCustBtn[curCustBtnType] = -1;
@@ -1320,6 +1321,8 @@ public abstract class myDispWindow {
 	protected abstract void endShiftKeyI();
 	protected abstract void endAltKeyI();
 	protected abstract void endCntlKeyI();
+	
+	protected abstract void setCustMenuBtnNames();
 	
 	//ui init routines
 	protected abstract void setupGUIObjsAras();	

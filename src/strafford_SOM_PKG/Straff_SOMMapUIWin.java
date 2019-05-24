@@ -11,6 +11,7 @@ import base_Utils_Objects.*;
 import processing.core.PImage;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 import strafford_SOM_PKG.straff_Utils.*;
+import strafford_SOM_PKG.straff_Utils.featureCalc.StraffWeightCalc;
 
 
 //window that accepts trajectory editing
@@ -26,8 +27,7 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 		mapDrawTruePspctIDX			= numSOMBasePrivFlags + 4,			//draw true prospect examples on map		
 		mapDrawCustAnalysisVisIDX	= numSOMBasePrivFlags + 5,			//whether or not to draw feature calc analysis graphs for customer examples
 		mapDrawTPAnalysisVisIDX		= numSOMBasePrivFlags + 6,			//whether or not to draw feature calc analysis graphs for true prospect examples
-		mapDrawCalcFtrOrAllVisIDX	= numSOMBasePrivFlags + 7,			//whether to draw calc obj for ftr-related jps, or all jps present
-		
+		mapDrawCalcFtrOrAllVisIDX	= numSOMBasePrivFlags + 7,			//whether to draw calc obj for ftr-related jps, or all jps present		
 		
 		showSelJPIDX				= numSOMBasePrivFlags + 8, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
 		//train/test data managemen
@@ -390,7 +390,8 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 	}
 	
 	//modify menu buttons to display whether using CSV or SQL to access raw data
-	private void setCustMenuBtnNames() {
+	@Override
+	protected void setCustMenuBtnNames() {
 		String rplStr = menuLdRawFuncBtnNames[(rawDataSource % menuLdRawFuncBtnNames.length)], baseStr;
 		for(int i=0;i<menuBtnNames[mySideBarMenu.btnAuxFunc1Idx].length-2;++i) {
 			baseStr = (String) menuBtnNames[mySideBarMenu.btnAuxFunc1Idx][i].subSequence(0, menuBtnNames[mySideBarMenu.btnAuxFunc1Idx][i].length()-3);
@@ -599,52 +600,7 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 	}
 	@Override
 	protected void hndlMouseRelIndiv() {	}	
-	@Override
-	public void hndlFileLoad(File file, String[] vals, int[] stIdx) {
-		//if wanting to load/save UI values, uncomment this call and similar in hndlFileSave 
-		//hndlFileLoad_GUI(vals, stIdx);
-		//loading in grade data from grade file - vals holds array of strings, expected to be comma sep values, for a single class, with student names and grades
-	}
-	@Override
-	public ArrayList<String> hndlFileSave(File file) {
-		ArrayList<String> res = new ArrayList<String>();
-		//if wanting to load/save UI values, uncomment this call and similar in hndlFileLoad 
-		//res = hndlFileSave_GUI();
-		//saving student grades to a file for a single class - vals holds array of strings, expected to be comma sep values, for a single class, with student names and grades		
-		return res;
-	}
-	@Override
-	protected myPoint getMsePtAs3DPt(int mouseX, int mouseY){return pa.P(mouseX,mouseY,0);}
-	@Override
-	protected void snapMouseLocs(int oldMouseX, int oldMouseY, int[] newMouseLoc){}//not a snap-to window
-	@Override
-	protected void processTrajIndiv(myDrawnSmplTraj drawnNoteTraj){		}
-	@Override
-	protected void endShiftKeyI() {}
-	@Override
-	protected void endAltKeyI() {}
-	@Override
-	protected void endCntlKeyI() {}
-	@Override
-	protected void addSScrToWinIndiv(int newWinKey){}
-	@Override
-	protected void addTrajToScrIndiv(int subScrKey, String newTrajKey){}
-	@Override
-	protected void delSScrToWinIndiv(int idx) {}	
-	@Override
-	protected void delTrajToScrIndiv(int subScrKey, String newTrajKey) {}
-	//resize drawn all trajectories
-	@Override
-	protected void resizeMe(float scale) {		
-		//any resizing done
-	}
-	@Override
-	protected void closeMe() {}
-	@Override
-	protected void showMe() {
-		//pa.setMenuDbgBtnNames(menuDbgBtnNames);	
-		setCustMenuBtnNames();
-	}
+
 	@Override
 	public String toString(){
 		String res = super.toString();
@@ -675,7 +631,7 @@ class mySideBarMenu extends BaseBarMenu {
 
 	@Override
 	protected void initSideBarMenuBtns_Priv() {
-		guiBtnRowNames = new String[]{"Raw Data/Ftr Processing","Post Proc Load And Map Config/Exec","DEBUG"};//,"File"};
+		guiBtnRowNames = new String[]{"Raw Data Conversion/Processing","Load Post Proc Data And Map Config/Exec","DEBUG"};//,"File"};
 
 		//names for each row of buttons - idx 1 is name of row
 		guiBtnNames = new String[][]{

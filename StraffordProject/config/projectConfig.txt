@@ -74,7 +74,10 @@ useSparseTestingData,"true"
 #Directory for prebuilt map : 
 #all the following use the new data as of 5/1/19
 #
-#built using "WeightEqConfig_allDecay_p01_optWt_p01_srcWt_p01"
-#preBuiltMapDir,"StraffSOM_2019_04_26_08_00"
-preBuiltMapDir,"StraffSOM_2019_05_08_12_00"
+#built using "WeightEqConfig_allDecay_p01_optWt_p01_srcWt_p01"; this also uses each customer prospect only 1 time, and gets rid of bad custs before training
+preBuiltMapDir,"StraffSOM_2019_05_23_11_27"
+#
+#built using "WeightEqConfig_allDecay_p01_optWt_p01_srcWt_p01"; this also uses each order as a training record (multiple per customer) and gets rid of bad custs before training
+#preBuiltMapDir,"StraffSOM_2019_05_23_11_31_TrainDataPerOrder"
+#
 #END MISC GLOBAL VARS

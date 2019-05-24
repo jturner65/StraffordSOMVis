@@ -264,7 +264,8 @@ public class SOMProjConfigData {
 		return rawDataFileNames;
 	}//buildFileNameMap
 	
-	public MessageObject buildMsgObj() {return new MessageObject(msgObj);}
+	//public MessageObject buildMsgObj() {return new MessageObject(msgObj);}
+	public MessageObject buildMsgObj() {return MessageObject.buildMe();}
 	
 	//return int representing type of events that should be used to define a prospect as a customer (generally has a order event in history) and a true prospect (lacks orders but has sources)
 	public int getTypeOfEventsForCustAndProspect(){		return custTruePrsTypeEvents;}//getTypeOfEventsForCustAndProspect()

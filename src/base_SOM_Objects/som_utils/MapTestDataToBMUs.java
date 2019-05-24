@@ -22,8 +22,8 @@ public class MapTestDataToBMUs extends MapDataToBMUs{
 		if(MapNodesByFtr==null) {msgObj.dispMessage("mapTestDataToBMUs", "Run Thread : " +thdIDX, " ALERT!!! MapNodesByFtr is null!!!", MsgCodes.error5);}
 //		if (useChiSqDist) {		for (int i=stIdx;i<endIdx;++i) {exs[i].findBMUFromNodes_ChiSq_Excl(MapNodes, curMapFtrType);incrProgress(i);}} 
 //		else {					for (int i=stIdx;i<endIdx;++i) {exs[i].findBMUFromNodes_Excl(MapNodes,  curMapFtrType);incrProgress(i);}} 	
-		if (useChiSqDist) {		for (int i=stIdx;i<endIdx;++i) {exs[i].findBMUFromFtrNodes_ChiSq_Excl(MapNodesByFtr, curMapFtrType);incrProgress(i);}} 
-		else {					for (int i=stIdx;i<endIdx;++i) {exs[i].findBMUFromFtrNodes_Excl(MapNodesByFtr,  curMapFtrType);incrProgress(i);}} 	
+		if (useChiSqDist) {		for (int i=stIdx;i<endIdx;++i) {exs[i].findBMUFromFtrNodes(MapNodesByFtr,exs[i]::getSqDistFromFtrType_ChiSq_Exclude, curMapFtrType);incrProgress(i);}} 
+		else {					for (int i=stIdx;i<endIdx;++i) {exs[i].findBMUFromFtrNodes(MapNodesByFtr,exs[i]::getSqDistFromFtrType_Exclude, curMapFtrType);incrProgress(i);}} 	
 		msgObj.dispMessage("MapTestDataToBMUs", "Run Thread : " +thdIDX, "Finished "+dataType+" Data["+stIdx+":"+endIdx+"] to BMU mapping", MsgCodes.info5);		
 		return true;
 	}		

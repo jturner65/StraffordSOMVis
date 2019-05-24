@@ -23,8 +23,7 @@ public class SOM_Strafford_UI_Main extends my_procApplet {
 	private static final int	dispSOMMapIDX = 1;	
 																		//set array of vector values (sceneFcsVals) based on application
 	//private boolean cyclModCmp;										//comparison every draw of cycleModDraw			
-	private final int[] bground = new int[]{244,244,244,255};		//bground color
-	
+	private final int[] bground = new int[]{244,244,244,255};		//bground color	
 
 ///////////////
 //CODE STARTS
@@ -38,13 +37,10 @@ public class SOM_Strafford_UI_Main extends my_procApplet {
 	}//main	
 	
 	public void settings(){	size((int)(displayWidth*.95f), (int)(displayHeight*.92f),P3D);	noSmooth();}	
-
 	//instance-specific setup code
-	protected void setup_indiv() {setBkgrnd();}
-	
+	protected void setup_indiv() {setBkgrnd();}	
 	@Override
-	public void setBkgrnd(){background(bground[0],bground[1],bground[2],bground[3]);}//setBkgrnd
-	
+	public void setBkgrnd(){background(bground[0],bground[1],bground[2],bground[3]);}//setBkgrnd	
 	/**
 	 * determine which main flags to show at upper left of menu 
 	 */
@@ -72,25 +68,18 @@ public class SOM_Strafford_UI_Main extends my_procApplet {
 		buildInitMenuWin(showUIMenu);
 		//menu bar init
 		int wIdx = dispMenuIDX,fIdx=showUIMenu;
-		dispWinFrames[wIdx] = new mySideBarMenu(this, winTitles[wIdx], fIdx, winFillClrs[wIdx], winStrkClrs[wIdx], winRectDimOpen[wIdx], winRectDimClose[wIdx], winDescr[wIdx],dispWinFlags[wIdx][dispCanDrawInWinIDX]);		
-	
-
+		dispWinFrames[wIdx] = new mySideBarMenu(this, winTitles[wIdx], fIdx, winFillClrs[wIdx], winStrkClrs[wIdx], winRectDimOpen[wIdx], winRectDimClose[wIdx], winDescr[wIdx],dispWinFlags[wIdx][dispCanDrawInWinIDX]);	
 		//instanced window dimensions when open and closed - only showing 1 open at a time
 		float[] _dimOpen  =  new float[]{menuWidth, 0, width-menuWidth, height}, _dimClosed  =  new float[]{menuWidth, 0, hideWinWidth, height};	
 		//(int _winIDX, float[] _dimOpen, float[] _dimClosed, String _ttl, String _desc, 
 		setInitDispWinVals(dispSOMMapIDX, _dimOpen, _dimClosed,
 				//boolean[] _dispFlags : idxs : 0 : canDrawInWin; 1 : canShow3dbox; 2 : canMoveView; 3 : dispWinIs3d
 				//int[] _fill, int[] _strk, int _trajFill, int _trajStrk)
-				new boolean[] {false,false,false,false}, new int[]{50,40,20,255},new int[]{255,255,255,255},gui_LightGray,gui_DarkGray); 
-		
+				new boolean[] {false,false,false,false}, new int[]{50,40,20,255},new int[]{255,255,255,255},gui_LightGray,gui_DarkGray); 		
 		wIdx = dispSOMMapIDX; fIdx=showSOMMapUI;
-		dispWinFrames[wIdx] = new Straff_SOMMapUIWin(this, winTitles[wIdx], fIdx, winFillClrs[wIdx], winStrkClrs[wIdx], winRectDimOpen[wIdx], winRectDimClose[wIdx], winDescr[wIdx],dispWinFlags[wIdx][dispCanDrawInWinIDX]);
-		
+		dispWinFrames[wIdx] = new Straff_SOMMapUIWin(this, winTitles[wIdx], fIdx, winFillClrs[wIdx], winStrkClrs[wIdx], winRectDimOpen[wIdx], winRectDimClose[wIdx], winDescr[wIdx],dispWinFlags[wIdx][dispCanDrawInWinIDX]);		
 		//specify windows that cannot be shown simultaneously here
 		initXORWins(new int[]{showSOMMapUI},new int[]{dispSOMMapIDX});
-		
-		
-
 	}//	initVisOnce_Priv
 	
 	@Override
@@ -176,7 +165,6 @@ public class SOM_Strafford_UI_Main extends my_procApplet {
 			}
 		}
 	}//handleShowWin
-
 	
 	@Override
 	//get the ui rect values of the "master" ui region (another window) -> this is so ui objects of one window can be made, clicked, and shown displaced from those of the parent windwo

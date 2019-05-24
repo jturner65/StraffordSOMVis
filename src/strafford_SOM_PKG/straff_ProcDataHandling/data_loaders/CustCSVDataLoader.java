@@ -5,7 +5,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import base_SOM_Objects.SOMMapManager;
 import base_SOM_Objects.som_examples.SOMExample;
 import base_SOM_Objects.som_fileIO.SOMExCSVDataLoader;
-import strafford_SOM_PKG.straff_SOM_Examples.CustProspectExample;
+import strafford_SOM_PKG.straff_SOM_Examples.prospects.CustProspectExample;
 
 public class CustCSVDataLoader extends SOMExCSVDataLoader{
 

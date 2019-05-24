@@ -1,6 +1,7 @@
 package base_SOM_Objects.som_ui;
 
 
+import java.io.File;
 import java.util.*;
 import java.util.concurrent.Future;
 
@@ -129,7 +130,7 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 	//scaling value - use this to decrease the image size and increase the scaling so it is rendered the same size
 	protected static final float mapScaleVal = 10.0f;
 	
-	protected ISOMMap_DispExample mseOvrData;//location and label of mouse-over point in map
+	protected ISOM_DispMapExample mseOvrData;//location and label of mouse-over point in map
 	
 	
 	public SOMMapUIWin(my_procApplet _p, String _n, int _flagIdx, int[] fc, int[] sc, float[] rd, float[] rdClosed,	String _winTxt, boolean _canDrawTraj) {
@@ -525,23 +526,43 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 	//build new SOM_MAP map using UI-entered values, then load resultant data
 	protected final void buildNewSOMMap(){
 		msgObj.dispMessage("SOMMapUIWin","buildNewSOMMap","Starting Map Build", MsgCodes.info5);
-		int kVal = (int)this.guiObjs[uiMapKTypIDX].getVal();
-		//verify sphere train/test data exists, otherwise save it
-		if(!mapMgr.mapCanBeTrained(kVal)){
-			msgObj.dispMessage("SOMMapUIWin","buildNewSOMMap","No Training Data Found, unable to build SOM", MsgCodes.warning2);
-			setPrivFlags(buildSOMExe, false);
-			return;
-		}
+		setPrivFlags(buildSOMExe, false);
+		//load test and train data, set up directories to build map in
+		mapMgr.loadTrainDataMapConfig();
+		//set current UI values to map config
 		sendAllUIValsToMapDat();
-		
-		//call map mgr object execute map run call
-		boolean returnCode = mapMgr.runSOMExperiment();
+		//run map
+		boolean returnCode = mapMgr.runSOMExperiment(true);
+		if(returnCode) {			mapMgr.loadMapAndBMUs();		}	//if success then run loader of bmus, etc
+
 		//returnCode is whether map was built and trained successfully
 		setFlagsDoneMapBuild();
 		msgObj.dispMessage("SOMMapUIWin","buildNewSOMMap","Map Build " + (returnCode ? "Completed Successfully." : "Failed due to error."), MsgCodes.info5);
-		setPrivFlags(buildSOMExe, false);
-	}//buildNewSOMMap	
-
+		
+	}//buildNewSOMMap		
+//	//first verify that new .lrn file exists, then
+//	//build new SOM_MAP map using UI-entered values, then load resultant data
+//	protected final void buildNewSOMMap_old(){
+//		msgObj.dispMessage("SOMMapUIWin","buildNewSOMMap","Starting Map Build", MsgCodes.info5);
+//		int kVal = (int)this.guiObjs[uiMapKTypIDX].getVal();
+//		//verify sphere train/test data exists, otherwise save it
+//		if(!mapMgr.mapCanBeTrained(kVal)){
+//			msgObj.dispMessage("SOMMapUIWin","buildNewSOMMap","No Training Data Found, unable to build SOM", MsgCodes.warning2);
+//			addPrivBtnToClear(buildSOMExe);
+//			//setPrivFlags(buildSOMExe, false);
+//			return;
+//		}
+//		sendAllUIValsToMapDat();
+//		
+//		//call map mgr object execute map run call
+//		boolean returnCode = mapMgr.runSOMExperiment();
+//		//returnCode is whether map was built and trained successfully
+//		setFlagsDoneMapBuild();
+//		msgObj.dispMessage("SOMMapUIWin","buildNewSOMMap","Map Build " + (returnCode ? "Completed Successfully." : "Failed due to error."), MsgCodes.info5);
+//		addPrivBtnToClear(buildSOMExe);
+//		//setPrivFlags(buildSOMExe, false);
+//	}//buildNewSOMMap	
+	
 	//update UI values from passed SOM_MAPDat object's current state
 	public final void setUIValues(SOM_MapDat mapDat) {
 		HashMap<String, Integer> mapInts = mapDat.getMapInts();
@@ -923,9 +944,9 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 		}
 	}//chkMouseOvr
 	//get datapoint at passed location in map coordinates (so should be in frame of map's upper right corner) - assume map is square and not hex
-	protected final ISOMMap_DispExample getDataPointAtLoc(float x, float y, myPointf locPt){//, boolean useScFtrs){
+	protected final ISOM_DispMapExample getDataPointAtLoc(float x, float y, myPointf locPt){//, boolean useScFtrs){
 		float sensitivity = (float) guiObjs[uiMseRegionSensIDX].getVal();
-		ISOMMap_DispExample dp; 
+		ISOM_DispMapExample dp; 
 		if (this.getPrivFlags(mapDrawUMatrixIDX)) {
 			float dist = mapMgr.getBiCubicInterpUMatVal(x, y);
 			dp = mapMgr.buildTmpDataExampleDists(locPt, dist, sensitivity);			
@@ -947,6 +968,49 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 		//for(int i=0;i<uiAbbrevList.length;++i) {fileString += uiAbbrevList[i]+"_"+ (uiVals[i] > 1 ? ((int)uiVals[i]) : uiVals[i] < .0001 ? String.format("%6.3e", uiVals[i]) : String.format("%3.3f", uiVals[i]))+"_";}
 		return new String[]{dirString,fileString};	
 	}
-
+	@Override
+	public void hndlFileLoad(File file, String[] vals, int[] stIdx) {
+		//if wanting to load/save UI values, uncomment this call and similar in hndlFileSave 
+		//hndlFileLoad_GUI(vals, stIdx);
+		//loading in grade data from grade file - vals holds array of strings, expected to be comma sep values, for a single class, with student names and grades
+	}
+	@Override
+	public ArrayList<String> hndlFileSave(File file) {
+		ArrayList<String> res = new ArrayList<String>();
+		//if wanting to load/save UI values, uncomment this call and similar in hndlFileLoad 
+		//res = hndlFileSave_GUI();
+		//saving student grades to a file for a single class - vals holds array of strings, expected to be comma sep values, for a single class, with student names and grades		
+		return res;
+	}
+	@Override
+	protected myPoint getMsePtAs3DPt(int mouseX, int mouseY){return pa.P(mouseX,mouseY,0);}
+	@Override
+	protected void snapMouseLocs(int oldMouseX, int oldMouseY, int[] newMouseLoc){}//not a snap-to window
+	@Override
+	protected void processTrajIndiv(myDrawnSmplTraj drawnNoteTraj){		}
+	@Override
+	protected void endShiftKeyI() {}
+	@Override
+	protected void endAltKeyI() {}
+	@Override
+	protected void endCntlKeyI() {}
+	@Override
+	protected void addSScrToWinIndiv(int newWinKey){}
+	@Override
+	protected void addTrajToScrIndiv(int subScrKey, String newTrajKey){}
+	@Override
+	protected void delSScrToWinIndiv(int idx) {}	
+	@Override
+	protected void delTrajToScrIndiv(int subScrKey, String newTrajKey) {}
+	//resize drawn all trajectories
+	@Override
+	protected void resizeMe(float scale) {}
+	@Override
+	protected void closeMe() {}
+	@Override
+	protected void showMe() {
+		//pa.setMenuDbgBtnNames(menuDbgBtnNames);	
+		setCustMenuBtnNames();
+	}
 
 }//SOMMapUIWin

@@ -9,12 +9,13 @@ import base_SOM_Objects.som_examples.*;
 import base_SOM_Objects.som_utils.SOMProjConfigData;
 import base_Utils_Objects.*;
 import strafford_SOM_PKG.straff_RawDataHandling.data_loaders.StraffordDataLoader;
-import strafford_SOM_PKG.straff_RawDataHandling.raw_data.BaseRawData;
-import strafford_SOM_PKG.straff_RawDataHandling.raw_data.ProspectData;
-import strafford_SOM_PKG.straff_RawDataHandling.raw_data.TcTagData;
-import strafford_SOM_PKG.straff_SOM_Examples.CustProspectExample;
-import strafford_SOM_PKG.straff_SOM_Examples.ProductExample;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.*;
+import strafford_SOM_PKG.straff_SOM_Examples.Straff_SOMExample;
+import strafford_SOM_PKG.straff_SOM_Examples.products.ProductExample;
+import strafford_SOM_PKG.straff_SOM_Examples.prospects.CustProspectExample;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
+
+import strafford_SOM_PKG.straff_SOM_Mapping.exampleMappers.*;
 
 /**
  * this class manages the loading of the raw data from either csv or from sql queries (TODO: SQL not implemented yet)
@@ -72,7 +73,7 @@ public class StraffSOMRawDataLdrCnvrtr {
 	public StraffSOMRawDataLdrCnvrtr(Straff_SOMMapManager _mapMgr, SOMProjConfigData _projConfig) {
 		mapMgr=_mapMgr;
 		msgObj = mapMgr.buildMsgObj();
-		fileIO = new FileIOManager(new MessageObject(msgObj),"StraffSOMRawDataLdrCnvrtr");
+		fileIO = new FileIOManager(MessageObject.buildMe(),"StraffSOMRawDataLdrCnvrtr");
 		projConfigData = _projConfig;
 		th_exec = mapMgr.getTh_Exec();
 		//load all raw data file names based on exploring directory structure for all csv files
@@ -169,14 +170,83 @@ public class StraffSOMRawDataLdrCnvrtr {
 		//setFlag(straffObjFlagIDXs[idx], true);			//set flag corresponding to this type of data to be loaded
 	}//loadRawDataVals		
 	//set data type is done loading
-	public void setRawLoadDataTypeIsDone(int isDoneMapDataIDX) {mapMgr.setFlag(isDoneMapDataIDX, true);}
-	
+	public void setRawLoadDataTypeIsDone(int isDoneMapDataIDX) {mapMgr.setFlag(isDoneMapDataIDX, true);}	
 	
 	//////////////////////////////
 	// process raw data	
 	
+//	//process all events into training examples
+//	private void procRawEventData_map(ConcurrentSkipListMap<String, SOMExample> tmpProspectMap,ConcurrentSkipListMap<String, ArrayList<BaseRawData>> dataArrays, boolean saveBadRecs) {			
+//		msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","procRawEventData","Start processing raw event data.", MsgCodes.info5);
+//		String dataName;
+//		int dataTypeIDX;
+//		//only iterate through event records in dataArraysMap
+//		for (int i = 0; i <straffEventDataIDXs.length;++i) {//for each event
+//			dataTypeIDX = straffEventDataIDXs[i];
+//			dataName = straffDataDirNames[dataTypeIDX];
+//			ArrayList<BaseRawData> events = dataArrays.get(dataName);
+//			//derive event type from file name?
+//			String eventType = dataName.split("_")[0];		
+//			String eventBadFName = projConfigData.getBadEventFName(dataName);//	
+//			ArrayList<String> badEventOIDs = new ArrayList<String>();
+//			HashSet<String> uniqueBadEventOIDs = new HashSet<String>();
+//			
+//			for (BaseRawData obj : events) {
+//				CustProspectExample ex = ((CustProspectExample)tmpProspectMap.get(obj.OID));			//event has OID referencing prospect/customer record in prospect table
+//				if (ex == null) {
+//					if (saveBadRecs) {//means no prospect object corresponding to the OID in this event
+//						badEventOIDs.add(obj.OID);
+//						uniqueBadEventOIDs.add(obj.OID);
+//					}
+//					continue;}
+//				ex.addEventObj(obj, dataTypeIDX);//can't multi-thread this based on event type because prospect objects might collide and they aren't thread safe
+//			}//for every actual event - verify every event references an actual object using its OID field
+//	
+//			if (saveBadRecs && (badEventOIDs.size() > 0)) {
+//				fileIO.saveStrings(eventBadFName, uniqueBadEventOIDs.toArray(new String[0]));		
+//				msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","procRawEventData","# of "+eventType+" events without corresponding prospect records : "+badEventOIDs.size() + " out of " +events.size() + " total "+eventType+" events | # Unique bad "+eventType+" event prospect OID refs (missing OIDs in prospect) : "+uniqueBadEventOIDs.size(), MsgCodes.info3);
+//			} else {
+//				msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","procRawEventData","No "+eventType+" events without corresponding prospect records found after processing "+ events.size() +" events.", MsgCodes.info3);				
+//			}
+//		}//for each event type
+//		msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","procRawEventData","Finished processing raw event data.", MsgCodes.info5);
+//	}//procRawEventData
+//	
+//	//convert raw tc taggings table data to product examples
+//	private void procRawProductData_map(ArrayList<BaseRawData> tcTagRawData, ConcurrentSkipListMap<String, SOMExample> productMap) {
+//		msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","procRawProductData","Starting to process Raw Product Data.", MsgCodes.info5);
+//		for (BaseRawData tcDat : tcTagRawData) {
+//			ProductExample ex = new ProductExample(mapMgr, (TcTagData)tcDat);
+//			productMap.put(ex.OID, ex);
+//		}
+//		mapMgr.setFlag(Straff_SOMMapManager.preProcProdDataLoadedIDX, true);
+//		msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","procRawProductData","Finished processing  : " + tcTagRawData.size()+ " raw records.", MsgCodes.info5);		
+//	}//procRawProductData
+//	
+//	//this will go through all the prospects and events and build a map of prospectExample keyed by prospect OID and holding all the known data
+//	public void procRawLoadedData_map( ConcurrentSkipListMap<String, SOMExample> tmpProspectMap, ConcurrentSkipListMap<String, SOMExample> productMap) {
+//		msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","procRawLoadedData","Start Processing all loaded raw data", MsgCodes.info5);
+//		//load all prospects from source
+//		ArrayList<BaseRawData> prospects = rawDataArrays.get(straffDataDirNames[prspctIDX]);
+//		for (BaseRawData prs : prospects) {
+//			//prospectMap is empty here
+//			SOMExample ex = new CustProspectExample(mapMgr, (ProspectData) prs);
+//			tmpProspectMap.put(ex.OID, ex);
+//		}		
+//		//add all events to prospects
+//		procRawEventData_map(tmpProspectMap, rawDataArrays, true);		
+//		//now handle products - found in tc_taggings table
+//		procRawProductData_map(rawDataArrays.get(straffDataDirNames[tcTagsIDX]), productMap);		
+//		//now handle loaded jp and jpgroup data
+//		mapMgr.jpJpgrpMon.setJpJpgrpNames(rawDataArrays.get(straffDataDirNames[jpDataIDX]),rawDataArrays.get(straffDataDirNames[jpgDataIDX]));		
+//		//to free up memory before we build feature weight vectors; get rid of rawDataArrays used to hold original data read from files		
+//		rawDataArrays.clear();				
+//		msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","procRawLoadedData","Finished processing all loaded data", MsgCodes.info5);
+//	}//procRawLoadedData	
+	
+	
 	//process all events into training examples
-	private void procRawEventData(ConcurrentSkipListMap<String, SOMExample> tmpProspectMap,ConcurrentSkipListMap<String, ArrayList<BaseRawData>> dataArrays, boolean saveBadRecs) {			
+	private void procRawEventData(Straff_SOMProspectMapper mapper, ConcurrentSkipListMap<String, ArrayList<BaseRawData>> dataArrays, boolean saveBadRecs) {			
 		msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","procRawEventData","Start processing raw event data.", MsgCodes.info5);
 		String dataName;
 		int dataTypeIDX;
@@ -192,7 +262,7 @@ public class StraffSOMRawDataLdrCnvrtr {
 			HashSet<String> uniqueBadEventOIDs = new HashSet<String>();
 			
 			for (BaseRawData obj : events) {
-				CustProspectExample ex = ((CustProspectExample)tmpProspectMap.get(obj.OID));			//event has OID referencing prospect/customer record in prospect table
+				CustProspectExample ex = ((CustProspectExample)(mapper.getExample(obj.OID)));			//event has OID referencing prospect/customer record in prospect table
 				if (ex == null) {
 					if (saveBadRecs) {//means no prospect object corresponding to the OID in this event
 						badEventOIDs.add(obj.OID);
@@ -209,42 +279,46 @@ public class StraffSOMRawDataLdrCnvrtr {
 				msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","procRawEventData","No "+eventType+" events without corresponding prospect records found after processing "+ events.size() +" events.", MsgCodes.info3);				
 			}
 		}//for each event type
+		//all events processed for all prospects
+		mapper.setAllDataLoaded();
+		
 		msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","procRawEventData","Finished processing raw event data.", MsgCodes.info5);
 	}//procRawEventData
 	
 	//convert raw tc taggings table data to product examples
-	private void procRawProductData(ArrayList<BaseRawData> tcTagRawData, ConcurrentSkipListMap<String, ProductExample> productMap) {
+	private void procRawProductData(Straff_SOMProductMapper prodMapper, ArrayList<BaseRawData> tcTagRawData) {
 		msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","procRawProductData","Starting to process Raw Product Data.", MsgCodes.info5);
 		for (BaseRawData tcDat : tcTagRawData) {
 			ProductExample ex = new ProductExample(mapMgr, (TcTagData)tcDat);
-			productMap.put(ex.OID, ex);
+			prodMapper.addExampleToMap(ex.OID, ex);
 		}
-		mapMgr.setFlag(Straff_SOMMapManager.preProcProdDataLoadedIDX, true);
+		//all product data is loaded
+		prodMapper.setAllDataLoaded();
 		msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","procRawProductData","Finished processing  : " + tcTagRawData.size()+ " raw records.", MsgCodes.info5);		
 	}//procRawProductData
 	
-	
 	//this will go through all the prospects and events and build a map of prospectExample keyed by prospect OID and holding all the known data
-	public void procRawLoadedData( ConcurrentSkipListMap<String, SOMExample> tmpProspectMap, ConcurrentSkipListMap<String, SOMExample> customerPrspctMap, ConcurrentSkipListMap<String, ProductExample> productMap) {
+	public void procRawLoadedData(Straff_SOMProspectMapper prspctMapper, Straff_SOMProductMapper prodMapper) {
 		msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","procRawLoadedData","Start Processing all loaded raw data", MsgCodes.info5);
+		//load all prospects from source
 		ArrayList<BaseRawData> prospects = rawDataArrays.get(straffDataDirNames[prspctIDX]);
 		for (BaseRawData prs : prospects) {
 			//prospectMap is empty here
-			SOMExample ex = customerPrspctMap.get(prs.OID);
-			if (ex == null) {ex = new CustProspectExample(mapMgr, (ProspectData) prs);}
-			else {msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","procRawLoadedData","Prospect with OID : "+  prs.OID + " existed in map already and was replaced.", MsgCodes.warning2);}
-			tmpProspectMap.put(ex.OID, ex);
+			SOMExample ex = new CustProspectExample(mapMgr, (ProspectData) prs);
+			prspctMapper.addExampleToMap(ex.OID, ex);
 		}		
 		//add all events to prospects
-		procRawEventData(tmpProspectMap, rawDataArrays, true);		
+		procRawEventData(prspctMapper, rawDataArrays, true);		
 		//now handle products - found in tc_taggings table
-		procRawProductData(rawDataArrays.get(straffDataDirNames[tcTagsIDX]), productMap);		
+		procRawProductData(prodMapper, rawDataArrays.get(straffDataDirNames[tcTagsIDX]));		
 		//now handle loaded jp and jpgroup data
 		mapMgr.jpJpgrpMon.setJpJpgrpNames(rawDataArrays.get(straffDataDirNames[jpDataIDX]),rawDataArrays.get(straffDataDirNames[jpgDataIDX]));		
 		//to free up memory before we build feature weight vectors; get rid of rawDataArrays used to hold original data read from files		
 		rawDataArrays.clear();				
 		msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","procRawLoadedData","Finished processing all loaded data", MsgCodes.info5);
 	}//procRawLoadedData	
+	
+	
 	
 	//show first numToShow elemens of array of BaseRawData, either just to console or to applet window
 	private void dispRawDataAra(ArrayList<BaseRawData> sAra, int numToShow) {

@@ -39,8 +39,7 @@ public class MapTestDataToBMUs_Runner implements Runnable {
 	
 	List<Future<Boolean>> testMapperFtrs = new ArrayList<Future<Boolean>>();
 	List<MapTestDataToBMUs> testMappers = new ArrayList<MapTestDataToBMUs>();
-
-	
+		
 	public MapTestDataToBMUs_Runner(SOMMapManager _mapMgr, ExecutorService _th_exec, SOMExample[] _exData, String _dataTypName, ExDataType _dataType, int _readyToSaveIDX) {
 		mapMgr = _mapMgr; 
 		MapNodes = mapMgr.getMapNodes();
@@ -53,7 +52,6 @@ public class MapTestDataToBMUs_Runner implements Runnable {
 		exData = _exData;
 		dataTypName = _dataTypName;
 		dataType = _dataType;
-		
 		flagsRdyToSaveIDX = _readyToSaveIDX;
 	}//ctor
 
@@ -64,19 +62,13 @@ public class MapTestDataToBMUs_Runner implements Runnable {
 	}//calcNumPerThd
 	
 	//call 1 time for any particular type of data
-	protected void _finalizeBMUProcessing(SOMExample[] _exs, ExDataType _type) {
-		int dataTypeVal = _type.getVal();
-		for(SOMMapNode mapNode : MapNodes.values()){mapNode.clearBMUExs(dataTypeVal);mapMgr.addExToNodesWithNoExs(mapNode, _type);}	
-		for (int i=0;i<_exs.length;++i) {	
-			SOMExample ex = _exs[i];
-			SOMMapNode bmu = ex.getBmu();
-			if(null!=bmu) {
-				bmu.addExToBMUs(ex,dataTypeVal);	
-				mapMgr.addExToNodesWithExs(bmu, _type);
-			}
-		}
-		mapMgr.filterExFromNoEx(_type);		//clear out all nodes that have examples from struct holding no-example map nodes
-		mapMgr.finalizeExMapNodes(_type);		
+	protected void _finalizeBMUProcessing(SOMExample[] _exs, ExDataType dataType) {
+		int dataTypeVal = dataType.getVal();
+		for(SOMMapNode mapNode : MapNodes.values()){mapNode.clearBMUExs(dataTypeVal);mapMgr.addExToNodesWithNoExs(mapNode, dataType);}	
+		if(dataType==ExDataType.Training) {			for (int i=0;i<_exs.length;++i) {			_exs[i].mapTrainingToBMU(dataTypeVal);	}		} 
+		else {										for (int i=0;i<_exs.length;++i) {			_exs[i].mapToBMU(dataTypeVal);		}		}
+		mapMgr.filterExFromNoEx(dataType);		//clear out all nodes that have examples from struct holding no-example map nodes
+		mapMgr.finalizeExMapNodes(dataType);		
 	}//_finalizeBMUProcessing
 
 	protected void incrTTLProgress(int len, int idx) {
@@ -132,8 +124,8 @@ public class MapTestDataToBMUs_Runner implements Runnable {
 
 		} else {//for every product find closest map node
 			ttlProgress=-.1;
-			if (useChiSqDist) {			for (int i=0;i<exData.length;++i){	exData[i].findBMUFromFtrNodes_ChiSq(MapNodesByFtr, curMapTestFtrType);incrTTLProgress(i,exData.length);		}}			
-			else {						for (int i=0;i<exData.length;++i) {	exData[i].findBMUFromFtrNodes(MapNodesByFtr, curMapTestFtrType);	incrTTLProgress(i,exData.length);		}	}			
+			if (useChiSqDist) {			for (int i=0;i<exData.length;++i){	exData[i].findBMUFromFtrNodes(MapNodesByFtr, exData[i]::getSqDistFromFtrType_ChiSq , curMapTestFtrType);incrTTLProgress(i,exData.length);		}}			
+			else {						for (int i=0;i<exData.length;++i) {	exData[i].findBMUFromFtrNodes(MapNodesByFtr,exData[i]::getSqDistFromFtrType, curMapTestFtrType);	incrTTLProgress(i,exData.length);		}	}			
 		}
 		
 		//go through every test example, if any, and attach prod to bmu - needs to be done synchronously because don't want to concurrently modify bmus from 2 different test examples		

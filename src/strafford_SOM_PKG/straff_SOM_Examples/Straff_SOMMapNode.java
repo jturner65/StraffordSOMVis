@@ -5,7 +5,7 @@ import java.util.*;
 import base_SOM_Objects.*;
 import base_SOM_Objects.som_examples.*;
 import base_Utils_Objects.*;
-
+import strafford_SOM_PKG.straff_SOM_Examples.prospects.CustProspectExample;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 import strafford_SOM_PKG.straff_Utils.MonitorJpJpgrp;
 
@@ -13,11 +13,11 @@ import strafford_SOM_PKG.straff_Utils.MonitorJpJpgrp;
 public class Straff_SOMMapNode extends SOMMapNode{
 	//reference to jp-jpg mapping/managing object
 	protected static MonitorJpJpgrp jpJpgMon;
-	////these objects are for reporting on individual examples.  They are built when features, keyed by ftr type, and are 
-	////use a map per feature type : unmodified, normalized, standardized,to hold the features sorted by weight as key, value is array of jps at that weight -submap needs to be instanced in descending key order
-	//private TreeMap<Float, ArrayList<Integer>>[] mapOfTopWtJps;	
-	////a map per feature type : unmodified, normalized, standardized,  of jps and their relative "rank" in this particular example, as determined by the weight calc
-	//private TreeMap<Integer,Integer>[] mapOfJpsVsWtRank;
+	
+	//this holds jp and count of all training examples mapped to this node
+	private TreeMap<Integer, Integer> mappedJPCounts;
+	//this holds jpg as key, value is jps in that jpg and counts (subtree)
+	private TreeMap<Integer, TreeMap<Integer, Integer>> mappedJPGroupCounts;
 
 	public Straff_SOMMapNode(SOMMapManager _map, Tuple<Integer,Integer> _mapNode, float[] _ftrs) {
 		super(_map, _mapNode, _ftrs);
@@ -31,15 +31,53 @@ public class Straff_SOMMapNode extends SOMMapNode{
 		jpJpgMon = ((Straff_SOMMapManager)mapMgr).jpJpgrpMon;
 		_initDataFtrMappings();
 	}//ctor w/str ftrs	
-	
+
 	@Override
 	//called after ftrs are built
-	protected void _initDataFtrMappings() {	
+	protected void _initDataFtrMappings() {			
+		//build structure that holds counts of jps mapped to this node
+		mappedJPCounts = new TreeMap<Integer, Integer>();
+		mappedJPGroupCounts = new TreeMap<Integer, TreeMap<Integer, Integer>>();
+		
 		//build essential components of feature vector
 		buildAllNonZeroFtrIDXs();
 		buildNormFtrData();//once ftr map is built can normalize easily
 		_buildFeatureVectorEnd_Priv();
 	}//_initDataFtrMappings
+	
+	@Override
+	//manage instancing map node handling - specifically, handle using 2ndary features as node markers (like a product tag or a class)
+	protected void addTrainingExToBMUs_Priv(double dist, SOMExample ex) {
+		TreeMap<Tuple<Integer, Integer>, Integer> trainExOrderCounts = ((CustProspectExample)ex).getOrderCountsForExample();
+		//for each jpg-jp used in training example, assign 
+		TreeMap<Integer, Integer> jpCountsAtJpGrp;
+		for (Tuple<Integer, Integer> jpgJp : trainExOrderCounts.keySet()) {
+			Integer jpg = jpgJp.x, jp = jpgJp.y;
+			Integer jpCount = mappedJPCounts.get(jp);
+			//for each jp
+			if(null==jpCount) {jpCount = 0;}
+			++jpCount;
+			mappedJPCounts.put(jp, jpCount);
+			//for each jpgroup
+			jpCountsAtJpGrp = mappedJPGroupCounts.get(jpg);
+			if(null==jpCountsAtJpGrp) {jpCountsAtJpGrp = new TreeMap<Integer, Integer>(); mappedJPGroupCounts.put(jpg, jpCountsAtJpGrp);}
+			jpCountsAtJpGrp.put(jp, jpCount);
+		}		
+	}//addExToBMUs_Priv
+	
+	@Override
+	//assign relelvant info to this map node from neighboring map node(s) to cover for this node not having any training examples assigned
+	protected void addMapNodeExToBMUs_Priv(double dist, SOMMapNode ex) {//copy structure 
+		TreeMap<Integer, Integer> otrMappedJPCounts = ((Straff_SOMMapNode)ex).mappedJPCounts,otrJPCounts,jpCounts;
+		TreeMap<Integer, TreeMap<Integer, Integer>> otrMappedJPGroupCounts = ((Straff_SOMMapNode)ex).mappedJPGroupCounts;
+		for(Integer jp : otrMappedJPCounts.keySet()) {			mappedJPCounts.put(jp, otrMappedJPCounts.get(jp));		}
+		for(Integer jpgrp : otrMappedJPGroupCounts.keySet()) { 
+			otrJPCounts = otrMappedJPGroupCounts.get(jpgrp);
+			jpCounts = mappedJPGroupCounts.get(jpgrp);
+			if(jpCounts==null) { jpCounts = new TreeMap<Integer, Integer>(); mappedJPGroupCounts.put(jpgrp, jpCounts);}
+			for(Integer jp : otrJPCounts.keySet()) {jpCounts.put(jp, otrJPCounts.get(jp));}
+		}		
+	}//addMapNodeExToBMUs_Priv
 	
 	@Override
 	//called by SOMDataLoader - these are standardized based on data mins and diffs seen in -map nodes- feature data, not in training data
