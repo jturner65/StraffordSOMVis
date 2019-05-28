@@ -178,7 +178,7 @@ public class SOMDataLoader implements Runnable {
 		//update each map node's neighborhood member's UMatrix weight values
 		mapMgr.buildAllMapNodeNeighborhood_Dists();//for(SOMMapNode ex : mapMgr.MapNodes.values()) {	ex.buildNeighborWtVals();	}
 		//calculate segments of nodes
-		mapMgr.buildSegmentsOnMap();
+		mapMgr.buildUMatrixSegmentsOnMap();
 		msgObj.dispMessage("SOMDataLoader","loadSOM_UMatrixDists","Finished loading and processing U-Matrix File : "+uMtxBMUFname, MsgCodes.info5);		
 		return true;
 	}//loadSOM_UMatrixDists

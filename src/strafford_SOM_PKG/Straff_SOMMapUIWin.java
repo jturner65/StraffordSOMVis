@@ -434,7 +434,7 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 		//checking flag to execute if true
 		if(getPrivFlags(procTruProspectsIDX)){	((Straff_SOMMapManager) mapMgr).buildAndSaveTrueProspectReport();setPrivFlags(procTruProspectsIDX,false);	}			
 	}
-
+	@Override
 	//stuff to draw specific to this instance, before nodes are drawn
 	protected void drawMapRectangleIndiv(int curImgNum) {
 		if(getPrivFlags(mapDrawTruePspctIDX)){			((Straff_SOMMapManager) mapMgr).drawTruPrspctData(pa);}
@@ -444,6 +444,7 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 			if (notDrawAnalysis && (mseOvrData != null)){	drawMseLocFtrs();}//draw mouse-over info if not showing calc analysis				
 			if(getPrivFlags(mapDrawPrdctNodesIDX)){		((Straff_SOMMapManager) mapMgr).drawProductNodes(pa, curMapImgIDX, true);}
 			if(getPrivFlags(mapDrawWtMapNodesIDX)){		mapMgr.drawNodesWithWt(pa, mapNodeWtDispThresh, curMapImgIDX);} 
+			if(getPrivFlags(mapDrawFtrWtSegIDX)) {		mapMgr.drawFtrWtSegments(pa, mapNodeWtDispThresh, curMapImgIDX);}
 		} else {//draw all products				
 			if (notDrawAnalysis && (mseOvrData != null)){	drawMseLocWts();}
 			if(getPrivFlags(mapDrawPrdctNodesIDX)){		((Straff_SOMMapManager) mapMgr).drawAllProductNodes(pa);}
@@ -452,7 +453,15 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 		if (getPrivFlags( mapDrawCurProdZoneIDX)){		((Straff_SOMMapManager) mapMgr).drawProductRegion(pa,curProdToShowIDX,prodZoneDistThresh);}
 	}//drawMapRectangleIndiv
 	
-	
+	@Override
+	/**
+	 * draw segments during UMatrix display (with no jp/ftr idx selected)
+	 */
+	protected void drawSegmentsUMatrixDispIndiv() {
+		//individual segment display when umatrix is being displayed
+		
+		
+	}
 	@Override
 	protected void drawMapIndiv() {
 		

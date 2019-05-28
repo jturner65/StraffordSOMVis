@@ -334,10 +334,7 @@ public abstract class ProspectExample extends Straff_SOMExample{
 		allProdJpGrps = new HashSet<Integer>();
 		nonProdJpGrps = new HashSet<Integer>();
 		nonProdJpgJps = new HashSet<Tuple<Integer,Integer>>();
-		//prodJPsForNonProdJPGroups = new TreeMap<Integer, TreeSet<Integer>>();
 		for(Tuple<Integer,Integer> jpgJp : alljpgjps) {
-			Integer jp = jpgJp.y;
-			//Integer jpIDX = jpJpgMon.getFtrJpToIDX(jp);
 			//this gets all product jps for a jpgroup that a non-prod jp belongs to
 			if(jpJpgMon.checkIfFtrJpPresent(jpgJp.y)) {		allProdJPs.add(jpgJp.y);} else {		nonProdJpgJps.add(jpgJp); }			
 			if(jpJpgMon.checkIfFtrJpGrpPresent(jpgJp.x)) {	allProdJpGrps.add(jpgJp.x);	} else {	nonProdJpGrps.add(jpgJp.x);}
@@ -398,7 +395,7 @@ public abstract class ProspectExample extends Straff_SOMExample{
 	}//buildCompFtrVector
 
 	protected String toStringDateMap(TreeMap<Date, TreeMap<Integer, StraffEvntRawToTrainData>> map, String mapName) {
-		String res = "\n# of " + mapName + " in Date Map (count of unique dates - multiple " + mapName + " per same date possible) : "+ map.size()+"\n";		
+		String res = "\n# of " + mapName + " in Date Map (count of unique dates - multiple " + mapName + " per same date possible) : "+ map.size()+"\n";
 		for (Date dat : map.keySet() ) {
 			res+="Date : " + dat+"\n";
 			TreeMap<Integer, StraffEvntRawToTrainData> evMap = map.get(dat);

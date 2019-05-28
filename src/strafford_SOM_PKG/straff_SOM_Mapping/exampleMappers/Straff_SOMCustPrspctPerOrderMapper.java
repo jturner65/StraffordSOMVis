@@ -15,7 +15,7 @@ import strafford_SOM_PKG.straff_SOM_Examples.prospects.CustProspectExample;
 public class Straff_SOMCustPrspctPerOrderMapper extends Straff_SOMCustPrspctMapper  {
 	//a reference to the array holding the customer prospect examples; 
 	//this is necessary because the actual examples managed by this mapper are the individual per-order examples
-	private SOMExample[] custProspectExamples;
+	private CustProspectExample[] custProspectExamples;
 	
 	public Straff_SOMCustPrspctPerOrderMapper(SOMMapManager _mapMgr, String _exName) {super(_mapMgr, _exName);}
 
@@ -31,11 +31,17 @@ public class Straff_SOMCustPrspctPerOrderMapper extends Straff_SOMCustPrspctMapp
 		ArrayList<SOMExample> tmpList = new ArrayList<SOMExample>();
 		for (String key : exampleMap.keySet()) {tmpList.addAll(((CustProspectExample) exampleMap.get(key)).getSingleOrderTrainingExamples());}	
 		return tmpList.toArray(new CustProspectExample[0]);
-	};	
-
+	}
+	
+	
 	@Override
-	//after example array has been built, and specific funcitonality for these types of examples
-	//this is necessary for his class to manage customer prospect examples themselves, which will end up not being aggregated due to training data actually being the individual orders
+	/**
+	 * after example array has been built, and specific funcitonality for these types of examples 
+	 * This is necessary for this class to manage customer prospect examples themselves,which 
+	 * will end up not otherwise being aggregated due to training data actually being the individual 
+	 * orders from each customer
+	 * @param validate whether data should be validated or not (to meet certain criteria for the SOM as training data)
+	 */
 	protected void buildExampleArrayEnd_Priv(boolean validate) {
 		if(validate) {
 			ArrayList<SOMExample> tmpList = new ArrayList<SOMExample>();
@@ -46,6 +52,9 @@ public class Straff_SOMCustPrspctPerOrderMapper extends Straff_SOMCustPrspctMapp
 			custProspectExamples = tmpList.toArray(new CustProspectExample[0]);
 		} 
 		else {	custProspectExamples = exampleMap.values().toArray(new CustProspectExample[0]);}		
-	}
+	}//buildExampleArrayEnd_Priv
+	
+	//return customer prospect example array 
+	public CustProspectExample[] getCustProspectExamples() {return custProspectExamples;}
 
 }//Straff_SOMCustPrspctPerOrderMapper

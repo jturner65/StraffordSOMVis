@@ -1,7 +1,6 @@
 package base_SOM_Objects;
 
 import java.io.*;
-import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -9,9 +8,7 @@ import base_SOM_Objects.som_examples.*;
 import base_SOM_Objects.som_fileIO.*;
 import base_SOM_Objects.som_ui.*;
 import base_SOM_Objects.som_utils.*;
-import base_SOM_Objects.som_vis.*;
-
-
+import base_SOM_Objects.som_utils.segments.*;
 import base_UI_Objects.*;
 import base_Utils_Objects.*;
 
@@ -36,9 +33,16 @@ public abstract class SOMMapManager {
 	protected TreeMap<Tuple<Integer,Integer>, SOMMapNode> MapNodes;	
 	//map of ftr idx and all map nodes that have non-zero presence in that ftr
 	protected TreeMap<Integer, HashSet<SOMMapNode>> MapNodesByFtrIDX;
+	//map nodes that have/don't have training examples
+	private ConcurrentSkipListMap<ExDataType, HashSet<SOMMapNode>> nodesWithEx, nodesWithNoEx;	
+	//array of per ftr idx treemaps of map nodes keyed by ftr weight
+	private TreeMap<Float,ArrayList<SOMMapNode>>[] PerFtrHiWtMapNodes;	
 	
-	//array of map clusters
-	public ArrayList<SOMMapSegment> segments;
+	//array of map clusters based in UMatrix Distance
+	public ArrayList<SOMMapSegment> UMatrixSegments;
+	//array of map clusters based on ftr distance
+	public ArrayList<SOMMapSegment> FtrWtSegments;
+	
 	//data values directly from the trained map, populated upon load
 	private float[] 
 			map_ftrsMean, 				
@@ -53,13 +57,12 @@ public abstract class SOMMapManager {
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	//data descriptions
 	//this map of mappers will manage the different kinds of data.  the instancing class should specify the keys for this map
-	protected ConcurrentSkipListMap<String, SOMExampleMapper> exampleDataMappers;
-	
+	protected ConcurrentSkipListMap<String, SOMExampleMapper> exampleDataMappers;	
 	
 	//full input data, data set to be training data and testing data (all of these examples 
 	//are potential -training- data, in that they have all features required of training data)
-	//testing data will be existing -customers- that will be matched against map - having these 
-	//is not going to be necessary for most cases since this is unsupervised
+	//testing data will be otherwise valid training data that will be matched against map - having these 
+	//is not going to be necessary for most cases since this is unsupervised, but can be used to measure consistency
 	protected SOMExample[] inputData;
 	protected SOMExample[] trainData;
 	protected SOMExample[] testData;	
@@ -69,15 +72,11 @@ public abstract class SOMMapManager {
 	public int numInputData, numTrainData, numTestData, numValidationData;
 	
 	//values to return scaled values to actual data points - multiply wts by diffsVals, add minsVals
-	//idx 0 is feature diffs/mins per jp (ftr idx); idx 1 is across all jps
+	//idx 0 is feature diffs/mins per (ftr idx); idx 1 is across all ftrs
 	private Float[][] diffsVals, minsVals;	
-	//# of training features (from "product" jp_jpg object); # of total jps seen (from "all" jp_jpg object)
+	//# of training features 
 	private int numTrnFtrs;
 	
-	private ConcurrentSkipListMap<ExDataType, HashSet<SOMMapNode>> nodesWithEx, nodesWithNoEx;	//map nodes that have/don't have training examples - for display only
-
-	//array of per jp treemaps of nodes keyed by jp weight
-	private TreeMap<Float,ArrayList<SOMMapNode>>[] PerFtrHiWtMapNodes;	
 	//////////////////////////////
 	//data in files created by SOM_MAP separated by spaces
 	public static final String SOM_FileToken = " ", csvFileToken = "\\s*,\\s*";	
@@ -98,12 +97,15 @@ public abstract class SOMMapManager {
 	//map dims is used to calculate distances for BMUs - based on screen dimensions - need to change this?
 	protected float[] mapDims;
 	//# of nodes in x/y
-	protected int mapNodeCols =0, mapNodeRows =0;
+	protected int mapNodeCols = 0, mapNodeRows = 0;
 	//# of nodes / map dim  in x/y
 	protected float nodeXPerPxl, nodeYPerPxl;
 	//threshold of u-dist for nodes to belong to same segment
-	protected static float nodeInSegDistThresh = .3f;
-	protected float mapMadeWithSegThresh = 0.0f;
+	protected static float nodeInSegUMatrixDistThresh = .3f;
+	protected float mapMadeWithUMatrixSegThresh = 0.0f;
+	//threshold for distance for ftr weight segment construction
+	protected static float nodeInSegFtrWtDistThresh = .01f;
+	protected float mapMadeWithFtrWtSegThresh = 0.0f;
 	
 	private int[] stFlags;						//state flags - bits in array holding relevant process info
 	private static final int
@@ -136,10 +138,6 @@ public abstract class SOMMapManager {
 		mapUIAPI = buildSOM_UI_Interface();
 		initFlags();		
 		//message object manages displaying to screen and potentially to log files - needs to be built first
-//		long mapMgrBuiltTime  = Instant.now().toEpochMilli();
-//		setMsgObj(new MessageObject(pa,mapMgrBuiltTime));
-//		//this is to make sure we always save the log file - this will be executed on shutdown, similar to code in a destructor in c++
-//		Runtime.getRuntime().addShutdownHook(new Thread() {public void run() {	if(msgObj==null) {return;}msgObj.dispInfoMessage("SOMMapManager", "ctor->Shutdown Hook", "Running msgObj finish log code");	msgObj.FinishLog();}});
 		setMsgObj(MessageObject.buildMe(pa));
 		
 		//build project configuration data object - this manages all file locations and other configuration options
@@ -341,22 +339,7 @@ public abstract class SOMMapManager {
 		msgObj.dispMessage("SOMMapManager","loadPreprocAndBuildTestTrainPartitions","Finished Loading all CSV example Data to train map.", MsgCodes.info5);
 	}//loadPreprocAndBuildTestTrainPartitions
 	
-	//load the data used to build a map as well as existing map results
-	//NOTE this may break if different data is used to build the map than the current data being loaded
-	public void loadPretrainedExistingMap() {
-		//load customer data into preproc  -this must be data used to build map
-		loadPreProcTrainData();
-		//for prebuilt map
-		projConfigData.setSOM_UsePreBuilt();	
-		//build data partitions - use partition size set via constants in debug
-		buildTestTrainFromPartition(projConfigData.getTrainTestPartition());	
-		msgObj.dispMultiLineInfoMessage("SOMMapManager","loadPretrainedExistingMap","Current projConfigData before dataLoader Call : " + projConfigData.toString());
-		//th_exec.execute(new SOMDataLoader(this,projConfigData));//fire and forget load task 
-		SOMDataLoader ldr = new SOMDataLoader(this,projConfigData);//fire and forget load task 
-		ldr.run();
-	}//dbgBuildExistingMap
-	
-	
+
 	//build new SOM_MAP map using UI-entered values, then load resultant data
 	//with maps of required SOM exe params
 	//TODO this will be changed to not pass values from UI, but rather to finalize and save values already set in SOM_MapDat object from UI or other user input
@@ -365,10 +348,10 @@ public abstract class SOMMapManager {
 		projConfigData.setSOM_MapArgs(mapInts, mapFloats, mapStrings);
 	}
 	
-	//this will load the map into memory, bmus, umatrix, etc - this is necessary to consume map
-	public void loadMapAndBMUs() {
-		msgObj.dispMessage("SOMMapManager","loadMapAndBMUs","Current projConfigData before dataLoader Call : " + projConfigData.toString(), MsgCodes.info1);
-		SOMDataLoader ldr = new SOMDataLoader(this,projConfigData);//fire and forget load task 
+	//this will load the map into memory, bmus, umatrix, etc - this is necessary to consume map - this is done synchronously (not launched into another thread)
+	public void loadMapAndBMUs_Synch() {
+		msgObj.dispMessage("SOMMapManager","loadMapAndBMUs_Synch","Current projConfigData before dataLoader Call : " + projConfigData.toString(), MsgCodes.info1);
+		SOMDataLoader ldr = new SOMDataLoader(this,projConfigData);//can be run in separate thread, but isn't here
 		ldr.run();		
 	}
 	
@@ -401,24 +384,31 @@ public abstract class SOMMapManager {
 		return success;
 	}
 	
-	//load currently specified map in config file, load preproc train data used to build map
-	//load specified prospects and products, and map them
-	public void loadMapProcAllData(Double prodZoneDistThresh) {
-		msgObj.dispMessage("SOMMapManager","loadMapProcAllData","Start loading Map and data to build proposals.", MsgCodes.info1);
+	//load the data used to build a map as well as existing map results
+	//NOTE this may break if different data is used to build the map than the current data being loaded
+	public void loadPretrainedExistingMap() {
 		//load preproc data used to train map - it is assumed this data is in default directory
-		msgObj.dispMessage("SOMMapManager","loadMapProcAllData","First load training data used to build map - it is assumed this data is in default preproc directory.", MsgCodes.info1);
+		msgObj.dispMessage("SOMMapManager","loadPretrainedExistingMap","First load training data used to build map - it is assumed this data is in default preproc directory.", MsgCodes.info1);
 		//load customer data into preproc  -this must be data used to build map
 		loadPreProcTrainData();
 		//for prebuilt map
 		projConfigData.setSOM_UsePreBuilt();	
 		//build data partitions - use partition size set via constants in debug
 		buildTestTrainFromPartition(projConfigData.getTrainTestPartition());	
-		msgObj.dispMessage("SOMMapManager","loadPretrainedExistingMap","Current projConfigData before dataLoader Call : " + projConfigData.toString(), MsgCodes.info3);
-		//don't execute in a thread, execute synchronously so we can use results
-		//th_exec.execute(new SOMDataLoader(this,projConfigData));//fire and forget load task 
-		SOMDataLoader ldr = new SOMDataLoader(this,projConfigData);//fire and forget load task 
-		ldr.run();
+		msgObj.dispMultiLineInfoMessage("SOMMapManager","loadPretrainedExistingMap","Current projConfigData before dataLoader Call : " + projConfigData.toString());
+		//don't execute in a thread, execute synchronously so we can use results immediately
+		loadMapAndBMUs_Synch();
 		msgObj.dispMessage("SOMMapManager","loadPretrainedExistingMap","Data loader finished loading map nodes and matching training data and products to BMUs." , MsgCodes.info3);
+	}//dbgBuildExistingMap
+
+	
+	//load currently specified map in config file, load preproc train data used to build map
+	//load specified prospects and products, and map them
+	public void loadMapProcAllData(Double prodZoneDistThresh) {
+		msgObj.dispMessage("SOMMapManager","loadMapProcAllData","Start loading Trained Map and data to build proposals.", MsgCodes.info1);
+		
+		loadPretrainedExistingMap();		
+		
 		//by here map is loaded and customers and products are mapped.  Now map prospects
 		loadMapProcAllData_Indiv(prodZoneDistThresh);
 		
@@ -491,25 +481,50 @@ public abstract class SOMMapManager {
 	public abstract void setMapExclZeroFtrs(boolean val);
 
 	//take existing map and use U-Matrix-distances to determine segment membership.Large distances > thresh (around .7) mean nodes are on a boundary
-	public void buildSegmentsOnMap() {//need to find closest
-		if (nodeInSegDistThresh == mapMadeWithSegThresh) {return;}
+	public final void buildUMatrixSegmentsOnMap() {//need to find closest
+		if (nodeInSegUMatrixDistThresh == mapMadeWithUMatrixSegThresh) {return;}
 		if ((MapNodes == null) || (MapNodes.size() == 0)) {return;}
-		msgObj.dispMessage("SOMMapManager","buildSegmentsOnMap","Started building cluster map", MsgCodes.info5);	
-		//clear existing segments
-		for (SOMMapNode ex : MapNodes.values()) {ex.clearSeg();}
-		segments = new ArrayList<SOMMapSegment>();
-		SOMMapSegment seg;
+		msgObj.dispMessage("SOMMapManager","buildSegmentsOnMap","Started building UMatrix Distance-based cluster map", MsgCodes.info5);	
+		//clear existing segments 
+		for (SOMMapNode ex : MapNodes.values()) {ex.clearUMatrixSeg();}
+		UMatrixSegments = new ArrayList<SOMMapSegment>();
+		SOM_UMatrixSegment seg;
 		for (SOMMapNode ex : MapNodes.values()) {
-			if(ex.shouldAddToSegment(nodeInSegDistThresh)) {
-				seg = new SOMMapSegment(this, nodeInSegDistThresh);
-				ex.addToSeg(seg);
-				segments.add(seg);
+			seg = new SOM_UMatrixSegment(this, nodeInSegUMatrixDistThresh);
+			if(seg.doesMapNodeBelongInSeg(ex)) {
+				seg.addMapNodeToSegment(ex, MapNodes);		//this does dfs
+				UMatrixSegments.add(seg);				
 			}
 		}		
-		mapMadeWithSegThresh = nodeInSegDistThresh;
-		if(win!=null) {win.setMapSegmentImgClrs();}
-		msgObj.dispMessage("SOMMapManager","buildSegmentsOnMap","Finished building cluster map", MsgCodes.info5);			
-	}//buildSegmentsOnMap()
+		mapMadeWithUMatrixSegThresh = nodeInSegUMatrixDistThresh;
+		if(win!=null) {win.setMapSegmentImgClrs_UMatrix();}
+		msgObj.dispMessage("SOMMapManager","buildSegmentsOnMap","Finished building UMatrix Distance-based cluster map", MsgCodes.info5);			
+	}//buildUMatrixSegmentsOnMap()
+	
+	//build feature-based segments on map - will overlap
+	public final void buildFtrWtSegmentsOnMap() {
+		if (nodeInSegFtrWtDistThresh == mapMadeWithFtrWtSegThresh) {return;}		
+		if ((MapNodes == null) || (MapNodes.size() == 0)) {return;}
+		msgObj.dispMessage("SOMMapManager","buildFtrWtSegmentsOnMap","Started building feature-weight-based cluster map", MsgCodes.info5);	
+		//clear existing segments 
+		for (SOMMapNode ex : MapNodes.values()) {ex.clearFtrWtSeg();}
+		//for every feature IDX, for every map node
+		SOM_FtrWtSegment ftrSeg;
+		FtrWtSegments = new ArrayList<SOMMapSegment>();
+		for(int ftrIdx = 0; ftrIdx<PerFtrHiWtMapNodes.length;++ftrIdx) {
+			//build 1 segment per ftr idx
+			ftrSeg = new SOM_FtrWtSegment(this, ftrIdx);
+			FtrWtSegments.add(ftrSeg);
+			for(SOMMapNode ex : MapNodes.values()) {
+				if(ftrSeg.doesMapNodeBelongInSeg(ex)) {					ftrSeg.addMapNodeToSegment(ex, MapNodes);		}//this does dfs to find neighbors who share feature value 	
+			}			
+		}
+		mapMadeWithFtrWtSegThresh = nodeInSegFtrWtDistThresh;
+		//if(win!=null) {win.setMapSegmentImgClrs_UMatrix();}
+		msgObj.dispMessage("SOMMapManager","buildFtrWtSegmentsOnMap","Finished building feature-weight-based cluster map", MsgCodes.info5);			
+	}//buildFtrWtSegmentsOnMap
+	
+	
 	
 	public abstract ISOM_DispMapExample buildTmpDataExampleFtrs(myPointf ptrLoc, TreeMap<Integer, Float> ftrs, float sens);
 	public abstract ISOM_DispMapExample buildTmpDataExampleDists(myPointf ptrLoc, float dist, float sens);
@@ -655,15 +670,15 @@ public abstract class SOMMapManager {
 		for (int i=0;i<PerFtrHiWtMapNodes.length; ++i) {PerFtrHiWtMapNodes[i] = new TreeMap<Float,ArrayList<SOMMapNode>>(new Comparator<Float>() { @Override public int compare(Float o1, Float o2) {   return o2.compareTo(o1);}});}
 	}//initPerFtrMapOfNodes	
 	
-	//put a map node in PerJPHiWtMapNodes per-jp array
+	//put a map node in PerFtrHiWtMapNodes per-ftr array
 	public void setMapNodeFtrStr(SOMMapNode mapNode) {
 		TreeMap<Integer, Float> stdFtrMap = mapNode.getCurrentFtrMap(SOMMapManager.useScaledDat);
-		for (Integer jpIDX : stdFtrMap.keySet()) {
-			Float ftrVal = stdFtrMap.get(jpIDX);
-			ArrayList<SOMMapNode> nodeList = PerFtrHiWtMapNodes[jpIDX].get(ftrVal);
+		for (Integer ftrIDX : stdFtrMap.keySet()) {
+			Float ftrVal = stdFtrMap.get(ftrIDX);
+			ArrayList<SOMMapNode> nodeList = PerFtrHiWtMapNodes[ftrIDX].get(ftrVal);
 			if (nodeList== null) {			nodeList = new ArrayList<SOMMapNode>();		}
 			nodeList.add(mapNode);
-			PerFtrHiWtMapNodes[jpIDX].put(ftrVal, nodeList);
+			PerFtrHiWtMapNodes[ftrIDX].put(ftrVal, nodeList);
 		}		
 	}//setMapNodeFtrStr
 		
@@ -880,18 +895,18 @@ public abstract class SOMMapManager {
 	}//getInterpUMatVal
 	
 	//synthesize umat value
-	public int getSegementColorAtPxl(float x, float y) {
+	public int getUMatrixSegementColorAtPxl(float x, float y) {
 		float xInterp = (x+mapNodeCols) %1, yInterp = (y+mapNodeRows) %1;
 		int xInt = (int) Math.floor(x+mapNodeCols)%mapNodeCols, yInt = (int) Math.floor(y+mapNodeRows)%mapNodeRows;		//assume torroidal map		
 		SOMMapNode ex = MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt));
 		try{
 			Float uMatVal = (ex.biCubicInterp_UMatrix(xInterp, yInterp));
-			return (uMatVal > nodeInSegDistThresh ? 0 : ex.getSegClrAsInt());
+			return (uMatVal > nodeInSegUMatrixDistThresh ? 0 : ex.getUMatrixSegClrAsInt());
 		} catch (Exception e){
 			msgObj.dispMessage("mySOMMapUIWin","getInterpFtrs","Exception triggered in mySOMMapUIWin::getInterpFtrs : \n"+e.toString() + "\n\tMessage : "+e.getMessage() , MsgCodes.error1);
 			return 0;
 		}
-	}
+	}//getUMatrixSegementColorAtPxl	
 	
 	//get treemap of features that interpolates between two maps of features
 	private TreeMap<Integer, Float> interpTreeMap(TreeMap<Integer, Float> a, TreeMap<Integer, Float> b, float t, float mult){
@@ -1027,17 +1042,36 @@ public abstract class SOMMapManager {
 		for(SOMMapNode node : MapNodes.values()){	node.drawMeUMatDist(pa);	}		
 		pa.popStyle();pa.popMatrix();
 	}//drawUMatrix
-	//draw boxes around each node representing segments these nodes belong to
-	public void drawSegments(my_procApplet pa) {
+	//draw boxes around each node representing UMatrix-distance-based segments these nodes belong to
+	public void drawUMatrixSegments(my_procApplet pa) {
 		pa.pushMatrix();pa.pushStyle();
-		for(SOMMapNode node : MapNodes.values()){	node.drawMeSegClr(pa);	}		
+		for(SOMMapNode node : MapNodes.values()){	node.drawMeUMatSegClr(pa);	}		
 		pa.popStyle();pa.popMatrix();
 	}//drawUMatrix
 	
-	public void drawAllNodesWted(my_procApplet pa, int curJPIdx) {//, int[] dpFillClr, int[] dpStkClr) {
+	//draw boxes around each node representing ftrwt-based segments that nodes belong to
+	public void drawFtrWtSegments(my_procApplet pa, float valThresh, int curFtrIdx) {
+		pa.pushMatrix();pa.pushStyle();
+		TreeMap<Float,ArrayList<SOMMapNode>> map = PerFtrHiWtMapNodes[curFtrIdx];
+		//map holds map nodes keyed by wt of nodes that actually have curFtrIdx presence
+		SortedMap<Float,ArrayList<SOMMapNode>> headMap = map.headMap(valThresh);
+		for(Float key : headMap.keySet()) {
+			ArrayList<SOMMapNode> ara = headMap.get(key);
+			for (SOMMapNode node : ara) {		node.drawMeFtrWtSegClr(pa, curFtrIdx, key);}
+		}		
+		pa.popStyle();pa.popMatrix();
+	}//drawFtrWtSegments
+	
+	//draw boxes around every node representing ftrwt-based segments that nodes belong to
+	public void drawAllFtrWtSegments(my_procApplet pa, float valThresh) {		
+		for(int curFtrIdx=0;curFtrIdx<PerFtrHiWtMapNodes.length;++curFtrIdx) {		drawFtrWtSegments(pa, valThresh, curFtrIdx);	}		
+	}//drawFtrWtSegments
+	
+	
+	public void drawAllNodesWted(my_procApplet pa, int curFtrIdx) {//, int[] dpFillClr, int[] dpStkClr) {
 		pa.pushMatrix();pa.pushStyle();
 		//pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
-		for(SOMMapNode node : MapNodes.values()){	node.drawMeSmallWt(pa,curJPIdx);	}
+		for(SOMMapNode node : MapNodes.values()){	node.drawMeSmallWt(pa,curFtrIdx);	}
 		pa.popStyle();pa.popMatrix();
 	} 
 		
@@ -1055,10 +1089,10 @@ public abstract class SOMMapManager {
 		pa.popStyle();pa.popMatrix();
 	} 
 	
-	public void drawNodesWithWt(my_procApplet pa, float valThresh, int curJPIdx) {//, int[] dpFillClr, int[] dpStkClr) {
+	public void drawNodesWithWt(my_procApplet pa, float valThresh, int curFtrIdx) {//, int[] dpFillClr, int[] dpStkClr) {
 		pa.pushMatrix();pa.pushStyle();
 		//pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
-		TreeMap<Float,ArrayList<SOMMapNode>> map = PerFtrHiWtMapNodes[curJPIdx];
+		TreeMap<Float,ArrayList<SOMMapNode>> map = PerFtrHiWtMapNodes[curFtrIdx];
 		SortedMap<Float,ArrayList<SOMMapNode>> headMap = map.headMap(valThresh);
 		for(Float key : headMap.keySet()) {
 			ArrayList<SOMMapNode> ara = headMap.get(key);
@@ -1147,45 +1181,57 @@ public abstract class SOMMapManager {
 	public float[] getMap_ftrsMean() {return map_ftrsMean;}			
 	public float[] getMap_ftrsVar() {return map_ftrsVar;}			
 	public float[] getMap_ftrsDiffs() {return map_ftrsDiffs;}			
-	public float[] getMap_ftrsMin() {return map_ftrsMin;}		
+	public float[] getMap_ftrsMin() {return map_ftrsMin;}
+	
+	//# of features used to train SOM
+	public int getNumTrainFtrs() {return numTrnFtrs;}
+	public void setNumTrainFtrs(int _numTrnFtrs) {numTrnFtrs = _numTrnFtrs;}
 	
 	//project config manages this information now
 	public Calendar getInstancedNow() { return projConfigData.getInstancedNow();}
 	
-	//set flag that SOM file loader is finished to false
-	public void setLoaderRtnFalse() {setFlag(loaderRtnIDX, false);}	
-	public static float getNodeInSegThresh() {return nodeInSegDistThresh;}
-	public static void setNodeInSegThresh(float _val) {nodeInSegDistThresh=_val;}	
+	//umatrix segment thresholds
+	public static float getNodeInUMatrixSegThresh() {return nodeInSegUMatrixDistThresh;}
+	public static void setNodeInUMatrixSegThresh(float _val) {nodeInSegUMatrixDistThresh=_val;}	
+	//ftr-wt segment thresholds
+	public static float getNodeInFtrWtSegThresh() {return nodeInSegFtrWtDistThresh;}
+	public static void setNodeInFtrWtSegThresh(float _val) {nodeInSegFtrWtDistThresh=_val;}	
+	
+	
 	//getter/setter/convenience funcs to check for whether mt capable, and to return # of usable threads (total host threads minus some reserved for processing)
-	public boolean isMTCapable() {return getFlag(isMTCapableIDX);}
 	public int getNumUsableThreads() {return numUsableThreads;}
 	public ExecutorService getTh_Exec() {return th_exec;}
-		
+	
+	//////////////
+	// private state flags
+	
+	public boolean isMTCapable() {return getFlag(isMTCapableIDX);}		
+	//set flag that SOM file loader is finished to false
+	public void setLoaderRtnFalse() {setFlag(loaderRtnIDX, false);}	
 	// use functions to easily access states
 	public void setIsDebug(boolean val) {setFlag(debugIDX, val);}
-	public boolean getIsDebug() {return getFlag(debugIDX);}
-	
+	public boolean getIsDebug() {return getFlag(debugIDX);}	
 	public void setMapDataIsLoaded(boolean val) {setFlag(mapDataLoadedIDX, val);}
 	public boolean getMapDataIsLoaded() {return getFlag(mapDataLoadedIDX);}	
 	public void setLoaderRTNSuccess(boolean val) {setFlag(loaderRtnIDX, val);}
 	public boolean getLoaderRTNSuccess() {return getFlag(loaderRtnIDX);}
 	public void setDenseTrainDataSaved(boolean val) {setFlag(denseTrainDataSavedIDX, val);}
 	public void setSparseTrainDataSaved(boolean val) {setFlag(sparseTrainDataSavedIDX, val);}
-	public void setCSVTestDataSaved(boolean val) {setFlag(testDataSavedIDX, val);}
-	
-	//# of features used to train SOM
-	public int getNumTrainFtrs() {return numTrnFtrs;}
-	public void setNumTrainFtrs(int _numTrnFtrs) {numTrnFtrs = _numTrnFtrs;}
-
+	public void setCSVTestDataSaved(boolean val) {setFlag(testDataSavedIDX, val);}	
 	//set all training/testing data save flags to val
 	public void setAllTrainDatSaveFlags(boolean val) {
 		setFlag(denseTrainDataSavedIDX, val);
 		setFlag(sparseTrainDataSavedIDX, val);
 		setFlag(testDataSavedIDX, val);		
-	}
+	}			
+	public boolean getTrainDataBMUsRdyToSave() {return getFlag(trainDataMappedIDX);}
+	public boolean getProdDataBMUsRdyToSave() {return getFlag(prodDataMappedIDX);}
+	public boolean getTestDataBMUsRdyToSave() {return (getFlag(testDataMappedIDX) || testData.length==0);}
+	public boolean getValidationDataBMUsRdyToSave() {return getFlag(validateDataMappedIDX);}
+	//call on load of bmus
+	public void setTrainDataBMUsRdyToSave(boolean val) {setFlag(trainDataMappedIDX,val);}
+	public void setProdDataBMUsRdyToSave(boolean val) {setFlag(prodDataMappedIDX, val);}
 	
-	//////////////
-	// private state flags
 	protected abstract int getNumFlags();
 	private void initFlags(){int _numFlags = getNumFlags(); stFlags = new int[1 + _numFlags/32]; for(int i = 0; i<_numFlags; ++i){setFlag(i,false);}}
 	private void setAllFlags(int[] idxs, boolean val) {for (int idx : idxs) {setFlag(idx, val);}}
@@ -1193,11 +1239,11 @@ public abstract class SOMMapManager {
 		int flIDX = idx/32, mask = 1<<(idx%32);
 		stFlags[flIDX] = (val ?  stFlags[flIDX] | mask : stFlags[flIDX] & ~mask);
 		switch (idx) {//special actions for each flag
-			case debugIDX : 				{break;}	
+			case debugIDX 				: {break;}	
 			case isMTCapableIDX : {						//whether or not the host architecture can support multiple execution threads
 				break;}
-			case mapDataLoadedIDX	: 		{break;}		
-			case loaderRtnIDX : {break;}
+			case mapDataLoadedIDX		: {break;}		
+			case loaderRtnIDX 			: {break;}
 			case denseTrainDataSavedIDX : {
 				if (val) {msgObj.dispMessage("SOMMapManager","setFlag","All "+ this.numTrainData +" Dense Training data saved to .lrn file", MsgCodes.info5);}
 				break;}				//all prospect examples saved as training data
@@ -1218,20 +1264,12 @@ public abstract class SOMMapManager {
 	public boolean getFlag(int idx){int bitLoc = 1<<(idx%32);return (stFlags[idx/32] & bitLoc) == bitLoc;}		
 	protected abstract void setFlag_Indiv(int idx, boolean val);	
 	
-	public boolean getTrainDataBMUsRdyToSave() {return getFlag(trainDataMappedIDX);}
-	public boolean getProdDataBMUsRdyToSave() {return getFlag(prodDataMappedIDX);}
-	public boolean getTestDataBMUsRdyToSave() {return (getFlag(testDataMappedIDX) || testData.length==0);}
-	public boolean getValidationDataBMUsRdyToSave() {return getFlag(validateDataMappedIDX);}
-	//call on load of bmus
-	public void setTrainDataBMUsRdyToSave(boolean val) {setFlag(trainDataMappedIDX,val);}
-	public void setProdDataBMUsRdyToSave(boolean val) {setFlag(prodDataMappedIDX, val);}
-	
 	//getter/setter/convenience funcs
 	public boolean mapCanBeTrained(int kVal) {
-		System.out.println("denseTrainDataSavedIDX : " + getFlag(denseTrainDataSavedIDX));
-		System.out.println("sparseTrainDataSavedIDX : " + getFlag(sparseTrainDataSavedIDX));
+		msgObj.dispMessage("SOMMapManager","mapCanBeTrained","denseTrainDataSavedIDX : " + getFlag(denseTrainDataSavedIDX), MsgCodes.info5);
+		msgObj.dispMessage("SOMMapManager","mapCanBeTrained","sparseTrainDataSavedIDX : " + getFlag(sparseTrainDataSavedIDX), MsgCodes.info5);
 		boolean val = ((kVal <= 1) && (getFlag(denseTrainDataSavedIDX)) || ((kVal == 2) && getFlag(sparseTrainDataSavedIDX)));
-		System.out.println("kVal : " + kVal + " | bool val : " + val);
+		msgObj.dispMessage("SOMMapManager","mapCanBeTrained","kVal : " + kVal + " | bool val : " + val, MsgCodes.info5);
 		
 		//eventually enable training map on existing files - save all file names, enable file names to be loaded and map built directly
 		return ((kVal <= 1) && (getFlag(denseTrainDataSavedIDX)) || ((kVal == 2) && getFlag(sparseTrainDataSavedIDX)));
@@ -1306,7 +1344,7 @@ public abstract class SOMMapManager {
 
 //manage a message stream from a launched external process - used to manage output from som training process
 class ProcConsoleMsgMgr implements Callable<Boolean> {
-	SOMMapManager mapMgr;
+	MessageObject msgObj;
 	final Process process;
 	BufferedReader rdr;
 	StringBuilder strbld;
@@ -1314,7 +1352,7 @@ class ProcConsoleMsgMgr implements Callable<Boolean> {
 	MsgCodes msgType;//for display of output
 	int iter = 0;
 	public ProcConsoleMsgMgr(SOMMapManager _mapMgr, final Process _process, Reader _in, String _type) {
-		mapMgr = _mapMgr;
+		msgObj = _mapMgr.getMsgObj();
 		process=_process;
 		rdr = new BufferedReader(_in); 
 		strbld = new StringBuilder();
@@ -1325,9 +1363,9 @@ class ProcConsoleMsgMgr implements Callable<Boolean> {
 	private String getStreamType(String rawStr) {	return (rawStr.toLowerCase().contains("time for epoch") ? "Input" : type);}
 	//access owning map manager's message display function if it exists, otherwise just print to console
 	private void  dispMessage(String str, MsgCodes useCode) {
-		if(mapMgr != null) {
+		if(msgObj != null) {
 			String typStr = getStreamType(str);			
-			mapMgr.getMsgObj().dispMessage("messageMgr","call ("+typStr+" Stream Handler)", str, useCode);}
+			msgObj.dispMessage("messageMgr","call ("+typStr+" Stream Handler)", str, useCode);}
 		else {				System.out.println(str);	}
 	}//msgObj.dispMessage
 	

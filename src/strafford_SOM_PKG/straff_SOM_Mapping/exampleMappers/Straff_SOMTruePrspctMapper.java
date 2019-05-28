@@ -27,15 +27,16 @@ public class Straff_SOMTruePrspctMapper extends Straff_SOMProspectMapper {
 	protected void validateAndAddEx(ArrayList<SOMExample> tmpList, SOMExample ex) {	tmpList.add(ex);		}
 	@Override
 	//add example from map to array without validation
-	protected SOMExample[] noValidateBuildExampleArray() {	return exampleMap.values().toArray(new SOMExample[0]);};	
+	protected SOMExample[] noValidateBuildExampleArray() {	return (TrueProspectExample[])(exampleMap.values().toArray(new TrueProspectExample[0]));};	
+	@Override
+	protected SOMExample[] castArray(ArrayList<SOMExample> tmpList) {	return (TrueProspectExample[])(tmpList.toArray(new TrueProspectExample[0]));}
 	@Override
 	//after example array has been built, and specific funcitonality for these types of examples
 	protected void buildExampleArrayEnd_Priv(boolean validate) {}
 	
 	@Override
 	//build either true prospect feature vectors
-	protected void buildFtrVec_Priv() {
-		jpJpgrpMon = ((Straff_SOMMapManager)mapMgr).jpJpgrpMon;
+	protected void buildStraffFtrVec_Priv() {
 		//reset calc analysis objects before building feature vectors to enable new analytic info to be aggregateds
 		((Straff_SOMMapManager)mapMgr).ftrCalcObj.resetCalcObjs(StraffWeightCalc.tpCalcObjIDX);
 		//call to buildFeatureVector for all examples
@@ -73,8 +74,5 @@ public class Straff_SOMTruePrspctMapper extends Straff_SOMProspectMapper {
 			}
 		}				
 	}//buildSTLoader
-
-	@Override
-	protected SOMExample[] castArray(ArrayList<SOMExample> tmpList) {	return (TrueProspectExample[])(tmpList.toArray(new TrueProspectExample[0]));}
 
 }//class Straff_SOMTruePrspctMapper

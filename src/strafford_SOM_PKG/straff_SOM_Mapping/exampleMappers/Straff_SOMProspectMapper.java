@@ -9,7 +9,7 @@ import base_Utils_Objects.MsgCodes;
 import strafford_SOM_PKG.straff_SOM_Mapping.*;
 
 /**
- * this mapper exists mainly to manage IO for customer and true prospects pre-procced data
+ * this mapper exists mainly to manage IO for customer and true prospects pre-procced data. 
  * @author john
  */
 
@@ -52,41 +52,42 @@ public abstract class Straff_SOMProspectMapper extends Straff_SOMExampleMapper {
 	
 	//save all pre-processed prospect data
 	@Override
-	public boolean saveAllPreProccedMapData() {
+	public final boolean saveAllPreProccedMapData() {
 		if ((null != exampleMap) && (exampleMap.size() > 0)) {
-			msgObj.dispMessage("StraffSOMMapManager","saveAllExampleMapData","Saving all "+exampleMap+" map data : " + exampleMap.size() + " examples to save.", MsgCodes.info5);
-			String[] saveDestFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(true, exampleMap+"MapSrcData");
+			msgObj.dispMessage("StraffSOMMapManager","saveAllExampleMapData","Saving all "+exampleName+" map data : " + exampleMap.size() + " examples to save.", MsgCodes.info5);
+			String[] saveDestFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(true, exampleName+"MapSrcData");
 			ArrayList<String> csvResTmp = new ArrayList<String>();		
 			int counter = 0;
 			SOMExample ex1 = exampleMap.get(exampleMap.firstKey());
 			String hdrStr = ex1.getRawDescColNamesForCSV();
 			csvResTmp.add( hdrStr);
 			int nameCounter = 0, numFiles = (1+((int)((exampleMap.size()-1)/preProcDatPartSz)));
-			msgObj.dispMessage("StraffSOMMapManager","saveAllExampleMapData","Start Building "+exampleMap+" String Array : " +nameCounter + " of "+numFiles+".", MsgCodes.info1);
+			msgObj.dispMessage("StraffSOMMapManager","saveAllExampleMapData","Start Building "+exampleName+" String Array : " +nameCounter + " of "+numFiles+".", MsgCodes.info1);
 			for (SOMExample ex : exampleMap.values()) {			
 				csvResTmp.add(ex.getRawDescrForCSV());
 				++counter;
 				if(counter % preProcDatPartSz ==0) {
 					String fileName = saveDestFNamePrefixAra[0]+"_"+nameCounter+".csv";
-					msgObj.dispMessage("StraffSOMMapManager","saveAllExampleMapData","Done Building "+exampleMap+" String Array : " +nameCounter + " of "+numFiles+".  Saving to file : "+fileName, MsgCodes.info1);
+					msgObj.dispMessage("StraffSOMMapManager","saveAllExampleMapData","Done Building "+exampleName+" String Array : " +nameCounter + " of "+numFiles+".  Saving to file : "+fileName, MsgCodes.info1);
 					//csvRes.add(csvResTmp); 
 					fileIO.saveStrings(fileName, csvResTmp);
 					csvResTmp = new ArrayList<String>();
 					csvResTmp.add( hdrStr);
 					counter = 0;
 					++nameCounter;
-					msgObj.dispMessage("StraffSOMMapManager","saveAllExampleMapData","Start Building "+exampleMap+" String Array : " +nameCounter + " of "+numFiles+".", MsgCodes.info1);
+					msgObj.dispMessage("StraffSOMMapManager","saveAllExampleMapData","Start Building "+exampleName+" String Array : " +nameCounter + " of "+numFiles+".", MsgCodes.info1);
 				}
 			}
+			//last array if has values
 			if(csvResTmp.size() > 1) {	
 				String fileName = saveDestFNamePrefixAra[0]+"_"+nameCounter+".csv";
-				msgObj.dispMessage("StraffSOMMapManager","saveAllExampleMapData","Done Building "+exampleMap+" String Array : " +nameCounter + " of "+numFiles+".  Saving to file : "+fileName, MsgCodes.info1);
+				msgObj.dispMessage("StraffSOMMapManager","saveAllExampleMapData","Done Building "+exampleName+" String Array : " +nameCounter + " of "+numFiles+".  Saving to file : "+fileName, MsgCodes.info1);
 				//csvRes.add(csvResTmp);
 				fileIO.saveStrings(fileName, csvResTmp);
 				csvResTmp = new ArrayList<String>();
 				++nameCounter;
 			}			
-			msgObj.dispMessage("StraffSOMMapManager","saveAllExampleMapData","Finished partitioning " + exampleMap.size()+ " "+exampleMap+" records into " + nameCounter + " "+exampleMap+" record files, each holding up to " + preProcDatPartSz + " records and saving to files.", MsgCodes.info1);
+			msgObj.dispMessage("StraffSOMMapManager","saveAllExampleMapData","Finished partitioning " + exampleMap.size()+ " "+exampleName+" records into " + nameCounter + " "+exampleName+" record files, each holding up to " + preProcDatPartSz + " records and saving to files.", MsgCodes.info1);
 			//save the data in a format file
 			String[] data = new String[] {"Number of file partitions for " + saveDestFNamePrefixAra[1] +" data : "+ nameCounter + "\n"};
 			fileIO.saveStrings(saveDestFNamePrefixAra[0]+"_format.csv", data);		

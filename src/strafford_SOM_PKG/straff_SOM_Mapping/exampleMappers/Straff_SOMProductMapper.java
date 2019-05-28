@@ -36,20 +36,20 @@ public class Straff_SOMProductMapper extends Straff_SOMExampleMapper {
 	protected SOMExample[] noValidateBuildExampleArray() {	return (ProductExample[])exampleMap.values().toArray(new ProductExample[0]);};	
 	@Override
 	protected SOMExample[] castArray(ArrayList<SOMExample> tmpList) {	return (ProductExample[])(tmpList.toArray(new ProductExample[0]));}
-
 	@Override
 	//after example array has been built, and specific funcitonality for these types of examples - nothing for products goes here
 	protected void buildExampleArrayEnd_Priv(boolean validate) {}
 	
-	//code to execute after examples have had ftr prepared, but before features are calculated
+	/**
+	 * code to execute after examples have had ftrs prepared - this calculates feature vectors
+	 */
 	@Override
-	protected void buildFtrVec_Priv() {
+	protected void buildStraffFtrVec_Priv() {
 		productsByJpg.clear();
 		productsByJp.clear();		
+		msgObj.dispMessage("Straff_SOMProductMapper","buildFtrVec_Priv","Jpmon is null : "+ (null==this.jpJpgrpMon),MsgCodes.info5);
 		for (SOMExample ex : exampleMap.values()) {		ex.buildFeatureVector();  }
 		//once product ftr vecs are built, add products to jp-keyed and jpg-keyed maps
-		jpJpgrpMon = ((Straff_SOMMapManager)mapMgr).jpJpgrpMon;
-		System.out.println("Jpmon is null : "+ (null==this.jpJpgrpMon));
 		for (SOMExample ex : exampleMap.values()) {		addProductToJPProductMaps(ex);	}
 		
 	}//buildFtrVec_Priv

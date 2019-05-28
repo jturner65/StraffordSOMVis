@@ -32,7 +32,7 @@ public class Cust_OneOrderTrainingExample extends CustProspectExample{
 		owner=_owner; 
 		//orderOnDateOcc = _order;
 		orderDate = _order.evntDate;
-		mostRecentOrderCounts =  _order.getOccurrenceCounts();
+		mostRecentOrderCounts = _order.getOccurrenceCounts();
 		buildOccStructFromDateEvents(navigableMap);
 	}//ctor
 	

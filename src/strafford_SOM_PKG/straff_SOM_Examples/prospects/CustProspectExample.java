@@ -223,6 +223,7 @@ public class CustProspectExample extends ProspectExample{
 		return res;		
 	}//check if JP exists, and where
 	
+	
 	//return boolean array describing this example's occurence structure
 	//idxs : 0==if in an order; 1==if in an opt, 2 == if is in link, 3==if in source event,4 if in any non-source event (denotes action by customer), 5 if in any event, including source, 
 	//needs to follow format of eventMapTypeKeys

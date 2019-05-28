@@ -26,9 +26,7 @@ public class DateEvent_OccurrenceData {
 	}
 	
 	//this will add an occurrence - a single jp-jpg occ and value is # of occurences at date for this jp and opt value/src type (ignored unless opt or source record)
-	public void addOcc(Tuple<Integer, Integer> _jpgJp, TreeMap<Integer, Integer> _occ) {	
-		occurrences.put(_jpgJp, _occ);
-	}
+	public void addOcc(Tuple<Integer, Integer> _jpgJp, TreeMap<Integer, Integer> _occ) {	occurrences.put(_jpgJp, _occ);}
 	
 	//total # of occurrences across all jpgjp keys at this date
 	public int getNumberOfOccurrences() {

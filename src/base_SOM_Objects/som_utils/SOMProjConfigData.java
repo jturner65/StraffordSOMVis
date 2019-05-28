@@ -582,8 +582,11 @@ public class SOMProjConfigData {
 	//these file names are specified above but may be modified/set via a config file in future
 	public String getFullCalcInfoFileName(){ return SOM_QualifiedConfigDir + configFileNames.get("calcWtFileName");}
 	public String getFullProdOutMapperInfoFileName(){ return SOM_QualifiedConfigDir + configFileNames.get("reqProdConfigFileName");}
-	//call this to set up debug map call - TODO replace this with just loading from a default config file
-	public void setSOM_UsePreBuilt() {		//TOOD replace this when saved file with appropriate format
+	
+	/**
+	 * this loads prebuilt map configurations
+	 */
+	public void setSOM_UsePreBuilt() {
 		//load map values from pre-trained map using this data - IGNORES VALUES SET IN UI	
 		//build file name to load
 		String configFileName = getDirNameAndBuild(subDirLocs.get("SOM_MapProc") + preBuiltMapDir, true) + expProjConfigFileName;
@@ -596,7 +599,7 @@ public class SOMProjConfigData {
 		//now load new map data and configure SOMMapManager obj to hold all appropriate data
 		mapMgr.setLoaderRtnFalse();
 		setAllFileNames();		
-	}//setSOM_UseDBGMap
+	}//setSOM_UsePreBuilt
 	
 	public String SOM_MapDat_ToString() {return SOMExeDat.toString();}
 	

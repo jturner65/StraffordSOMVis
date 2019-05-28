@@ -8,7 +8,8 @@ import base_SOM_Objects.som_utils.SOMProjConfigData;
 import base_Utils_Objects.*;
 
 /**
- * this class will manage data handling for all examples of a particular type.  
+ * this class will manage data handling for all examples of a particular type. 
+ * Instances of this class are owned by a map manager; 
  * @author john
  */
 public abstract class SOMExampleMapper {
@@ -32,9 +33,9 @@ public abstract class SOMExampleMapper {
 		dataIsLoadedIDX 		= 1,		//preprocessed data has been loaded
 		dataFtrsPreparedIDX 	= 2,		//loaded data features have been pre-procced
 		dataFtrsCalcedIDX 		= 3,		//features have been calced
-		dataPostFtrsBuiltIDX	= 4;		//post feature calc data has been calculated
-	
-	public static final int numFlags = 4;
+		dataPostFtrsBuiltIDX	= 4,		//post feature calc data has been calculated
+		exampleArrayBuiltIDX	= 5;		//array of examples to be used by SOM(potentially) built
+	public static final int numFlags = 6;
 	
 		//array of examples actually interacted with by SOM - will be a subset of examples, smaller due to some examples being "bad"
 	protected SOMExample[] SOMexampleArray;
@@ -62,12 +63,21 @@ public abstract class SOMExampleMapper {
 		//instance-specific code
 		reset_Priv();
 		//flag settings
-		setFlag(dataIsPreProccedIDX, false);
-		setFlag(dataIsLoadedIDX, false);
-		setFlag(dataFtrsPreparedIDX, false);
-		setFlag(dataFtrsCalcedIDX, false);		
+		clearDataStateFlags();
 	}//reset	
 	protected abstract void reset_Priv();
+	
+	/**
+	 * clear all flags related to data state - this is called on reset
+	 */
+	private void clearDataStateFlags() {
+		setFlag(dataIsPreProccedIDX, false); 
+		setFlag(dataIsLoadedIDX, false); 	
+		setFlag(dataFtrsPreparedIDX, false); 
+		setFlag(dataFtrsCalcedIDX, false); 	
+		setFlag(dataPostFtrsBuiltIDX, false);
+		setFlag(exampleArrayBuiltIDX, false);
+	}
 	
 	///////////////////////////////
 	// prepare and calc feature vectors
@@ -75,26 +85,24 @@ public abstract class SOMExampleMapper {
 	/**
 	 * pre-condition all examples to prepare for building feature vectors
 	 */	
-	public void finalizeAllExamples() {
+	public final void finalizeAllExamples() {
 		if(!getFlag(dataIsLoadedIDX)) {
-			msgObj.dispMessage("SOMExampleMapper::"+exampleName,"finalizeAllExamples","Unable to finalizeAllExamples " + exampleName+ " examples due to them not having been loaded.  Aborting.", MsgCodes.info1);
+			msgObj.dispMessage("SOMExampleMapper::"+exampleName,"finalizeAllExamples","Unable to finalizeAllExamples " + exampleName+ " examples due to them not having been loaded.  Aborting.", MsgCodes.warning1);
 			return;
 		}
 		msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildFtrVec","Begin finalizing all " +exampleMap.size()+ " " + exampleName+ " examples to prepare them for ftr calc.", MsgCodes.info1);
-
 		//finalize each example - this will aggregate all the jp's that are seen and prepare example for calculating ftr vector
 		for (SOMExample ex : exampleMap.values()) {			ex.finalizeBuildBeforeFtrCalc();		}	
 		setFlag(dataFtrsPreparedIDX, true);
-
 		msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildFtrVec","Finished finalizing all " +exampleMap.size()+ " " + exampleName+ " examples to prepare them for ftr calc.", MsgCodes.info1);
 	}//finalizeAllExamples()
 
 	/**
 	 * build feature vectors for all examples this object maps
 	 */
-	public void buildFtrVec() {
+	public final void buildFeatureVectors() {
 		if(!getFlag(dataFtrsPreparedIDX)) {
-			msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildFtrVec","Unable to build feature vectors for " + exampleName+ " examples due to them not having been finalized.  Aborting.", MsgCodes.info1);
+			msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildFtrVec","Unable to build feature vectors for " + exampleName+ " examples due to them not having been finalized.  Aborting.", MsgCodes.warning1);
 			return;
 		}
 		msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildFtrVec","Begin building feature vectors for " +exampleMap.size()+ " " + exampleName+ " examples.", MsgCodes.info1);
@@ -104,20 +112,21 @@ public abstract class SOMExampleMapper {
 		msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildFtrVec","Finished building feature vectors for " +exampleMap.size()+ " " + exampleName+ " examples.", MsgCodes.info1);
 		
 	}//buildFtrVec	
-	//code to execute after examples have had ftr prepared, but before features are calculated
+	/**
+	 * code to execute after examples have had ftrs prepared - this calculates feature vectors
+	 */
 	protected abstract void buildFtrVec_Priv();
 	
-	public void buildPostFtrVecStructs() {
+	public final void buildPostFtrVecStructs() {
 		if(!getFlag(dataFtrsCalcedIDX)) {
-			msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildPostFtrVecStructs","Unable to build Post-feature vector data for " + exampleName+ " examples due to them not having had features calculated.  Aborting.", MsgCodes.info1);
+			msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildPostFtrVecStructs","Unable to build Post-feature vector data for " + exampleName+ " examples due to them not having had features calculated.  Aborting.", MsgCodes.warning1);
 			return;
 		}
 		msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildPostFtrVecStructs","Begin building Post-feature vector data for " +exampleMap.size()+ " " + exampleName+ " examples.", MsgCodes.info1);
-		//instance-specific feature vector building
+		//instance-specific feature vector building - here primarily are the standardized feature vectors built
 		for (SOMExample ex : exampleMap.values()) {	ex.buildPostFeatureVectorStructs();}
 		setFlag(dataPostFtrsBuiltIDX, true);
-		msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildPostFtrVecStructs","Finished building Post-feature vectorr data for " +exampleMap.size()+ " " + exampleName+ " examples.", MsgCodes.info1);
-		
+		msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildPostFtrVecStructs","Finished building Post-feature vectorr data for " +exampleMap.size()+ " " + exampleName+ " examples.", MsgCodes.info1);		
 	}//buildFtrVec	
 		
 	/////////////////////////////////////////////
@@ -134,28 +143,47 @@ public abstract class SOMExampleMapper {
 	 * @param validate whether or not this data should be validated (guaranteed to be reasonable training data - only necessary for data that is going to be used to train)
 	 * @return
 	 */
-	public SOMExample[] buildExampleArray(boolean validate) {		
+	public final SOMExample[] buildExampleArray(boolean validate) {		
 		if(validate) {
 			ArrayList<SOMExample> tmpList = new ArrayList<SOMExample>();
-			for (String key : exampleMap.keySet()) {
-				//potentially different for every instancing class
-				validateAndAddEx(tmpList, exampleMap.get(key));
-			}			
-			SOMexampleArray = castArray(tmpList);//tmpList.toArray(new SOMExample[0]);
+			for (String key : exampleMap.keySet()) {			validateAndAddEx(tmpList, exampleMap.get(key));	}	//potentially different for every instancing class		
+			SOMexampleArray = castArray(tmpList);																	//every instancing class will manage different instancing classes of examples - this should provide arrays of the appropriate classes		
 		} 
-		else {	SOMexampleArray = noValidateBuildExampleArray();}//exampleMap.values().toArray(new SOMExample[0]);
+		else {	SOMexampleArray = noValidateBuildExampleArray();}													//every instancing class will manage different classes of examples - this provides array of appropriate class
+		buildExampleArrayEnd_Priv(validate);																		//any example-based functionality specific to instancing class to be performed after examples are built
 		numSOMExamples = SOMexampleArray.length;
+		setFlag(exampleArrayBuiltIDX, true);
 		return SOMexampleArray;
 	}//buildExampleArray		
+	/**
+	 * Validate and add preprocessed data example to list that is then used to consume these examples by SOM code.  
+	 * Some examples should be added only if they meet certain criteria (i.e. training data must meet certain criteria)
+	 * Many example types have no validation.
+	 * @param tmpList list to add data to 
+	 * @param ex specific example to add to list
+	 */
 	protected abstract void validateAndAddEx(ArrayList<SOMExample> tmpList, SOMExample ex);
+	/**
+	 * Provide array of appropriately cast examples for use as training/testing/validation data
+	 * @param tmpList
+	 * @return
+	 */
 	protected abstract SOMExample[] castArray(ArrayList<SOMExample> tmpList);
+	/**
+	 * Build example array without any validation process - just take existing example map and convert to appropriately cast array of examples
+	 * @return
+	 */
 	protected abstract SOMExample[] noValidateBuildExampleArray();
+	/**
+	 * Any instancing-class specific code to perform
+	 * @param validate whether data should be validated or not (to meet certain criteria for the SOM)
+	 */
 	protected abstract void buildExampleArrayEnd_Priv(boolean validate);
 
 	
 	////////////////////////////////
-	// add/remove examples	
-		//reset acts as initialize
+	// add/remove examples to map
+		//reset function acts as map initializer
 		//add an example, return old example if one existed
 	public final SOMExample addExampleToMap(String key, SOMExample ex) {return exampleMap.put(key, ex);	}
 		//remove an example by key
@@ -166,7 +194,7 @@ public abstract class SOMExampleMapper {
 	public final SOMExample getExample(String key) {return exampleMap.get(key);}
 		//return the entire example map
 	public final ConcurrentSkipListMap<String, SOMExample> getExampleMap(){return exampleMap;}
-	
+		//return set of keys in example map
 	public Set<String> getExampleKeySet(){return exampleMap.keySet();}
 	
 	
@@ -187,6 +215,7 @@ public abstract class SOMExampleMapper {
 			case dataFtrsPreparedIDX 	: {break;}	
 			case dataFtrsCalcedIDX 		: {break;}	
 			case dataPostFtrsBuiltIDX 	: {break;}
+			case exampleArrayBuiltIDX	: {break;}
 		}
 	}//setFlag
 	
@@ -194,6 +223,7 @@ public abstract class SOMExampleMapper {
 	public boolean isDataLoaded() {return getFlag(dataIsLoadedIDX);}
 	public boolean isDataFtrsPrepared() {return getFlag(dataFtrsPreparedIDX);}
 	public boolean isDataFtrsCalced() {return getFlag(dataFtrsCalcedIDX);}
+	public boolean isExampleArrayBuilt() {return getFlag(exampleArrayBuiltIDX);}
 	
 	public void setAllDataLoaded() {setFlag(dataIsLoadedIDX, true);}
 	public void setAllDataPreProcced() {setFlag(dataIsPreProccedIDX, true);}

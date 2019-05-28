@@ -116,43 +116,6 @@ public class MonitorJpJpgrp {
 		}
 	}//setJPDataFromProspectData
 
-	
-//	//this will set the current jp->jpg data maps based on passed customer and prospect data maps
-//	//When acquiring new data, this must be performed after all data is loaded, but before
-//	//the prospect data is finalized and actual map is built due to the data finalization 
-//	//requiring a knowledge of the entire dataset to build weights appropriately
-//	@SuppressWarnings("rawtypes")
-//	public void setJPDataFromExampleData(ConcurrentSkipListMap customerMap, ConcurrentSkipListMap prospectMap, ConcurrentSkipListMap<String, SOMExample> prdctMap) {
-//		initAllStructs();
-//		msgObj.dispMessage("MonitorJpJpgrp","setJPDataFromExampleData","State after init : " + this.toString(), MsgCodes.info1);
-//		
-//		//rebuild all jp->jpg mappings based on customer and prospect data
-//		HashSet<Tuple<Integer,Integer>>[] tmpSetJpsJpgs = new HashSet[typeOfJpStrs.length];
-//		for(int i=0;i<tmpSetJpsJpgs.length;++i) {	tmpSetJpsJpgs[i]= new HashSet<Tuple<Integer,Integer>>();}
-//		
-//		//using each individual class
-//		mapOfJPData.get(typeOfJpStrs[custExJpsIDX]).buildJpPresentMaps(customerMap, tmpSetJpsJpgs[custExJpsIDX], tmpSetJpsJpgs[allExJpsIDX]);
-//		mapOfJPData.get(typeOfJpStrs[prospectExJpsIDX]).buildJpPresentMaps(prospectMap, tmpSetJpsJpgs[prospectExJpsIDX], tmpSetJpsJpgs[allExJpsIDX]);		
-//		mapOfJPData.get(typeOfJpStrs[productExJpsIDX]).buildJpPresentMaps(prdctMap, tmpSetJpsJpgs[productExJpsIDX], tmpSetJpsJpgs[allExJpsIDX]);
-//		//now aggregate all data into "all data" object
-//		allJpJpgData.aggregateAllData(mapOfJPData);
-//		
-//		//by here all jps in all customer, true prospect and product data is known
-//		for(int key :typeOfJpIDXs) {	mapOfJPData.get(typeOfJpStrs[key]).finishBuildJPStructs(tmpSetJpsJpgs[key]);	}		
-//		//}
-//				
-//		msgObj.dispMessage("MonitorJpJpgrp","setJPDataFromExampleData","# customer records : " + customerMap.size() + " | # jps seen in customers : " + tmpSetJpsJpgs[custExJpsIDX].size(), MsgCodes.info1);
-//		msgObj.dispMessage("MonitorJpJpgrp","setJPDataFromExampleData","# prospect records : " + prospectMap.size() + " | # jps seen in prospects : " + tmpSetJpsJpgs[prospectExJpsIDX].size(), MsgCodes.info1);
-//		msgObj.dispMessage("MonitorJpJpgrp","setJPDataFromExampleData","# cust & prspct records : " + (customerMap.size() + prospectMap.size()) + " | # jps seen in customers and prospects : " + tmpSetJpsJpgs[allExJpsIDX].size(), MsgCodes.info1);
-//		msgObj.dispMessage("MonitorJpJpgrp","setJPDataFromExampleData","# product records : " + prdctMap.size() + " | # jps seen in products : " + tmpSetJpsJpgs[productExJpsIDX].size() + " | Total # jps seen in all customers, prospects and products : " + tmpSetJpsJpgs[custExJpsIDX].size(), MsgCodes.info1);
-//		setUI_MaxValsForFtrAndAllSeenJpJpg();
-//		for(int i=0;i<typeOfJpStrs.length;++i) {
-//			String key = typeOfJpStrs[i];
-//			numAllFtrTypes[i]=mapOfJPData.get(key).getNumFtrs();
-//			msgObj.dispMessage("MonitorJpJpgrp","setJPDataFromExampleData","# numFtrs seen in "+key+" examples : " + numAllFtrTypes[i], MsgCodes.info1);
-//		}
-//	}//setJPDataFromProspectData
-
 	//set this after "all" jp_jpg data object is built
 	private void setUI_MaxValsForFtrAndAllSeenJpJpg() {
 		mapMgr.setUI_JPFtrMaxVals(mapOfJPData.get(typeOfJpStrs[productExJpsIDX]).getLenJpGrpByIdx(),mapOfJPData.get(typeOfJpStrs[productExJpsIDX]).getLenJpByIdx()); 
@@ -212,6 +175,9 @@ public class MonitorJpJpgrp {
 	public int getLenFtrJpByIdx() {		return trainingJpJpgData.getLenJpByIdx();	}//# of jps seen in training data
 	public int getLenFtrJpGrpByIdx(){	return  trainingJpJpgData.getLenJpGrpByIdx(); }//# of jpgrps seen in training data
 	
+	public Integer[] getTrainJpByIDXAra() {return trainingJpJpgData.getJpByIDXAra();}
+	public Integer[] getTrainJpgrpByIDXAra() {return trainingJpJpgData.getJpgrpByIDXAra();}
+
 	
 	//get set of jps for passed jpgroup in prod data
 	public TreeSet<Integer> getProdJPsforSpecifiedJpgrp(int jpg){

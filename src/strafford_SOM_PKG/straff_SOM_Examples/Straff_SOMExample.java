@@ -82,6 +82,8 @@ public abstract class Straff_SOMExample extends SOMExample{
 		}
 	}//buildAllNonZeroFtrIDXs (was buildAllJPFtrIDXsJPs)
 	
+	public final HashSet<Integer> getAllProdJPs(){return allProdJPs;}
+	
 	@Override
 	//build a string describing what a particular feature value is
 	protected String dispFtrVal(TreeMap<Integer, Float> ftrs, Integer i) {
@@ -89,8 +91,6 @@ public abstract class Straff_SOMExample extends SOMExample{
 		int jp = jpJpgMon.getFtrJpByIdx(i);
 		return "jp : " + jp + " | idx : " + i + " | val : " + String.format("%1.4g",  ftr) + " || ";
 	}
-	
-	public final HashSet<Integer> getAllProdJPs(){return allProdJPs;}
 	
 	
 }//class StraffSOMExample

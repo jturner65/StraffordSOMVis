@@ -3,7 +3,7 @@ package base_SOM_Objects.som_examples;
 import java.util.*;
 
 import base_SOM_Objects.*;
-import base_SOM_Objects.som_vis.*;
+import base_SOM_Objects.som_utils.segments.*;
 import base_UI_Objects.*;
 import base_Utils_Objects.*;
 
@@ -21,8 +21,7 @@ public abstract class SOMMapNode extends SOMExample{
 	//set from u matrix built by somoclu - the similarity of this node to its neighbors
 	protected float uMatDist;
 	protected float[] dispBoxDims;		//box upper left corner x,y and box width,height
-	protected int[] uMatClr, segClr;
-	protected int segClrAsInt;
+	protected int[] uMatClr;
 	//array of arrays of row x col of neighbors to this node.  This node is 1,1 - this is for square map to use bicubic interpolation
 	//uses 1 higher because display is offset by 1/2 node in positive x, positive y (center of node square)
 	public Tuple<Integer,Integer>[][] neighborMapCoords;				
@@ -32,50 +31,58 @@ public abstract class SOMMapNode extends SOMExample{
 	public double[][] neighborSqDistVals;
 	
 	private Integer[] nonZeroIDXs;
-	//owning segment for this map node
-	private SOMMapSegment seg; 
+	
+	//segment membership manager for UMatrix-based segments
+	private SOM_MapNodeSegmentData uMatrixSegData;
+	
+	//segment membership manager of ftr-index-based segments - will have 1 per ftr with non-zero wt
+	//keyed by non-zero ftr index
+	private TreeMap<Integer, SOM_MapNodeSegmentData> ftrWtSegData;
 	
 	//build a map node from a float array of ftrs
-	public SOMMapNode(SOMMapManager _map, Tuple<Integer,Integer> _mapNode, float[] _ftrs) {
-		super(_map, ExDataType.MapNode,"Node_"+_mapNode.x+"_"+_mapNode.y);
+	public SOMMapNode(SOMMapManager _map, Tuple<Integer,Integer> _mapNodeLoc, float[] _ftrs) {
+		super(_map, ExDataType.MapNode,"Node_"+_mapNodeLoc.x+"_"+_mapNodeLoc.y);
 		if(_ftrs.length != 0){	setFtrsFromFloatAra(_ftrs);	}
-		initMapNode( _mapNode);		
+		initMapNode( _mapNodeLoc);		
 	}
 	
 	//build a map node from a string array of features
-	public SOMMapNode(SOMMapManager _map,Tuple<Integer,Integer> _mapNode, String[] _strftrs) {
-		super(_map, ExDataType.MapNode, "Node_"+_mapNode.x+"_"+_mapNode.y);
+	public SOMMapNode(SOMMapManager _map,Tuple<Integer,Integer> _mapNodeLoc, String[] _strftrs) {
+		super(_map, ExDataType.MapNode, "Node_"+_mapNodeLoc.x+"_"+_mapNodeLoc.y);
 		if(_strftrs.length != 0){	
 			float[] _tmpFtrs = new float[_strftrs.length];		
 			for (int i=0;i<_strftrs.length; ++i) {		_tmpFtrs[i] = Float.parseFloat(_strftrs[i]);	}
 			setFtrsFromFloatAra(_tmpFtrs);	
 		}
-		initMapNode( _mapNode);
+		initMapNode( _mapNodeLoc);
 	}
 	//build feature vector from passed feature array
 	private void setFtrsFromFloatAra(float[] _ftrs) {
 		ftrMaps[ftrMapTypeKey].clear();
-		ArrayList<Integer> nonZeroIDXList = new ArrayList<Integer>();
+		//ArrayList<Integer> nonZeroIDXList = new ArrayList<Integer>();
 		float ftrVecSqMag = 0.0f;
 		for(int i = 0; i < _ftrs.length; ++i) {	
 			Float val =  _ftrs[i];
 			if (val > ftrThresh) {
 				ftrVecSqMag+=val*val;
 				ftrMaps[ftrMapTypeKey].put(i, val);
-				nonZeroIDXList.add(i);
+				//nonZeroIDXList.add(i);
 			}
 		}
 		//called after features are built because that's when we have all jp's for this example determined
 		ftrVecMag = (float) Math.sqrt(ftrVecSqMag);		
-		nonZeroIDXs = nonZeroIDXList.toArray(new Integer[0]);
+		nonZeroIDXs = ftrMaps[ftrMapTypeKey].keySet().toArray(new Integer[0]);//	nonZeroIDXList.toArray(new Integer[0]);
 		setFlag(ftrsBuiltIDX, true);
 		//buildNormFtrData();		
 	}//setFtrsFromFloatAra
 	
-	public Integer[] getNonZeroIDXs() {return nonZeroIDXs;}
+	public final Integer[] getNonZeroIDXs() {return nonZeroIDXs;}
 	
-	//this will map feature values to some representation of the underlying feature description - this is specific to undelrying data
-	//and should be called from instance class ctor
+	/**
+	 * this will map feature values to some representation of the underlying feature 
+	 * description - this is specific to underlying data and must be called from instance 
+	 * class ctor
+	 */
 	protected abstract void _initDataFtrMappings();
 	
 	private void initMapNode(Tuple<Integer,Integer> _mapNode){
@@ -88,38 +95,48 @@ public abstract class SOMMapNode extends SOMExample{
 		uMatClr = new int[3];
 		BMUExampleNodes = new SOMMapNodeBMUExamples[ExDataType.getNumVals()];
 		for(int i=0;i<BMUExampleNodes.length;++i) {	BMUExampleNodes[i] = new SOMMapNodeBMUExamples(this);	}
-		clearSeg();
+		uMatrixSegData = new SOM_MapNodeSegmentData(this, this.OID+"_UMatrixData", "UMatrix Distance");
+		ftrWtSegData = new TreeMap<Integer, SOM_MapNodeSegmentData>();
+		for(Integer idx : ftrMaps[ftrMapTypeKey].keySet()) {
+			//build feature weight segment data object for every non-zero weight present in this map node - this should NEVER CHANGE without reconstructing map nodes
+			ftrWtSegData.put(idx, new SOM_MapNodeSegmentData(this, this.OID+"_FtrWtData_IDX_"+idx, "Feature Weight For Ftr IDX :"+idx));
+		}
 	}//initMapNode
 	
-	public void clearSeg() {		seg = null;segClr = new int[4]; segClrAsInt = 0x0;}	
-	//add this node to a segment, and its neighbors - must be done after neighbors are found
-	public void addToSeg(SOMMapSegment _seg) {
-		seg=_seg;
-		seg.addNode(this);
-		segClr = seg.getSegClr();
-		segClrAsInt = seg.getSegClrAsInt();
-		TreeMap<Tuple<Integer,Integer>, SOMMapNode> mapNodes = mapMgr.getMapNodes();
-		int row = 1, col = 1;//1,1 is this node for neighbor hood
-		SOMMapNode ex = mapNodes.get(neighborMapCoords[row][col+1]);
-		if(ex.shouldAddToSegment(seg.thresh)) {ex.addToSeg(seg);}
-		ex = mapNodes.get(neighborMapCoords[row][col-1]);
-		if(ex.shouldAddToSegment(seg.thresh)) {ex.addToSeg(seg);}
-		ex = mapNodes.get(neighborMapCoords[row+1][col]);
-		if(ex.shouldAddToSegment(seg.thresh)) {ex.addToSeg(seg);}
-		ex = mapNodes.get(neighborMapCoords[row-1][col]);
-		if(ex.shouldAddToSegment(seg.thresh)) {ex.addToSeg(seg);}
-		
-	}//	addToSeg
+	///////////////////
+	// ftr-wt based segment data
 	
-	//called by neighbor map node to see if this node should be added to segment
-	public boolean shouldAddToSegment(float _thresh) {return (seg==null) && (uMatDist < _thresh);}	//TODO this needs to be modified - segments need to be based purely on inter-node distance
-	public SOMMapSegment getSegment() {return seg;}
-	public int getSegClrAsInt() {return segClrAsInt;}
+	public final void clearFtrWtSeg() {	for(Integer idx : ftrWtSegData.keySet()) {ftrWtSegData.get(idx).clearSeg();	}	}
+	public final void setFtrWtSeg(Integer idx, SOM_FtrWtSegment _ftrWtSeg) {ftrWtSegData.get(idx).setSeg(_ftrWtSeg);}		//should always exist - if doesn't is bug, so no checking to expose bug
+	
+	public final SOMMapSegment getFtrWtSegment(Integer idx) {
+		SOM_MapNodeSegmentData ftrWtMgrAtIdx = ftrWtSegData.get(idx);
+		if(null==ftrWtMgrAtIdx) {return null;}			//does not have weight at this feature index
+		return ftrWtMgrAtIdx.getSegment();
+	}
+	public final int getFtrWtSegClrAsInt(Integer idx) {
+		SOM_MapNodeSegmentData ftrWtMgrAtIdx = ftrWtSegData.get(idx);
+		if(null==ftrWtMgrAtIdx) {return 0;}			//does not have weight at this feature index	
+		return ftrWtMgrAtIdx.getSegClrAsInt();
+	}	
+	
+	////////////////////
+	// u matrix segment data
+	//provides default values for colors if no segument is defined
+	public final void clearUMatrixSeg() {		uMatrixSegData.clearSeg();}	
+	//called by segment itself
+	public final void setUMatrixSeg(SOM_UMatrixSegment _uMatrixSeg) {	uMatrixSegData.setSeg(_uMatrixSeg);	}
+
+	public final SOMMapSegment getUMatrixSegment() {return  uMatrixSegData.getSegment();}
+	public final int getUMatrixSegClrAsInt() {return uMatrixSegData.getSegClrAsInt();}
 	
 	//UMatrix distance as calculated by SOM Executable
-	public void setUMatDist(float _d) {uMatDist = (_d < 0 ? 0.0f : _d > 1.0f ? 1.0f : _d); int clr=(int) (255*uMatDist); uMatClr = new int[] {clr,clr,clr};}
-	public float getUMatDist() {return uMatDist;}	
-
+	public final void setUMatDist(float _d) {uMatDist = (_d < 0 ? 0.0f : _d > 1.0f ? 1.0f : _d); int clr=(int) (255*uMatDist); uMatClr = new int[] {clr,clr,clr};}
+	public final float getUMatDist() {return uMatDist;}	
+	
+	
+	//////////////////////////////
+	// neighborhood construction and calculations
 	//initialize 4-neighbor node neighborhood - grid of adjacent 4x4 nodes
 	//this is for individual visualization calculations - 
 	//1 node lesser and 2 nodes greater than this node, with location in question being > this node's location
@@ -137,7 +154,7 @@ public abstract class SOMMapNode extends SOMExample{
 	}//initNeighborMap()
 	
 	//build a structure to hold the SQ L2 distance between this map node and its neighbor map nodes
-	public void buildMapNodeNeighborSqDistVals() {//only build immediate neighborhood
+	public final void buildMapNodeNeighborSqDistVals() {//only build immediate neighborhood
 		neighborSqDistVals = new double[3][];
 		TreeMap<Tuple<Integer,Integer>, SOMMapNode> mapNodes = mapMgr.getMapNodes();
 		for(int row=0;row<neighborSqDistVals.length;++row) {			
@@ -149,7 +166,7 @@ public abstract class SOMMapNode extends SOMExample{
 	}//buildMapNodeNeighborSqDistVals
 	
 	//2d array of all umatrix weights and L2 Distances for neighors of this node, for bi-cubic interp
-	public void buildMapNodeNeighborUMatrixVals() {
+	public final void buildMapNodeNeighborUMatrixVals() {
 		neighborUMatWts = new float[neighborMapCoords.length][];				
 		TreeMap<Tuple<Integer,Integer>, SOMMapNode> mapNodes = mapMgr.getMapNodes();
 		for(int row=0;row<neighborUMatWts.length;++row) {
@@ -171,15 +188,17 @@ public abstract class SOMMapNode extends SOMExample{
 	
 	//////////////////////////////////
 	// interpolation for UMatrix dists
+	//return bicubic interpolation of each neighbor's UMatWt 
+	public final float biCubicInterp_UMatrix(float tx, float ty) {	return _biCubicInterpFrom2DArray(neighborUMatWts, tx, ty);	}//biCubicInterp_UMatrix
+	
 	//cubic formula in 1 dim
 	private float findCubicVal(float[] p, float t) { 	return p[1]+0.5f*t*(p[2]-p[0] + t*(2.0f*p[0]-5.0f*p[1]+4.0f*p[2]-p[3] + t*(3.0f*(p[1]-p[2])+p[3]-p[0]))); }
-	//return bicubic interpolation of each neighbor's UMatWt 
-	public float biCubicInterp_UMatrix(float tx, float ty) {
-		float [] aAra = new float[neighborUMatWts.length];
-		for (int row=0;row<neighborUMatWts.length;++row) {aAra[row]=findCubicVal(neighborUMatWts[row], tx);}
+	private float _biCubicInterpFrom2DArray(float[][] wtMat, float tx, float ty) {
+		float [] aAra = new float[wtMat.length];
+		for (int row=0;row<wtMat.length;++row) {aAra[row]=findCubicVal(wtMat[row], tx);}
 		float val = findCubicVal(aAra, ty);
-		return ((val <= 0.0f) ? 0.0f : (val >= 1.0f) ? 1.0f : val);
-	}//biCubicInterp_UMatrix
+		return ((val <= 0.0f) ? 0.0f : (val >= 1.0f) ? 1.0f : val);		
+	}//_biCubicInterpFrom2DArray
 	
 	//map nodes are never going to be training examples
 	@Override
@@ -248,6 +267,8 @@ public abstract class SOMMapNode extends SOMExample{
 	//return string array of descriptions for the requested kind of examples mapped to this node
 	public String[] getAllExampleDescs(int _typeIDX) {return BMUExampleNodes[_typeIDX].getAllExampleDescs();}
 	
+	public float[] getDispBoxDims() {return dispBoxDims;}
+	
 	//////////////////////////
 	// draw routines
 	
@@ -270,10 +291,19 @@ public abstract class SOMMapNode extends SOMExample{
 		p.show(mapLoc, wt, (int)wt+1, nodeClrs,  disp); 
 		p.popStyle();p.popMatrix();		
 	}//drawMeWithWt
+
+	//draw segment contribution
+	public void drawMeUMatSegClr(my_procApplet p){uMatrixSegData.drawMe(p);}
+	
+	//draw ftr weight segment contribution - use std ftr as alpha
+	public void drawMeFtrWtSegClr(my_procApplet p, Integer idx, float wt) {
+		SOM_MapNodeSegmentData ftrWtMgrAtIdx = ftrWtSegData.get(idx);
+		if(null==ftrWtMgrAtIdx) {return;}			//does not have weight at this feature index
+		ftrWtMgrAtIdx.drawMe(p,(int) (255*wt));
+	}//drawMeFtrWtSegClr
 	
 	//draw a box around this node of uMatD color
 	public void drawMeUMatDist(my_procApplet p){drawMeClrRect(p,uMatClr, 255);}
-	public void drawMeSegClr(my_procApplet p){drawMeClrRect(p,segClr, segClr[3]);}
 	public void drawMeProdBoxClr(my_procApplet p, int[] clr) {drawMeClrRect(p,clr, clr[3]);}
 	//clr is 3 vals
 	private void drawMeClrRect(my_procApplet p, int[] fclr, int alpha) {

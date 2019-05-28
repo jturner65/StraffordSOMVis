@@ -280,6 +280,8 @@ public class ProductExample extends Straff_SOMExample{
 			this.ftrVecMag = (float) Math.sqrt(ttlVal);
 		}
 	}//buildFeaturesMap
+	
+
 //	/**
 //	 * this function is not relevant for product example
 //	 * @param _MapNodesByFtr
