@@ -34,6 +34,7 @@ public abstract class SOMMapSegment {
 	
 	//called internally by instancing class
 	protected void addMapNode(SOMMapNode _node) {	MapNodes.put(_node.mapNodeCoord, _node);}	
+	public final Collection<SOMMapNode> getAllMapNodes(){return MapNodes.values();}
 	
 	public void clearMapNodes() {MapNodes.clear();}
 	

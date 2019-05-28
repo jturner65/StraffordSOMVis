@@ -7,6 +7,7 @@ import base_SOM_Objects.som_examples.*;
 import base_SOM_Objects.som_utils.segments.SOMMapSegment;
 import base_SOM_Objects.som_utils.segments.SOM_FtrWtSegment;
 import base_SOM_Objects.som_utils.segments.SOM_MapNodeSegmentData;
+import base_UI_Objects.my_procApplet;
 import base_Utils_Objects.*;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.CustProspectExample;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
@@ -207,6 +208,21 @@ public class Straff_SOMMapNode extends SOMMapNode{
 		buildCompFtrVector(0.0f);
 		setFlag(stdFtrsBuiltIDX,true);
 	}//buildStdFtrsMap_MapNode
+	
+	//draw ftr weight segment contribution - use std ftr as alpha
+	public void drawMeOrderJpSegClr(my_procApplet p, Integer jp) {
+		SOM_MapNodeSegmentData jpOrderMgrAtIdx = jp_SegData.get(jp);
+		if(null==jpOrderMgrAtIdx) {return;}			//does not have jp orders at this jp
+		jpOrderMgrAtIdx.drawMe(p,(int) (255*jp_SegDataRatio.get(jp)));
+	}//drawMeFtrWtSegClr
+	
+	//draw ftr weight segment contribution - use std ftr as alpha
+	public void drawMeOrderJpGroupSegClr(my_procApplet p, Integer jpGroup) {
+		SOM_MapNodeSegmentData jpGrpOrderMgrAtIdx = jpGroup_SegData.get(jpGroup);
+		if(null==jpGrpOrderMgrAtIdx) {return;}			//does not have jpgroup orders are this jpgroup
+		jpGrpOrderMgrAtIdx.drawMe(p,(int) (255*jpGroup_SegDataRatio.get(jpGroup)));
+	}//drawMeFtrWtSegClr
+
 
 	//by here ftrs for this map node have been built
 	@Override

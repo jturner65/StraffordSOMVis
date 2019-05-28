@@ -293,10 +293,10 @@ public abstract class SOMMapNode extends SOMExample{
 	}//drawMeWithWt
 
 	//draw segment contribution
-	public void drawMeUMatSegClr(my_procApplet p){uMatrixSegData.drawMe(p);}
+	public final void drawMeUMatSegClr(my_procApplet p){uMatrixSegData.drawMe(p);}
 	
 	//draw ftr weight segment contribution - use std ftr as alpha
-	public void drawMeFtrWtSegClr(my_procApplet p, Integer idx, float wt) {
+	public final void drawMeFtrWtSegClr(my_procApplet p, Integer idx, float wt) {
 		SOM_MapNodeSegmentData ftrWtMgrAtIdx = ftrWtSegData.get(idx);
 		if(null==ftrWtMgrAtIdx) {return;}			//does not have weight at this feature index
 		ftrWtMgrAtIdx.drawMe(p,(int) (255*wt));

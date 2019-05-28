@@ -1037,20 +1037,20 @@ public abstract class SOMMapManager {
 	}//drawTruPrspctData
 	
 	//draw boxes around each node representing umtrx values derived in SOM code - deprecated, now drawing image
-	public void drawUMatrixVals(my_procApplet pa) {
+	public final void drawUMatrixVals(my_procApplet pa) {
 		pa.pushMatrix();pa.pushStyle();
 		for(SOMMapNode node : MapNodes.values()){	node.drawMeUMatDist(pa);	}		
 		pa.popStyle();pa.popMatrix();
 	}//drawUMatrix
 	//draw boxes around each node representing UMatrix-distance-based segments these nodes belong to
-	public void drawUMatrixSegments(my_procApplet pa) {
+	public final void drawUMatrixSegments(my_procApplet pa) {
 		pa.pushMatrix();pa.pushStyle();
 		for(SOMMapNode node : MapNodes.values()){	node.drawMeUMatSegClr(pa);	}		
 		pa.popStyle();pa.popMatrix();
 	}//drawUMatrix
 	
 	//draw boxes around each node representing ftrwt-based segments that nodes belong to
-	public void drawFtrWtSegments(my_procApplet pa, float valThresh, int curFtrIdx) {
+	public final void drawFtrWtSegments(my_procApplet pa, float valThresh, int curFtrIdx) {
 		pa.pushMatrix();pa.pushStyle();
 		TreeMap<Float,ArrayList<SOMMapNode>> map = PerFtrHiWtMapNodes[curFtrIdx];
 		//map holds map nodes keyed by wt of nodes that actually have curFtrIdx presence
@@ -1063,12 +1063,12 @@ public abstract class SOMMapManager {
 	}//drawFtrWtSegments
 	
 	//draw boxes around every node representing ftrwt-based segments that nodes belong to
-	public void drawAllFtrWtSegments(my_procApplet pa, float valThresh) {		
+	public final void drawAllFtrWtSegments(my_procApplet pa, float valThresh) {		
 		for(int curFtrIdx=0;curFtrIdx<PerFtrHiWtMapNodes.length;++curFtrIdx) {		drawFtrWtSegments(pa, valThresh, curFtrIdx);	}		
 	}//drawFtrWtSegments
 	
 	
-	public void drawAllNodesWted(my_procApplet pa, int curFtrIdx) {//, int[] dpFillClr, int[] dpStkClr) {
+	public final void drawAllNodesWted(my_procApplet pa, int curFtrIdx) {//, int[] dpFillClr, int[] dpStkClr) {
 		pa.pushMatrix();pa.pushStyle();
 		//pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
 		for(SOMMapNode node : MapNodes.values()){	node.drawMeSmallWt(pa,curFtrIdx);	}

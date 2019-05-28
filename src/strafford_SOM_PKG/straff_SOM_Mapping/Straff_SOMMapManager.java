@@ -62,7 +62,10 @@ public class Straff_SOMMapManager extends SOMMapManager {
 	public TreeMap<Integer, SOMMapSegment> JP_Segments;
 	//map of jpgroup to segment
 	public TreeMap<Integer, SOMMapSegment> JPGroup_Segments;
-
+	//map with key being jp and with value being collection of map nodes with ORDER presence in that jp
+	public TreeMap<Integer,Collection<SOMMapNode>> MapNodesWithOrderJPs;
+	//map with key being jpgroup and with value being collection of map nodes with ORDER presence in that jpgroup
+	public TreeMap<Integer,Collection<SOMMapNode>> MapNodesWithOrderJPGroups;
 	
 	//map of jpgroup idx and all map nodes that have non-zero presence in features(jps) that belong to that jpgroup
 	protected TreeMap<Integer, HashSet<SOMMapNode>> MapNodesByJPGroupIDX;
@@ -457,6 +460,7 @@ public class Straff_SOMMapManager extends SOMMapManager {
 		//clear existing segments 
 		for (SOMMapNode ex : MapNodes.values()) {((Straff_SOMMapNode) ex).clearJpSeg();}
 		JP_Segments = new TreeMap<Integer, SOMMapSegment>();
+		MapNodesWithOrderJPs = new TreeMap<Integer, Collection<SOMMapNode>>();
 		Straff_JPOrderSegement jpSeg;
 		Integer[] allTrainJPs = jpJpgrpMon.getTrainJpByIDXAra();
 		
@@ -467,7 +471,8 @@ public class Straff_SOMMapManager extends SOMMapManager {
 			JP_Segments.put(jp,jpSeg);
 			for(SOMMapNode ex : MapNodes.values()) {
 				if(jpSeg.doesMapNodeBelongInSeg(ex)) {					jpSeg.addMapNodeToSegment(ex, MapNodes);		}//this does dfs to find neighbors who share feature value 	
-			}			
+			}
+			MapNodesWithOrderJPs.put(jp, jpSeg.getAllMapNodes());
 		}
 		
 		getMsgObj().dispMessage("SOMMapManager","buildJpSegmentsOnMap","Finished building Order JP-Segment-based cluster map", MsgCodes.info5);			
@@ -480,6 +485,7 @@ public class Straff_SOMMapManager extends SOMMapManager {
 		//clear existing segments 
 		for (SOMMapNode ex : MapNodes.values()) {((Straff_SOMMapNode) ex).clearJpGroupSeg();}
 		JPGroup_Segments = new TreeMap<Integer, SOMMapSegment>();
+		MapNodesWithOrderJPGroups = new TreeMap<Integer, Collection<SOMMapNode>>();
 		Straff_JPGroupOrderSegment jpgSeg;
 		Integer[] allTrainJPGroupss = this.jpJpgrpMon.getTrainJpgrpByIDXAra();
 		
@@ -490,7 +496,8 @@ public class Straff_SOMMapManager extends SOMMapManager {
 			JPGroup_Segments.put(jpg,jpgSeg);
 			for(SOMMapNode ex : MapNodes.values()) {
 				if(jpgSeg.doesMapNodeBelongInSeg(ex)) {					jpgSeg.addMapNodeToSegment(ex, MapNodes);		}//this does dfs to find neighbors who share feature value 	
-			}			
+			}	
+			MapNodesWithOrderJPGroups.put(jpg, jpgSeg.getAllMapNodes());
 		}
 
 		getMsgObj().dispMessage("SOMMapManager","buildJpGroupSegmentsOnMap","Finished building Order JP Group-Segment-based cluster map", MsgCodes.info5);			
@@ -736,6 +743,42 @@ public class Straff_SOMMapManager extends SOMMapManager {
 	/////////////////////////////////////////
 	//drawing and graphics methods - these must check if win and/or pa exist, or else except win or pa as passed arguments, to manage when this code is executed without UI
 	
+	//TODO add array to this map manager holding map nodes keyed by jp and jpgroup and value being list of nodes with those jps/jpgs present
+	
+	
+	//draw boxes around each node representing ftrwt-based segments that nodes belong to
+	public final void drawOrderJPSegments(my_procApplet pa, int curJPIdx) {
+		pa.pushMatrix();pa.pushStyle();
+		Integer jp = jpJpgrpMon.getFtrJpByIdx(curJPIdx);
+		Collection<SOMMapNode> mapNodes = MapNodesWithOrderJPs.get(jp);
+		if(null==mapNodes) {return;}
+		for (SOMMapNode node : mapNodes) {		((Straff_SOMMapNode) node).drawMeOrderJpSegClr(pa, jp);}
+		
+		pa.popStyle();pa.popMatrix();
+	}//drawFtrWtSegments	
+//	//draw boxes around every node representing ftrwt-based segments that nodes belong to
+//	public final void drawAllOrderJPSegments(my_procApplet pa) {		
+//		for(int curJPIdx=0;curJPIdx<PerFtrHiWtMapNodes.length;++curJPIdx) {		drawOrderJPSegments(pa, curJPIdx);	}		
+//	}//drawFtrWtSegments
+	
+	
+	//draw boxes around each node representing ftrwt-based segments that nodes belong to
+	public final void drawOrderJPGroupSegments(my_procApplet pa, int curJPGroupIdx) {
+		pa.pushMatrix();pa.pushStyle();
+		Integer jpg = jpJpgrpMon.getFtrJpGroupByIdx(curJPGroupIdx);
+		Collection<SOMMapNode> mapNodes = MapNodesWithOrderJPGroups.get(jpg);
+		if(null==mapNodes) {return;}
+		for (SOMMapNode node : mapNodes) {		((Straff_SOMMapNode) node).drawMeOrderJpGroupSegClr(pa, jpg);}
+				
+		pa.popStyle();pa.popMatrix();
+	}//drawAllOrderJPGroupSegments
+	
+	
+//	//draw boxes around every node representing ftrwt-based segments that nodes belong to
+//	public final void drawAllOrderJPGroupSegments(my_procApplet pa) {		
+//		for(int curJPGroupIdx=0;curJPGroupIdx<PerFtrHiWtMapNodes.length;++curJPGroupIdx) {		drawOrderJPGroupSegments(pa, curJPGroupIdx);	}		
+//	}//drawFtrWtSegments
+
 	
 	//draw all product nodes with max vals corresponding to current JPIDX
 	public void drawProductNodes(my_procApplet pa, int prodJpIDX, boolean showJPorJPG) {

@@ -28,13 +28,16 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 		mapDrawCustAnalysisVisIDX	= numSOMBasePrivFlags + 5,			//whether or not to draw feature calc analysis graphs for customer examples
 		mapDrawTPAnalysisVisIDX		= numSOMBasePrivFlags + 6,			//whether or not to draw feature calc analysis graphs for true prospect examples
 		mapDrawCalcFtrOrAllVisIDX	= numSOMBasePrivFlags + 7,			//whether to draw calc obj for ftr-related jps, or all jps present		
+		//show jp and jpgroup segments
+		mapDrawJPSegmentsIDX		= numSOMBasePrivFlags + 8,			//show order-driven jp segments
+		mapDrawJPGroupSegmentsIDX   = numSOMBasePrivFlags + 9,			//show order-driven jpgroup segments
 		
-		showSelJPIDX				= numSOMBasePrivFlags + 8, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
+		showSelJPIDX				= numSOMBasePrivFlags + 10, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
 		//train/test data managemen
-		procTruProspectsIDX			= numSOMBasePrivFlags + 9,			//this will process true prospects, and load them if they haven't been loaded
-		saveProdMapsOfPrspctsIDX	= numSOMBasePrivFlags + 10;			//this will save all the product data for the currently selected prod JP
+		procTruProspectsIDX			= numSOMBasePrivFlags + 11,			//this will process true prospects, and load them if they haven't been loaded
+		saveProdMapsOfPrspctsIDX	= numSOMBasePrivFlags + 12;			//this will save all the product data for the currently selected prod JP
 
-	public static final int numPrivFlags = numSOMBasePrivFlags + 11;
+	public static final int numPrivFlags = numSOMBasePrivFlags + 13;
 	
 	//SOM map list options
 	public String[] 
@@ -103,6 +106,7 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 				//"Train W/Recs W/Event Data", 				
 				"Hide Tru Prspct",
 				"Hide Products","Hide Cur Prod Zone",
+				"Hide Order-Based JP Segments", "Hide Order-Based JPGroup Segments",
 				"Calc Plot on Ftr JPs","Hide Cust Calc Plot", "Hide Tru Prspct Calc Plot", 
 				"Map Tru Prspct BMUs",	"Saving Prospect Mappings for prods"
 		};
@@ -110,6 +114,7 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 				//"Train W/All Recs",				
 				"Show Tru Prspct",
 				"Show Products","Show Cur Prod Zone",
+				"Show Order-Based JP Segments", "Show Order-Based JPGroup Segments",
 				"Calc Plot on All JPs", "Show Cust Calc Plot", "Show Tru Prspct Calc Plot", 
 				"Map Tru Prspct BMUs",	"Save Prospect Mappings for prods"
 		};
@@ -117,6 +122,7 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 				//useOnlyEvntsToTrainIDX, 				
 				mapDrawTruePspctIDX,
 				mapDrawPrdctNodesIDX,mapDrawCurProdZoneIDX,
+				mapDrawJPSegmentsIDX,mapDrawJPGroupSegmentsIDX,				
 				mapDrawCalcFtrOrAllVisIDX, mapDrawCustAnalysisVisIDX,mapDrawTPAnalysisVisIDX,
 				procTruProspectsIDX,saveProdMapsOfPrspctsIDX
 		};
@@ -207,6 +213,8 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 					
 				}
 				break;}
+			case mapDrawJPSegmentsIDX		:{			break;}			
+			case mapDrawJPGroupSegmentsIDX	:{			break;}			
 			case showSelJPIDX		 : {//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
 				break;}
 			case procTruProspectsIDX : {
@@ -445,6 +453,9 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 			if(getPrivFlags(mapDrawPrdctNodesIDX)){		((Straff_SOMMapManager) mapMgr).drawProductNodes(pa, curMapImgIDX, true);}
 			if(getPrivFlags(mapDrawWtMapNodesIDX)){		mapMgr.drawNodesWithWt(pa, mapNodeWtDispThresh, curMapImgIDX);} 
 			if(getPrivFlags(mapDrawFtrWtSegIDX)) {		mapMgr.drawFtrWtSegments(pa, mapNodeWtDispThresh, curMapImgIDX);}
+			if(getPrivFlags(mapDrawJPSegmentsIDX)) {	((Straff_SOMMapManager) mapMgr).drawOrderJPSegments(pa,curMapImgIDX);	}		
+			if(getPrivFlags(mapDrawJPGroupSegmentsIDX)) {((Straff_SOMMapManager) mapMgr).drawOrderJPGroupSegments(pa,(int)guiObjs[uiFtrJPToDispIDX].getVal());	}
+			
 		} else {//draw all products				
 			if (notDrawAnalysis && (mseOvrData != null)){	drawMseLocWts();}
 			if(getPrivFlags(mapDrawPrdctNodesIDX)){		((Straff_SOMMapManager) mapMgr).drawAllProductNodes(pa);}
@@ -459,7 +470,8 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 	 */
 	protected void drawSegmentsUMatrixDispIndiv() {
 		//individual segment display when umatrix is being displayed
-		
+//		if(getPrivFlags(mapDrawJPSegmentsIDX)) {}		
+//		if(getPrivFlags(mapDrawJPGroupSegmentsIDX)) {}		
 		
 	}
 	@Override

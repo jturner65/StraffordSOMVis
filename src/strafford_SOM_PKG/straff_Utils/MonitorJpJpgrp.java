@@ -124,9 +124,7 @@ public class MonitorJpJpgrp {
 
 	/////////////////////////////
 	//Save this object's data
-	public void saveAllData(String fileNameRaw, String ext) {
-		for(String key :typeOfJpStrs) {	mapOfJPData.get(key).saveAllData(fileNameRaw, ext);	}
-	}//saveAllData	
+	public void saveAllData(String fileNameRaw, String ext) {		for(String key :typeOfJpStrs) {	mapOfJPData.get(key).saveAllData(fileNameRaw, ext);	}	}//saveAllData	
 	public String getJPNameFromJP(Integer jp) {return allJpJpgData.getJPNameFromJP(jp);}	
 	/////////////////////////////
 	//Load this object's data
@@ -149,6 +147,7 @@ public class MonitorJpJpgrp {
 	
 	//training features determined by products - only jps that have corresponding products are use to train map
 	public Integer getFtrJpByIdx(int idx) {return trainingJpJpgData.getJpByIdx(idx);}
+	public Integer getFtrJpGroupByIdx(int idx) {return trainingJpJpgData.getJpGrpByIdx(idx);}
 	public Integer getFtrJpToIDX(int jp) {return trainingJpJpgData.getJpToIDX(jp);}
 	public Integer getFtrJpGroupFromJp(int jp) {return trainingJpJpgData.getJpgFromJp(jp);}		//expected to be null if jpgroup has no training data presence
 	public boolean checkIfFtrJpPresent(int jp) {return trainingJpJpgData.checkIfJpPresent(jp);}
@@ -188,7 +187,7 @@ public class MonitorJpJpgrp {
 	//get jp from index for product-specific jps - UI interaction for displaying products on map
 	public Integer getProdJpByIdx(int idx) {return mapOfJPData.get(typeOfJpStrs[productExJpsIDX]).getJpByIdx(idx);}
 	//get jpg from index for product-specific jpgs - ui interaction for displaying products on map
-	public Integer getProdJpGrpByIdx(int idx) {return mapOfJPData.get(typeOfJpStrs[productExJpsIDX]).getJpgrpsByIdx(idx);}
+	public Integer getProdJpGrpByIdx(int idx) {return mapOfJPData.get(typeOfJpStrs[productExJpsIDX]).getJpGrpByIdx(idx);}
 	
 	
 	public int getCountProdJPSeen(int jp) {return mapOfJPData.get(typeOfJpStrs[productExJpsIDX]).getCountJPSeen(jp);}	
@@ -255,7 +254,7 @@ public class MonitorJpJpgrp {
 		TreeMap<Integer, TreeSet <Integer>> jpgsToJps = allObj.getJpgsToJps();
 		TreeMap<Integer, Integer> jpsToJpgs = allObj.getJpsToJpgs();
 		//map from jp to idx in array
-		Integer[] jpgrpsByIdx = allObj.getJpgrpsByIdx();
+		Integer[] jpgrpsByIdx = allObj.getJpGrpByIdx();
 
 		TreeMap<Integer, String> jpNamesRaw = allObj.getJpNamesRaw();                                                                                                             
 		TreeMap<Integer, String> jpGrpNamesRaw = allObj.getJpGrpNamesRaw(); //these are all the names known from reading all the data in - not all may be represented in actual data 
@@ -390,7 +389,7 @@ abstract class JP_JPG_Data{
 	//map from jps to owning jpgs
 	private TreeMap<Integer, Integer> jpsToJpgs;// = new TreeMap<Integer, Integer>();
 	//used by UI and also to map specific indexes to actual jps/jpgs
-	private Integer[] jpByIdx = new Integer[] {1}, jpgrpsByIdx = new Integer[] {1};
+	private Integer[] jpByIdx = new Integer[] {1}, jpGrpByIdx = new Integer[] {1};
 	//# of jps seen in products == # of ftrs if this data class is used for ftr description
 	private int numFtrs;
 	//maps jpgroup to # of jps seen per jpgroup
@@ -426,7 +425,7 @@ abstract class JP_JPG_Data{
 		
 		//list of jps used with idx in list being idx in array
 		jpByIdx = new Integer[] {1};
-		jpgrpsByIdx = new Integer[] {1};
+		jpGrpByIdx = new Integer[] {1};
 		
 		jpNames = new TreeMap<Integer, String>();	
 		jpGrpNames = new TreeMap<Integer, String>();
@@ -482,7 +481,7 @@ abstract class JP_JPG_Data{
 		}
 		//put every _training_ jp into an array, with the idx in the array being the idx in the feature
 		jpByIdx = jpSeenCount.keySet().toArray(new Integer[0]);
-		jpgrpsByIdx = jpgsToJps.keySet().toArray(new Integer[0]);
+		jpGrpByIdx = jpgsToJps.keySet().toArray(new Integer[0]);
 
 		for(int i=0;i<jpByIdx.length;++i) {
 			jpToIDX.put(jpByIdx[i], i);
@@ -490,11 +489,11 @@ abstract class JP_JPG_Data{
 			if (name==null) {msgObj.dispMessage("MonitorJpJpgrp::JP_JPG_Data("+type+")","finishBuildJPStructs","!!!!!!!!!!!!!!!! null name for jp : " + jpByIdx[i] +" in raw jp names. Using default name.", MsgCodes.warning2);name="JP:"+jpByIdx[i];}
 			jpNames.put(jpByIdx[i], name);
 		}
-		for(int i=0;i<jpgrpsByIdx.length;++i) {
-			jpgToIDX.put(jpgrpsByIdx[i], i);
-			String name = jpGrpNamesRaw.get(jpgrpsByIdx[i]);
-			if (name==null) {msgObj.dispMessage("MonitorJpJpgrp::JP_JPG_Data("+type+")","finishBuildJPStructs","!!!!!!!!!!!!!!!! null name for jpgrp : " + jpgrpsByIdx[i]+" in raw jpg names. Using default name.", MsgCodes.warning2);name="JPG:"+jpgrpsByIdx[i];}
-			jpGrpNames.put(jpgrpsByIdx[i], name);
+		for(int i=0;i<jpGrpByIdx.length;++i) {
+			jpgToIDX.put(jpGrpByIdx[i], i);
+			String name = jpGrpNamesRaw.get(jpGrpByIdx[i]);
+			if (name==null) {msgObj.dispMessage("MonitorJpJpgrp::JP_JPG_Data("+type+")","finishBuildJPStructs","!!!!!!!!!!!!!!!! null name for jpgrp : " + jpGrpByIdx[i]+" in raw jpg names. Using default name.", MsgCodes.warning2);name="JPG:"+jpGrpByIdx[i];}
+			jpGrpNames.put(jpGrpByIdx[i], name);
 		}		
 		//needs to be same size as jpByIdx.length
 		numFtrs = jpSeenCount.size();
@@ -509,7 +508,7 @@ abstract class JP_JPG_Data{
 	
 	public int getNumFtrs() {return numFtrs;}
 	public Integer getJpByIdx(int idx) {return jpByIdx[idx];}	
-	public Integer getJpgrpsByIdx(int idx) {return jpgrpsByIdx[idx];}	
+	public Integer getJpGrpByIdx(int idx) {return jpGrpByIdx[idx];}	
 	public Integer getJpToIDX(int jp) {return jpToIDX.get(jp);}
 	public Integer getJpgFromJp(int jp) {return jpsToJpgs.get(jp);}
 	public boolean checkIfJpPresent(int jp) {return jpsToJpgs.get(jp) !=null;}
@@ -517,10 +516,10 @@ abstract class JP_JPG_Data{
 	
 	
 	public int getLenJpByIdx() {		return jpByIdx.length;	}//# of jps seen
-	public int getLenJpGrpByIdx(){	return jpgrpsByIdx.length; }//# of jpgrps seen
+	public int getLenJpGrpByIdx(){	return jpGrpByIdx.length; }//# of jpgrps seen
 	
 	public Integer[] getJpByIDXAra() {return jpByIdx;}
-	public Integer[] getJpgrpByIDXAra() {return jpgrpsByIdx;}
+	public Integer[] getJpgrpByIDXAra() {return jpGrpByIdx;}
 	
 	//return list of jp's for passed jpgroup
 	public TreeSet<Integer> getJPsforSpecifiedJpgrp(int jpg){return jpgsToJps.get(jpg);}
@@ -537,7 +536,7 @@ abstract class JP_JPG_Data{
 	//map from jpgroup to integer
 	public TreeMap<Integer, Integer> getJpgToIDX(){return jpgToIDX;}	
 	public Integer[] getJpByIdx(){return jpByIdx;}
-	public Integer[] getJpgrpsByIdx(){return jpgrpsByIdx;}
+	public Integer[] getJpGrpByIdx(){return jpGrpByIdx;}
 	
 	public TreeMap<Integer, String> getJpNamesRaw(){return jpNamesRaw;} 
 	public TreeMap<Integer, String> getJpGrpNamesRaw (){return jpGrpNamesRaw;} //these are all the names known from reading all the data in - not all may be represented in actual data
@@ -559,7 +558,7 @@ abstract class JP_JPG_Data{
 	}
 	//name, jp and ftr idx of jp
 	public String getJpGrpStrByIdx(int uiIDX) {
-		int idx = uiIDX % jpgrpsByIdx.length, jpg=jpgrpsByIdx[idx];
+		int idx = uiIDX % jpGrpByIdx.length, jpg=jpGrpByIdx[idx];
 		String name = jpGrpNames.get(jpg);
 		if(name==null) {name="UNK";}
 		return "" +name+ " (jpg:"+ jpg + ",idx:" +idx+ ")";
@@ -591,7 +590,7 @@ abstract class JP_JPG_Data{
 		if(jpgsToJps.size() < jpgIdx) {return curJPIdxVal;}		
 		int curJPVal = jpByIdx[curJPIdxVal];		
 		//String msg = "Requested Job Practice Group Index : " + String.format("%3d",jpgIdx) + " Cur JP : " +  String.format("%3d",curJPVal) + " Cur JP Idx : " + String.format("%3d", curJPIdxVal);		
-		TreeSet <Integer> jpList = jpgsToJps.get(jpgrpsByIdx[jpgIdx]);
+		TreeSet <Integer> jpList = jpgsToJps.get(jpGrpByIdx[jpgIdx]);
 		if (jpList.contains(curJPVal)) {		//shouldn't happen, only is called when jpgrp changes, so won't ever have current jp value since jps only belong to single groups
 			//msgObj.dispMessage("MonitorJpJpgrp::JP_JPG_Data("+type+")","getUI_FirstJPFromJPG", msg+ " : JP Group contains current JP.", MsgCodes.info1);			
 		}//if in current jpgrp already, then return current value
@@ -628,7 +627,7 @@ abstract class JP_JPG_Data{
 		String tmp = "Jp & Jpg Data for " + type +" data.";
 		csvResTmp.add(tmp);
 		int numJps = jpByIdx.length;
-		tmp = "Num Jps=," + numJps+ ",Num  JpGrps=,"+jpgrpsByIdx.length;
+		tmp = "Num Jps=," + numJps+ ",Num  JpGrps=,"+jpGrpByIdx.length;
 		csvResTmp.add(tmp);
 		tmp = "Jp,JpIDX,Jp Name,Jpgrp,JpgrpIDX,Jpgrp Name,# JpSeen, ";//# JpSourceSeen";
 		int numEventTypes = EvtDataType.getNumVals();
@@ -679,7 +678,7 @@ abstract class JP_JPG_Data{
 			if(i==0) { continue;} //1st line in saved file has file type 
 			else if(i==1) {//2nd line has counts of jps and jpgs
 				jpByIdx = new Integer[Integer.parseInt(vals[1])];		
-				jpgrpsByIdx = new Integer[Integer.parseInt(vals[3])];	
+				jpGrpByIdx = new Integer[Integer.parseInt(vals[3])];	
 			} 
 			else if (i==2) {continue;}								//header string	
 			else {//here record has all values i >= 2
@@ -706,7 +705,7 @@ abstract class JP_JPG_Data{
 					jpgsToJps.put(jpgrp,jpsAtJpg);
 					jpGrpNamesRaw.put(jpgrp, jpgrpName);
 					jpgToIDX.put(jpgrp,jpgrpIDX);
-					jpgrpsByIdx[jpgrpIDX]=jpgrp;
+					jpGrpByIdx[jpgrpIDX]=jpgrp;
 				} 
 			}
 		}			
@@ -722,7 +721,7 @@ abstract class JP_JPG_Data{
 		int frmtLen = 50, frmtLenJPG = 21;
 		String frmtStr = "%-"+(frmtLen+1) + "s",frmtStrJPG = "%-"+(frmtLenJPG+1) + "s";
 			
-		res += "\nJp/Jpgs from " + type +" Data : Num Jps = " + numJps+ " "+str_sep+" Num  JpGrps = "+jpgrpsByIdx.length +"\n";
+		res += "\nJp/Jpgs from " + type +" Data : Num Jps = " + numJps+ " "+str_sep+" Num  JpGrps = "+jpGrpByIdx.length +"\n";
 		res += " Jp "+str_sep+"JpIDX"+str_sep + String.format(frmtStr,"Jp Name") +str_sep+" Jpgrp "+str_sep+" JpgIDX "+str_sep + String.format(frmtStrJPG,"Jpgrp Name") +" "+str_sep+"# Jp exs"+str_sep;//+"# in Cust"+str_sep+"# in Prod"+str_sep;
 		int numEventTypes = EvtDataType.getNumVals();
 		for(int i=0;i<numEventTypes;++i) {		res+= String.format("# %6s"+str_sep,EvtDataType.getVal(i).name());		}
@@ -769,13 +768,13 @@ abstract class JP_JPG_Data{
 		res +="\n";
 		
 		//show how many event-based records there are for each jp group
-		int numJPGs = jpgrpsByIdx.length;
+		int numJPGs = jpGrpByIdx.length;
 		ttlNumJpOcc = new int[numEventTypes+numDispOffset];
 		res +="\n"+str_sep+" Jpgrp "+str_sep + String.format(frmtStrJPG,"Jpgrp Name") +" "+str_sep+"#Jpg exs"+str_sep;//+"#in Cust"+str_sep+"#in Prod"+str_sep;
 		for(int i=0;i<numEventTypes;++i) {		res+= String.format("# %6s"+str_sep,EvtDataType.getVal(i).name());		}
 		res +="\n";
 		for (int jpGrpIdx = 0;jpGrpIdx<numJPGs;++jpGrpIdx) {
-			int jpGrp = jpgrpsByIdx[jpGrpIdx];
+			int jpGrp = jpGrpByIdx[jpGrpIdx];
 			String jpgName = jpGrpNames.get(jpGrp);
 			if(jpgName==null) {jpgName = jpGrpNamesRaw.get(jpGrp);}			
 			res +=str_sep+" "+String.format("%5d "+str_sep, jpGrp)+String.format(frmtStrJPG,jpgName.substring(0, (jpgName.length() < frmtLenJPG ? jpgName.length() : frmtLenJPG)));
