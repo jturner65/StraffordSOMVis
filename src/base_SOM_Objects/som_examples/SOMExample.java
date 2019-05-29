@@ -295,6 +295,8 @@ public abstract class SOMExample extends baseDataPtVis{
 	//build structures that require that the feature vector be built before hand
 	public final void buildPostFeatureVectorStructs() {
 		buildStdFtrsMap();
+		//default comparison vector setup - can be overridden
+		buildCompFtrVector(0.0f);
 	}//buildPostFeatureVectorStructs
 
 	//build normalized vector of data - only after features have been set

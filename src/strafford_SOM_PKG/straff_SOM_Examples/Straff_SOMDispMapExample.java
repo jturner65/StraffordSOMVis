@@ -25,7 +25,6 @@ public class Straff_SOMDispMapExample extends Straff_SOMExample implements ISOM_
 		
 		ftrMaps[ftrMapTypeKey] = new TreeMap<Integer, Float>();	
 		ftrThresh = _thresh;
-		allProdJPs = new HashSet<Integer>();
 		allNonZeroFtrIDXs = new ArrayList<Integer>();
 		//decreasing order
 		TreeMap<Float, String> strongestFtrs = new TreeMap<Float, String>(Collections.reverseOrder());
@@ -34,6 +33,7 @@ public class Straff_SOMDispMapExample extends Straff_SOMExample implements ISOM_
 			if(ftr >= ftrThresh) {	
 				Integer jp = jpJpgMon.getFtrJpByIdx(ftrIDX);
 				allProdJPs.add(jp);
+				allProdJPGroups.add(jpJpgMon.getFtrJpGroupFromJp(jp));
 				allNonZeroFtrIDXs.add(ftrIDX);	
 				ftrMaps[ftrMapTypeKey].put(ftrIDX, ftr);
 				strongestFtrs.put(ftr, ""+jp);
@@ -70,7 +70,6 @@ public class Straff_SOMDispMapExample extends Straff_SOMExample implements ISOM_
 		
 		ftrMaps[ftrMapTypeKey] = new TreeMap<Integer, Float>();	
 		ftrThresh = _thresh;
-		allProdJPs = new HashSet<Integer>();
 		allNonZeroFtrIDXs = new ArrayList<Integer>();
 
 		ArrayList<String> _mseLblDat = new ArrayList<String>();
@@ -132,7 +131,6 @@ public class Straff_SOMDispMapExample extends Straff_SOMExample implements ISOM_
 	protected void buildStdFtrsMap() {			
 		if (allNonZeroFtrIDXs.size() > 0) {calcStdFtrVector(ftrMaps[ftrMapTypeKey], ftrMaps[stdFtrMapTypeKey], mapMgr.getTrainFtrMins(), mapMgr.getTrainFtrDiffs());}
 		else {ftrMaps[stdFtrMapTypeKey] = new TreeMap<Integer, Float>();}
-		buildCompFtrVector(0.0f);
 		setFlag(stdFtrsBuiltIDX,true);
 	}
 

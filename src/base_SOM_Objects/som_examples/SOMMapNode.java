@@ -78,13 +78,8 @@ public abstract class SOMMapNode extends SOMExample{
 	
 	public final Integer[] getNonZeroIDXs() {return nonZeroIDXs;}
 	
-	/**
-	 * this will map feature values to some representation of the underlying feature 
-	 * description - this is specific to underlying data and must be called from instance 
-	 * class ctor
-	 */
-	protected abstract void _initDataFtrMappings();
 	
+	//called at end of base class construction
 	private void initMapNode(Tuple<Integer,Integer> _mapNode){
 		mapNodeCoord = _mapNode;		
 		mapLoc = mapMgr.buildScaledLoc(mapNodeCoord);
@@ -101,7 +96,15 @@ public abstract class SOMMapNode extends SOMExample{
 			//build feature weight segment data object for every non-zero weight present in this map node - this should NEVER CHANGE without reconstructing map nodes
 			ftrWtSegData.put(idx, new SOM_MapNodeSegmentData(this, this.OID+"_FtrWtData_IDX_"+idx, "Feature Weight For Ftr IDX :"+idx));
 		}
+		//instancing class-specific functionality
+		_initDataFtrMappings();
 	}//initMapNode
+	
+	/**
+	 * this will map feature values to some representation of the underlying feature 
+	 * description - this is specific to underlying data and is called from base class initMapNode
+	 */
+	protected abstract void _initDataFtrMappings();
 	
 	///////////////////
 	// ftr-wt based segment data
@@ -198,33 +201,8 @@ public abstract class SOMMapNode extends SOMExample{
 		for (int row=0;row<wtMat.length;++row) {aAra[row]=findCubicVal(wtMat[row], tx);}
 		float val = findCubicVal(aAra, ty);
 		return ((val <= 0.0f) ? 0.0f : (val >= 1.0f) ? 1.0f : val);		
-	}//_biCubicInterpFrom2DArray
+	}//_biCubicInterpFrom2DArray	
 	
-	//map nodes are never going to be training examples
-	@Override
-	protected void setIsTrainingDataIDX_Priv() {mapMgr.getMsgObj().dispMessage("SOMMapNode","setIsTrainingDataIDX_Priv","Calling inappropriate setIsTrainingDataIDX_Priv for SOMMapNode - should never have training index set.", MsgCodes.warning2);	}
-	@Override
-	//feature is already made in constructor, read from map, so this is ignored
-	protected void buildFeaturesMap() {	}
-	@Override
-	public String getRawDescrForCSV() {	return "Should not save SOMMapNode to intermediate CSV";}
-	@Override
-	public String getRawDescColNamesForCSV() {return "Do not save SOMMapNode to intermediate CSV";}
-	//map nodes do not use finalize
-	@Override
-	public void finalizeBuildBeforeFtrCalc() {	}
-	@Override
-	protected HashSet<Tuple<Integer, Integer>> getSetOfAllJpgJpData() {		return null;}//getSetOfAllJpgJpData	
-	//this should not be used - should build stdFtrsmap based on ranges of each ftr value in trained map
-	@Override
-	protected void buildStdFtrsMap() {
-		mapMgr.getMsgObj().dispMessage("SOMMapNode","buildStdFtrsMap","Calling inappropriate buildStdFtrsMap for SOMMapNode : should call buildStdFtrsMap_MapNode from SOMDataLoader using trained map w/arrays of per feature mins and diffs", MsgCodes.warning2);		
-	}
-	//call this instead of buildStdFtrsMap, passing mins and diffs
-	
-	//called by SOMDataLoader - these are standardized based on data mins and diffs seen in -map nodes- feature data, not in training data
-	public abstract void buildStdFtrsMapFromFtrData_MapNode(float[] minsAra, float[] diffsAra);		
-
 	public void clearBMUExs(int _typeIDX) {		BMUExampleNodes[_typeIDX].init();	}//addToBMUs
 	
 	//add passed example to appropriate bmu construct depending on what type of example is passed (training, testing, product)
@@ -242,12 +220,18 @@ public abstract class SOMMapNode extends SOMExample{
 	}//addToBMUs 
 	
 	//add passed map node example to appropriate bmu construct depending on what type of example is passed (training, testing, product)
+	//TODO This should be changed to map to this map node based on is neighborhood map nodes, but that would require performing this on entire map simultaneously
+	//to handle adjacent map nodes with no mappings - perhaps assign closest map node mapping, and then re-process this to handle neighborhoods
 	public void addMapNodeExToBMUs(double dist, SOMMapNode ex, int _typeIDX) {
 		//int _typeIDX = ex.type.getVal();
 		BMUExampleNodes[_typeIDX].addExample(dist,ex);
 		//add relelvant tags, if any, for training examples - 
 		addMapNodeExToBMUs_Priv(dist,ex);
 	}//addToBMUs 
+	
+	//call this instead of buildStdFtrsMap, passing mins and diffs
+	//called by SOMDataLoader - these are standardized based on data mins and diffs seen in -map nodes- feature data, not in training data
+	public abstract void buildStdFtrsMapFromFtrData_MapNode(float[] minsAra, float[] diffsAra);		
 	//manage instancing map node handlign - specifically, handle using 2ndary features as node markers (like a product tag)
 	protected abstract void addTrainingExToBMUs_Priv(double dist, SOMExample ex);
 	protected abstract void addMapNodeExToBMUs_Priv(double dist, SOMMapNode ex);
@@ -314,6 +298,27 @@ public abstract class SOMMapNode extends SOMExample{
 		p.popStyle();p.popMatrix();	
 	}//drawMeClrRect
 	
+	//map nodes are never going to be training examples
+	@Override
+	protected void setIsTrainingDataIDX_Priv() {mapMgr.getMsgObj().dispMessage("SOMMapNode","setIsTrainingDataIDX_Priv","Calling inappropriate setIsTrainingDataIDX_Priv for SOMMapNode - should never have training index set.", MsgCodes.warning2);	}
+	@Override
+	//feature is already made in constructor, read from map, so this is ignored
+	protected void buildFeaturesMap() {	}
+	@Override
+	public String getRawDescrForCSV() {	return "Should not save SOMMapNode to intermediate CSV";}
+	@Override
+	public String getRawDescColNamesForCSV() {return "Do not save SOMMapNode to intermediate CSV";}
+	//map nodes do not use finalize
+	@Override
+	public void finalizeBuildBeforeFtrCalc() {	}
+	@Override
+	protected HashSet<Tuple<Integer, Integer>> getSetOfAllJpgJpData() {		return null;}//getSetOfAllJpgJpData	
+	//this should not be used - should build stdFtrsmap based on ranges of each ftr value in trained map
+	@Override
+	protected void buildStdFtrsMap() {
+		mapMgr.getMsgObj().dispMessage("SOMMapNode","buildStdFtrsMap","Calling inappropriate buildStdFtrsMap for SOMMapNode : should call buildStdFtrsMap_MapNode from SOMDataLoader using trained map w/arrays of per feature mins and diffs", MsgCodes.warning2);		
+	}
+	
 	public String toString(){
 		String res = "Node Loc : " + mapNodeCoord.toString()+"\t" + super.toString();
 		return res;		
@@ -326,7 +331,7 @@ class SOMMapNodeBMUExamples{
 	//owning node of these examples
 	private SOMMapNode node;
 	//map of examples that consider node to be their bmu; keyed by euclidian distance
-	private TreeMap<Double,ArrayList<SOMExample>> examplesBMU;
+	private TreeMap<Double,HashSet<SOMExample>> examplesBMU;
 	//size of examplesBMU
 	private int numMappedEx;
 	//log size of examplesBMU +1, used for visualization radius
@@ -338,7 +343,7 @@ class SOMMapNodeBMUExamples{
 	
 	public SOMMapNodeBMUExamples(SOMMapNode _node) {	
 		node = _node;
-		examplesBMU = new TreeMap<Double,ArrayList<SOMExample>>(); 
+		examplesBMU = new TreeMap<Double,HashSet<SOMExample>>(); 
 		init();
 	}//ctor
 	
@@ -353,8 +358,8 @@ class SOMMapNodeBMUExamples{
 	//add passed example
 	public void addExample(SOMExample _ex) {addExample(_ex.get_sqDistToBMU(),_ex);}
 	public void addExample(double dist, SOMExample _ex) {
-		ArrayList<SOMExample> tmpList = examplesBMU.get(dist);
-		if(tmpList == null) {tmpList = new ArrayList<SOMExample>();}
+		HashSet<SOMExample> tmpList = examplesBMU.get(dist);
+		if(tmpList == null) {tmpList = new HashSet<SOMExample>();}
 		tmpList.add(_ex);		
 		examplesBMU.put(dist, tmpList);		
 		numMappedEx = examplesBMU.size();		
@@ -388,7 +393,7 @@ class SOMMapNodeBMUExamples{
 	public HashMap<SOMExample, Double> getExsAndDist(){
 		HashMap<SOMExample, Double> res = new HashMap<SOMExample, Double>();
 		for(double dist : examplesBMU.keySet() ) {
-			ArrayList<SOMExample> tmpList = examplesBMU.get(dist);
+			HashSet<SOMExample> tmpList = examplesBMU.get(dist);
 			if(tmpList == null) {continue;}//should never happen			
 			for (SOMExample ex : tmpList) {res.put(ex, dist);}
 		}
@@ -399,7 +404,7 @@ class SOMMapNodeBMUExamples{
 	public String[] getAllExampleDescs() {
 		ArrayList<String> tmpRes = new ArrayList<String>();
 		for(double dist : examplesBMU.keySet() ) {
-			ArrayList<SOMExample> tmpList = examplesBMU.get(dist);
+			HashSet<SOMExample> tmpList = examplesBMU.get(dist);
 			if(tmpList == null) {continue;}//should never happen
 			String tmpStr = String.format("%.6f", dist);
 			for (SOMExample ex : tmpList) {tmpStr += "," + ex.OID;	}

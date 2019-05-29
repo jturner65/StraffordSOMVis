@@ -56,7 +56,7 @@ public abstract class SOMMapManager {
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	//data descriptions
-	//this map of mappers will manage the different kinds of data.  the instancing class should specify the keys for this map
+	//this map of mappers will manage the different kinds of raw data.  the instancing class should specify the keys and instancing members for this map
 	protected ConcurrentSkipListMap<String, SOMExampleMapper> exampleDataMappers;	
 	
 	//full input data, data set to be training data and testing data (all of these examples 
@@ -69,6 +69,7 @@ public abstract class SOMMapManager {
 	//validationData are example records failing to meet the training criteria or otherwise desired to be mapped against SOM
 	//these were not used to train the map	
 	protected SOMExample[] validationData;		
+	//sizes of above data arrays
 	public int numInputData, numTrainData, numTestData, numValidationData;
 	
 	//values to return scaled values to actual data points - multiply wts by diffsVals, add minsVals
@@ -372,7 +373,8 @@ public abstract class SOMMapManager {
 	public boolean loadTrainDataMapConfigAndBuildMap() {
 		msgObj.dispMessage("SOMMapManager","loadTrainDataMapConfigAndBuildMap","Start Loading training data and building map.", MsgCodes.info1);
 		loadTrainDataMapConfig();
-		boolean success = projConfigData.runSOMExperiment();
+
+		boolean success = runSOMExperiment(false);// projConfigData.runSOMExperiment();
 		msgObj.dispMessage("SOMMapManager","loadTrainDataMapConfigAndBuildMap","Finished Loading training data and building map. Success : " + success, MsgCodes.info1);
 		return success;
 	}
@@ -391,12 +393,12 @@ public abstract class SOMMapManager {
 		msgObj.dispMessage("SOMMapManager","loadPretrainedExistingMap","First load training data used to build map - it is assumed this data is in default preproc directory.", MsgCodes.info1);
 		//load customer data into preproc  -this must be data used to build map
 		loadPreProcTrainData();
-		//for prebuilt map
+		//for prebuilt map - load config used in prebuilt map
 		projConfigData.setSOM_UsePreBuilt();	
 		//build data partitions - use partition size set via constants in debug
 		buildTestTrainFromPartition(projConfigData.getTrainTestPartition());	
 		msgObj.dispMultiLineInfoMessage("SOMMapManager","loadPretrainedExistingMap","Current projConfigData before dataLoader Call : " + projConfigData.toString());
-		//don't execute in a thread, execute synchronously so we can use results immediately
+		//don't execute in a thread, execute synchronously so we can use results immediately upon return
 		loadMapAndBMUs_Synch();
 		msgObj.dispMessage("SOMMapManager","loadPretrainedExistingMap","Data loader finished loading map nodes and matching training data and products to BMUs." , MsgCodes.info3);
 	}//dbgBuildExistingMap
@@ -406,7 +408,7 @@ public abstract class SOMMapManager {
 	//load specified prospects and products, and map them
 	public void loadMapProcAllData(Double prodZoneDistThresh) {
 		msgObj.dispMessage("SOMMapManager","loadMapProcAllData","Start loading Trained Map and data to build proposals.", MsgCodes.info1);
-		
+		//load preproc training and product data, load prebuilt map configuration, build test/train partition, build map nodes from codebook, map pretrained bmu's to examples
 		loadPretrainedExistingMap();		
 		
 		//by here map is loaded and customers and products are mapped.  Now map prospects
@@ -419,23 +421,15 @@ public abstract class SOMMapManager {
 	
 	//Build map from data by aggregating all training data, building SOM exec string from UI input, and calling OS cmd to run SOM_MAP
 	public boolean buildNewMap(SOM_MapDat mapExeDat){
-		boolean success = false;
-		try {					success = _buildNewMap(mapExeDat);			} 
-		catch (IOException e){	msgObj.dispMessage("SOMMapManager","buildNewMap","Error running map defined by : " + mapExeDat.toString() + " :\n " + e.getMessage(), MsgCodes.error1);	return false;}		
-		return success;
-	}//buildNewMap
-	//launch process to exec SOM_MAP
-	private boolean _buildNewMap(SOM_MapDat mapExeDat) throws IOException{
-		boolean showDebug = getIsDebug(), 
-				success = true;		
-		msgObj.dispMessage("SOMMapManager","_buildNewMap","buildNewMap Starting", MsgCodes.info5);
-		msgObj.dispMessage("SOMMapManager","_buildNewMap","Execution String for running manually : \n"+mapExeDat.getDbgExecStr(), MsgCodes.warning2);
+		boolean success = true;
+		//try {					//success = _launchTrainNewMapProcess(mapExeDat);			
+		msgObj.dispMessage("SOMMapManager","buildNewMap","buildNewMap Starting", MsgCodes.info5);
+		msgObj.dispMultiLineMessage("SOMMapManager","buildNewMap","Execution String for running manually : \n"+mapExeDat.getDbgExecStr(), MsgCodes.warning2);
 		String[] cmdExecStr = mapExeDat.getExecStrAra();
-		//if(showDebug){
-		msgObj.dispMessage("SOMMapManager","_buildNewMap","Execution Arguments passed to SOM, parsed by flags and values: ", MsgCodes.info2);
-		msgObj.dispMessageAra(cmdExecStr,"SOMMapManager","_buildNewMap",2, MsgCodes.info2);//2 strings per line, display execution command	
-		//}
-		//http://stackoverflow.com/questions/10723346/why-should-avoid-using-runtime-exec-in-java		
+
+		msgObj.dispMessage("SOMMapManager","buildNewMap","Execution Arguments passed to SOM, parsed by flags and values: ", MsgCodes.info2);
+		msgObj.dispMessageAra(cmdExecStr,"SOMMapManager","buildNewMap",2, MsgCodes.info2);//2 strings per line, display execution command	
+
 		String wkDirStr = mapExeDat.getExeWorkingDir(), 
 				cmdStr = mapExeDat.getExename(),
 				argsStr = "";
@@ -443,12 +437,12 @@ public abstract class SOMMapManager {
 		execStr[0] = wkDirStr + cmdStr;
 		//for(int i =2; i<cmdExecStr.length;++i){execStr[i-1] = cmdExecStr[i]; argsStr +=cmdExecStr[i]+" | ";}
 		for(int i = 0; i<cmdExecStr.length;++i){execStr[i+1] = cmdExecStr[i]; argsStr +=cmdExecStr[i]+" | ";}
-		msgObj.dispMessage("SOMMapManager","_buildNewMap","\nwkDir : "+ wkDirStr + "\ncmdStr : " + cmdStr + "\nargs : "+argsStr, MsgCodes.info1);
+		msgObj.dispMultiLineMessage("SOMMapManager","buildNewMap","\nwkDir : "+ wkDirStr + "\ncmdStr : " + cmdStr + "\nargs : "+argsStr, MsgCodes.info1);
 		
 		//monitor in multiple threads, either msgs or errors
 		List<Future<Boolean>> procMsgMgrsFtrs = new ArrayList<Future<Boolean>>();
 		List<ProcConsoleMsgMgr> procMsgMgrs = new ArrayList<ProcConsoleMsgMgr>(); 
-		
+		//http://stackoverflow.com/questions/10723346/why-should-avoid-using-runtime-exec-in-java		
 		ProcessBuilder pb = new ProcessBuilder(execStr);		
 		File wkDir = new File(wkDirStr); 
 		pb.directory(wkDir);
@@ -466,13 +460,14 @@ public abstract class SOMMapManager {
 			resultErr = errMsgs.getResults() ;//results of running map TODO save to log?	
 			if(resultErr.toLowerCase().contains("error:")) {throw new InterruptedException("SOM Executable aborted");}
 		} 
-		catch (IOException e) {				msgObj.dispMessage("SOMMapManager","_buildNewMap","buildNewMap Process failed with IOException : \n" + e.toString() + "\n\t"+ e.getMessage(), MsgCodes.error1);success = false;} 
-		catch (InterruptedException e) {	msgObj.dispMessage("SOMMapManager","_buildNewMap","buildNewMap Process failed with InterruptedException : \n" + e.toString() + "\n\t"+ e.getMessage(), MsgCodes.error1);success = false;}
-		catch (ExecutionException e) {    	msgObj.dispMessage("SOMMapManager","_buildNewMap","buildNewMap Process failed with ExecutionException : \n" + e.toString() + "\n\t"+ e.getMessage(), MsgCodes.error1);success = false;}		
+		catch (IOException e) {				msgObj.dispMessage("SOMMapManager","buildNewMap","buildNewMap Process failed with IOException : \n" + e.toString() + "\n\t"+ e.getMessage(), MsgCodes.error1);success = false;} 
+		catch (InterruptedException e) {	msgObj.dispMessage("SOMMapManager","buildNewMap","buildNewMap Process failed with InterruptedException : \n" + e.toString() + "\n\t"+ e.getMessage(), MsgCodes.error1);success = false;}
+		catch (ExecutionException e) {    	msgObj.dispMessage("SOMMapManager","buildNewMap","buildNewMap Process failed with ExecutionException : \n" + e.toString() + "\n\t"+ e.getMessage(), MsgCodes.error1);success = false;}		
 		
-		msgObj.dispMessage("SOMMapManager","_buildNewMap","buildNewMap Finished", MsgCodes.info5);	
+		msgObj.dispMessage("SOMMapManager","buildNewMap","buildNewMap Finished", MsgCodes.info5);			
+		//} catch (IOException e){	msgObj.dispMessage("SOMMapManager","buildNewMap","Error running map defined by : " + mapExeDat.toString() + " :\n " + e.getMessage(), MsgCodes.error1);	return false;}		
 		return success;
-	}//_buildNewMap
+	}//buildNewMap
 	
 	protected abstract int _getNumSecondaryMaps();
 	//only appropriate if using UI
@@ -538,7 +533,7 @@ public abstract class SOMMapManager {
 	protected abstract void setProductBMUs();
 	
 	//once map is built, find bmus on map for each test data example
-	protected void setTestBMUs() {
+	protected final void setTestBMUs() {
 		msgObj.dispMessage("SOMMapManager","setTestBMUs","Start processing test data examples for BMUs.", MsgCodes.info1);	
 		if(testData.length > 0) {			_setExamplesBMUs(testData, "Testing", ExDataType.Testing,testDataMappedIDX);		} 
 		else {			msgObj.dispMessage("SOMMapManager","setTestBMUs","No Test data to map to BMUs. Aborting.", MsgCodes.warning5);		}
@@ -546,7 +541,7 @@ public abstract class SOMMapManager {
 	}//setProductBMUs
 	
 	//incrementally load true prospect data, processing each 
-	protected void setValidationDataBMUs() {
+	protected final void setValidationDataBMUs() {
 		msgObj.dispMessage("SOMMapManager","setValidationDataBMUs","Start processing "+validationData.length+" validation data examples for BMUs.", MsgCodes.info1);	
 		//save true prospect-to-product mappings
 		if(validationData.length > 0) {		_setExamplesBMUs(validationData, "Validation", ExDataType.Validation,validateDataMappedIDX);		} 		
@@ -610,7 +605,16 @@ public abstract class SOMMapManager {
 		MapNodes = new TreeMap<Tuple<Integer,Integer>, SOMMapNode>();
 		//this will hold all map nodes keyed by the ftr idx where they have non-zero weight
 		MapNodesByFtrIDX = new TreeMap<Integer, HashSet<SOMMapNode>>();
+		//reset segement holders
+		//array of map segments based on UMatrix dist
+		UMatrixSegments = new ArrayList<SOMMapSegment>();
+		//array of map clusters based on ftr distance
+		FtrWtSegments = new ArrayList<SOMMapSegment>();
+
+		//any instance-class specific code to execute when new map nodes are being loaded
+		initMapNodesPriv();
 	}//initMapNodes()
+	protected abstract void initMapNodesPriv();
 	
 	//only appropriate if using UI
 	public void initMapFtrVisAras(int numTrainFtrs) {
@@ -692,8 +696,9 @@ public abstract class SOMMapManager {
 		
 		for(int d = 0; d<map_ftrsMean.length; ++d){map_ftrsMean[d] /= 1.0f*_numEx;map_ftrsDiffs[d]=tmpMapMaxs[d]-map_ftrsMin[d];}
 		//reset this to manage all map nodes
-		PerFtrHiWtMapNodes = new TreeMap[_numTrainFtrs];
-		for (int i=0;i<PerFtrHiWtMapNodes.length; ++i) {PerFtrHiWtMapNodes[i] = new TreeMap<Float,ArrayList<SOMMapNode>>(new Comparator<Float>() { @Override public int compare(Float o1, Float o2) {   return o2.compareTo(o1);}});}
+		initPerFtrMapOfNodes(_numTrainFtrs);
+//		PerFtrHiWtMapNodes = new TreeMap[_numTrainFtrs];
+//		for (int i=0;i<PerFtrHiWtMapNodes.length; ++i) {PerFtrHiWtMapNodes[i] = new TreeMap<Float,ArrayList<SOMMapNode>>(new Comparator<Float>() { @Override public int compare(Float o1, Float o2) {   return o2.compareTo(o1);}});}
 		//build stats for map nodes
 		float diff;
 		float[] ftrData ;
@@ -1062,7 +1067,7 @@ public abstract class SOMMapManager {
 		pa.popStyle();pa.popMatrix();
 	}//drawFtrWtSegments
 	
-	//draw boxes around every node representing ftrwt-based segments that nodes belong to
+	//draw boxes around every node representing ftrwt-based segments that nodes belong to, with different colors for each segment
 	public final void drawAllFtrWtSegments(my_procApplet pa, float valThresh) {		
 		for(int curFtrIdx=0;curFtrIdx<PerFtrHiWtMapNodes.length;++curFtrIdx) {		drawFtrWtSegments(pa, valThresh, curFtrIdx);	}		
 	}//drawFtrWtSegments
@@ -1150,6 +1155,9 @@ public abstract class SOMMapManager {
 
 	//////////////////////////////
 	// getters/setters
+	
+	//return a map of descriptive quantities and their values, for the SOM Execution human-readable report
+	public abstract TreeMap<String, String> getSOMExecInfo();
 	
 	//return a copy of the message object - making a copy so that multiple threads can consume without concurrency issues
 	public MessageObject buildMsgObj() {return MessageObject.buildMe();}

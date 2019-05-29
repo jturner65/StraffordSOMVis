@@ -28,7 +28,7 @@ public class Cust_OneOrderTrainingExample extends CustProspectExample{
 	//_order is order responsible for this training example
 	//_dateEventOccurrences is submap of all occurrences on or before this order's date
 	public Cust_OneOrderTrainingExample(CustProspectExample _owner, String _passedID, DateEvent_OccurrenceData _order, SortedMap<Date,TreeMap<String,DateEvent_OccurrenceData>> navigableMap) {
-		super(_owner.mapMgr, _owner.OID+"_"+_passedID);
+		super(_owner.mapMgr, _passedID);
 		owner=_owner; 
 		//orderOnDateOcc = _order;
 		orderDate = _order.evntDate;

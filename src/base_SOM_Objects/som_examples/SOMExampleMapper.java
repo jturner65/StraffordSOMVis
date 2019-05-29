@@ -22,10 +22,16 @@ public abstract class SOMExampleMapper {
 		//struct maintaining complete project configuration and information from config files - all file name data and building needs to be done by this object
 	public static SOMProjConfigData projConfigData;	
 
-		//name of example type
+		//short name of example type
 	public final String exampleName;
+		//descriptive name of example type
+	public final String longExampleName;
 		//a map keyed by example ID of this specific type of examples
 	protected ConcurrentSkipListMap<String, SOMExample> exampleMap;
+		//descriptive string of date and time of when the data this mapper manages was created
+		//this should be saved with data and loaded from files
+	protected String dateAndTimeOfDataCreation;
+	
 		//current state of examples
 	private int[] stFlags;
 	public static final int
@@ -42,14 +48,15 @@ public abstract class SOMExampleMapper {
 		//# of actual examples used by SOM of this type
 	protected int numSOMExamples;
 
-	public SOMExampleMapper(SOMMapManager _mapMgr, String _exName) {
+	public SOMExampleMapper(SOMMapManager _mapMgr, String _exName, String _longExampleName) {
 		mapMgr = _mapMgr;
 		projConfigData = mapMgr.projConfigData;
 		exampleName = _exName;
+		longExampleName = _longExampleName;
 		msgObj = MessageObject.buildMe();
 		//fileIO is used to load and save info from/to local files except for the raw data loading, which has its own handling
 		fileIO = new FileIOManager(msgObj,"SOMExampleMapper::"+exampleName);
-
+		
 		exampleMap = new ConcurrentSkipListMap<String, SOMExample>();
 		initFlags();
 	}//ctor
@@ -60,6 +67,8 @@ public abstract class SOMExampleMapper {
 		exampleMap.clear();
 		SOMexampleArray = new SOMExample[0];
 		numSOMExamples = 0;
+		//set date and time of reset == date and time of data creation.  will be overwritten by load
+		dateAndTimeOfDataCreation = msgObj.getCurrWallTime();
 		//instance-specific code
 		reset_Priv();
 		//flag settings
@@ -126,7 +135,7 @@ public abstract class SOMExampleMapper {
 		//instance-specific feature vector building - here primarily are the standardized feature vectors built
 		for (SOMExample ex : exampleMap.values()) {	ex.buildPostFeatureVectorStructs();}
 		setFlag(dataPostFtrsBuiltIDX, true);
-		msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildPostFtrVecStructs","Finished building Post-feature vectorr data for " +exampleMap.size()+ " " + exampleName+ " examples.", MsgCodes.info1);		
+		msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildPostFtrVecStructs","Finished building Post-feature vector data for " +exampleMap.size()+ " " + exampleName+ " examples.", MsgCodes.info1);		
 	}//buildFtrVec	
 		
 	/////////////////////////////////////////////
@@ -146,7 +155,7 @@ public abstract class SOMExampleMapper {
 	public final SOMExample[] buildExampleArray(boolean validate) {		
 		if(validate) {
 			ArrayList<SOMExample> tmpList = new ArrayList<SOMExample>();
-			for (String key : exampleMap.keySet()) {			validateAndAddEx(tmpList, exampleMap.get(key));	}	//potentially different for every instancing class		
+			for (String key : exampleMap.keySet()) {			validateAndAddExToArray(tmpList, exampleMap.get(key));	}	//potentially different for every instancing class		
 			SOMexampleArray = castArray(tmpList);																	//every instancing class will manage different instancing classes of examples - this should provide arrays of the appropriate classes		
 		} 
 		else {	SOMexampleArray = noValidateBuildExampleArray();}													//every instancing class will manage different classes of examples - this provides array of appropriate class
@@ -162,7 +171,7 @@ public abstract class SOMExampleMapper {
 	 * @param tmpList list to add data to 
 	 * @param ex specific example to add to list
 	 */
-	protected abstract void validateAndAddEx(ArrayList<SOMExample> tmpList, SOMExample ex);
+	protected abstract void validateAndAddExToArray(ArrayList<SOMExample> tmpList, SOMExample ex);
 	/**
 	 * Provide array of appropriately cast examples for use as training/testing/validation data
 	 * @param tmpList
@@ -200,7 +209,34 @@ public abstract class SOMExampleMapper {
 	
 	public final int getNumSOMExamples() {return numSOMExamples;}	
 	public final int getNumMapExamples() {return exampleMap.size();}
+	//get date and time of the data this mapper manages' creation
+	public final String dateAndTimeOfDataCreation() {return dateAndTimeOfDataCreation;}
 	
+	/**
+	 * load the file where the preprocessed data's time and date of creation is stored - call after reset is called in load
+	 * @param fileName preprocced data's datetime file name
+	 * @param dataDesc type of preprocced data being loaded
+	 */
+	protected final void loadDateAndTimeOfDataCreation(String fileName, String dataDesc) {
+		String[] csvLoadRes = fileIO.loadFileIntoStringAra(fileName, dataDesc + " creation date file loaded.", dataDesc + " creation date file Failed to load");
+		//should consist of a single string, comma sep between dataDesc + " creation date/time" and actual creation date time
+		//if doesn't exist then use current date time - will be set during reset()
+		if(csvLoadRes.length < 1) {return;}
+		String[] dateTimeStrAra = csvLoadRes[0].split(",");
+		if(dateTimeStrAra.length < 2) {return;}
+		dateAndTimeOfDataCreation = dateTimeStrAra[1].trim();
+	}
+	
+	/**
+	 * save the creation date/time for the preprocced data  
+	 * @param fileName file name to save the date/time to
+	 * @param dataDesc string describing type of data
+	 */
+	protected final void saveDateAndTimeOfDataCreation(String fileName, String dataDesc) {
+		String[] stringsToWrite = new String[] {""+dataDesc + " creation date/time,"+dateAndTimeOfDataCreation};
+		fileIO.saveStrings(fileName, stringsToWrite);	
+	}//
+		
 	////////////////////////
 	// state flag handling
 	protected final void initFlags() {stFlags = new int[1 + numFlags/32]; for(int i = 0; i<numFlags; ++i){setFlag(i,false);}}

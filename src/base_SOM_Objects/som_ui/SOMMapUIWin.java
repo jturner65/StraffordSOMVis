@@ -216,22 +216,25 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 				//"Train W/Recs W/Event Data", 
 				"Building SOM", "Reset Dflt UI Vals", 
 				"Using ChiSq for Ftr Dist", "Prdct Dist ignores 0-ftrs", "Hide Train Data", "Hide Test Data",
-				"Hide Lbls","Hide Hot Ftr Nodes (by Wt)","Show Ftr Wt Segments","Hide Nodes (by Pop)", "Hide Nodes", 
-				"Showing UMat (Bi-Cubic)","Hide Clstr (U-Dist)", "Hide Clstr Image", 
+				"Hide Nodes", "Hide Lbls","Hide Nodes (by Pop)",
+				"Showing UMat (Bi-Cubic)","Hide Hot Ftr Nodes (by Wt)","Hide Ftr Wt Segments",				
+				"Hide Clstr (U-Dist)", "Hide Clstr Image", 
 		};
 		String[] _falsePrivFlagNames = new String[]{			//needs to be in order of flags
 				//"Train W/All Recs",
 				"Build SOM ","Reset Dflt UI Vals",
 				"Not Using ChiSq Distance", "Prdct Dist w/all ftrs","Show Train Data","Show Test Data",
-				"Show Lbls","Show Hot Ftr Nodes (by Wt)", "Show Ftr Wt Segments","Show Nodes (by Pop)","Show Nodes", 
-				"Showing Ftr Map", "Show Clstr (U-Dist)", "Show Clstr Image", 
+				"Show Nodes", "Show Lbls","Show Nodes (by Pop)",
+				"Showing Ftr Map", "Show Hot Ftr Nodes (by Wt)", "Show Ftr Wt Segments",				
+				"Show Clstr (U-Dist)", "Show Clstr Image", 
 		};
 		int[] _privModFlgIdxs = new int[]{
 				//useOnlyEvntsToTrainIDX, 
 				buildSOMExe, resetMapDefsIDX, 
 				mapUseChiSqDistIDX,mapExclProdZeroFtrIDX,mapDrawTrainDatIDX,mapDrawTestDatIDX,
-				mapDrawNodeLblIDX,mapDrawWtMapNodesIDX,mapDrawFtrWtSegIDX,mapDrawPopMapNodesIDX,mapDrawAllMapNodesIDX, 
-				mapDrawUMatrixIDX,mapDrawUMatSegMembersIDX,mapDrawUMatSegImgIDX,
+				mapDrawAllMapNodesIDX,mapDrawNodeLblIDX,mapDrawPopMapNodesIDX, 
+				mapDrawUMatrixIDX,mapDrawWtMapNodesIDX,mapDrawFtrWtSegIDX,				
+				mapDrawUMatSegMembersIDX,mapDrawUMatSegImgIDX,
 		};
 		initAllSOMPrivBtns_Indiv(_truePrivFlagNames, _falsePrivFlagNames, _privModFlgIdxs);
 	}//initAllPrivBtns
@@ -526,7 +529,7 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 	}//
 	
 	//first verify that new .lrn file exists, then
-	//build new SOM_MAP map using UI-entered values, then load resultant data
+	//build new SOM_MAP map using UI-entered values, then load resultant data - map nodes, bmus to training data
 	protected final void buildNewSOMMap(){
 		msgObj.dispMessage("SOMMapUIWin","buildNewSOMMap","Starting Map Build", MsgCodes.info5);
 		setPrivFlags(buildSOMExe, false);

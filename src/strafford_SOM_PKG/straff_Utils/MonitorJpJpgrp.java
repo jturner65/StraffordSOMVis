@@ -152,6 +152,8 @@ public class MonitorJpJpgrp {
 	public Integer getFtrJpGroupFromJp(int jp) {return trainingJpJpgData.getJpgFromJp(jp);}		//expected to be null if jpgroup has no training data presence
 	public boolean checkIfFtrJpPresent(int jp) {return trainingJpJpgData.checkIfJpPresent(jp);}
 	public boolean checkIfFtrJpGrpPresent(int jpg) {return trainingJpJpgData.checkIfJpGrpPresent(jpg);}
+	//get all jps as csv, in index order
+	public String getFtrJpsAsCSV() {return trainingJpJpgData.getAllJpsAsCSV();}
 	
 	//name, jp and list idx of jp
 	public String getAllJpStrByIdx(int uiIDX) {return allJpJpgData.getJpStrByIdx(uiIDX);}
@@ -188,6 +190,8 @@ public class MonitorJpJpgrp {
 	public Integer getProdJpByIdx(int idx) {return mapOfJPData.get(typeOfJpStrs[productExJpsIDX]).getJpByIdx(idx);}
 	//get jpg from index for product-specific jpgs - ui interaction for displaying products on map
 	public Integer getProdJpGrpByIdx(int idx) {return mapOfJPData.get(typeOfJpStrs[productExJpsIDX]).getJpGrpByIdx(idx);}
+	//get all jps as csv, in index order
+	public String getProdJpsAsCSV() {return mapOfJPData.get(typeOfJpStrs[productExJpsIDX]).getAllJpsAsCSV();}
 	
 	
 	public int getCountProdJPSeen(int jp) {return mapOfJPData.get(typeOfJpStrs[productExJpsIDX]).getCountJPSeen(jp);}	
@@ -199,6 +203,8 @@ public class MonitorJpJpgrp {
 	//get jp by index for all jp's, not just training features
 	public Integer getAllJpByIdx(int idx) {return allJpJpgData.getJpByIdx(idx);}
 	public int getNumAllJpsFtrs() {return numAllFtrTypes[allExJpsIDX];}
+	//get all jps as csv, in index order
+	public String getAllJpsAsCSV() {return allJpJpgData.getAllJpsAsCSV();}
 	
 	//this will return the appropriate jpgrp for the given jpIDX (ftr idx)
 	public int getUI_JPGrpFromFtrJP(int jpIdx, int curVal) {return trainingJpJpgData.getUI_JPGrpFromJP(jpIdx, curVal);}
@@ -513,6 +519,14 @@ abstract class JP_JPG_Data{
 	public Integer getJpgFromJp(int jp) {return jpsToJpgs.get(jp);}
 	public boolean checkIfJpPresent(int jp) {return jpsToJpgs.get(jp) !=null;}
 	public boolean checkIfJpGrpPresent(int jpg) { return jpgsToJps.get(jpg) !=null;}
+	
+	//return comma-sep string of all jps
+	public String getAllJpsAsCSV() {
+		String res = "";
+		for(int i=0;i<jpByIdx.length-1;++i) {res+=jpByIdx[i]+",";}
+		res+=jpByIdx[jpByIdx.length-1];
+		return res;
+	}
 	
 	
 	public int getLenJpByIdx() {		return jpByIdx.length;	}//# of jps seen

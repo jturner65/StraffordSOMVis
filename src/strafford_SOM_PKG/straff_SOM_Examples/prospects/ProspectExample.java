@@ -8,8 +8,7 @@ import base_SOM_Objects.som_examples.*;
 import base_Utils_Objects.MsgCodes;
 import base_Utils_Objects.Tuple;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.*;
-import strafford_SOM_PKG.straff_SOM_Examples.EvtDataType;
-import strafford_SOM_PKG.straff_SOM_Examples.Straff_SOMExample;
+import strafford_SOM_PKG.straff_SOM_Examples.*;
 import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.events.*;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 
@@ -31,7 +30,7 @@ public abstract class ProspectExample extends Straff_SOMExample{
 	//(i.e. don't correspond to real products, and so don't have training feature presence);
 	//nonProdJpGrps are jpgroups that have no products - should be rare - 
 	//these will denote examples that we have no way of mapping to the SOM, so hopefully they are rare
-	protected HashSet<Integer> allProdJpGrps, nonProdJpGrps;
+	protected HashSet<Integer> nonProdJpGrps;
 
 	//all jps in this example that do not correspond to actual products - these are for intra-jpgroup comparisons, 
 	//and for matching true prospects (who may have "virtual" and "venn" jps) to products - 
@@ -65,7 +64,7 @@ public abstract class ProspectExample extends Straff_SOMExample{
 	}//csv string ctor
 	
 	private void initProspectEx() {
-		allProdJpGrps = new HashSet<Integer>();
+		allProdJPGroups = new HashSet<Integer>();
 		nonProdJpGrps = new HashSet<Integer>();
 		nonProdJpgJps = new HashSet<Tuple<Integer,Integer>>();
 		initObjsData();
@@ -80,7 +79,6 @@ public abstract class ProspectExample extends Straff_SOMExample{
 		posOptAllEventObj = _otr.posOptAllEventObj;
 		negOptAllEventObj = _otr.negOptAllEventObj;
 		nonProdJpgJps = _otr.nonProdJpgJps;
-		allProdJpGrps = _otr.allProdJpGrps;
 		nonProdJpGrps = _otr.nonProdJpGrps;
 	}//copy ctor	
 	
@@ -207,6 +205,19 @@ public abstract class ProspectExample extends Straff_SOMExample{
 	
 	///////////////////////////////////
 	// getters/setters	
+	//treat this example's probability for a particular JP as the probability of its BMU for that JP (# orders of that JP divided by total # of orders seen at that node)
+	//perhaps add functionality to calculate this based on map node neighborhood
+	public float getBMUProbForJP(Integer jp) {
+		SOMMapNode bmu = getBmu();
+		if(null==bmu) {return 0.0f;}
+		return ((Straff_SOMMapNode)bmu).getJPProb(jp);
+	}
+	
+	public float getBMUProbForJPG(Integer jpg) {
+		SOMMapNode bmu = getBmu();
+		if(null==bmu) {return 0.0f;}
+		return ((Straff_SOMMapNode)bmu).getJPGroupProb(jpg);
+	}
 	
 	//return # of values in data map
 	protected final int getSizeOfDataMap(TreeMap<Date, TreeMap<Integer, StraffEvntRawToTrainData>> map) {
@@ -331,13 +342,13 @@ public abstract class ProspectExample extends Straff_SOMExample{
 		if(alljpgjps.size() == 0) {setIsBadExample(true);		}//means there's no valid jps in this record's occurence data - valid here means only that there are jps that actually correspond to integers
 		//build allprodJps from allJps
 		allProdJPs = new HashSet<Integer>();
-		allProdJpGrps = new HashSet<Integer>();
+		allProdJPGroups = new HashSet<Integer>();
 		nonProdJpGrps = new HashSet<Integer>();
 		nonProdJpgJps = new HashSet<Tuple<Integer,Integer>>();
 		for(Tuple<Integer,Integer> jpgJp : alljpgjps) {
 			//this gets all product jps for a jpgroup that a non-prod jp belongs to
 			if(jpJpgMon.checkIfFtrJpPresent(jpgJp.y)) {		allProdJPs.add(jpgJp.y);} else {		nonProdJpgJps.add(jpgJp); }			
-			if(jpJpgMon.checkIfFtrJpGrpPresent(jpgJp.x)) {	allProdJpGrps.add(jpgJp.x);	} else {	nonProdJpGrps.add(jpgJp.x);}
+			if(jpJpgMon.checkIfFtrJpGrpPresent(jpgJp.x)) {	allProdJPGroups.add(jpgJp.x);	} else {	nonProdJpGrps.add(jpgJp.x);}
 			//We want to perform this look up (as opposed to just using the jpgJp.x value above)
 			//if jpGrp is null then that means the group holding this jp is not present in product data 
 			//if null then this data(the jp data) needs to be ignored - no way to build any kind of comparison with map from it

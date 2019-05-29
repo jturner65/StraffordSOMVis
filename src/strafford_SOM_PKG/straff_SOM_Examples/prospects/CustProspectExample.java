@@ -160,12 +160,11 @@ public class CustProspectExample extends ProspectExample{
 		
 		//by here we have date-sorted events of all types,
 		//this map will hold these values, keyed by Cust_OneOrderTrainingExample ex's OID - 1 Cust_OneOrderTrainingExample per order event
-		//mapOfSingleOrderTrainingExamples = new TreeMap<String, Cust_OneOrderTrainingExample>();
 		mapOfSingleOrderTrainingExamples.clear();
 		int exID = 0;
 		for(Date orderDate : dateOrderEventOccs.keySet()) {//get order events and dates
 			DateEvent_OccurrenceData orderOcc = dateOrderEventOccs.get(orderDate);
-			Cust_OneOrderTrainingExample ex = new Cust_OneOrderTrainingExample(this, String.format("%3d", exID++), orderOcc, dateEventOccurrences.headMap(orderDate, true));//true : includes events on date
+			Cust_OneOrderTrainingExample ex = new Cust_OneOrderTrainingExample(this, OID+"_"+String.format("%3d", exID++), orderOcc, dateEventOccurrences.headMap(orderDate, true));//true : includes events on date
 			mapOfSingleOrderTrainingExamples.put(ex.OID, ex);			
 		}
 		mostRecentOrderCounts = dateOrderEventOccs.lastEntry().getValue().getOccurrenceCounts();

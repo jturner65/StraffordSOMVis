@@ -14,8 +14,8 @@ public class Straff_SOMProductMapper extends Straff_SOMExampleMapper {
 		//maps of product arrays, with key for each map being either jpg or jp
 	private TreeMap<Integer, ArrayList<ProductExample>> productsByJpg, productsByJp;
 
-	public Straff_SOMProductMapper(SOMMapManager _mapMgr, String _exName) {		
-		super(_mapMgr,  _exName);
+	public Straff_SOMProductMapper(SOMMapManager _mapMgr, String _exName, String _longExampleName) {		
+		super(_mapMgr,  _exName, _longExampleName);
 		productsByJpg = new TreeMap<Integer, ArrayList<ProductExample>>();
 		productsByJp = new TreeMap<Integer, ArrayList<ProductExample>>();
 	}//ctor
@@ -30,7 +30,7 @@ public class Straff_SOMProductMapper extends Straff_SOMExampleMapper {
 	
 	///no validation performed for true prospects - all are welcome
 	@Override
-	protected void validateAndAddEx(ArrayList<SOMExample> tmpList, SOMExample ex) {	tmpList.add(ex);}
+	protected void validateAndAddExToArray(ArrayList<SOMExample> tmpList, SOMExample ex) {	tmpList.add(ex);}
 	@Override
 	//add example from map to array without validation
 	protected SOMExample[] noValidateBuildExampleArray() {	return (ProductExample[])exampleMap.values().toArray(new ProductExample[0]);};	
@@ -86,6 +86,9 @@ public class Straff_SOMProductMapper extends Straff_SOMExampleMapper {
 		msgObj.dispMessage("Straff_SOMProductMapper","loadAllProductMapData","Loading all product map data", MsgCodes.info5);
 		//clear out current product data
 		reset();
+		//load data creation date time, if exists
+		loadDataCreateDateTime(subDir);
+		
 		String[] loadSrcFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(subDir, false, "productMapSrcData");
 		String dataFile =  loadSrcFNamePrefixAra[0]+".csv";
 		String[] csvLoadRes = fileIO.loadFileIntoStringAra(dataFile, "Product Data file loaded", "Product Data File Failed to load");
@@ -101,6 +104,29 @@ public class Straff_SOMProductMapper extends Straff_SOMExampleMapper {
 		setAllDataPreProcced();
 		msgObj.dispMessage("Straff_SOMProductMapper","loadAllProductMapData","Finished loading and preprocessing all local prospect map data and calculating features.  Number of entries in productMap : " + exampleMap.size(), MsgCodes.info5);
 	}//loadAllPreProccedMapData
+	
+	//save all pre-processed product data
+	@Override
+	public boolean saveAllPreProccedMapData() {
+		if ((null != exampleMap) && (exampleMap.size() > 0)) {
+			msgObj.dispMessage("Straff_SOMProductMapper","saveAllPreProccedMapData","Saving all product map data : " + exampleMap.size() + " examples to save.", MsgCodes.info5);
+			//save date/time of data creation
+			saveDataCreateDateTime();
+			
+			String[] saveDestFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(false, "productMapSrcData");
+			ArrayList<String> csvResTmp = new ArrayList<String>();		
+			ProductExample ex1 = (ProductExample) exampleMap.get(exampleMap.firstKey());
+			String hdrStr = ex1.getRawDescColNamesForCSV();
+			csvResTmp.add( hdrStr);	
+			for (SOMExample ex : exampleMap.values()) {			
+				csvResTmp.add(ex.getRawDescrForCSV());
+			}
+			fileIO.saveStrings(saveDestFNamePrefixAra[0]+".csv", csvResTmp);		
+			msgObj.dispMessage("Straff_SOMProductMapper","saveAllPreProccedMapData","Finished saving all product map data", MsgCodes.info5);
+			return true;
+		} else {msgObj.dispMessage("Straff_SOMProductMapper","saveAllPreProccedMapData","No product example data to save. Aborting", MsgCodes.error2); return false;}
+	}//saveAllPreProccedMapData
+	
 	
 	private static int dispProdJPDataFrame = 0, curProdJPIdx = -1, curProdTimer = 0;
 	//display the region of the map expected to be impacted by the products serving the passed jp 
@@ -123,25 +149,6 @@ public class Straff_SOMProductMapper extends Straff_SOMExampleMapper {
 		pa.popStyle();pa.popMatrix();	
 	}//drawProductRegion
 	
-	//save all pre-processed product data
-	@Override
-	public boolean saveAllPreProccedMapData() {
-		if ((null != exampleMap) && (exampleMap.size() > 0)) {
-			msgObj.dispMessage("Straff_SOMProductMapper","saveAllPreProccedMapData","Saving all product map data : " + exampleMap.size() + " examples to save.", MsgCodes.info5);
-			String[] saveDestFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(false, "productMapSrcData");
-			ArrayList<String> csvResTmp = new ArrayList<String>();		
-			ProductExample ex1 = (ProductExample) exampleMap.get(exampleMap.firstKey());
-			String hdrStr = ex1.getRawDescColNamesForCSV();
-			csvResTmp.add( hdrStr);	
-			for (SOMExample ex : exampleMap.values()) {			
-				csvResTmp.add(ex.getRawDescrForCSV());
-			}
-			fileIO.saveStrings(saveDestFNamePrefixAra[0]+".csv", csvResTmp);		
-			msgObj.dispMessage("Straff_SOMProductMapper","saveAllPreProccedMapData","Finished saving all product map data", MsgCodes.info5);
-			return true;
-		} else {msgObj.dispMessage("Straff_SOMProductMapper","saveAllPreProccedMapData","No product example data to save. Aborting", MsgCodes.error2); return false;}
-	}//saveAllPreProccedMapData
-
 	//draw all product nodes with max vals corresponding to current JPIDX
 	public void drawProductNodes(my_procApplet pa, int prodJpIDX, boolean showJPorJPG) {
 		pa.pushMatrix();pa.pushStyle();

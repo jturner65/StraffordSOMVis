@@ -39,8 +39,8 @@ public class SOM_MapNodeSegmentData {
 	
 	public SOMMapSegment getSegment() {return seg;}
 	public int getSegClrAsInt() {return segClrAsInt;}
-
-	//clr is 3 vals
+	
+	//draw owning node's contribution to this segment
 	public void drawMe(my_procApplet p) {	drawMe(p,segClr[3]);}
 	public void drawMe(my_procApplet p, int _alpha) {
 		p.pushMatrix();p.pushStyle();

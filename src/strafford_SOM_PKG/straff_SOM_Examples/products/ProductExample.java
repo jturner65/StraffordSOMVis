@@ -1,6 +1,7 @@
 package strafford_SOM_PKG.straff_SOM_Examples.products;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentSkipListMap;
 
 import base_SOM_Objects.som_examples.ExDataType;
 import base_SOM_Objects.som_examples.SOMExample;
@@ -34,6 +35,13 @@ public class ProductExample extends Straff_SOMExample{
 	
 	//types to conduct similarity mapping
 	private static int[] prospectTypes_idxs = new int[] {ExDataType.Training.getVal(), ExDataType.Testing.getVal(), ExDataType.Validation.getVal()};
+	
+	//probability structure for this product - probability of every node for each jp this product covers
+	//keyed by jp, value is map keyed by mapnode tuple loc, value is probablity (ratio of # of orders of key jp mapped to that node over # of all jps mapped to that node)
+	private ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>> perJPProductProbMap;
+	//probability structure for this product - probability of every node for each jp group this product covers
+	//keyed by jpgroup, value is map keyed by mapnode tuple loc, value is probablity (ratio of # of orders of key jpgroup mapped to that node over # of all jpgroups mapped to that node)
+	private ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>> perJPGroupProductProbMap;
 
 	//color to illustrate map (around bmu) region corresponding to this product - use distance as alpha value
 	private int[] prodClr;
@@ -56,6 +64,8 @@ public class ProductExample extends Straff_SOMExample{
 		prodClr[3]=255;
 		allMapNodesDists = new TreeMap[numFtrCompVals];
 		for (Integer i=0; i<numFtrCompVals;++i) {			allMapNodesDists[i] = new TreeMap<Double,ArrayList<SOMMapNode>>();		}
+		perJPProductProbMap = new ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>>();
+		perJPGroupProductProbMap = new ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>>();
 	}	
 	
 	//Only used for products since products extend over non-exclusive zones of the map
@@ -63,6 +73,32 @@ public class ProductExample extends Straff_SOMExample{
 	public void setMapNodesStruct(int mapNodeIDX, TreeMap<Double, ArrayList<SOMMapNode>> mapNodes) {
 		allMapNodesDists[mapNodeIDX] =  mapNodes;
 	}
+	
+	//this will query mapmanager and retrieve specific probabilities for this product's jps and jpgroups 
+	public void setAllMapNodeProbs() {		setJPMapNodeProbs();setJPGMapNodeProbs();	}
+
+	private void setJPMapNodeProbs() {
+		perJPProductProbMap.clear();		
+		ConcurrentSkipListMap<Tuple<Integer,Integer>,Float> jpRes, tmpJpRes;
+		for(Integer jp : allProdJPs) {
+			jpRes = ((Straff_SOMMapManager)mapMgr).getMapNodeJPProbsForJP(jp);
+			tmpJpRes = new ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>();
+			for(Tuple<Integer,Integer> key : jpRes.keySet()) {				tmpJpRes.put(key, jpRes.get(key));			}
+			perJPProductProbMap.put(jp, tmpJpRes);
+		}
+	}//setJPMapNodeProbs	
+
+	private void setJPGMapNodeProbs() {
+		perJPGroupProductProbMap.clear();
+		ConcurrentSkipListMap<Tuple<Integer,Integer>,Float> jpgRes, tmpJpgRes;		
+		for(Integer jpg : allProdJPGroups) {
+			jpgRes = ((Straff_SOMMapManager)mapMgr).getMapNodeJPGroupProbsForJPGroup(jpg);
+			tmpJpgRes = new ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>();
+			for(Tuple<Integer,Integer> key : jpgRes.keySet()) {				tmpJpgRes.put(key, jpgRes.get(key));			}
+			perJPGroupProductProbMap.put(jpg, tmpJpgRes);
+		}		
+	}//setJPGMapNodeProbs
+	
 	
 	//call this before any data loading that will over-write the existing product examples is performed
 	public static void initAllStaticProdData() {
@@ -85,8 +121,11 @@ public class ProductExample extends Straff_SOMExample{
 	protected void setIsTrainingDataIDX_Priv() { msgObj.dispMessage("ProductExample","setIsTrainingDataIDX_Priv","Calling inappropriate setIsTrainingDataIDX_Priv for ProductExample - should never have training index set.", MsgCodes.warning2);	}//products are never going to be training examples
 
 	@Override
-	public void finalizeBuildBeforeFtrCalc() {		allProdJPs = trainPrdctData.getAllJpsInData();	}
-	
+	public void finalizeBuildBeforeFtrCalc() {		
+		allProdJPs = trainPrdctData.getAllJpsInData();
+		for(Integer jp : allProdJPs) {	allProdJPGroups.add(jpJpgMon.getFtrJpGroupFromJp(jp));}
+	}
+	@Override
 	public HashSet<Tuple<Integer, Integer>> getSetOfAllJpgJpData() {
 		HashSet<Tuple<Integer,Integer>> res = trainPrdctData.getAllJpgJpsInData();
 		return res;
@@ -103,6 +142,7 @@ public class ProductExample extends Straff_SOMExample{
 	 *  example, an example has ftrs that do not appear on the map
 	 * @param _ignored : ignored
 	 */
+	@Override
 	public final void buildCompFtrVector(float _ignored) {
 		compFtrMaps = ftrMaps;
 	}
@@ -111,6 +151,7 @@ public class ProductExample extends Straff_SOMExample{
 	//the training label corresponds to a tag or a class referring to the data that can be assigned to a map node - a vote about the bmu from this example
 	//if not training data then no label will exist;  might not exist if it is training data either, if fully unsupervised
 	//NOTE!!!! this would only be used by this product if this product was being used to train a map
+	@Override
 	public TreeMap<Integer,Integer> getTrainingLabels() {	
 		TreeMap<Integer,Integer> res = new TreeMap<Integer,Integer>();
 		for(Integer jp : allProdJPs) {		res.put(jp, 1);	}
@@ -145,23 +186,12 @@ public class ProductExample extends Straff_SOMExample{
 	}//setFtrMinMax
 
 	
-	//draw all map nodes this product exerts influence on, with color alpha reflecting inverse distance, above threshold value set when nodesToDraw map was built
-	public void drawProdMapExtent(my_procApplet p, int distType, int numProds, double _maxDist) {
-		p.pushMatrix();p.pushStyle();		
-		NavigableMap<Double, ArrayList<SOMMapNode>> subMap = allMapNodesDists[distType].headMap(_maxDist, true);
-		//float mult = 255.0f/(numProds);//with multiple products maybe scale each product individually by total #?
-		for (Double dist : subMap.keySet()) {
-			ArrayList<SOMMapNode> nodeList = subMap.get(dist);
-			prodClr[3]=(int) ((1-(dist/_maxDist))*255);
-			for (SOMMapNode n : nodeList) {			n.drawMeProdBoxClr(p, prodClr);		}
-		}
-		p.popStyle();p.popMatrix();		
-	}//drawProdMapExtent
+	////////////////////////
+	// old functionality for mapping
 	
 	//convert distances to confidences so that for [_maxDist <= _dist <= 0] :
 	//this returns [0 <= conf <= _maxDist*_maxDistScale]; gives 0->1 as confidence
 	private static double distToConf(double _dist, double _maxDist) { 	return (_maxDist - _dist)/_maxDist;	}
-	
 	//return a map of all map nodes as keys and their Confidences as values to this product - inv
 	public HashMap<SOMMapNode, Double> getMapNodeConf(int distType, double _maxDist) {
 		NavigableMap<Double, ArrayList<SOMMapNode>> subMap = allMapNodesDists[distType].headMap(_maxDist, true);
@@ -174,20 +204,23 @@ public class ProductExample extends Straff_SOMExample{
 		return resMap;
 	}//getAllMapNodDists
 	
+	//return a map of all map nodes as keys and their Confidences as values to this product - based on actual orders mapped to map nodes
+	//public HashMap<SOMMapNode, Double> getMapNodeConf(int distType, double _maxDist) {
+	
 	//build a map keyed by distance to each map node of arrays of maps of arrays of that mapnode's examples, each array keyed by their distance:
 	//Outer map is keyed by distance from prod to map node, value is array (1 per map node @ dist) of maps keyed by distance from example to map node, value is array of all examples at that distance)
 	//x : this product's distance to map node ; y : each example's distance to map node
 	//based on their bmu mappings, to map nodes within _maxDist threshold of this node
 	//subMap holds all map nodes within _maxDist of this node
-	private TreeMap<Double, TreeMap<Double, ArrayList<SOMExample>>> getExamplesNearThisProd(NavigableMap<Double, ArrayList<SOMMapNode>> subMap, int typeIDX) {
-		TreeMap<Double, TreeMap<Double, ArrayList<SOMExample>>> nodesNearProd = new TreeMap<Double, TreeMap<Double, ArrayList<SOMExample>>>();
+	private TreeMap<Double, TreeMap<Double, ArrayList<SOMExample>>> getExamplesByDistance(NavigableMap<Double, ArrayList<SOMMapNode>> subMap, int _typeIDX){
+		TreeMap<Double, TreeMap<Double, ArrayList<SOMExample>>> tmpMapOfAllNodes = new TreeMap<Double, TreeMap<Double, ArrayList<SOMExample>>>();
 		HashMap<SOMExample, Double> tmpMapOfNodes;
 		for (Double dist : subMap.keySet()) {								//get all map nodes of certain distance from this node; - this dist is distance from this node to map node
 			ArrayList<SOMMapNode> mapNodeList = subMap.get(dist);				//all ara of all map nodes of specified distance from this product node
-			TreeMap<Double, ArrayList<SOMExample>> tmpMapOfArrays = nodesNearProd.get(dist);			
+			TreeMap<Double, ArrayList<SOMExample>> tmpMapOfArrays = tmpMapOfAllNodes.get(dist);			
 			if (tmpMapOfArrays==null) {tmpMapOfArrays = new TreeMap<Double, ArrayList<SOMExample>>();}				
 			for (SOMMapNode n : mapNodeList) {									//for each map node get all examples of ExDataType that consider that map node BMU
-				tmpMapOfNodes = n.getAllExsAndDist(typeIDX);					//each prospect example and it's distance from the bmu map node				
+				tmpMapOfNodes = n.getAllExsAndDist(_typeIDX);					//each prospect example and it's distance from the bmu map node				
 				for(SOMExample exN : tmpMapOfNodes.keySet()) {		//for each example that treats map node as bmu
 					Double distFromBMU = tmpMapOfNodes.get(exN);
 					ArrayList<SOMExample> exsAtDistFromMapNode = tmpMapOfArrays.get(distFromBMU);
@@ -196,21 +229,21 @@ public class ProductExample extends Straff_SOMExample{
 					tmpMapOfArrays.put(distFromBMU,exsAtDistFromMapNode);
 				}//for each node at this map node
 			}//for each map node at distance dist			
-			nodesNearProd.put(dist, tmpMapOfArrays);
-		}
-		return nodesNearProd;
-	}//getExamplesNearThisProd	
+			tmpMapOfAllNodes.put(dist, tmpMapOfArrays);
+		}		
+		return tmpMapOfAllNodes;
+	}
 	
 	//returns a map of dists from this product as keys and values as maps of distance of examples from their bmus as keys and example itself as value
 	//primary key is distance to a map node from this node, map holds distance-keyed lists of examples from their bmus.  
 	//multiple map nodes may lie on same distance from this node but example will only have 1 bmu
-	private TreeMap<Double, TreeMap<Double, ArrayList<SOMExample>>> getAllExamplesNearThisProd(int distType, double _maxDist) {
+	private TreeMap<Double, TreeMap<Double, ArrayList<SOMExample>>> getAllExamplesNearThisProd_ByDist(int distType, double _maxDist) {
 		NavigableMap<Double, ArrayList<SOMMapNode>> subMap = allMapNodesDists[distType].headMap(_maxDist, true);		
 		TreeMap<Double, TreeMap<Double, ArrayList<SOMExample>>> allNodesAndDists = new TreeMap<Double, TreeMap<Double, ArrayList<SOMExample>>>();		
 		TreeMap<Double, ArrayList<SOMExample>> srcMapNodeAra, destMapNodeAra;
 		ArrayList<SOMExample> srcExAra, destExAra;
 		for(int _typeIDX : prospectTypes_idxs) {
-			TreeMap<Double, TreeMap<Double, ArrayList<SOMExample>>> tmpMapOfAllNodes = getExamplesNearThisProd(subMap, _typeIDX);
+			TreeMap<Double, TreeMap<Double, ArrayList<SOMExample>>> tmpMapOfAllNodes = getExamplesByDistance(subMap, _typeIDX);
 			for (Double dist1 : tmpMapOfAllNodes.keySet()) {//this is dist from product to map node source of these examples
 				srcMapNodeAra = tmpMapOfAllNodes.get(dist1);				
 				destMapNodeAra = allNodesAndDists.get(dist1);
@@ -228,15 +261,20 @@ public class ProductExample extends Straff_SOMExample{
 		return allNodesAndDists;		
 	}//getExListNearThisProd
 	
+	/**
+	 * old method for building proposals - uses distance values to BMU and then from node
+	 * @param _maxDist
+	 * @return
+	 */
 	//get string array representation of this single product - built on demand
-	public String[] getAllExmplsPerProdStrAra(int distType,double _maxDist) {
-		ArrayList<String> resAra = new ArrayList<String>();
-		TreeMap<Double, ArrayList<SOMExample>> exmplsAtDist;		
+	public ArrayList<String> getAllExmplsPerProdStrAra(int distType,double _maxDist) {
+		ArrayList<String> resAra = new ArrayList<String>();	
 		String ttlStr = "Product ID : " + this.OID + " # of JPs covered : " + allProdJPs.size()+" : ";
 		for (Integer jp : allProdJPs) {	ttlStr += "" + jp + " : " + jpJpgMon.getJPNameFromJP(jp) + ", ";	}		
 		resAra.add(ttlStr);
 		resAra.add("OID,Confidence at Map Node,Error at Map Node");
-		TreeMap<Double, TreeMap<Double, ArrayList<SOMExample>>> allNodesAndConfs = getAllExamplesNearThisProd(distType, _maxDist);
+		TreeMap<Double, TreeMap<Double, ArrayList<SOMExample>>> allNodesAndConfs = getAllExamplesNearThisProd_ByDist(distType, _maxDist);
+		TreeMap<Double, ArrayList<SOMExample>> exmplsAtDist;	
 		String confStr, dist2BMUStr;
 		for(Double dist : allNodesAndConfs.keySet()) { 
 			exmplsAtDist = allNodesAndConfs.get(dist);
@@ -249,8 +287,13 @@ public class ProductExample extends Straff_SOMExample{
 				}//for all examples at bmu
 			}//for all bmus at certain distance
 		}//for all distances/all bmus
-		return resAra.toArray(new String[0]);	
-	}//getBestExsStrAra	
+		return resAra;
+	}//getBestExsStrAra
+	
+	////////////////////////
+	// end old functionality for mapping
+	
+
 	
 	//take loaded data and convert to output data
 	@Override
@@ -280,25 +323,29 @@ public class ProductExample extends Straff_SOMExample{
 			this.ftrVecMag = (float) Math.sqrt(ttlVal);
 		}
 	}//buildFeaturesMap
-	
-
-//	/**
-//	 * this function is not relevant for product example
-//	 * @param _MapNodesByFtr
-//	 * @return
-//	 */
-//	@Override
-//	protected final void buildMapNodeDistsFromGroupings(TreeMap<Double, ArrayList<SOMMapNode>> _mapNodesByDist,TreeMap<Integer, HashSet<SOMMapNode>> _MapNodesByFtr){}
 
 	@Override
 	protected void buildStdFtrsMap() {
 		ftrMaps[stdFtrMapTypeKey].clear();
 		for (Integer IDX : ftrMaps[ftrMapTypeKey].keySet()) {ftrMaps[stdFtrMapTypeKey].put(IDX,ftrMaps[ftrMapTypeKey].get(IDX));}//since features are all weighted to sum to 1, can expect ftrmap == strdizedmap
 		setFlag(stdFtrsBuiltIDX,true);
-		//set comparator == to feature vectors
-		buildCompFtrVector(0.0f);
 	}//buildStdFtrsMap
-
+	
+	/////////////////////////
+	// draw code
+	//draw all map nodes this product exerts influence on, with color alpha reflecting inverse distance, above threshold value set when nodesToDraw map was built
+	public void drawProdMapExtent(my_procApplet p, int distType, int numProds, double _maxDist) {
+		p.pushMatrix();p.pushStyle();		
+		NavigableMap<Double, ArrayList<SOMMapNode>> subMap = allMapNodesDists[distType].headMap(_maxDist, true);
+		//float mult = 255.0f/(numProds);//with multiple products maybe scale each product individually by total #?
+		for (Double dist : subMap.keySet()) {
+			ArrayList<SOMMapNode> nodeList = subMap.get(dist);
+			prodClr[3]=(int) ((1-(dist/_maxDist))*255);
+			for (SOMMapNode n : nodeList) {			n.drawMeProdBoxClr(p, prodClr);		}
+		}
+		p.popStyle();p.popMatrix();		
+	}//drawProdMapExtent
+	
 	@Override
 	public String toString(){
 		String res = "Example OID# : "+OID;

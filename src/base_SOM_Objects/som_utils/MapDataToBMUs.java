@@ -49,7 +49,7 @@ public abstract class MapDataToBMUs implements Callable<Boolean>{
 	
 	protected abstract boolean mapAllDataToBMUs();
 	@Override
-	public final Boolean call() throws Exception {	
+	public final Boolean call() {	
 		progress = -progAmt;
 		boolean retCode = mapAllDataToBMUs();		
 		return retCode;

@@ -21,7 +21,7 @@ import strafford_SOM_PKG.straff_Utils.featureCalc.StraffWeightCalc;
  */
 public class Straff_SOMCustPrspctMapper extends Straff_SOMProspectMapper {
 
-	public Straff_SOMCustPrspctMapper(SOMMapManager _mapMgr, String _exName) {		super(_mapMgr, _exName);	}//ctor
+	public Straff_SOMCustPrspctMapper(SOMMapManager _mapMgr, String _exName, String _longExampleName) {		super(_mapMgr, _exName, _longExampleName);	}//ctor
 	
 	//specific reset functionality for these type of examples
 	@Override
@@ -46,7 +46,7 @@ public class Straff_SOMCustPrspctMapper extends Straff_SOMProspectMapper {
 	
 	//this treats every customer's total past behavior as a single training example 
 	@Override
-	protected void validateAndAddEx(ArrayList<SOMExample> tmpList, SOMExample ex) {	if(!ex.isBadExample()) {tmpList.add(ex);}}//validateAndAddEx	//
+	protected void validateAndAddExToArray(ArrayList<SOMExample> tmpList, SOMExample ex) {	if(!ex.isBadExample()) {tmpList.add(ex);}}//validateAndAddEx	//
 	@Override
 	//add example from map to array without validation
 	protected SOMExample[] noValidateBuildExampleArray() {	return (CustProspectExample[])(exampleMap.values().toArray(new CustProspectExample[0]));};	
@@ -58,7 +58,9 @@ public class Straff_SOMCustPrspctMapper extends Straff_SOMProspectMapper {
 	//return customer prospect example array - this is same as regular example array for these kinds of customers
 	//this is here so that if per-order training data is generated via an instance of Straff_SOMCustPrspctPerOrderMapper class
 	//this function will still work to retrieve examples
-	public CustProspectExample[] getCustProspectExamples() {return (CustProspectExample[]) SOMexampleArray;}
+	public CustProspectExample[] getCustProspectExamples() {
+		if((null==SOMexampleArray) ||(SOMexampleArray.length==0)) {	buildExampleArray(true);}
+		return (CustProspectExample[]) SOMexampleArray;}
 
 	
 	/**

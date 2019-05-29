@@ -40,6 +40,8 @@ public abstract class Straff_SOMExample extends SOMExample{
 	//all jps in this example that correspond to actual products.
 	//products are used for training vectors - these will be used to build feature vector used by SOM
 	protected HashSet<Integer> allProdJPs;
+	//all jpgroups refed in this example that represent actual products
+	protected HashSet<Integer> allProdJPGroups;
 		
 	//alternate comparison structure - used in conjunction with ftrVec of chosen format
 	//use a map to hold only sparse data of each frmt for feature vector
@@ -54,6 +56,7 @@ public abstract class Straff_SOMExample extends SOMExample{
 		super(_map, _type, _id);
 		jpJpgMon = ((Straff_SOMMapManager) mapMgr).jpJpgrpMon;
 		allProdJPs = new HashSet<Integer> ();	
+		allProdJPGroups = new HashSet<Integer> ();	
 		compValFtrDataMaps = new TreeMap[ftrMapTypeKeysAra.length];
 		for (int i=0;i<compValFtrDataMaps.length;++i) {			compValFtrDataMaps[i] = new TreeMap<Integer, Float>(); 		}
 
@@ -61,7 +64,8 @@ public abstract class Straff_SOMExample extends SOMExample{
 	
 	public Straff_SOMExample(Straff_SOMExample _otr) {
 		super(_otr);	
-		allProdJPs = _otr.allProdJPs;		
+		allProdJPs = _otr.allProdJPs;	
+		allProdJPGroups = _otr.allProdJPGroups;
 		compValFtrDataMaps = _otr.compValFtrDataMaps;
 	}//copy ctor
 	//instead of rebuilding these, just clear them

@@ -16,7 +16,7 @@ import strafford_SOM_PKG.straff_Utils.featureCalc.StraffWeightCalc;
 public class Straff_SOMTruePrspctMapper extends Straff_SOMProspectMapper {
 
 
-	public Straff_SOMTruePrspctMapper(SOMMapManager _mapMgr, String _exName) {		super(_mapMgr, _exName);	}
+	public Straff_SOMTruePrspctMapper(SOMMapManager _mapMgr, String _exName, String _longExampleName) {		super(_mapMgr, _exName, _longExampleName);	}
 	
 	//specific reset functionality for these type of examples
 	@Override
@@ -24,7 +24,7 @@ public class Straff_SOMTruePrspctMapper extends Straff_SOMProspectMapper {
 	
 	///no validation performed for true prospects - all are welcome
 	@Override
-	protected void validateAndAddEx(ArrayList<SOMExample> tmpList, SOMExample ex) {	tmpList.add(ex);		}
+	protected void validateAndAddExToArray(ArrayList<SOMExample> tmpList, SOMExample ex) {	tmpList.add(ex);		}
 	@Override
 	//add example from map to array without validation
 	protected SOMExample[] noValidateBuildExampleArray() {	return (TrueProspectExample[])(exampleMap.values().toArray(new TrueProspectExample[0]));};	

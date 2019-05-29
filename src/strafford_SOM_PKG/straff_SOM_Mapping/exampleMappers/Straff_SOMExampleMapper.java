@@ -17,8 +17,8 @@ public abstract class Straff_SOMExampleMapper extends SOMExampleMapper  {
 	//ref to mt executor
 	protected ExecutorService th_exec;
 
-	public Straff_SOMExampleMapper(SOMMapManager _mapMgr, String _exName) {
-		super(_mapMgr,  _exName);
+	public Straff_SOMExampleMapper(SOMMapManager _mapMgr, String _exName, String _longExampleName) {
+		super(_mapMgr,  _exName, _longExampleName);
 		jpJpgrpMon = ((Straff_SOMMapManager)mapMgr).jpJpgrpMon;
 		th_exec = mapMgr.getTh_Exec();
 	}
@@ -34,5 +34,17 @@ public abstract class Straff_SOMExampleMapper extends SOMExampleMapper  {
 	}//buildFtrVec_Priv
 	protected abstract void buildStraffFtrVec_Priv();
 	
+	//load date and time of data creation, if exists
+	protected final void loadDataCreateDateTime(String subDir) {
+		String[] loadDateTimeFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(subDir, true, exampleName+ "CreationDateTime");
+		String dateTimeFileName = loadDateTimeFNamePrefixAra[0]+".csv";
+		loadDateAndTimeOfDataCreation(dateTimeFileName, exampleName);
+	}
+	
+	protected final void saveDataCreateDateTime() {
+		String[] saveDataFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(true, exampleName+"CreationDateTime");
+		String dateTimeFileName = saveDataFNamePrefixAra[0]+".csv";
+		saveDateAndTimeOfDataCreation(dateTimeFileName, exampleName);
+	}
 	
 }//class Straff_SOMExampleMapper

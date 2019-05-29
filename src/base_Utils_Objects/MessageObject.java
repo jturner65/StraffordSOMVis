@@ -89,7 +89,13 @@ public class MessageObject {
 		for(String key : logMsgQueue.keySet()) {	outList.add(logMsgQueue.get(key));}
 		fileIO.saveStrings(fileName, outList, true);		
 	}//FinishLog
-	
+	/**
+	 * Return current wall time and time from execution start in string form
+	 * @return string representation of wall time and time from start separated by a |
+	 */
+	public String getCurrWallTimeAndTimeFromStart() {return timeMgr.getWallTimeAndTimeFromStart(dispDelim);}
+	public String getCurrWallTime() { return timeMgr.getCurrWallTime();}
+	public String getTimeStrFromProcStart() { return timeMgr.getTimeStrFromProcStart();}
 	//pass an array to display
 	public void dispMessageAra(String[] _sAra, String _callingClass, String _callingMethod, int _perLine, MsgCodes useCode) {dispMessageAra( _sAra,  _callingClass, _callingMethod, _perLine,  useCode, true);}
 	//show array of strings, either just to console or to applet window
@@ -110,7 +116,10 @@ public class MessageObject {
 	public void dispMultiLineInfoMessage(String srcClass, String srcMethod, String msgTextWithNewLines){String[] _sAra = msgTextWithNewLines.split(newLineDelim);dispMessageAra(_sAra, srcClass,srcMethod,1, MsgCodes.info1,true);}	
 	public void dispMultiLineMessage(String srcClass, String srcMethod, String msgTextWithNewLines, MsgCodes useCode){String[] _sAra = msgTextWithNewLines.split(newLineDelim);dispMessageAra(_sAra, srcClass,srcMethod,1, useCode,true);}	
 	public void dispMultiLineMessage(String srcClass, String srcMethod, String msgTextWithNewLines, MsgCodes useCode, boolean onlyConsole) {String[] _sAra = msgTextWithNewLines.split(newLineDelim);dispMessageAra(_sAra, srcClass,srcMethod,1, useCode,onlyConsole);}	
-
+	
+	
+	////////////////////////
+	// private methods
 	private String buildClrStr(ConsoleCLR bk, ConsoleCLR clr, String str) {return bk.toString() + clr.toString() + str + ConsoleCLR.RESET.toString();	}
 	private String _processMsgCode(String src, MsgCodes useCode) {
 		if (!supportsANSITerm) {return src;}

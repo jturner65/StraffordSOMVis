@@ -1,4 +1,5 @@
 package base_SOM_Objects;
+
 /**
  * This object holds the configuration information for a SOMOCLU-based map to be trained and consumed.  
  * An instance of this class object must be the prime source for all actual map-based configuration and 
@@ -41,7 +42,9 @@ public class SOM_MapDat{
 	private boolean isSparse;
 	private String[] execStrAra;			//holds arg list sent to som executable
 	private String dbgExecStr;				//string to be executed on command line, built for ease in debugging		
-		
+	//types of data kernel (config) supported by somoclu-based som executable - describes data format and whether computed via strictly cpu computation or using cuda
+	private static final String[] kernelTypes = new String[] {"Dense CPU","Dense GPU","Sparse CPU"};
+
 	//not ready to be used until given data
 	public SOM_MapDat(SOMProjConfigData _config, String _curOS) {
 		curOS = _curOS;
@@ -251,11 +254,12 @@ public class SOM_MapDat{
 	public String getExename() {		return execSOMStr;}
 		
 	public boolean isToroidal(){return (mapStrings.get("mapBounds").equals("toroid"));}
-		
+	
+	//purely descriptive
 	@Override
 	public String toString(){
 		String res = "Map config : SOM_MAP Dir : " + execDir +"\n";
-		res += "Kernel(k) : "+mapInts.get("mapKType") + "\t#Cols : " + mapInts.get("mapCols") + "\t#Rows : " + mapInts.get("mapRows") + "\t#Epochs : " + mapInts.get("mapEpochs") + "\tStart Radius : " +mapInts.get("mapStRad") + "\tEnd Radius : " + +mapInts.get("mapEndRad")+"\n";
+		res += "Data Format and Computation Method(k) : "+kernelTypes[mapInts.get("mapKType")] + "\t#Cols : " + mapInts.get("mapCols") + "\t#Rows : " + mapInts.get("mapRows") + "\t#Epochs : " + mapInts.get("mapEpochs") + "\tStart Radius : " +mapInts.get("mapStRad") + "\tEnd Radius : " + +mapInts.get("mapEndRad")+"\n";
 		res += "Start Learning Rate : " + String.format("%.4f",mapFloats.get("mapStLrnRate"))+"\tEnd Learning Rate : " + String.format("%.4f",mapFloats.get("mapEndLrnRate"))+"\n";
 		res += "Boundaries : "+mapStrings.get("mapBounds") + "\tGrid Shape : "+mapStrings.get("mapGridShape")+"\tNeighborhood Function : " + mapStrings.get("mapNHood") + "\nLearning Cooling: " + mapStrings.get("mapLearnCool") + "\tRadius Cooling : "+ mapStrings.get("mapRadCool")+"\n";		
 		res += "Training data (full path) : "+(isSparse ? ".svm (Sparse) file name : " + trainDataSparseFN_fullPath :  ".lrn (dense) file name : " + trainDataDenseFN_fullPath) + "\nOutput files prefix (full path) : " + outFilesPrefix_fullPath +"\n";

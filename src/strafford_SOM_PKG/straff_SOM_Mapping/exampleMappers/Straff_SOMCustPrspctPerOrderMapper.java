@@ -17,11 +17,11 @@ public class Straff_SOMCustPrspctPerOrderMapper extends Straff_SOMCustPrspctMapp
 	//this is necessary because the actual examples managed by this mapper are the individual per-order examples
 	private CustProspectExample[] custProspectExamples;
 	
-	public Straff_SOMCustPrspctPerOrderMapper(SOMMapManager _mapMgr, String _exName) {super(_mapMgr, _exName);}
+	public Straff_SOMCustPrspctPerOrderMapper(SOMMapManager _mapMgr, String _exName, String _longExampleName) {super(_mapMgr, _exName, _longExampleName + " per Order examples.");}
 
 	//this treats every customer's order as an individual example
 	@Override
-	protected void validateAndAddEx(ArrayList<SOMExample> tmpList, SOMExample ex) {
+	protected void validateAndAddExToArray(ArrayList<SOMExample> tmpList, SOMExample ex) {
 		if(!ex.isBadExample()) {	tmpList.addAll(((CustProspectExample) ex).getSingleOrderTrainingExamples());}		
 	}//validateAndAddEx
 	

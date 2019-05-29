@@ -9,7 +9,11 @@ import base_SOM_Objects.som_examples.*;
 import base_SOM_Objects.som_utils.SOMProjConfigData;
 import base_Utils_Objects.*;
 
-//class that describes the hierarchy of files required for running and analysing a SOM
+/**
+ * This class describes the hierarchy of functionality required for analysing a trained SOM's results
+ * Will Process results from SOM execution
+ * @author john
+ */
 public class SOMDataLoader implements Runnable {
 	public SOMMapManager mapMgr;				//the map these files will use
 	//object that manages message displays on screen
@@ -21,12 +25,10 @@ public class SOMDataLoader implements Runnable {
 	
 	public final static float nodeDistThresh = 100000.0f;
 	
+	//type of data used to train - 0 : unmodded, 1:std'ized, 2:normalized 
 	public int ftrTypeUsedToTrain;
 	public boolean useChiSqDist;
-
-	//type of data used to train - 0 : unmodded, 1:std'ized, 2:normalized - should be retrieved from file name
-	//private int dataFormat;
-	
+		
 	public SOMDataLoader(SOMMapManager _mapMgr, SOMProjConfigData _configData) {
 		mapMgr = _mapMgr; 
 		msgObj = mapMgr.buildMsgObj();
@@ -37,18 +39,18 @@ public class SOMDataLoader implements Runnable {
 	@Override
 	public void run(){
 		msgObj.dispMessage("SOMDataLoader","run","Starting data loader", MsgCodes.info5);			
-		if(projConfigData.allReqFileNamesSet()){
+		//if(projConfigData.allReqFileNamesSet()){
 			msgObj.dispMessage("SOMDataLoader","run","All required files are loaded.", MsgCodes.info1);			
 			boolean success = execDataLoad() ;
 			mapMgr.setMapDataIsLoaded(success);
 			mapMgr.setLoaderRTNSuccess(true);
 			mapMgr.setMapImgClrs();
 			msgObj.dispMessage("SOMDataLoader","run","Finished data loader : SOM Data Loaded : " + mapMgr.getMapDataIsLoaded()  + " | loader ret code : " +mapMgr.getLoaderRTNSuccess(), MsgCodes.info5 );			
-		}
-		else {
-			mapMgr.setLoaderRTNSuccess(false);
-			msgObj.dispMessage("SOMDataLoader","run","Data loader Failed : Required files not all loaded or file IO error ", MsgCodes.error2);
-		}
+		//}
+//		else {
+//			mapMgr.setLoaderRTNSuccess(false);
+//			msgObj.dispMessage("SOMDataLoader","run","Data loader Failed : Required files not all loaded or file IO error ", MsgCodes.error2);
+//		}
 		mapMgr.resetButtonState();
 		msgObj.dispMessage("SOMDataLoader","run","Finished data loader", MsgCodes.info5);			
 	}//run
@@ -95,6 +97,7 @@ public class SOMDataLoader implements Runnable {
 	//consider actual map data to be feature data, scale map nodes based on min/max feature data seen in wts file
 	private boolean loadSOMWts(){//builds mapnodes structure - each map node's weights 
 		String wtsFileName = projConfigData.getSOMResFName(projConfigData.wtsIDX);
+		if(wtsFileName.length() < 1){msgObj.dispMessage("SOMDataLoader","loadSOMWts","getSOMResFName call failed for wts : "+wtsFileName, MsgCodes.info5);return false;}
 		msgObj.dispMessage("SOMDataLoader","loadSOMWts","Starting Loading SOM weight data from file : " + getFName(wtsFileName), MsgCodes.info5 );
 		mapMgr.initMapNodes();
 		mapMgr.clearBMUNodesWithNoExs(ExDataType.Training);//clear structures holding map nodes with and without training examples
@@ -147,6 +150,7 @@ public class SOMDataLoader implements Runnable {
 	//load the u-matrix data used to build the node distance visualization
 	private boolean loadSOM_UMatrixDists() {
 		String uMtxBMUFname =  projConfigData.getSOMResFName(projConfigData.umtxIDX);
+		if(uMtxBMUFname.length() < 1){msgObj.dispMessage("SOMDataLoader","loadSOM_UMatrixDists","getSOMResFName call failed for umatrix file : "+uMtxBMUFname, MsgCodes.info5);return false;}
 		msgObj.dispMessage("SOMDataLoader","loadSOM_UMatrixDists","Start Loading U-Matrix File : "+uMtxBMUFname, MsgCodes.info5);
 		if(uMtxBMUFname.length() < 1){return false;}
 		String [] strs= fileIO.loadFileIntoStringAra(uMtxBMUFname, "Loaded U Matrix data file : "+uMtxBMUFname, "Error reading U Matrix data file : "+uMtxBMUFname);
@@ -198,7 +202,7 @@ public class SOMDataLoader implements Runnable {
 	//load best matching units for each training example - has values : idx, mapy, mapx.  Uses file built by som code.  can be verified by comparing actual example distance from each node
 	private boolean loadSOM_BMUs(){//modifies existing nodes and datapoints only
 		String bmFileName = projConfigData.getSOMResFName(projConfigData.bmuIDX);
-		if(bmFileName.length() < 1){return false;}
+		if(bmFileName.length() < 1){msgObj.dispMessage("SOMDataLoader","loadSOM_BMUs","getSOMResFName call failed : "+bmFileName, MsgCodes.info5);return false;}
 		//clear out listing of bmus that have training examples already
 		mapMgr.clearBMUNodesWithExs(ExDataType.Training);
 		msgObj.dispMessage("SOMDataLoader","loadSOM_BMUs","Start Loading BMU File : "+bmFileName, MsgCodes.info5);
@@ -323,42 +327,6 @@ public class SOMDataLoader implements Runnable {
 		}		
 		msgObj.dispMessage("SOMMapManager","addMappedNodesToEmptyNodes","Finished assigning map nodes that are not BMUs to any examples to have nearest map node to them as BMU.", MsgCodes.info5);		
 	}//addMappedNodesToEmptyNodes
-	
-//	//any map nodes that do not have best matching features may still have other examples that map to them.  These nodes must be managed 
-//	//so give these unmapped nodes the same "tags" (bmus, or classes) that the closest map node to them has
-//	//this used map topology, but this structure is wrong since there will always be 4 closest nodes - can just as easily just find 4 closest nodes by node map address
-//	//and this also doesn't account for nodes that are surrounded by empty nodes
-//	public void addMappedNodesToEmptyNodes_old(ExDataType _type) {
-//		msgObj.dispMessage("SOMMapManager","addMappedNodesToEmptyNodes","Start assigning map nodes that are not BMUs to any training examples to have nearest map node to them as BMU.", MsgCodes.info5);		
-//		boolean isTorroid = mapMgr.isToroidal();
-//		float sqDist,minSqDist;
-//		int typeVal = _type.getVal();
-//		HashSet<SOMMapNode> withMap = mapMgr.getNodesWithExOfType(_type),withOutMap = mapMgr.getNodesWithNoExOfType(_type);	
-//		//set all empty mapnodes to have a label based on the closest mapped node's label
-//		if (isTorroid) {//minimize in-loop if checks
-//			for(SOMMapNode emptyNode : withOutMap){//node has no label mappings, so need to determine label
-//				minSqDist = 1000000;
-//				SOMMapNode closestMapNode  = emptyNode;					//will never be added
-//				for(SOMMapNode node2 : withMap){					//this is adding a -map- node
-//					sqDist = getSqMapDist_torr(node2, emptyNode);			//actual map topology dist - need to handle wrapping!
-//					if (sqDist < minSqDist) {minSqDist = sqDist;		closestMapNode = node2;}
-//				}	
-//				emptyNode.addMapNodeExToBMUs(minSqDist, closestMapNode, typeVal);			//adds single closest -map- node we know has a label, or itself if none found
-//			}
-//		} else {
-//			for(SOMMapNode emptyNode : withOutMap){//node has no label mappings, so need to determine label
-//				minSqDist = 1000000;
-//				SOMMapNode closestMapNode  = emptyNode;					//will never be added
-//				for(SOMMapNode node2 : withMap){					//this is adding a -map- node
-//					sqDist = getSqMapDist_flat(node2, emptyNode);			//actual map topology dist - need to handle wrapping!
-//					if (sqDist < minSqDist) {minSqDist = sqDist;		closestMapNode = node2;}
-//				}	
-//				emptyNode.addMapNodeExToBMUs(minSqDist, closestMapNode,typeVal);			//adds single closest -map- node we know has a label, or itself if none found
-//			}			
-//		}		
-//		msgObj.dispMessage("SOMMapManager","addMappedNodesToEmptyNodes","Finished assigning map nodes that are not BMUs to any examples to have nearest map node to them as BMU.", MsgCodes.info5);		
-//	}//addMappedNodesToEmptyNodes
-
 
 	
 	//returns sq distance between two map locations - needs to handle wrapping if map built torroidally

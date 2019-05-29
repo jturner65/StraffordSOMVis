@@ -5,39 +5,40 @@ import java.util.*;
 
 import base_SOM_Objects.*;
 import base_SOM_Objects.som_ui.*;
-import base_SOM_Objects.som_utils.SOMProjConfigData;
 import base_UI_Objects.*;
 import base_Utils_Objects.*;
 import processing.core.PImage;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
-import strafford_SOM_PKG.straff_Utils.*;
 import strafford_SOM_PKG.straff_Utils.featureCalc.StraffWeightCalc;
-
 
 //window that accepts trajectory editing
 public class Straff_SOMMapUIWin extends SOMMapUIWin {
 	
 	//idxs of boolean values/flags - instance-specific
 	public static final int 
-		custExCalcedIDX				= numSOMBasePrivFlags + 0,			//whether customer prospect examples have been loaded and ftrs have been calculated or not
-		tpExCalcedIDX				= numSOMBasePrivFlags + 1,			//whether true propsect examples have been loaded and ftrs have been calculated or not
-		mapDrawPrdctNodesIDX 		= numSOMBasePrivFlags + 2,
-		mapDrawCurProdZoneIDX	 	= numSOMBasePrivFlags + 3,			//show currently selected prod jps' products and influence zones
-		//display/interaction
-		mapDrawTruePspctIDX			= numSOMBasePrivFlags + 4,			//draw true prospect examples on map		
-		mapDrawCustAnalysisVisIDX	= numSOMBasePrivFlags + 5,			//whether or not to draw feature calc analysis graphs for customer examples
-		mapDrawTPAnalysisVisIDX		= numSOMBasePrivFlags + 6,			//whether or not to draw feature calc analysis graphs for true prospect examples
-		mapDrawCalcFtrOrAllVisIDX	= numSOMBasePrivFlags + 7,			//whether to draw calc obj for ftr-related jps, or all jps present		
-		//show jp and jpgroup segments
-		mapDrawJPSegmentsIDX		= numSOMBasePrivFlags + 8,			//show order-driven jp segments
-		mapDrawJPGroupSegmentsIDX   = numSOMBasePrivFlags + 9,			//show order-driven jpgroup segments
+		custExCalcedIDX					= numSOMBasePrivFlags + 0,			//whether customer prospect examples have been loaded and ftrs have been calculated or not
+		tpExCalcedIDX					= numSOMBasePrivFlags + 1,			//whether true propsect examples have been loaded and ftrs have been calculated or not
+		trainExCalcedIDX				= numSOMBasePrivFlags + 2,			//whether training data examples have been loaded and ftrs have been calculated or not - these are per-order training examples
 		
-		showSelJPIDX				= numSOMBasePrivFlags + 10, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
+		mapDrawPrdctNodesIDX 			= numSOMBasePrivFlags + 3,
+		mapDrawCurProdZoneIDX	 		= numSOMBasePrivFlags + 4,			//show currently selected prod jps' products and influence zones
+		//display/interaction
+		mapDrawTruePspctIDX				= numSOMBasePrivFlags + 5,			//draw true prospect examples on map		
+		mapDrawCustAnalysisVisIDX		= numSOMBasePrivFlags + 6,			//whether or not to draw feature calc analysis graphs for customer examples
+		mapDrawTPAnalysisVisIDX			= numSOMBasePrivFlags + 7,			//whether or not to draw feature calc analysis graphs for true prospect examples
+		mapDrawTrainDataAnalysisVisIDX	= numSOMBasePrivFlags + 8,			//whether or not to draw feature calc analysis graphs for training data examples (this will be relevant when training data is individual per-order-derived
+						
+		mapDrawCalcFtrOrAllVisIDX		= numSOMBasePrivFlags + 9,			//whether to draw calc obj for ftr-related jps, or all jps present		
+		//show jp and jpgroup segments
+		mapDrawJPSegmentsIDX			= numSOMBasePrivFlags + 10,			//show order-driven jp segments
+		mapDrawJPGroupSegmentsIDX   	= numSOMBasePrivFlags + 11,			//show order-driven jpgroup segments
+		
+		showSelJPIDX					= numSOMBasePrivFlags + 12, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
 		//train/test data managemen
-		procTruProspectsIDX			= numSOMBasePrivFlags + 11,			//this will process true prospects, and load them if they haven't been loaded
-		saveProdMapsOfPrspctsIDX	= numSOMBasePrivFlags + 12;			//this will save all the product data for the currently selected prod JP
+		procTruProspectsIDX				= numSOMBasePrivFlags + 13,			//this will process true prospects, and load them if they haven't been loaded
+		saveProdMapsOfPrspctsIDX		= numSOMBasePrivFlags + 14;			//this will save all the product data for the currently selected prod JP
 
-	public static final int numPrivFlags = numSOMBasePrivFlags + 13;
+	public static final int numPrivFlags = numSOMBasePrivFlags + 15;
 	
 	//SOM map list options
 	public String[] 
@@ -104,27 +105,24 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 	protected void initAllSOMPrivBtns_Indiv(String[] _baseTrueNames, String[] _baseFalseNames, int[] _baseFlags) {
 		String[] tmpTruePrivFlagNames = new String[]{								//needs to be in order of flags
 				//"Train W/Recs W/Event Data", 				
-				"Hide Tru Prspct",
+				"Hide Order-Based JP Segments  ", "Hide Order-Based JPGroup Segments",
 				"Hide Products","Hide Cur Prod Zone",
-				"Hide Order-Based JP Segments", "Hide Order-Based JPGroup Segments",
-				"Calc Plot on Ftr JPs","Hide Cust Calc Plot", "Hide Tru Prspct Calc Plot", 
-				"Map Tru Prspct BMUs",	"Saving Prospect Mappings for prods"
+				"Show Calc Plot on Ftr JPs","Hide Training Data Calc Plot","Hide Cust Prspct Calc Plot", "Hide True Prspct Calc Plot", 
+				"Hide True Prospects on Map","Mapping True Prospect BMUs","Saving Prospect Mappings for prods"
 		};
 		String[] tmpFalsePrivFlagNames = new String[]{			//needs to be in order of flags
 				//"Train W/All Recs",				
-				"Show Tru Prspct",
+				"Show Order-Based JP Segments  ", "Show Order-Based JPGroup Segments",
 				"Show Products","Show Cur Prod Zone",
-				"Show Order-Based JP Segments", "Show Order-Based JPGroup Segments",
-				"Calc Plot on All JPs", "Show Cust Calc Plot", "Show Tru Prspct Calc Plot", 
-				"Map Tru Prspct BMUs",	"Save Prospect Mappings for prods"
+				"Show Calc Plot on All JPs", "Show Training Data Calc Plot","Show Cust Prspct Calc Plot", "Show True Prspct Calc Plot", 
+				"Show True Prospects on Map","Map True Prospect BMUs",	"Save Prospect Mappings for prods"
 		};
 		int[] tmpPrivModFlgIdxs = new int[]{
 				//useOnlyEvntsToTrainIDX, 				
-				mapDrawTruePspctIDX,
-				mapDrawPrdctNodesIDX,mapDrawCurProdZoneIDX,
 				mapDrawJPSegmentsIDX,mapDrawJPGroupSegmentsIDX,				
-				mapDrawCalcFtrOrAllVisIDX, mapDrawCustAnalysisVisIDX,mapDrawTPAnalysisVisIDX,
-				procTruProspectsIDX,saveProdMapsOfPrspctsIDX
+				mapDrawPrdctNodesIDX,mapDrawCurProdZoneIDX,				
+				mapDrawCalcFtrOrAllVisIDX, mapDrawTrainDataAnalysisVisIDX, mapDrawCustAnalysisVisIDX, mapDrawTPAnalysisVisIDX,
+				mapDrawTruePspctIDX,procTruProspectsIDX,saveProdMapsOfPrspctsIDX
 		};
 		initAllPrivBtns_Final(tmpTruePrivFlagNames,  tmpFalsePrivFlagNames, tmpPrivModFlgIdxs ,_baseTrueNames, _baseFalseNames, _baseFlags);
 	}//initAllSOMPrivBtns_Indiv
@@ -196,6 +194,8 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 			case mapDrawCustAnalysisVisIDX	: {//whether or not to draw feature calc analysis graphs  
 				if (val) {//if setting to true then aggregate data
 					setPrivFlags(mapDrawTPAnalysisVisIDX, false);
+					setPrivFlags(mapDrawTrainDataAnalysisVisIDX, false);
+					
 					curCalcAnalysisTypeIDX= StraffWeightCalc.custCalcObjIDX;
 					((Straff_SOMMapManager) mapMgr).processCalcAnalysis(curCalcAnalysisTypeIDX);	
 					setAnalysisDimWidth();
@@ -206,6 +206,8 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 			case mapDrawTPAnalysisVisIDX	: {//whether or not to draw feature calc analysis graphs  
 				if (val) {//if setting to true then aggregate data
 					setPrivFlags(mapDrawCustAnalysisVisIDX, false);
+					setPrivFlags(mapDrawTrainDataAnalysisVisIDX, false);
+					
 					curCalcAnalysisTypeIDX= StraffWeightCalc.tpCalcObjIDX;
 					((Straff_SOMMapManager) mapMgr).processCalcAnalysis(curCalcAnalysisTypeIDX);	
 					setAnalysisDimWidth();
@@ -213,6 +215,20 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 					
 				}
 				break;}
+			
+			case mapDrawTrainDataAnalysisVisIDX : {
+				if (val) {//if setting to true then aggregate data
+					setPrivFlags(mapDrawCustAnalysisVisIDX, false);
+					setPrivFlags(mapDrawTPAnalysisVisIDX, false);
+					
+					curCalcAnalysisTypeIDX= StraffWeightCalc.trainCalcObjIDX;
+					((Straff_SOMMapManager) mapMgr).processCalcAnalysis(curCalcAnalysisTypeIDX);	
+					setAnalysisDimWidth();
+				}else {
+					
+				}
+				break;}
+				
 			case mapDrawJPSegmentsIDX		:{			break;}			
 			case mapDrawJPGroupSegmentsIDX	:{			break;}			
 			case showSelJPIDX		 : {//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
@@ -230,8 +246,9 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 				}				
 				break;}		//save all product to prospect mappings given currently selected product jp and dist thresh
 			
-			case custExCalcedIDX : {			break;}			
-			case tpExCalcedIDX  : {			break;}			
+			case custExCalcedIDX 	: {		break;}			
+			case tpExCalcedIDX  	: {		break;}		
+			case trainExCalcedIDX 	: {		break;}
 		}		
 	}//setPrivFlagsIndiv
 		
@@ -439,6 +456,7 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 	protected void drawSetDispFlags() {
 		setPrivFlags(custExCalcedIDX, ((Straff_SOMMapManager) mapMgr).isFtrCalcDone(StraffWeightCalc.custCalcObjIDX));
 		setPrivFlags(tpExCalcedIDX, ((Straff_SOMMapManager) mapMgr).isFtrCalcDone(StraffWeightCalc.tpCalcObjIDX));	
+		setPrivFlags(trainExCalcedIDX,((Straff_SOMMapManager) mapMgr).isFtrCalcDone(StraffWeightCalc.trainCalcObjIDX));	
 		//checking flag to execute if true
 		if(getPrivFlags(procTruProspectsIDX)){	((Straff_SOMMapManager) mapMgr).buildAndSaveTrueProspectReport();setPrivFlags(procTruProspectsIDX,false);	}			
 	}
@@ -454,7 +472,7 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 			if(getPrivFlags(mapDrawWtMapNodesIDX)){		mapMgr.drawNodesWithWt(pa, mapNodeWtDispThresh, curMapImgIDX);} 
 			if(getPrivFlags(mapDrawFtrWtSegIDX)) {		mapMgr.drawFtrWtSegments(pa, mapNodeWtDispThresh, curMapImgIDX);}
 			if(getPrivFlags(mapDrawJPSegmentsIDX)) {	((Straff_SOMMapManager) mapMgr).drawOrderJPSegments(pa,curMapImgIDX);	}		
-			if(getPrivFlags(mapDrawJPGroupSegmentsIDX)) {((Straff_SOMMapManager) mapMgr).drawOrderJPGroupSegments(pa,(int)guiObjs[uiFtrJPToDispIDX].getVal());	}
+			if(getPrivFlags(mapDrawJPGroupSegmentsIDX)) {((Straff_SOMMapManager) mapMgr).drawOrderJPGroupSegments(pa,(int)guiObjs[uiFtrJPGToDispIDX].getVal());	}
 			
 		} else {//draw all products				
 			if (notDrawAnalysis && (mseOvrData != null)){	drawMseLocWts();}
@@ -479,6 +497,7 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 		
 		if (getPrivFlags(mapDrawCustAnalysisVisIDX)){	_drawAnalysis(custExCalcedIDX, mapDrawCustAnalysisVisIDX);	} 
 		else if (getPrivFlags(mapDrawTPAnalysisVisIDX)){_drawAnalysis(tpExCalcedIDX, mapDrawTPAnalysisVisIDX);}
+		else if (getPrivFlags(mapDrawTrainDataAnalysisVisIDX)) {_drawAnalysis(trainExCalcedIDX, mapDrawTrainDataAnalysisVisIDX);}
 	}
 	
 	

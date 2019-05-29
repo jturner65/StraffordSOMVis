@@ -15,8 +15,8 @@ import strafford_SOM_PKG.straff_SOM_Mapping.*;
 
 public abstract class Straff_SOMProspectMapper extends Straff_SOMExampleMapper {
 	private final int preProcDatPartSz;
-	public Straff_SOMProspectMapper(SOMMapManager _mapMgr, String _exName) {
-		super(_mapMgr,  _exName);		
+	public Straff_SOMProspectMapper(SOMMapManager _mapMgr, String _exName, String _longExampleName) {
+		super(_mapMgr,  _exName, _longExampleName);		
 		preProcDatPartSz = ((Straff_SOMMapManager)mapMgr).preProcDatPartSz;
 	}
 	
@@ -29,11 +29,13 @@ public abstract class Straff_SOMProspectMapper extends Straff_SOMExampleMapper {
 		msgObj.dispMessage("Straff_SOMProspectMapper::"+exampleName,"loadAllPreProccedMapData","Loading all " + exampleName+ " map data that only have event-based training info from : " +subDir, MsgCodes.info5);//" + (eventsOnly ? "that only have event-based training info" : "that have any training info (including only prospect jpg/jp specification)"));
 		//all data managed by this example mapper needs to be reset
 		reset();
-		//get 
+		//load data creation date time, if exists
+		loadDataCreateDateTime(subDir);
+		//
 		String[] loadSrcFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(subDir, true, exampleName+ "MapSrcData");
 		String fmtFile = loadSrcFNamePrefixAra[0]+"_format.csv";
 		
-		String[] loadRes = fileIO.loadFileIntoStringAra(fmtFile, "Format file loaded", "Format File Failed to load");
+		String[] loadRes = fileIO.loadFileIntoStringAra(fmtFile, exampleName+" Format file loaded", exampleName+" Format File Failed to load");
 		int numPartitions = 0;
 		try {
 			numPartitions = Integer.parseInt(loadRes[0].split(" : ")[1].trim());
@@ -55,6 +57,9 @@ public abstract class Straff_SOMProspectMapper extends Straff_SOMExampleMapper {
 	public final boolean saveAllPreProccedMapData() {
 		if ((null != exampleMap) && (exampleMap.size() > 0)) {
 			msgObj.dispMessage("StraffSOMMapManager","saveAllExampleMapData","Saving all "+exampleName+" map data : " + exampleMap.size() + " examples to save.", MsgCodes.info5);
+			//save date/time of data creation
+			saveDataCreateDateTime();
+			
 			String[] saveDestFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(true, exampleName+"MapSrcData");
 			ArrayList<String> csvResTmp = new ArrayList<String>();		
 			int counter = 0;

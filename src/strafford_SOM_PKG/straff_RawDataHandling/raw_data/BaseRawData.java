@@ -19,12 +19,12 @@ public abstract class BaseRawData {
     protected MessageObject msgObj;
     //format of dates in db records
     public static final String dateFormatString = "yyyy-MM-dd HH:mm:ss";
-    //construction to keep track of count of seen jp ids : key is jp, val is count, for debugging
-    private static TreeMap<Integer, Integer> jpSeen = new TreeMap<Integer, Integer>();
-    //construction to keep track of count of jp ids seen in events : key is jp, val is count for debugging
-    private static TreeMap<Integer, Integer> jpEvSeen = new TreeMap<Integer, Integer>();
-    //construction to keep track of the jps associated with particular jpg
-    private static TreeMap<Integer, TreeSet <Integer>> jpgroupsAndJps = new TreeMap<Integer, TreeSet <Integer>>();    
+//    //construction to keep track of count of seen jp ids : key is jp, val is count, for debugging
+//    private static TreeMap<Integer, Integer> jpSeen = new TreeMap<Integer, Integer>();
+//    //construction to keep track of count of jp ids seen in events : key is jp, val is count for debugging
+//    private static TreeMap<Integer, Integer> jpEvSeen = new TreeMap<Integer, Integer>();
+//    //construction to keep track of the jps associated with particular jpg
+//    private static TreeMap<Integer, TreeSet <Integer>> jpgroupsAndJps = new TreeMap<Integer, TreeSet <Integer>>();    
     //type of data object this is
     public final String TypeOfData;
     
@@ -60,42 +60,42 @@ public abstract class BaseRawData {
         }
     }//ctor        
     
-    //build a jpMapOfArrays-like structure with all jpgs seen and subsequent jps
-    public static TreeMap<Integer, ArrayList<Integer>> buildOrderedMapOfJpgJpsSeen(){
-        TreeMap<Integer, ArrayList<Integer>> res = new TreeMap<Integer, ArrayList<Integer>>();
-        ArrayList<Integer> tmpList = new ArrayList<Integer>();
-        ArrayList<Integer> keyPrefList = new ArrayList<Integer>();
-        for (Integer jpg : jpgroupsAndJps.keySet()) {
-            keyPrefList.add(jpg);
-            TreeSet <Integer> setOfData = jpgroupsAndJps.get(jpg);
-            tmpList = new ArrayList<Integer>();
-            tmpList.addAll(setOfData);
-            res.put(jpg, tmpList);
-        }
-        res.put(-1, keyPrefList);//add -1 entry to hold all jpg keys in "preferential" order
-        return res;
-    }//buildOrderedMapOfJpgJpsSeen
-    
-    //
-    public static void RecordJPsJPGsSeen(int jpIdx, int jpgIdx, boolean isEvent) {
-        //should never happen, jpgIdx isn't set to -1 until after this call, but just to be safe
-        if (jpgIdx != -1) {//-1 is sentinel value to preserve hierarchy of jpgroups
-            TreeSet <Integer> jpgSet = jpgroupsAndJps.get(jpgIdx);
-            if (null == jpgSet) {jpgSet = new TreeSet <Integer>();}
-            jpgSet.add(jpIdx);
-            jpgroupsAndJps.put(jpgIdx, jpgSet);        
-        }
-        Integer count = jpSeen.get(jpIdx);
-        if (count == null) {count=0;}
-        jpSeen.put(jpIdx, ++count);
-        if (isEvent){
-            count = jpEvSeen.get(jpIdx);
-            if (count == null) {count=0;}
-            jpEvSeen.put(jpIdx, ++count);
-        }
-    }//RecordJPsJPGsSeen
-    
-    public static void resetJPSeen() {jpSeen = new TreeMap<Integer, Integer>();}
+//    //build a jpMapOfArrays-like structure with all jpgs seen and subsequent jps
+//    public static TreeMap<Integer, ArrayList<Integer>> buildOrderedMapOfJpgJpsSeen(){
+//        TreeMap<Integer, ArrayList<Integer>> res = new TreeMap<Integer, ArrayList<Integer>>();
+//        ArrayList<Integer> tmpList = new ArrayList<Integer>();
+//        ArrayList<Integer> keyPrefList = new ArrayList<Integer>();
+//        for (Integer jpg : jpgroupsAndJps.keySet()) {
+//            keyPrefList.add(jpg);
+//            TreeSet <Integer> setOfData = jpgroupsAndJps.get(jpg);
+//            tmpList = new ArrayList<Integer>();
+//            tmpList.addAll(setOfData);
+//            res.put(jpg, tmpList);
+//        }
+//        res.put(-1, keyPrefList);//add -1 entry to hold all jpg keys in "preferential" order
+//        return res;
+//    }//buildOrderedMapOfJpgJpsSeen
+//    
+//    //
+//    public static void RecordJPsJPGsSeen(int jpIdx, int jpgIdx, boolean isEvent) {
+//        //should never happen, jpgIdx isn't set to -1 until after this call, but just to be safe
+//        if (jpgIdx != -1) {//-1 is sentinel value to preserve hierarchy of jpgroups
+//            TreeSet <Integer> jpgSet = jpgroupsAndJps.get(jpgIdx);
+//            if (null == jpgSet) {jpgSet = new TreeSet <Integer>();}
+//            jpgSet.add(jpIdx);
+//            jpgroupsAndJps.put(jpgIdx, jpgSet);        
+//        }
+//        Integer count = jpSeen.get(jpIdx);
+//        if (count == null) {count=0;}
+//        jpSeen.put(jpIdx, ++count);
+//        if (isEvent){
+//            count = jpEvSeen.get(jpIdx);
+//            if (count == null) {count=0;}
+//            jpEvSeen.put(jpIdx, ++count);
+//        }
+//    }//RecordJPsJPGsSeen
+//    
+//    public static void resetJPSeen() {jpSeen = new TreeMap<Integer, Integer>();}
     
     //build a date from a string with specified format
     public static Date buildDateFromString(String _dateStr) {
@@ -248,7 +248,7 @@ abstract class JSONDescr{
 			Integer jpgrp = Integer.parseInt(araOfVals[0].trim()); 
 			for (int j=1;j<araOfVals.length;++j) {    
 				Integer jp = Integer.parseInt(araOfVals[j].trim());
-				BaseRawData.RecordJPsJPGsSeen(jp,jpgrp, true);//to debug load of jp's seen
+				//BaseRawData.RecordJPsJPGsSeen(jp,jpgrp, true);//to debug load of jp's seen
 				jpgrpsList.add(jp);    }
 			jpgHierarchy.add(jpgrp);
 			res.put(jpgrp, jpgrpsList);
