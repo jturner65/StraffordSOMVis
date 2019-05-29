@@ -1,22 +1,20 @@
-package strafford_SOM_PKG.straff_SOM_Mapping.segments;
+package base_SOM_Objects.som_utils.segments;
 
 
 import java.util.TreeMap;
 
 import base_SOM_Objects.SOMMapManager;
 import base_SOM_Objects.som_examples.*;
-import base_SOM_Objects.som_utils.segments.SOMMapSegment;
-import strafford_SOM_PKG.straff_SOM_Examples.Straff_SOMMapNode;
 
 /**
- * this class corresponds to a segment built from orders being present in map nodes with specific JPgroup - this jpg must be a valid product jpg
+ * this class corresponds to a segment built from categories (collections of similar classes) being present in map nodes
  * @author john
  */
-public class Straff_JPGroupOrderSegment extends SOMMapSegment {
-	public final Integer jpg;
-	public Straff_JPGroupOrderSegment(SOMMapManager _mapMgr, Integer _jpg) {
+public class SOM_CategorySegment extends SOMMapSegment {
+	public final Integer category;
+	public SOM_CategorySegment(SOMMapManager _mapMgr, Integer _cat) {
 		super(_mapMgr);
-		jpg=_jpg;
+		category=_cat;
 	}
 
 	/**
@@ -43,14 +41,13 @@ public class Straff_JPGroupOrderSegment extends SOMMapSegment {
 
 	@Override
 	public boolean doesMapNodeBelongInSeg(SOMMapNode ex) {
-		Straff_SOMMapNode mapNode = (Straff_SOMMapNode)ex;
-			//return map of jpgs to jps to counts present
-		TreeMap<Integer, TreeMap<Integer, Integer>> jpGroupMap = mapNode.getMappedJPGroupCounts();
-		return (mapNode.getJpGroupSegment(jpg)== null) && jpGroupMap.keySet().contains(jpg);
+				//return map of jpgs to jps to counts present
+		TreeMap<Integer, TreeMap<Integer, Integer>> categoryMap = ex.getMappedCategoryCounts();
+		return (ex.getCategorySegment(category)== null) && categoryMap.keySet().contains(category);
 	}
 
 	@Override
-	protected void setMapNodeSegment(SOMMapNode mapNodeEx) {	((Straff_SOMMapNode)mapNodeEx).setJpGroupSeg(jpg, this);	}
+	protected void setMapNodeSegment(SOMMapNode mapNodeEx) {	mapNodeEx.setCategorySeg(category, this);	}
 
 
 }//class Straff_JPGroupOrderSegment

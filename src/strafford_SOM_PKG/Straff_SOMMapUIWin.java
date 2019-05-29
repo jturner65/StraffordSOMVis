@@ -471,8 +471,8 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 			if(getPrivFlags(mapDrawPrdctNodesIDX)){		((Straff_SOMMapManager) mapMgr).drawProductNodes(pa, curMapImgIDX, true);}
 			if(getPrivFlags(mapDrawWtMapNodesIDX)){		mapMgr.drawNodesWithWt(pa, mapNodeWtDispThresh, curMapImgIDX);} 
 			if(getPrivFlags(mapDrawFtrWtSegIDX)) {		mapMgr.drawFtrWtSegments(pa, mapNodeWtDispThresh, curMapImgIDX);}
-			if(getPrivFlags(mapDrawJPSegmentsIDX)) {	((Straff_SOMMapManager) mapMgr).drawOrderJPSegments(pa,curMapImgIDX);	}		
-			if(getPrivFlags(mapDrawJPGroupSegmentsIDX)) {((Straff_SOMMapManager) mapMgr).drawOrderJPGroupSegments(pa,(int)guiObjs[uiFtrJPGToDispIDX].getVal());	}
+			if(getPrivFlags(mapDrawJPSegmentsIDX)) {	((Straff_SOMMapManager) mapMgr).drawClassSegments(pa,curMapImgIDX);	}		
+			if(getPrivFlags(mapDrawJPGroupSegmentsIDX)) {((Straff_SOMMapManager) mapMgr).drawCategorySegments(pa,(int)guiObjs[uiFtrJPGToDispIDX].getVal());	}
 			
 		} else {//draw all products				
 			if (notDrawAnalysis && (mseOvrData != null)){	drawMseLocWts();}

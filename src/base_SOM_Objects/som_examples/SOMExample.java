@@ -169,6 +169,21 @@ public abstract class SOMExample extends baseDataPtVis{
 		mapNodeNghbrs = new TreeMap<Double, ArrayList<SOMMapNode>>();
 	}
 	
+	//get class probability from bmu for passed class
+	//treat this example's probability for a particular class as the probability of its BMU for that class (# examples of that class divided by total # of class seen at that node)
+	public float getBMUProbForClass(Integer cls) {
+		SOMMapNode bmu = getBmu();
+		if(null==bmu) {return 0.0f;}
+		return bmu.getClassProb(cls);
+	}
+	
+	public float getBMUProbForCategory(Integer category) {
+		SOMMapNode bmu = getBmu();
+		if(null==bmu) {return 0.0f;}
+		return bmu.getCategoryProb(category);
+	}
+	
+	
 	//this adds the passed node as this example's best matching unit on the map - this is used for -training- examples having
 	//been set as bmus by the SOM executable, hence why it uses the full distance and does not exclude zero features in this example
 	//this also adds this data point to the map's node with a key of the distance

@@ -205,20 +205,7 @@ public abstract class ProspectExample extends Straff_SOMExample{
 	
 	///////////////////////////////////
 	// getters/setters	
-	//treat this example's probability for a particular JP as the probability of its BMU for that JP (# orders of that JP divided by total # of orders seen at that node)
-	//perhaps add functionality to calculate this based on map node neighborhood
-	public float getBMUProbForJP(Integer jp) {
-		SOMMapNode bmu = getBmu();
-		if(null==bmu) {return 0.0f;}
-		return ((Straff_SOMMapNode)bmu).getJPProb(jp);
-	}
-	
-	public float getBMUProbForJPG(Integer jpg) {
-		SOMMapNode bmu = getBmu();
-		if(null==bmu) {return 0.0f;}
-		return ((Straff_SOMMapNode)bmu).getJPGroupProb(jpg);
-	}
-	
+
 	//return # of values in data map
 	protected final int getSizeOfDataMap(TreeMap<Date, TreeMap<Integer, StraffEvntRawToTrainData>> map) {
 		int res = 0;

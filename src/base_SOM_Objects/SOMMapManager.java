@@ -27,8 +27,7 @@ public abstract class SOMMapManager {
 	public SOMUIToMapCom mapUIAPI;
 	
 	//////////////////////////////
-	//map descriptors
-	
+	//map descriptors	
 	//all nodes of som map, keyed by node location as tuple of row/col coordinates
 	protected TreeMap<Tuple<Integer,Integer>, SOMMapNode> MapNodes;	
 	//map of ftr idx and all map nodes that have non-zero presence in that ftr
@@ -42,6 +41,23 @@ public abstract class SOMMapManager {
 	public ArrayList<SOMMapSegment> UMatrixSegments;
 	//array of map clusters based on ftr distance
 	public ArrayList<SOMMapSegment> FtrWtSegments;
+	
+	//////////////////
+	// class and category mapping
+	// classes belong to training data - they are assigned to map nodes that are bmus for a particular training example.
+	// categories are collections of similar classes
+	//Map of classes to segment
+	protected TreeMap<Integer, SOMMapSegment> Class_Segments;
+	//map of categories to segment
+	protected TreeMap<Integer, SOMMapSegment> Category_Segments;
+	//map with key being class and with value being collection of map nodes with that class present in mapped examples
+	protected TreeMap<Integer,Collection<SOMMapNode>> MapNodesWithMappedClasses;
+	//map with key being category and with value being collection of map nodes with that category present in mapped examples
+	protected TreeMap<Integer,Collection<SOMMapNode>> MapNodesWithMappedCategories;
+	//probabilities for each class for each map node
+	protected ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>> MapNodeClassProbs;
+	//probabilities for each category for each map node
+	protected ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>> MapNodeCategoryProbs;
 	
 	//data values directly from the trained map, populated upon load
 	private float[] 
@@ -519,6 +535,10 @@ public abstract class SOMMapManager {
 		msgObj.dispMessage("SOMMapManager","buildFtrWtSegmentsOnMap","Finished building feature-weight-based cluster map", MsgCodes.info5);			
 	}//buildFtrWtSegmentsOnMap
 	
+	//build class-based segments on map (will be jps of orders for training examples that map to map nodes)
+	protected abstract void buildClassSegmentsOnMap();
+	//build category-based segments on map (will be jpgroups of orders for training examples that map to map nodes)
+	protected abstract void buildCategorySegmentsOnMap();		
 	
 	
 	public abstract ISOM_DispMapExample buildTmpDataExampleFtrs(myPointf ptrLoc, TreeMap<Integer, Float> ftrs, float sens);
@@ -610,7 +630,18 @@ public abstract class SOMMapManager {
 		UMatrixSegments = new ArrayList<SOMMapSegment>();
 		//array of map clusters based on ftr distance
 		FtrWtSegments = new ArrayList<SOMMapSegment>();
-
+		//Map of classes to segment
+		Class_Segments = new TreeMap<Integer, SOMMapSegment>();
+		//map of categories to segment
+		Category_Segments = new TreeMap<Integer, SOMMapSegment>();
+		//map with key being class and with value being collection of map nodes with that class present in mapped examples
+		MapNodesWithMappedClasses = new TreeMap<Integer,Collection<SOMMapNode>>();
+		//map with key being category and with value being collection of map nodes with that category present in mapped examples
+		MapNodesWithMappedCategories = new TreeMap<Integer,Collection<SOMMapNode>>();
+		//probabilities for each class for each map node
+		MapNodeClassProbs = new ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>>();
+		//probabilities for each category for each map node
+		MapNodeCategoryProbs = new ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>>();
 		//any instance-class specific code to execute when new map nodes are being loaded
 		initMapNodesPriv();
 	}//initMapNodes()

@@ -78,6 +78,6 @@ useSparseTestingData,"true"
 #preBuiltMapDir,"StraffSOM_2019_05_23_11_27"
 #
 #built using "WeightEqConfig_allDecay_p01_optWt_p01_srcWt_p01"; this also uses each order as a training record (multiple per customer) and gets rid of bad custs before training
-preBuiltMapDir,"StraffSOM_2019_05_28_08_33"
+preBuiltMapDir,"StraffSOM_2019_05_29_09_10"
 #
 #END MISC GLOBAL VARS

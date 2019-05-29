@@ -11,6 +11,8 @@ import base_SOM_Objects.som_ui.SOMUIToMapCom;
 import base_SOM_Objects.som_utils.MapExFtrCalcs_Runner;
 import base_SOM_Objects.som_utils.SOMProjConfigData;
 import base_SOM_Objects.som_utils.segments.SOMMapSegment;
+import base_SOM_Objects.som_utils.segments.SOM_CategorySegment;
+import base_SOM_Objects.som_utils.segments.SOM_ClassSegment;
 import base_SOM_Objects.som_utils.segments.SOM_FtrWtSegment;
 import base_SOM_Objects.som_utils.segments.SOM_UMatrixSegment;
 import base_UI_Objects.*;
@@ -25,8 +27,6 @@ import strafford_SOM_PKG.straff_SOM_Examples.products.ProductExample;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.*;
 
 import strafford_SOM_PKG.straff_SOM_Mapping.exampleMappers.*;
-import strafford_SOM_PKG.straff_SOM_Mapping.segments.Straff_JPGroupOrderSegment;
-import strafford_SOM_PKG.straff_SOM_Mapping.segments.Straff_JPOrderSegement;
 import strafford_SOM_PKG.straff_Utils.*;
 import strafford_SOM_PKG.straff_Utils.featureCalc.StraffWeightCalc;
 
@@ -58,18 +58,19 @@ public class Straff_SOMMapManager extends SOMMapManager {
 	//ref to prod mapper
 	private Straff_SOMProductMapper prodExMapper;	
 	
-	//Map of jps to segment
-	protected TreeMap<Integer, SOMMapSegment> JP_Segments;
-	//map of jpgroup to segment
-	protected TreeMap<Integer, SOMMapSegment> JPGroup_Segments;
-	//map with key being jp and with value being collection of map nodes with ORDER presence in that jp
-	protected TreeMap<Integer,Collection<SOMMapNode>> MapNodesWithOrderJPs;
-	//map with key being jpgroup and with value being collection of map nodes with ORDER presence in that jpgroup
-	protected TreeMap<Integer,Collection<SOMMapNode>> MapNodesWithOrderJPGroups;
-	//probabilities for each jp for each map node
-	protected ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>> MapNodeJPProbs;
-	//probabilities for each jpgroup for each map node
-	protected ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>> MapNodeJPGroupProbs;	
+//	//Map of classes to segment
+//	protected TreeMap<Integer, SOMMapSegment> Class_Segments;
+//	//map of categories to segment
+//	protected TreeMap<Integer, SOMMapSegment> Category_Segments;
+//	//map with key being class and with value being collection of map nodes with that class present in mapped examples
+//	protected TreeMap<Integer,Collection<SOMMapNode>> MapNodesWithMappedClasses;
+//	//map with key being category and with value being collection of map nodes with that category present in mapped examples
+//	protected TreeMap<Integer,Collection<SOMMapNode>> MapNodesWithMappedCategories;
+//	//probabilities for each class for each map node
+//	protected ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>> MapNodeClassProbs;
+//	//probabilities for each category for each map node
+//	protected ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>> MapNodeCategoryProbs;
+	
 	//map of jpgroup idx and all map nodes that have non-zero presence in features(jps) that belong to that jpgroup
 	protected TreeMap<Integer, HashSet<SOMMapNode>> MapNodesByJPGroupIDX;
 	
@@ -390,18 +391,6 @@ public class Straff_SOMMapManager extends SOMMapManager {
 	@Override
 	//any instance-class specific code to execute when new map nodes are being loaded
 	protected void initMapNodesPriv() {
-		//Map of jps to segment
-		JP_Segments = new TreeMap<Integer, SOMMapSegment>();
-		//map of jpgroup to segment
-		JPGroup_Segments = new TreeMap<Integer, SOMMapSegment>();
-		//map with key being jp and with value being collection of map nodes with ORDER presence in that jp
-		MapNodesWithOrderJPs = new TreeMap<Integer,Collection<SOMMapNode>>();
-		//map with key being jpgroup and with value being collection of map nodes with ORDER presence in that jpgroup
-		MapNodesWithOrderJPGroups = new TreeMap<Integer,Collection<SOMMapNode>>();
-		//probabilities for each jp for each map node
-		MapNodeJPProbs = new ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>>();
-		//probabilities for each jpgroup for each map node
-		MapNodeJPGroupProbs = new ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>>();
 		//map of jpgroup idx and all map nodes that have non-zero presence in features(jps) that belong to that jpgroup
 		MapNodesByJPGroupIDX = new TreeMap<Integer, HashSet<SOMMapNode>>();
 	}//initMapNodesPriv
@@ -411,9 +400,9 @@ public class Straff_SOMMapManager extends SOMMapManager {
 	public void setAllBMUsFromMap() {
 		//make sure jp and jpgroup segments are built before mapping products and testing/training data
 		//build jp segments from mapped training examples
-		buildJpSegmentsOnMap();
+		buildClassSegmentsOnMap();
 		//build jpgroup segments from mapped training examples
-		buildJpGroupSegmentsOnMap();
+		buildCategorySegmentsOnMap();
 		
 		//map products to bmus
 		setProductBMUs();
@@ -423,69 +412,71 @@ public class Straff_SOMMapManager extends SOMMapManager {
 	}//setAllBMUsFromMap
 	//individual code to execute when a map node is added to the representation of the map - instancing class may have grouping structure 
 	
-	//build feature-based segments on map - will overlap
-	private final void buildJpSegmentsOnMap() {	
+	//build class-based segments on map (will be jps of orders for training examples that map to map nodes)
+	@Override
+	protected final void buildClassSegmentsOnMap() {	
 		if ((MapNodes == null) || (MapNodes.size() == 0)) {return;}
-		getMsgObj().dispMessage("SOMMapManager","buildJpSegmentsOnMap","Started building Order JP-Segment-based cluster map", MsgCodes.info5);	
+		getMsgObj().dispMessage("SOMMapManager","buildClassSegmentsOnMap","Started building Order JP-Segment-based cluster map", MsgCodes.info5);	
 		//clear existing segments 
-		for (SOMMapNode ex : MapNodes.values()) {((Straff_SOMMapNode) ex).clearJpSeg();}
-		JP_Segments = new TreeMap<Integer, SOMMapSegment>();
-		MapNodesWithOrderJPs = new TreeMap<Integer, Collection<SOMMapNode>>();
-		MapNodeJPProbs = new ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>>();
+		for (SOMMapNode ex : MapNodes.values()) {ex.clearClassSeg();}
+		Class_Segments = new TreeMap<Integer, SOMMapSegment>();
+		MapNodesWithMappedClasses = new TreeMap<Integer, Collection<SOMMapNode>>();
+		MapNodeClassProbs = new ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>>();
 		ConcurrentSkipListMap<Tuple<Integer,Integer>, Float> tmpMapOfNodeProbs = new ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>();
-		Straff_JPOrderSegement jpSeg;
+		SOM_ClassSegment jpSeg;
 		Integer[] allTrainJPs = jpJpgrpMon.getTrainJpByIDXAra();
 		
 		for(int jpIdx = 0; jpIdx<allTrainJPs.length;++jpIdx) {
 			Integer jp = allTrainJPs[jpIdx];
 			//build 1 segment per jp idx
-			jpSeg = new Straff_JPOrderSegement(this, jp);
-			JP_Segments.put(jp,jpSeg);
+			jpSeg = new SOM_ClassSegment(this, jp);
+			Class_Segments.put(jp,jpSeg);
 			for(SOMMapNode ex : MapNodes.values()) {
 				if(jpSeg.doesMapNodeBelongInSeg(ex)) {					jpSeg.addMapNodeToSegment(ex, MapNodes);		}//this does dfs to find neighbors who share feature value 	
 			}
 			Collection<SOMMapNode> mapNodesForJp = jpSeg.getAllMapNodes();
-			MapNodesWithOrderJPs.put(jp, mapNodesForJp);
+			MapNodesWithMappedClasses.put(jp, mapNodesForJp);
 			tmpMapOfNodeProbs = new ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>();
-			for(SOMMapNode mapNode : mapNodesForJp) {		tmpMapOfNodeProbs.put(mapNode.mapNodeCoord, ((Straff_SOMMapNode) mapNode).getJPProb(jp));}
-			MapNodeJPProbs.put(jp, tmpMapOfNodeProbs);
+			for(SOMMapNode mapNode : mapNodesForJp) {		tmpMapOfNodeProbs.put(mapNode.mapNodeCoord, mapNode.getClassProb(jp));}
+			MapNodeClassProbs.put(jp, tmpMapOfNodeProbs);
 		}
 		
-		getMsgObj().dispMessage("SOMMapManager","buildJpSegmentsOnMap","Finished building Order JP-Segment-based cluster map", MsgCodes.info5);			
+		getMsgObj().dispMessage("SOMMapManager","buildClassSegmentsOnMap","Finished building Order JP-Segment-based cluster map", MsgCodes.info5);			
 	}//buildFtrWtSegmentsOnMap	
-	public ConcurrentSkipListMap<Tuple<Integer,Integer>, Float> getMapNodeJPProbsForJP(Integer jp){return MapNodeJPProbs.get(jp);}
+	public ConcurrentSkipListMap<Tuple<Integer,Integer>, Float> getMapNodeJPProbsForJP(Integer jp){return MapNodeClassProbs.get(jp);}
 
-	//build feature-based segments on map - will overlap
-	private final void buildJpGroupSegmentsOnMap() {		
+	//build category-based segments on map (will be jpgroups of orders for training examples that map to map nodes)
+	@Override
+	protected final void buildCategorySegmentsOnMap() {		
 		if ((MapNodes == null) || (MapNodes.size() == 0)) {return;}
-		getMsgObj().dispMessage("SOMMapManager","buildJpGroupSegmentsOnMap","Started building Order JP Group-Segment-based cluster map", MsgCodes.info5);	
+		getMsgObj().dispMessage("Straff_SOMMapManager","buildCategorySegmentsOnMap","Started building Order JP Group-Segment-based cluster map", MsgCodes.info5);	
 		//clear existing segments 
-		for (SOMMapNode ex : MapNodes.values()) {((Straff_SOMMapNode) ex).clearJpGroupSeg();}
-		JPGroup_Segments = new TreeMap<Integer, SOMMapSegment>();
-		MapNodesWithOrderJPGroups = new TreeMap<Integer, Collection<SOMMapNode>>();
-		MapNodeJPGroupProbs = new ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>>();
+		for (SOMMapNode ex : MapNodes.values()) {ex.clearCategorySeg();}
+		Category_Segments = new TreeMap<Integer, SOMMapSegment>();
+		MapNodesWithMappedCategories = new TreeMap<Integer, Collection<SOMMapNode>>();
+		MapNodeCategoryProbs = new ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>>();
 		ConcurrentSkipListMap<Tuple<Integer,Integer>, Float> tmpMapOfNodeProbs = new ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>();
-		Straff_JPGroupOrderSegment jpgSeg;
+		SOM_CategorySegment jpgSeg;
 		Integer[] allTrainJPGroups = this.jpJpgrpMon.getTrainJpgrpByIDXAra();
 		
 		for(int jpgIdx = 0; jpgIdx<allTrainJPGroups.length;++jpgIdx) {
 			Integer jpg = allTrainJPGroups[jpgIdx];
 			//build 1 segment per jpg idx
-			jpgSeg = new Straff_JPGroupOrderSegment(this, jpg);
-			JPGroup_Segments.put(jpg,jpgSeg);
+			jpgSeg = new SOM_CategorySegment(this, jpg);
+			Category_Segments.put(jpg,jpgSeg);
 			for(SOMMapNode ex : MapNodes.values()) {
 				if(jpgSeg.doesMapNodeBelongInSeg(ex)) {					jpgSeg.addMapNodeToSegment(ex, MapNodes);		}//this does dfs to find neighbors who share feature value 	
 			}	
 			Collection<SOMMapNode> mapNodesForJpg = jpgSeg.getAllMapNodes();
-			MapNodesWithOrderJPGroups.put(jpg, mapNodesForJpg);
+			MapNodesWithMappedCategories.put(jpg, mapNodesForJpg);
 			tmpMapOfNodeProbs = new ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>();
-			for(SOMMapNode mapNode : mapNodesForJpg) {	tmpMapOfNodeProbs.put(mapNode.mapNodeCoord, ((Straff_SOMMapNode) mapNode).getJPGroupProb(jpg));	}
-			MapNodeJPGroupProbs.put(jpg, tmpMapOfNodeProbs);
+			for(SOMMapNode mapNode : mapNodesForJpg) {	tmpMapOfNodeProbs.put(mapNode.mapNodeCoord, mapNode.getCategoryProb(jpg));	}
+			MapNodeCategoryProbs.put(jpg, tmpMapOfNodeProbs);
 		}
 
-		getMsgObj().dispMessage("SOMMapManager","buildJpGroupSegmentsOnMap","Finished building Order JP Group-Segment-based cluster map", MsgCodes.info5);			
+		getMsgObj().dispMessage("Straff_SOMMapManager","buildCategorySegmentsOnMap","Finished building Order JP Group-Segment-based cluster map", MsgCodes.info5);			
 	}//buildFtrWtSegmentsOnMap
-	public ConcurrentSkipListMap<Tuple<Integer,Integer>, Float> getMapNodeJPGroupProbsForJPGroup(Integer jpg){return MapNodeJPGroupProbs.get(jpg);}	
+	public ConcurrentSkipListMap<Tuple<Integer,Integer>, Float> getMapNodeJPGroupProbsForJPGroup(Integer jpg){return MapNodeCategoryProbs.get(jpg);}	
 	
 	@Override
 	//once map is built, find bmus on map for each product (target that training examples should map to)
@@ -805,12 +796,12 @@ public class Straff_SOMMapManager extends SOMMapManager {
 	
 	
 	//draw boxes around each node representing ftrwt-based segments that nodes belong to
-	public final void drawOrderJPSegments(my_procApplet pa, int curJPIdx) {
+	public final void drawClassSegments(my_procApplet pa, int curJPIdx) {
 		pa.pushMatrix();pa.pushStyle();
 		Integer jp = jpJpgrpMon.getFtrJpByIdx(curJPIdx);
-		Collection<SOMMapNode> mapNodes = MapNodesWithOrderJPs.get(jp);
+		Collection<SOMMapNode> mapNodes = MapNodesWithMappedClasses.get(jp);
 		if(null==mapNodes) {return;}
-		for (SOMMapNode node : mapNodes) {		((Straff_SOMMapNode) node).drawMeOrderJpSegClr(pa, jp);}
+		for (SOMMapNode node : mapNodes) {		node.drawMeClassClr(pa, jp);}
 		
 		pa.popStyle();pa.popMatrix();
 	}//drawFtrWtSegments	
@@ -821,12 +812,12 @@ public class Straff_SOMMapManager extends SOMMapManager {
 	
 	
 	//draw boxes around each node representing ftrwt-based segments that nodes belong to
-	public final void drawOrderJPGroupSegments(my_procApplet pa, int curJPGroupIdx) {
+	public final void drawCategorySegments(my_procApplet pa, int curJPGroupIdx) {
 		pa.pushMatrix();pa.pushStyle();
 		Integer jpg = jpJpgrpMon.getFtrJpGroupByIdx(curJPGroupIdx);
-		Collection<SOMMapNode> mapNodes = MapNodesWithOrderJPGroups.get(jpg);
+		Collection<SOMMapNode> mapNodes = MapNodesWithMappedCategories.get(jpg);
 		if(null==mapNodes) {return;}
-		for (SOMMapNode node : mapNodes) {		((Straff_SOMMapNode) node).drawMeOrderJpGroupSegClr(pa, jpg);}
+		for (SOMMapNode node : mapNodes) {		node.drawMeCategorySegClr(pa, jpg);}
 				
 		pa.popStyle();pa.popMatrix();
 	}//drawAllOrderJPGroupSegments

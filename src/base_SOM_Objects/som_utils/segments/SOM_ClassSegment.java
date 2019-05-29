@@ -1,23 +1,21 @@
-package strafford_SOM_PKG.straff_SOM_Mapping.segments;
+package base_SOM_Objects.som_utils.segments;
 
 
 import java.util.TreeMap;
 
 import base_SOM_Objects.SOMMapManager;
 import base_SOM_Objects.som_examples.*;
-import base_SOM_Objects.som_utils.segments.SOMMapSegment;
-import strafford_SOM_PKG.straff_SOM_Examples.Straff_SOMMapNode;
 
 /**
  * this class corresponds to a segment built from orders orders being present in map nodes used to train map being present with specific JP - this jp must be a valid product jp
  * @author john
  */
-public class Straff_JPOrderSegement extends SOMMapSegment {
-	public final Integer jp;
+public class SOM_ClassSegment extends SOMMapSegment {
+	public final Integer cls;
 
-	public Straff_JPOrderSegement(SOMMapManager _mapMgr, Integer _jp) {	
+	public SOM_ClassSegment(SOMMapManager _mapMgr, Integer _class) {	
 		super(_mapMgr);
-		jp=_jp;		
+		cls=_class;		
 	}
 	
 	/**
@@ -44,14 +42,14 @@ public class Straff_JPOrderSegement extends SOMMapSegment {
 	
 	@Override
 	public boolean doesMapNodeBelongInSeg(SOMMapNode ex) {
-		Straff_SOMMapNode mapNode = (Straff_SOMMapNode)ex;
-		TreeMap<Integer, Integer> jpMap = mapNode.getMappedJPCounts();
+		
+		TreeMap<Integer, Integer> classMap = ex.getMappedClassCounts();
 		//System.out.println("JP : " + jp + " JPMap for SOMMapNode : " + ex.OID +  " : " + jpMap);
-		return (mapNode.getJpSegment(jp)== null) && jpMap.keySet().contains(jp);
+		return (ex.getClassSegment(cls)== null) && classMap.keySet().contains(cls);
 	}
 
 	@Override
-	protected void setMapNodeSegment(SOMMapNode mapNodeEx) {	((Straff_SOMMapNode)mapNodeEx).setJpSeg(jp, this);	}
+	protected void setMapNodeSegment(SOMMapNode mapNodeEx) {	mapNodeEx.setClassSeg(cls, this);	}
 
 	
 }//class Straff_JPOrderSegement
