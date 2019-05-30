@@ -2,6 +2,7 @@ package base_SOM_Objects;
 
 import java.io.*;
 import java.util.*;
+import java.util.Map.Entry;
 import java.util.concurrent.*;
 
 import base_SOM_Objects.som_examples.*;
@@ -592,22 +593,12 @@ public abstract class SOMMapManager {
 		_finalizeBMUProcessing(dataType);
 	}//_finalizeBMUProcessing
 	
-	/**
-	 * finalize the bmu processing - move som nodes that have been mapped to out of the list of nodes that have not been mapped to, copy the closest mapped som node to any som nodes without mappings, finalize all som nodes
-	 * @param dataType
-	 */
-	public void _finalizeBMUProcessing(ExDataType dataType) {
-		msgObj.dispMessage("SOMMapManager","_finalizeBMUProcessing","Start finalizing BMU processing for data type : \"+ dataType.getName()+\".\"", MsgCodes.info5);		
-		
-		HashSet<SOMMapNode> withMap = nodesWithEx.get(dataType);
-		HashSet<SOMMapNode> withOutMap = nodesWithNoEx.get(dataType);
-		int typeIDX = dataType.getVal();
-		//clear out all nodes that have examples from struct holding no-example map nodes
-		//remove all examples that have been mapped to
-		for (SOMMapNode tmpMapNode : withMap) {			withOutMap.remove(tmpMapNode);		}
-		//copy data from map nodes with mapped examples into map nodes without any, using the closest map node
-
-		msgObj.dispMessage("SOMMapManager","_finalizeBMUProcessing","Start assigning " +withOutMap.size() + " map nodes that are not BMUs to any training examples to have nearest map node to them as BMU.", MsgCodes.info5);		
+	
+//////any map nodes that do not have best matching features may still have other examples that map to them.  These nodes must be managed 
+////so give these unmapped nodes the same "tags" (bmus, or classes) that the closest map node to them has
+////this measures distance by how close two nodes are on the map
+	private void addMappedNodesToEmptyNodes_MapDist(HashSet<SOMMapNode> withMap, HashSet<SOMMapNode> withOutMap, int typeIDX) {
+		msgObj.dispMessage("SOMMapManager","addMappedNodesToEmptyNodes_MapDist","Start assigning " +withOutMap.size() + " map nodes that are not BMUs to any training examples to have nearest map node to them as BMU.", MsgCodes.info5);		
 		boolean isTorroid = isToroidal();
 		float sqDist,minSqDist;
 		//set all empty mapnodes to have a label based on the closest mapped node's label
@@ -632,7 +623,76 @@ public abstract class SOMMapManager {
 				emptyNode.addMapNodeExToBMUs(minSqDist, closestMapNode,typeIDX);			//adds single closest -map- node we know has a label, or itself if none found
 			}			
 		}		
-		msgObj.dispMessage("SOMMapManager","_finalizeBMUProcessing","Finished assigning " +withOutMap.size() + " map nodes that are not BMUs to any examples to have nearest map node to them as BMU.", MsgCodes.info5);
+		msgObj.dispMessage("SOMMapManager","addMappedNodesToEmptyNodes_MapDist","Finished assigning " +withOutMap.size() + " map nodes that are not BMUs to any examples to have nearest map node to them as BMU.", MsgCodes.info5);
+	}//addMappedNodesToEmptyNodes
+	//this will copy relevant info from nodes with typeIDX examples to the closest unmapped node that matches their features
+	private void addMappedNodesToEmptyNodes_FtrDist(HashSet<SOMMapNode> withMap, HashSet<SOMMapNode> withOutMap, int typeIDX) {
+		msgObj.dispMessage("SOMMapManager","addMappedNodesToEmptyNodes_FtrDist","Start assigning " +withOutMap.size() + " map nodes that are not BMUs to any " +ExDataType.getVal(typeIDX).getName() + " examples to have nearest map node to them as BMU.", MsgCodes.info5);		
+		msgObj.dispMessage("SOMMapManager","addMappedNodesToEmptyNodes_FtrDist","Start building map of nodes with examples keyed by ftr idx of non-zero ftrs", MsgCodes.info5);		
+		Double minSqDist, sqDist;
+		float minMapSqDist, mapSqDist;
+		//build a map keyed by jp of all nodes that have non-zero ftr idx values for that ftr idx
+		TreeMap<Integer, HashSet<SOMMapNode>> MapNodesWithExByFtrIDX = new TreeMap<Integer, HashSet<SOMMapNode>>();
+		for(SOMMapNode nodeWithEx : withMap){
+			Integer[] nonZeroIDXs = nodeWithEx.getNonZeroIDXs();
+			for(Integer idx : nonZeroIDXs) {
+				HashSet<SOMMapNode> nodeSet = MapNodesWithExByFtrIDX.get(idx);
+				if(null==nodeSet) {nodeSet = new HashSet<SOMMapNode>();}
+				nodeSet.add(nodeWithEx);
+				MapNodesWithExByFtrIDX.put(idx,nodeSet);
+			}	
+		}
+		ArrayList<SOMMapNode> closestNodeList = new ArrayList<SOMMapNode>();
+		Entry<Double, ArrayList<SOMMapNode>> closestList;
+		msgObj.dispMessage("SOMMapManager","addMappedNodesToEmptyNodes_FtrDist","Finished building map of nodes with examples keyed by ftr idx of non-zero ftrs | Start finding closest mapped nodes by ftr dist to non-mapped nodes.", MsgCodes.info5);		
+
+		for(SOMMapNode emptyNode : withOutMap){//node has no label mappings, so need to determine label			
+			closestList = emptyNode.findClosestMapNodes(MapNodesWithExByFtrIDX, emptyNode::getSqDistFromFtrType, SOMMapManager.useUnmoddedDat);			//actual map topology dist - need to handle wrapping!
+			minSqDist = closestList.getKey();	
+			closestNodeList = closestList.getValue();			
+			
+			SOMMapNode closestMapNode  = emptyNode;					//will never be added
+			//go through list to find closest map dist node from closest ftr dist nodes in 
+			if(closestNodeList.size()==1) {
+				closestMapNode = closestNodeList.get(0);		//adds single closest -map- node we know has a label, or itself if none found				
+			} else {
+				//if more than 1 nodes is closest to the umapped node then find the closest of these in map topology
+				minMapSqDist = 1000000.0f;
+				if (isToroidal()) {//minimize in-loop if checks
+					for(SOMMapNode node2 : closestNodeList){					//this is adding a -map- node
+						mapSqDist = getSqMapDist_torr(node2, emptyNode);			//actual map topology dist - need to handle wrapping!
+						if (mapSqDist < minMapSqDist) {minMapSqDist = mapSqDist; closestMapNode = node2;}
+					}	
+				} else {
+					for(SOMMapNode node2 : closestNodeList){					//this is adding a -map- node
+						mapSqDist = getSqMapDist_flat(node2, emptyNode);			//actual map topology dist - need to handle wrapping!
+						if (mapSqDist < minMapSqDist) {minMapSqDist = mapSqDist; closestMapNode = node2;}
+					}					
+				}
+			}
+			emptyNode.addMapNodeExToBMUs(minSqDist, closestMapNode, typeIDX);			//adds single closest -map- node we know has a label, or itself if none found
+		}//for each non-mapped node
+		msgObj.dispMessage("SOMMapManager","addMappedNodesToEmptyNodes_FtrDist","Finished assigning " +withOutMap.size() + " map nodes that are not BMUs to any "  +ExDataType.getVal(typeIDX).getName() + " examples to have nearest map node to them as BMU.", MsgCodes.info5);
+	}//addMappedNodesToEmptyNodes_FtrDist
+	
+	/**
+	 * finalize the bmu processing - move som nodes that have been mapped to out of the list of nodes that have not been mapped to, copy the closest mapped som node to any som nodes without mappings, finalize all som nodes
+	 * @param dataType
+	 */
+	public void _finalizeBMUProcessing(ExDataType dataType) {
+		msgObj.dispMessage("SOMMapManager","_finalizeBMUProcessing","Start finalizing BMU processing for data type : "+ dataType.getName()+".", MsgCodes.info5);		
+		
+		HashSet<SOMMapNode> withMap = nodesWithEx.get(dataType);
+		HashSet<SOMMapNode> withOutMap = nodesWithNoEx.get(dataType);
+		int typeIDX = dataType.getVal();
+		//clear out all nodes that have examples from struct holding no-example map nodes
+		//remove all examples that have been mapped to
+		for (SOMMapNode tmpMapNode : withMap) {			withOutMap.remove(tmpMapNode);		}
+		//copy data from map nodes with mapped examples into map nodes without any, using the closest map node
+		//this is topological map distance, not ftr distance
+		//addMappedNodesToEmptyNodes_MapDist(withMap,withOutMap,typeIDX);
+		addMappedNodesToEmptyNodes_FtrDist(withMap,withOutMap,typeIDX);
+		
 		//finalize all examples
 		//for(SOMMapNode node : withMap){		node.finalizeAllBmus(typeIDX);	}		//only with native examples?  not correct - needs to finalize all nodes to manage the SOMMapNodeBMUExamples for the nodes that have not been mapped to 
 		for(SOMMapNode node : MapNodes.values()){		node.finalizeAllBmus(typeIDX);	}
@@ -727,39 +787,6 @@ public abstract class SOMMapManager {
 			newYa = oldYa + getMapHeight(), newYaSq = newYa*newYa;	//a is above b
 		return (oldXaSq < newXaSq ? oldXaSq : newXaSq ) + (oldYaSq < newYaSq ? oldYaSq : newYaSq);
 	}//
-
-	
-//	//any map nodes that do not have best matching features may still have other examples that map to them.  These nodes must be managed 
-	//so give these unmapped nodes the same "tags" (bmus, or classes) that the closest map node to them has
-	//public void addMappedNodesToEmptyNodes(ExDataType _type) {
-	public void addMappedNodesToEmptyNodes(HashSet<SOMMapNode> withMap, HashSet<SOMMapNode> withOutMap, int typeVal) {
-		msgObj.dispMessage("SOMMapManager","addMappedNodesToEmptyNodes","Start assigning map nodes that are not BMUs to any training examples to have nearest map node to them as BMU.", MsgCodes.info5);		
-		boolean isTorroid = isToroidal();
-		float sqDist,minSqDist;
-		//set all empty mapnodes to have a label based on the closest mapped node's label
-		if (isTorroid) {//minimize in-loop if checks
-			for(SOMMapNode emptyNode : withOutMap){//node has no label mappings, so need to determine label
-				minSqDist = 1000000;
-				SOMMapNode closestMapNode  = emptyNode;					//will never be added
-				for(SOMMapNode node2 : withMap){					//this is adding a -map- node
-					sqDist = getSqMapDist_torr(node2, emptyNode);			//actual map topology dist - need to handle wrapping!
-					if (sqDist < minSqDist) {minSqDist = sqDist;		closestMapNode = node2;}
-				}	
-				emptyNode.addMapNodeExToBMUs(minSqDist, closestMapNode, typeVal);			//adds single closest -map- node we know has a label, or itself if none found
-			}
-		} else {
-			for(SOMMapNode emptyNode : withOutMap){//node has no label mappings, so need to determine label
-				minSqDist = 1000000;
-				SOMMapNode closestMapNode  = emptyNode;					//will never be added
-				for(SOMMapNode node2 : withMap){					//this is adding a -map- node
-					sqDist = getSqMapDist_flat(node2, emptyNode);			//actual map topology dist - need to handle wrapping!
-					if (sqDist < minSqDist) {minSqDist = sqDist;		closestMapNode = node2;}
-				}	
-				emptyNode.addMapNodeExToBMUs(minSqDist, closestMapNode,typeVal);			//adds single closest -map- node we know has a label, or itself if none found
-			}			
-		}		
-		msgObj.dispMessage("SOMMapManager","addMappedNodesToEmptyNodes","Finished assigning map nodes that are not BMUs to any examples to have nearest map node to them as BMU.", MsgCodes.info5);		
-	}//addMappedNodesToEmptyNodes
 
 	
 	//build all neighborhood values for UMatrix and distance

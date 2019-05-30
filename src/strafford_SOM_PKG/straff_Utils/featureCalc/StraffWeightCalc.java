@@ -209,7 +209,7 @@ public class StraffWeightCalc {
 	}
 	
 	//increment count of training examples with jp data represented by destIDX, and total calc value seen
-	public void incrBnds(int bndJpType, Integer destIDX) {
+	public synchronized void incrBnds(int bndJpType, Integer destIDX) {
 		bndsAra[bndJpType][countBndIDX][destIDX] +=1;
 	}
 

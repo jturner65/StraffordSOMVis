@@ -604,6 +604,10 @@ public abstract class SOMExample extends baseDataPtVis{
 		_setBMUAddToNeighborhood(bestUnit, bmuDist);
 	}//_setBMUFromMapNodeDistMap	
 	
+	
+	
+	
+	
 	/**
 	 * references current map of nodes, finds best matching unit and returns map of all map node tuple addresses and their ftr distances from this node     
 	 * also build neighborhood nodes                                                                                                                        
@@ -635,26 +639,51 @@ public abstract class SOMExample extends baseDataPtVis{
 //	}//findBMUFromNodes 
 	
 	/**
+	 * returns a map keyed by distance with values being a list of nodes at key distance
+	 * @param _MapNodesByFtr : map of all mapnodes keyed by feature idx with non-zero features
+	 * @param _distFunc : function to use to calculate distance
+	 * @param _ftrType : kind of features (unmod, normed, stdized) to be used for comparison/distance calc
+	 * @return
+	 */
+	
+	public final TreeMap<Double, ArrayList<SOMMapNode>> findMapNodesByDist(TreeMap<Integer, HashSet<SOMMapNode>> _MapNodesByFtr,  BiFunction<TreeMap<Integer, Float>, TreeMap<Integer, Float>, Double> _distFunc, int _ftrType){
+		HashSet<SOMMapNode> _RelevantMapNodes = new HashSet<SOMMapNode>();
+		buildRelevantMapNodes(_RelevantMapNodes, compFtrMaps[_ftrType].keySet(), _MapNodesByFtr);
+		TreeMap<Double, ArrayList<SOMMapNode>> mapNodesByDist = new TreeMap<Double, ArrayList<SOMMapNode>>();	
+		for (SOMMapNode mapNode : _RelevantMapNodes) {
+			double sqDistToNode = _distFunc.apply(mapNode.compFtrMaps[_ftrType], compFtrMaps[_ftrType]);
+			ArrayList<SOMMapNode> tmpAra = mapNodesByDist.get(sqDistToNode);
+			if(tmpAra == null) {tmpAra = new ArrayList<SOMMapNode>();}
+			tmpAra.add(mapNode);
+			mapNodesByDist.put(sqDistToNode, tmpAra);		
+		}	
+		return mapNodesByDist;
+	}//findMapNodesByDist
+	/**
+	 * returns the entry in a distance-keyed map of lists of nodes for the list of 1 or more nodes that have the least distance
+	 * @param _MapNodesByFtr : map of all mapnodes keyed by feature idx with non-zero features
+	 * @param _distFunc : function to use to calculate distance
+	 * @param _ftrType : kind of features (unmod, normed, stdized) to be used for comparison/distance calc
+	 * @return
+	 */
+	public final Entry<Double, ArrayList<SOMMapNode>> findClosestMapNodes(TreeMap<Integer, HashSet<SOMMapNode>> _MapNodesByFtr,  BiFunction<TreeMap<Integer, Float>, TreeMap<Integer, Float>, Double> _distFunc, int _ftrType){
+		TreeMap<Double, ArrayList<SOMMapNode>> mapNodesByDist = findMapNodesByDist(_MapNodesByFtr,_distFunc, _ftrType );
+		return mapNodesByDist.firstEntry();	
+	}
+	
+	/**
 	 * references current map of nodes, finds best matching unit and returns map of all map node tuple addresses and their ftr distances from this node     
 	 * also build neighborhood nodes                                                                                                                        
 	 * two methods to minimize if calls for chisq dist vs regular euclidean dist                                                                            
 	 * Passing map of nodes keyed by non-zero ftr idx. 
 	 * 
 	 * @param _MapNodesByFtr : map of all mapnodes keyed by feature idx with non-zero features
-	 * @param _ftrtype : kind of features (unmod, normed, stdized) to be used for comparison/distance calc
+	 * @param _distFunc : function to use to calculate distance
+	 * @param _ftrType : kind of features (unmod, normed, stdized) to be used for comparison/distance calc
 	 * @return
 	 */
 	public final TreeMap<Double, ArrayList<SOMMapNode>> findBMUFromFtrNodes(TreeMap<Integer, HashSet<SOMMapNode>> _MapNodesByFtr,  BiFunction<TreeMap<Integer, Float>, TreeMap<Integer, Float>, Double> _distFunc, int _ftrType) {
-		HashSet<SOMMapNode> _RelevantMapNodes = new HashSet<SOMMapNode>();
-		buildRelevantMapNodes(_RelevantMapNodes, compFtrMaps[_ftrType].keySet(), _MapNodesByFtr);
-		TreeMap<Double, ArrayList<SOMMapNode>> mapNodesByDist = new TreeMap<Double, ArrayList<SOMMapNode>>();	
-		for (SOMMapNode mapNode : _RelevantMapNodes) {
-			double sqDistToNode = _distFunc.apply(mapNode.compFtrMaps[_ftrType],  compFtrMaps[_ftrType]);
-			ArrayList<SOMMapNode> tmpAra = mapNodesByDist.get(sqDistToNode);
-			if(tmpAra == null) {tmpAra = new ArrayList<SOMMapNode>();}
-			tmpAra.add(mapNode);
-			mapNodesByDist.put(sqDistToNode, tmpAra);		
-		}	
+		TreeMap<Double, ArrayList<SOMMapNode>> mapNodesByDist = findMapNodesByDist(_MapNodesByFtr,_distFunc, _ftrType );
 		//handle if this node has no ftrs that map directly to map node ftrs - perhaps similarity groupings exist to build mappings from
 		//buildMapNodeDistsFromGroupings(mapNodesByDist, _MapNodesByFtr);
 		if(mapNodesByDist.size() == 0) {_setNullBMU(); return null;}
@@ -663,6 +692,26 @@ public abstract class SOMExample extends baseDataPtVis{
 		buildNghbrhdMapNodes( _ftrType, _distFunc);	
 		return mapNodesByDist;
 	}//findBMUFromNodes 
+
+//	public final TreeMap<Double, ArrayList<SOMMapNode>> findBMUFromFtrNodes(TreeMap<Integer, HashSet<SOMMapNode>> _MapNodesByFtr,  BiFunction<TreeMap<Integer, Float>, TreeMap<Integer, Float>, Double> _distFunc, int _ftrType) {
+//		HashSet<SOMMapNode> _RelevantMapNodes = new HashSet<SOMMapNode>();
+//		buildRelevantMapNodes(_RelevantMapNodes, compFtrMaps[_ftrType].keySet(), _MapNodesByFtr);
+//		TreeMap<Double, ArrayList<SOMMapNode>> mapNodesByDist = new TreeMap<Double, ArrayList<SOMMapNode>>();	
+//		for (SOMMapNode mapNode : _RelevantMapNodes) {
+//			double sqDistToNode = _distFunc.apply(mapNode.compFtrMaps[_ftrType],  compFtrMaps[_ftrType]);
+//			ArrayList<SOMMapNode> tmpAra = mapNodesByDist.get(sqDistToNode);
+//			if(tmpAra == null) {tmpAra = new ArrayList<SOMMapNode>();}
+//			tmpAra.add(mapNode);
+//			mapNodesByDist.put(sqDistToNode, tmpAra);		
+//		}	
+//		//handle if this node has no ftrs that map directly to map node ftrs - perhaps similarity groupings exist to build mappings from
+//		//buildMapNodeDistsFromGroupings(mapNodesByDist, _MapNodesByFtr);
+//		if(mapNodesByDist.size() == 0) {_setNullBMU(); return null;}
+//		_setBMUFromMapNodeDistMap(mapNodesByDist);		
+//		//find ftr distance to all 8 surrounding nodes and add them to mapNodeNeighbors
+//		buildNghbrhdMapNodes( _ftrType, _distFunc);	
+//		return mapNodesByDist;
+//	}//findBMUFromNodes 
 
 	private final String _toCSVString(TreeMap<Integer, Float> ftrs) {
 		String res = ""+OID+",";

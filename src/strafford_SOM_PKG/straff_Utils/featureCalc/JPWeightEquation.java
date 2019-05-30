@@ -214,7 +214,7 @@ public class JPWeightEquation {
 	}//getSrcContrib	
 	//calculate the training data feature vector corresponding to this (non-prod - will only exist for non-prod) jp-based eq (this eq object will represent a non-training-data jp)
 	//by calculating the source info wt as normal
-	public void buildCustNonProdWtVecContrib(ProspectExample ex, JP_OccurrenceData srcJpOccurrences) {	
+	public synchronized void buildCustNonProdWtVecContrib(ProspectExample ex, JP_OccurrenceData srcJpOccurrences) {	
 			//for source data - should replace prospect calc above
 		float wt = 0;
 		if (srcJpOccurrences != null) {	wt = aggregateJPOccsSourceEv(srcJpOccurrences, srcCoeffIDX,CompParams, now);}//calcStats.workSpace[orderCoeffIDX] = aggregateOccs(orderJpOccurrences, orderCoeffIDX);}
