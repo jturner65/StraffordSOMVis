@@ -52,7 +52,7 @@ public class MessageObject {
 		
 		if(!termCondSet) {
 			//this is to make sure we always save the log file - this will be executed on shutdown, similar to code in a destructor in c++
-			Runtime.getRuntime().addShutdownHook(new Thread() {public void run() {	if(obj==null) {return;}obj.dispInfoMessage("MessageObject", "Shutdown Hook", "Running msgObj finish log code");	obj.FinishLog();}});
+			Runtime.getRuntime().addShutdownHook(new Thread() {public void run() {	if(obj==null) {return;}obj.dispInfoMessage("MessageObject", "Shutdown Hook", "Execting msgObj.FinishLog() code to flush log buffer to files and close log files.");	obj.FinishLog();}});
 			termCondSet=true;
 		}
 		return obj;

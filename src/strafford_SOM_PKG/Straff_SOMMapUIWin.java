@@ -29,16 +29,13 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 		mapDrawTrainDataAnalysisVisIDX	= numSOMBasePrivFlags + 8,			//whether or not to draw feature calc analysis graphs for training data examples (this will be relevant when training data is individual per-order-derived
 						
 		mapDrawCalcFtrOrAllVisIDX		= numSOMBasePrivFlags + 9,			//whether to draw calc obj for ftr-related jps, or all jps present		
-		//show jp and jpgroup segments
-		mapDrawJPSegmentsIDX			= numSOMBasePrivFlags + 10,			//show order-driven jp segments
-		mapDrawJPGroupSegmentsIDX   	= numSOMBasePrivFlags + 11,			//show order-driven jpgroup segments
 		
-		showSelJPIDX					= numSOMBasePrivFlags + 12, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
+		showSelJPIDX					= numSOMBasePrivFlags + 10, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
 		//train/test data managemen
-		procTruProspectsIDX				= numSOMBasePrivFlags + 13,			//this will process true prospects, and load them if they haven't been loaded
-		saveProdMapsOfPrspctsIDX		= numSOMBasePrivFlags + 14;			//this will save all the product data for the currently selected prod JP
+		procTruProspectsIDX				= numSOMBasePrivFlags + 11,			//this will process true prospects, and load them if they haven't been loaded
+		saveProdMapsOfPrspctsIDX		= numSOMBasePrivFlags + 12;			//this will save all the product data for the currently selected prod JP
 
-	public static final int numPrivFlags = numSOMBasePrivFlags + 15;
+	public static final int numPrivFlags = numSOMBasePrivFlags + 13;
 	
 	//SOM map list options
 	public String[] 
@@ -100,32 +97,38 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 		trajStrkClrCnst = my_procApplet.gui_Cyan;
 		super.initThisWin(_canDrawTraj, true, false);
 	}//ctor
-
-	//build arrays from passed strings and idxs built in base window, appends to them with any buttons specific to this application
-	protected void initAllSOMPrivBtns_Indiv(String[] _baseTrueNames, String[] _baseFalseNames, int[] _baseFlags) {
-		String[] tmpTruePrivFlagNames = new String[]{								//needs to be in order of flags
-				//"Train W/Recs W/Event Data", 				
-				"Hide Order-Based JP Segments  ", "Hide Order-Based JPGroup Segments",
-				"Hide Products","Hide Cur Prod Zone",
-				"Show Calc Plot on Ftr JPs","Hide Training Data Calc Plot","Hide Cust Prspct Calc Plot", "Hide True Prspct Calc Plot", 
-				"Hide True Prospects on Map","Mapping True Prospect BMUs","Saving Prospect Mappings for prods"
-		};
-		String[] tmpFalsePrivFlagNames = new String[]{			//needs to be in order of flags
-				//"Train W/All Recs",				
-				"Show Order-Based JP Segments  ", "Show Order-Based JPGroup Segments",
-				"Show Products","Show Cur Prod Zone",
-				"Show Calc Plot on All JPs", "Show Training Data Calc Plot","Show Cust Prspct Calc Plot", "Show True Prspct Calc Plot", 
-				"Show True Prospects on Map","Map True Prospect BMUs",	"Save Prospect Mappings for prods"
-		};
-		int[] tmpPrivModFlgIdxs = new int[]{
-				//useOnlyEvntsToTrainIDX, 				
-				mapDrawJPSegmentsIDX,mapDrawJPGroupSegmentsIDX,				
-				mapDrawPrdctNodesIDX,mapDrawCurProdZoneIDX,				
-				mapDrawCalcFtrOrAllVisIDX, mapDrawTrainDataAnalysisVisIDX, mapDrawCustAnalysisVisIDX, mapDrawTPAnalysisVisIDX,
-				mapDrawTruePspctIDX,procTruProspectsIDX,saveProdMapsOfPrspctsIDX
-		};
-		initAllPrivBtns_Final(tmpTruePrivFlagNames,  tmpFalsePrivFlagNames, tmpPrivModFlgIdxs ,_baseTrueNames, _baseFalseNames, _baseFlags);
-	}//initAllSOMPrivBtns_Indiv
+	
+	/**
+	 * Instancing class-specific (application driven) UI buttons to display are built 
+	 * in this function.  Add an entry to tmpBtnNamesArray for each button, in the order 
+	 * they are to be displayed
+	 * @param tmpBtnNamesArray array list of Object arrays, where in each object array : 
+	 * 			the first element is the true string label, 
+	 * 			the 2nd elem is false string array, and 
+	 * 			the 3rd element is integer flag idx 
+	 */
+	protected final void initAllSOMPrivBtns_Indiv(ArrayList<Object[]> tmpBtnNamesArray) {
+		tmpBtnNamesArray.add(new Object[] {"Hide Products","Show Products", mapDrawPrdctNodesIDX});          
+		tmpBtnNamesArray.add(new Object[] {"Hide Cur Prod Zone", "Show Cur Prod Zone", mapDrawCurProdZoneIDX});		 
+		tmpBtnNamesArray.add(new Object[] {"Show Calc Plot on Ftr JPs", "Show Calc Plot on All JPs", mapDrawCalcFtrOrAllVisIDX});     
+		tmpBtnNamesArray.add(new Object[] {"Hide Training Data Calc Plot", "Show Training Data Calc Plot", mapDrawTrainDataAnalysisVisIDX});
+		tmpBtnNamesArray.add(new Object[] {"Hide Cust Prspct Calc Plot", "Show Cust Prspct Calc Plot", mapDrawCustAnalysisVisIDX});     
+		tmpBtnNamesArray.add(new Object[] {"Hide True Prspct Calc Plot", "Show True Prspct Calc Plot", mapDrawTPAnalysisVisIDX});       
+		tmpBtnNamesArray.add(new Object[] {"Hide True Prospects on Map", "Show True Prospects on Map", mapDrawTruePspctIDX});           
+		tmpBtnNamesArray.add(new Object[] {"Mapping True Prospect BMUs", "Map True Prospect BMUs", procTruProspectsIDX});           
+		tmpBtnNamesArray.add(new Object[] {"Saving Prospect Mappings for prods","Save Prospect Mappings for prods", saveProdMapsOfPrspctsIDX});      
+	}
+	
+	/**
+	 * Instance class determines the true and false labels the class buttons use - if empty then no classes used
+	 * @return array holding true(idx0) and false(idx1) labels for buttons to control display of class-based segment
+	 */
+	protected final String[] getClassBtnTFLabels() {	return new String[] {"Hide Order-Based JP Segments  ","Show Order-Based JP Segments  "};}
+	/**
+	 * Instance class determines the true and false labels the category buttons use - if empty then no categories used
+	 * @return array holding true(idx0) and false(idx1) labels for buttons to control display of category-based segment
+	 */
+	protected final String[] getCategoryBtnTFLabels() {	return new String[] {"Hide Order-Based JPGroup Segments", "Show Order-Based JPGroup Segments"};}	
 
 	@Override
 	protected void initMeIndiv() {
@@ -228,9 +231,6 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 					
 				}
 				break;}
-				
-			case mapDrawJPSegmentsIDX		:{			break;}			
-			case mapDrawJPGroupSegmentsIDX	:{			break;}			
 			case showSelJPIDX		 : {//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
 				break;}
 			case procTruProspectsIDX : {
@@ -346,7 +346,7 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 				//msgObj.dispInfoMessage("SOM WIN","setUIWinVals::uiJPGToDispIDX", "Click : settingJPGFromJp : " + settingJPGFromJp);
 				if(!settingJPGFromJp) {
 					int curJPIdxVal = (int)guiObjs[uiFtrJPToDispIDX].getVal();
-					int jpIdxToSet = ((Straff_SOMMapManager) mapMgr).getUI_FirstJPIdxFromFtrJPG((int)guiObjs[uiFtrJPGToDispIDX].getVal(), curJPIdxVal);
+					int jpIdxToSet = ((Straff_SOMMapManager) mapMgr).getUI_FirstJPIdxFromFtrJPGIdx((int)guiObjs[uiFtrJPGToDispIDX].getVal(), curJPIdxVal);
 					if(curJPIdxVal != jpIdxToSet) {
 						//msgObj.dispMessage("SOM WIN","setUIWinVals:uiJPGToDispIDX", "Attempt to modify uiJPToDispIDX : curJPIdxVal : "  +curJPIdxVal + " | jpToSet : " + jpIdxToSet, MsgCodes.info1);
 						settingJPFromJPG = true;
@@ -364,7 +364,7 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 				//msgObj.dispInfoMessage("SOM WIN","setUIWinVals::uiJPToDispIDX", "Click : settingJPFromJPG : " + settingJPFromJPG);
 				if(!settingJPFromJPG) {
 					int curJPGIdxVal = (int)guiObjs[uiFtrJPGToDispIDX].getVal();
-					int jpgIdxToSet = ((Straff_SOMMapManager) mapMgr).getUI_JPGrpFromFtrJP(curMapImgIDX, curJPGIdxVal);
+					int jpgIdxToSet = ((Straff_SOMMapManager) mapMgr).getUI_JPGrpIdxFromFtrJPIdx(curMapImgIDX, curJPGIdxVal);
 					//fix this
 					if(curJPGIdxVal != jpgIdxToSet) {
 						//msgObj.dispMessage("SOM WIN","setUIWinVals::uiJPToDispIDX", "Attempt to modify uiJPGToDispIDX : cur JPG IDX val : "+ curJPGIdxVal + " | jpg IDX To Set : " + jpgIdxToSet, MsgCodes.info1);					
@@ -467,31 +467,29 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 		//not drawing any analysis currently
 		boolean notDrawAnalysis = !(getPrivFlags(mapDrawCustAnalysisVisIDX) || getPrivFlags(mapDrawTPAnalysisVisIDX));
 		if (curImgNum > -1) {
-			if (notDrawAnalysis && (mseOvrData != null)){	drawMseLocFtrs();}//draw mouse-over info if not showing calc analysis				
 			if(getPrivFlags(mapDrawPrdctNodesIDX)){		((Straff_SOMMapManager) mapMgr).drawProductNodes(pa, curMapImgIDX, true);}
 			if(getPrivFlags(mapDrawWtMapNodesIDX)){		mapMgr.drawNodesWithWt(pa, mapNodeWtDispThresh, curMapImgIDX);} 
-			if(getPrivFlags(mapDrawFtrWtSegIDX)) {		mapMgr.drawFtrWtSegments(pa, mapNodeWtDispThresh, curMapImgIDX);}
-			if(getPrivFlags(mapDrawJPSegmentsIDX)) {	((Straff_SOMMapManager) mapMgr).drawClassSegments(pa,curMapImgIDX);	}		
-			if(getPrivFlags(mapDrawJPGroupSegmentsIDX)) {((Straff_SOMMapManager) mapMgr).drawCategorySegments(pa,(int)guiObjs[uiFtrJPGToDispIDX].getVal());	}
+			//display ftr-wt, class and category images, if enabled
+			drawSegmentsFtrWeightDisp(curMapImgIDX);
+			drawClassCatDisp(((Straff_SOMMapManager) mapMgr).getFtrJpByIdx(curMapImgIDX), ((Straff_SOMMapManager) mapMgr).getFtrJpGroupByIdx((int)guiObjs[uiFtrJPGToDispIDX].getVal()));
 			
 		} else {//draw all products				
-			if (notDrawAnalysis && (mseOvrData != null)){	drawMseLocWts();}
 			if(getPrivFlags(mapDrawPrdctNodesIDX)){		((Straff_SOMMapManager) mapMgr).drawAllProductNodes(pa);}
 		}
+		if (notDrawAnalysis && (mseOvrData != null)){	drawMseOverData();}//draw mouse-over info if not showing calc analysis				
 		
 		if (getPrivFlags( mapDrawCurProdZoneIDX)){		((Straff_SOMMapManager) mapMgr).drawProductRegion(pa,curProdToShowIDX,prodZoneDistThresh);}
 	}//drawMapRectangleIndiv
 	
+	
+	
 	@Override
 	/**
-	 * draw segments during UMatrix display (with no jp/ftr idx selected)
+	 * Instancing class-specific segments to render during UMatrix display
 	 */
-	protected void drawSegmentsUMatrixDispIndiv() {
-		//individual segment display when umatrix is being displayed
-//		if(getPrivFlags(mapDrawJPSegmentsIDX)) {}		
-//		if(getPrivFlags(mapDrawJPGroupSegmentsIDX)) {}		
-		
-	}
+	protected void drawSegmentsUMatrixDispIndiv() {	}
+	
+	
 	@Override
 	protected void drawMapIndiv() {
 		

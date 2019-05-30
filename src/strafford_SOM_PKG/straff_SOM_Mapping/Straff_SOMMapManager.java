@@ -228,7 +228,7 @@ public class Straff_SOMMapManager extends SOMMapManager {
 		getMsgObj().dispMessage("StraffSOMMapManager","loadPreProcTrainData","Begin loading preprocced data from " + subDir +  "directory.", MsgCodes.info5);
 			//load monitor first;save it last - keeps records of jps and jpgs even for data not loaded
 		getMsgObj().dispMessage("StraffSOMMapManager","loadPreProcTrainData","Loading MonitorJpJpgrp data", MsgCodes.info1);
-		String[] loadSrcFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(subDir, false, "MonitorJpJpgrpData");
+		String[] loadSrcFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(subDir, "MonitorJpJpgrpData");
 		jpJpgrpMon.loadAllData(loadSrcFNamePrefixAra[0],".csv");
 		getMsgObj().dispMessage("StraffSOMMapManager","loadPreProcTrainData","Finished loading MonitorJpJpgrp data", MsgCodes.info1);
 			//display all jps and jpgs in currently loaded jp-jpg monitor
@@ -294,7 +294,7 @@ public class Straff_SOMMapManager extends SOMMapManager {
 	//save MonitorJpJpgrp, construct that manages jp-jpgroup relationships (values and corresponding indexes in arrays)
 	private void saveMonitorJpJpgrp() {
 		getMsgObj().dispMessage("StraffSOMMapManager","saveMonitorJpJpgrp","Saving MonitorJpJpgrp data", MsgCodes.info5);
-		String[] saveDestFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(false, "MonitorJpJpgrpData");
+		String[] saveDestFNamePrefixAra = projConfigData.buildProccedDataCSVFNames("MonitorJpJpgrpData");
 		jpJpgrpMon.saveAllData(saveDestFNamePrefixAra[0],".csv");
 		getMsgObj().dispMessage("StraffSOMMapManager","saveMonitorJpJpgrp","Finished saving MonitorJpJpgrp data", MsgCodes.info5);
 	}//saveMonitorJpJpgrp
@@ -416,7 +416,7 @@ public class Straff_SOMMapManager extends SOMMapManager {
 	@Override
 	protected final void buildClassSegmentsOnMap() {	
 		if ((MapNodes == null) || (MapNodes.size() == 0)) {return;}
-		getMsgObj().dispMessage("SOMMapManager","buildClassSegmentsOnMap","Started building Order JP-Segment-based cluster map", MsgCodes.info5);	
+		getMsgObj().dispMessage("Straff_SOMMapManager","buildClassSegmentsOnMap","Started building Order JP-Segment-based cluster map", MsgCodes.info5);	
 		//clear existing segments 
 		for (SOMMapNode ex : MapNodes.values()) {ex.clearClassSeg();}
 		Class_Segments = new TreeMap<Integer, SOMMapSegment>();
@@ -441,7 +441,7 @@ public class Straff_SOMMapManager extends SOMMapManager {
 			MapNodeClassProbs.put(jp, tmpMapOfNodeProbs);
 		}
 		
-		getMsgObj().dispMessage("SOMMapManager","buildClassSegmentsOnMap","Finished building Order JP-Segment-based cluster map", MsgCodes.info5);			
+		getMsgObj().dispMessage("Straff_SOMMapManager","buildClassSegmentsOnMap","Finished building Order JP-Segment-based cluster map", MsgCodes.info5);			
 	}//buildFtrWtSegmentsOnMap	
 	public ConcurrentSkipListMap<Tuple<Integer,Integer>, Float> getMapNodeJPProbsForJP(Integer jp){return MapNodeClassProbs.get(jp);}
 
@@ -507,7 +507,7 @@ public class Straff_SOMMapManager extends SOMMapManager {
 		}
 		//go through every product and attach prod to bmu - needs to be done synchronously because don't want to concurrently modify bmus from 2 different prods
 		getMsgObj().dispMessage("StraffSOMMapManager","setProductBMUs","Finished finding bmus for all product data. Start adding product data to appropriate bmu's list.", MsgCodes.info1);
-		_finalizeBMUProcessing(productData, ExDataType.Product);		
+		_completeBMUProcessing(productData, ExDataType.Product);		
 		setProdDataBMUsRdyToSave(true);
 		getMsgObj().dispMessage("StraffSOMMapManager","setProductBMUs","Finished Mapping products to best matching units.", MsgCodes.info5);
 	}//setProductBMUs
@@ -795,39 +795,44 @@ public class Straff_SOMMapManager extends SOMMapManager {
 	//TODO add array to this map manager holding map nodes keyed by jp and jpgroup and value being list of nodes with those jps/jpgs present
 	
 	
-	//draw boxes around each node representing ftrwt-based segments that nodes belong to
-	public final void drawClassSegments(my_procApplet pa, int curJPIdx) {
+	/**
+	 * draw boxes around each node representing class-based segments that node 
+	 * belongs to, with color strength proportional to probablity and 
+	 * different colors for each segment
+	 * pass class -label- not class index
+	 * @param pa
+	 * @param classLabel - label corresponding to class to be displayed
+	 */
+	@Override
+	public final void drawClassSegments(my_procApplet pa, int curJP) {
 		pa.pushMatrix();pa.pushStyle();
-		Integer jp = jpJpgrpMon.getFtrJpByIdx(curJPIdx);
-		Collection<SOMMapNode> mapNodes = MapNodesWithMappedClasses.get(jp);
+		//Integer jp = jpJpgrpMon.getFtrJpByIdx(curJPIdx);
+		Collection<SOMMapNode> mapNodes = MapNodesWithMappedClasses.get(curJP);
 		if(null==mapNodes) {return;}
-		for (SOMMapNode node : mapNodes) {		node.drawMeClassClr(pa, jp);}
+		for (SOMMapNode node : mapNodes) {		node.drawMeClassClr(pa, curJP);}
 		
 		pa.popStyle();pa.popMatrix();
 	}//drawFtrWtSegments	
-//	//draw boxes around every node representing ftrwt-based segments that nodes belong to
-//	public final void drawAllOrderJPSegments(my_procApplet pa) {		
-//		for(int curJPIdx=0;curJPIdx<PerFtrHiWtMapNodes.length;++curJPIdx) {		drawOrderJPSegments(pa, curJPIdx);	}		
-//	}//drawFtrWtSegments
 	
-	
-	//draw boxes around each node representing ftrwt-based segments that nodes belong to
-	public final void drawCategorySegments(my_procApplet pa, int curJPGroupIdx) {
+	/**
+	 * draw filled boxes around each node representing category-based segments 
+	 * that node belongs to, with color strength proportional to probablity 
+	 * and different colors for each segment
+	 * pass class -label- not class index
+	 * @param pa
+	 * @param classLabel - label corresponding to class to be displayed
+	 */
+	//draw boxes around each node representing category-based segments that nodes belong to
+	@Override
+	public final void drawCategorySegments(my_procApplet pa, int curJPGroup) {
 		pa.pushMatrix();pa.pushStyle();
-		Integer jpg = jpJpgrpMon.getFtrJpGroupByIdx(curJPGroupIdx);
-		Collection<SOMMapNode> mapNodes = MapNodesWithMappedCategories.get(jpg);
+		//Integer jpg = jpJpgrpMon.getFtrJpGroupByIdx(curJPGroupIdx);
+		Collection<SOMMapNode> mapNodes = MapNodesWithMappedCategories.get(curJPGroup);
 		if(null==mapNodes) {return;}
-		for (SOMMapNode node : mapNodes) {		node.drawMeCategorySegClr(pa, jpg);}
+		for (SOMMapNode node : mapNodes) {		node.drawMeCategorySegClr(pa, curJPGroup);}
 				
 		pa.popStyle();pa.popMatrix();
 	}//drawAllOrderJPGroupSegments
-	
-	
-//	//draw boxes around every node representing ftrwt-based segments that nodes belong to
-//	public final void drawAllOrderJPGroupSegments(my_procApplet pa) {		
-//		for(int curJPGroupIdx=0;curJPGroupIdx<PerFtrHiWtMapNodes.length;++curJPGroupIdx) {		drawOrderJPGroupSegments(pa, curJPGroupIdx);	}		
-//	}//drawFtrWtSegments
-
 	
 	//draw all product nodes with max vals corresponding to current JPIDX
 	public void drawProductNodes(my_procApplet pa, int prodJpIDX, boolean showJPorJPG) {
@@ -884,6 +889,12 @@ public class Straff_SOMMapManager extends SOMMapManager {
 	public ISOM_DispMapExample buildTmpDataExampleFtrs(myPointf ptrLoc, TreeMap<Integer, Float> ftrs, float sens) {return new Straff_SOMDispMapExample(this, ptrLoc, ftrs, sens);}
 	@Override
 	public ISOM_DispMapExample buildTmpDataExampleDists(myPointf ptrLoc, float dist, float sens) {return new Straff_SOMDispMapExample(this, ptrLoc, dist, sens);}
+	@Override
+	public ISOM_DispMapExample buildTmpDataExampleClassProb(myPointf ptrLoc, SOMMapNode nearestNode, float sens) {return new Straff_SOMDispMapExample(this, ptrLoc, nearestNode, sens, true);}
+	@Override
+	public ISOM_DispMapExample buildTmpDataExampleCategoryProb(myPointf ptrLoc, SOMMapNode nearestNode, float sens) {return new Straff_SOMDispMapExample(this, ptrLoc, nearestNode, sens, false);}
+	@Override
+	public ISOM_DispMapExample buildTmpDataExampleNodePop(myPointf ptrLoc, SOMMapNode nearestNode, float sens) {return new Straff_SOMDispMapExample(this, ptrLoc, nearestNode, sens, ExDataType.Training);}
 	
 	//whether or not distances between two datapoints assume that absent features in smaller-length datapoints are 0, or to ignore the values in the larger datapoints
 	@Override
@@ -916,21 +927,26 @@ public class Straff_SOMMapManager extends SOMMapManager {
 		
 	public String getFtrJpStrByIdx(int idx) {return jpJpgrpMon.getFtrJpStrByIdx(idx);}	
 	public String getFtrJpGrpStrByIdx(int idx) {return jpJpgrpMon.getFtrJpGrpStrByIdx(idx);}
+	
+	public int getFtrJpByIdx(int idx) {return jpJpgrpMon.getFtrJpByIdx(idx);}
+	public int getFtrJpGroupByIdx(int idx) {return jpJpgrpMon.getFtrJpGroupByIdx(idx);}
+	public int getAllJpByIdx(int idx) {return jpJpgrpMon.getAllJpByIdx(idx);}
+	public int getAllJpGroupByIdx(int idx) {return jpJpgrpMon.getAllJpByIdx(idx);}
 		
 	//this will return the appropriate jpgrp for the given jpIDX (list idx)
-	public int getUI_JPGrpFromFtrJP(int jpIdx, int curVal) {		return jpJpgrpMon.getUI_JPGrpFromFtrJP(jpIdx, curVal);}
+	public int getUI_JPGrpIdxFromFtrJPIdx(int jpIdx, int curVal) {		return jpJpgrpMon.getUI_JPGrpIdxFromFtrJPIdx(jpIdx, curVal);}
 	//this will return the first(lowest) jp for a particular jpgrp
-	public int getUI_FirstJPIdxFromFtrJPG(int jpgIdx, int curJPIdxVal) {	return jpJpgrpMon.getUI_FirstJPIdxFromFtrJPG(jpgIdx, curJPIdxVal);}	
+	public int getUI_FirstJPIdxFromFtrJPGIdx(int jpgIdx, int curJPIdxVal) {	return jpJpgrpMon.getUI_FirstJPIdxFromFtrJPGIdx(jpgIdx, curJPIdxVal);}	
 	//this will return the appropriate jpgrp for the given jpIDX (list idx)
-	public int getUI_JPGrpFromAllJP(int jpIdx, int curVal) {		return jpJpgrpMon.getUI_JPGrpFromAllJP(jpIdx, curVal);}
+	public int getUI_JPGrpIdxFromAllJPIdx(int jpIdx, int curVal) {		return jpJpgrpMon.getUI_JPGrpIdxFromAllJPIdx(jpIdx, curVal);}
 	//this will return the first(lowest) jp for a particular jpgrp
-	public int getUI_FirstJPIdxFromAllJPG(int jpgIdx, int curJPIdxVal) {	return jpJpgrpMon.getUI_FirstJPIdxFromAllJPG(jpgIdx, curJPIdxVal);}	
+	public int getUI_FirstJPIdxFromAllJPGIdx(int jpgIdx, int curJPIdxVal) {	return jpJpgrpMon.getUI_FirstJPIdxFromAllJPGIdx(jpgIdx, curJPIdxVal);}	
 	
 	@Override
 	//return appropriately pathed file name for map image of specified JP idx
 	public String getSOMLocClrImgForFtrFName(int jpIDX) {
 		int jp = jpJpgrpMon.getFtrJpByIdx(jpIDX);
-		return projConfigData.getSOMLocClrImgForJPFName(jp);	
+		return projConfigData.getSOMLocClrImgForFtrFName(jp);	
 	}	
 	
 	////////////////////////

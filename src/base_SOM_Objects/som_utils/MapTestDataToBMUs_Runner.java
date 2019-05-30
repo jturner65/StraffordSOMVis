@@ -66,9 +66,8 @@ public class MapTestDataToBMUs_Runner implements Runnable {
 		int dataTypeVal = dataType.getVal();
 		for(SOMMapNode mapNode : MapNodes.values()){mapNode.clearBMUExs(dataTypeVal);mapMgr.addExToNodesWithNoExs(mapNode, dataType);}	
 		if(dataType==ExDataType.Training) {			for (int i=0;i<_exs.length;++i) {			_exs[i].mapTrainingToBMU(dataTypeVal);	}		} 
-		else {										for (int i=0;i<_exs.length;++i) {			_exs[i].mapToBMU(dataTypeVal);		}		}
-		mapMgr.filterExFromNoEx(dataType);		//clear out all nodes that have examples from struct holding no-example map nodes
-		mapMgr.finalizeExMapNodes(dataType);		
+		else {										for (int i=0;i<_exs.length;++i) {			_exs[i].mapToBMU(dataTypeVal);		}		}		
+		mapMgr._finalizeBMUProcessing(dataType);
 	}//_finalizeBMUProcessing
 
 	protected void incrTTLProgress(int len, int idx) {

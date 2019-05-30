@@ -89,7 +89,7 @@ public class Straff_SOMProductMapper extends Straff_SOMExampleMapper {
 		//load data creation date time, if exists
 		loadDataCreateDateTime(subDir);
 		
-		String[] loadSrcFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(subDir, false, "productMapSrcData");
+		String[] loadSrcFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(subDir, "productMapSrcData");
 		String dataFile =  loadSrcFNamePrefixAra[0]+".csv";
 		String[] csvLoadRes = fileIO.loadFileIntoStringAra(dataFile, "Product Data file loaded", "Product Data File Failed to load");
 		//ignore first entry - header
@@ -113,7 +113,7 @@ public class Straff_SOMProductMapper extends Straff_SOMExampleMapper {
 			//save date/time of data creation
 			saveDataCreateDateTime();
 			
-			String[] saveDestFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(false, "productMapSrcData");
+			String[] saveDestFNamePrefixAra = projConfigData.buildProccedDataCSVFNames("productMapSrcData");
 			ArrayList<String> csvResTmp = new ArrayList<String>();		
 			ProductExample ex1 = (ProductExample) exampleMap.get(exampleMap.firstKey());
 			String hdrStr = ex1.getRawDescColNamesForCSV();

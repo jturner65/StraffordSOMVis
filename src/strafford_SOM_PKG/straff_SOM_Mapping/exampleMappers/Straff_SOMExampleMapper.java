@@ -36,13 +36,13 @@ public abstract class Straff_SOMExampleMapper extends SOMExampleMapper  {
 	
 	//load date and time of data creation, if exists
 	protected final void loadDataCreateDateTime(String subDir) {
-		String[] loadDateTimeFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(subDir, true, exampleName+ "CreationDateTime");
+		String[] loadDateTimeFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(subDir, exampleName+ "CreationDateTime");
 		String dateTimeFileName = loadDateTimeFNamePrefixAra[0]+".csv";
 		loadDateAndTimeOfDataCreation(dateTimeFileName, exampleName);
 	}
 	
 	protected final void saveDataCreateDateTime() {
-		String[] saveDataFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(true, exampleName+"CreationDateTime");
+		String[] saveDataFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(exampleName+"CreationDateTime");
 		String dateTimeFileName = saveDataFNamePrefixAra[0]+".csv";
 		saveDateAndTimeOfDataCreation(dateTimeFileName, exampleName);
 	}

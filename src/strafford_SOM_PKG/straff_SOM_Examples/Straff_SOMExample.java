@@ -62,6 +62,9 @@ public abstract class Straff_SOMExample extends SOMExample{
 
 	}//ctor
 	
+	//return all jpg/jps in this example record
+	protected abstract HashSet<Tuple<Integer,Integer>> getSetOfAllJpgJpData();
+	
 	public Straff_SOMExample(Straff_SOMExample _otr) {
 		super(_otr);	
 		allProdJPs = _otr.allProdJPs;	

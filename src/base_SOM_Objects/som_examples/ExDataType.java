@@ -4,7 +4,7 @@ import java.util.*;
 
 /**
  * enum used to specify each kind of example data point, primarily for visualization purposes
- * @author john turner
+ * @author john turner 
  */
 public enum ExDataType {
 	Training(0), Testing(1), Validation(2), Product(3), MapNode(4), MouseOver(5);
@@ -16,13 +16,15 @@ public enum ExDataType {
 			"Product Data (Product examples to be assigned to clusters)",
 			"Map Node (Represents a node on the SOM)",
 			"Mouse Over (Data query at mouse location)"};
-	public static String[] getListOfTypes() {return new String[] {"Training","Testing","Validation","Product","MapNode","MouseOver"};}
+	private static String[] _typeName = new String[] {"Training","Testing","Validation","Product","MapNode","MouseOver"};
+	public static String[] getListOfTypes() {return _typeName;}
 	private static Map<Integer, ExDataType> map = new HashMap<Integer, ExDataType>(); 
 	static { for (ExDataType enumV : ExDataType.values()) { map.put(enumV.value, enumV);}}
 	private ExDataType(int _val){value = _val;} 
 	public int getVal(){return value;}
 	public static ExDataType getVal(int idx){return map.get(idx);}
 	public static int getNumVals(){return map.size();}						//get # of values in enum
+	public String getName() {return _typeName[value];}
 	@Override
     public String toString() { return ""+value + ":"+_typeExplanation[value]; }	
 }//enum ExDataType

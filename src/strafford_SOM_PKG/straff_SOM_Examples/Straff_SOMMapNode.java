@@ -50,7 +50,7 @@ public class Straff_SOMMapNode extends SOMMapNode{
 		buildNormFtrData();//once ftr map is built can normalize easily
 		_buildFeatureVectorEnd_Priv();
 	}//_initDataFtrMappings
-	
+	//nearestMapNode.mapNodeCoord.toString() + " 
 	@Override
 	//manage instancing map node handling - specifically, handle using 2ndary features as node markers (like a product tag or a class)
 	//in other words, this takes the passed example's "class" in our case all the order jps, and assigns them to this node
@@ -69,15 +69,16 @@ public class Straff_SOMMapNode extends SOMMapNode{
 			}
 			++jpCount;
 			mappedClassCounts.put(jp, jpCount);
+			
 			//for each jpgroup
 			jpCountsAtJpGrp = mappedCategoryCounts.get(jpg);
 			if(null==jpCountsAtJpGrp) {
 				jpCountsAtJpGrp = new TreeMap<Integer, Integer>(); 
-				mappedCategoryCounts.put(jpg, jpCountsAtJpGrp);
 				//on initial mapping for this jpg, build the jpGroup_SegData object for this jpg
 				category_SegData.put(jpg, new SOM_MapNodeSegmentData(this, this.OID+"_JPGroupCount_JPG_"+jpg, "JPGroup Orders present for jpg :"+jpg));	
 			}
 			jpCountsAtJpGrp.put(jp, jpCount);
+			mappedCategoryCounts.put(jpg, jpCountsAtJpGrp);
 		}		
 	}//addTrainingExToBMUs_Priv	
 
@@ -85,7 +86,9 @@ public class Straff_SOMMapNode extends SOMMapNode{
 	//assign relevant info to this map node from neighboring map node(s) to cover for this node not having any training examples assigned
 	//only copies ex's mappings, which might not be appropriate
 	protected void addMapNodeExToBMUs_Priv(double dist, SOMMapNode ex) {//copy structure 
-		TreeMap<Integer, Integer> otrMappedJPCounts = ex.getMappedClassCounts(),otrJPCounts,jpCounts;
+		TreeMap<Integer, Integer> otrMappedJPCounts = ex.getMappedClassCounts(),
+				otrJPCounts,
+				Jpg_jpCounts;
 		TreeMap<Integer, TreeMap<Integer, Integer>> otrMappedJPGroupCounts = ex.getMappedCategoryCounts();
 		for(Integer jp : otrMappedJPCounts.keySet()) {			
 			mappedClassCounts.put(jp, otrMappedJPCounts.get(jp));	
@@ -93,14 +96,14 @@ public class Straff_SOMMapNode extends SOMMapNode{
 		}
 		for(Integer jpgrp : otrMappedJPGroupCounts.keySet()) { 
 			otrJPCounts = otrMappedJPGroupCounts.get(jpgrp);
-			jpCounts = mappedCategoryCounts.get(jpgrp);
-			if(jpCounts==null) { 
-				jpCounts = new TreeMap<Integer, Integer>(); 
-				mappedCategoryCounts.put(jpgrp, jpCounts);
+			Jpg_jpCounts = mappedCategoryCounts.get(jpgrp);
+			if(Jpg_jpCounts==null) { 
+				Jpg_jpCounts = new TreeMap<Integer, Integer>(); 
 				//on initial mapping for this jpg, build the jpGroup_SegData object for this jpg
 				category_SegData.put(jpgrp, new SOM_MapNodeSegmentData(this, this.OID+"_JPGroupCount_JPG_"+jpgrp, "JPGroup Orders present for jpg :"+jpgrp));	
 			}
-			for(Integer jp : otrJPCounts.keySet()) {jpCounts.put(jp, otrJPCounts.get(jp));}
+			for(Integer jp : otrJPCounts.keySet()) {Jpg_jpCounts.put(jp, otrJPCounts.get(jp));}
+			mappedCategoryCounts.put(jpgrp, Jpg_jpCounts);
 		}		
 	}//addMapNodeExToBMUs_Priv
 

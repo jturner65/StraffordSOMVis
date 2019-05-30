@@ -207,13 +207,13 @@ public class MonitorJpJpgrp {
 	public String getAllJpsAsCSV() {return allJpJpgData.getAllJpsAsCSV();}
 	
 	//this will return the appropriate jpgrp for the given jpIDX (ftr idx)
-	public int getUI_JPGrpFromFtrJP(int jpIdx, int curVal) {return trainingJpJpgData.getUI_JPGrpFromJP(jpIdx, curVal);}
+	public int getUI_JPGrpIdxFromFtrJPIdx(int jpIdx, int curVal) {return trainingJpJpgData.getUI_JPGrpIdxFromJPIdx(jpIdx, curVal);}
 	//this will return the first(lowest) jp for a particular jpgrp
-	public int getUI_FirstJPIdxFromFtrJPG(int jpgIdx, Integer curJPIdxVal) { return trainingJpJpgData.getUI_FirstJPIdxFromJPG(jpgIdx, curJPIdxVal);}//getUI_FirstJPFromJPG	
+	public int getUI_FirstJPIdxFromFtrJPGIdx(int jpgIdx, Integer curJPIdxVal) { return trainingJpJpgData.getUI_FirstJPIdxFromJPGIdx(jpgIdx, curJPIdxVal);}//getUI_FirstJPFromJPG	
 	//this will return the appropriate jpgrp for the given jpIDX (ftr idx)
-	public int getUI_JPGrpFromAllJP(int jpIdx, int curVal) {return allJpJpgData.getUI_JPGrpFromJP(jpIdx, curVal);}
+	public int getUI_JPGrpIdxFromAllJPIdx(int jpIdx, int curVal) {return allJpJpgData.getUI_JPGrpIdxFromJPIdx(jpIdx, curVal);}
 	//this will return the first(lowest) jp for a particular jpgrp
-	public int getUI_FirstJPIdxFromAllJPG(int jpgIdx, Integer curJPIdxVal) { return allJpJpgData.getUI_FirstJPIdxFromJPG(jpgIdx, curJPIdxVal);}//getUI_FirstJPFromJPG	
+	public int getUI_FirstJPIdxFromAllJPGIdx(int jpgIdx, Integer curJPIdxVal) { return allJpJpgData.getUI_FirstJPIdxFromJPGIdx(jpgIdx, curJPIdxVal);}//getUI_FirstJPFromJPG	
 	//return how many times this JP has been seen
 	public int getCountJPSeen(int _type, Integer jp) {return mapOfJPData.get(typeOfJpStrs[_type]).getCountJPSeen(jp);}
 
@@ -594,13 +594,13 @@ abstract class JP_JPG_Data{
 	}	
 	
 	//this will return the appropriate jpgrp for the given jpIDX (ftr idx)
-	public int getUI_JPGrpFromJP(int jpIdx, int curVal) {
+	public int getUI_JPGrpIdxFromJPIdx(int jpIdx, int curVal) {
 		if(jpsToJpgs.size() < jpIdx) {return curVal;}
 		int jpgrp = jpsToJpgs.get(jpByIdx[jpIdx]);
 		return jpgToIDX.get(jpgrp);		
 	}
 	//this will return the first(lowest) jp for a particular jpgrp
-	public int getUI_FirstJPIdxFromJPG(int jpgIdx, Integer curJPIdxVal) {
+	public int getUI_FirstJPIdxFromJPGIdx(int jpgIdx, Integer curJPIdxVal) {
 		if(jpgsToJps.size() < jpgIdx) {return curJPIdxVal;}		
 		int curJPVal = jpByIdx[curJPIdxVal];		
 		//String msg = "Requested Job Practice Group Index : " + String.format("%3d",jpgIdx) + " Cur JP : " +  String.format("%3d",curJPVal) + " Cur JP Idx : " + String.format("%3d", curJPIdxVal);		

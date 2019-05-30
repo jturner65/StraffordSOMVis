@@ -571,7 +571,7 @@ public class SOMProjConfigData {
 	//get fully qualified current SOM subdirectory
 	public String getCurrSOMFullSubDir() {return getSOMExec_FullPath() + getSOMMap_CurrSubDir();}
 	
-	public String getSOMLocClrImgForJPFName(int jp) {return "jp_"+jp+"_"+SOMFileNamesAra[fName_SOMImgPNG_IDX];}	
+	public String getSOMLocClrImgForFtrFName(int ftr) {return "ftr_"+ftr+"_"+SOMFileNamesAra[fName_SOMImgPNG_IDX];}	
 	//ref to file name for map configuration setup
 	public String getSOMMapConfigFileName() {return getCurrSOMFullSubDir()+ SOMFileNamesAra[fName_SOMMapConfig_IDX];	}	
 	//ref to file name for data and project configuration relevant for current SOM execution
@@ -636,30 +636,26 @@ public class SOMProjConfigData {
 	public String getPreProcDataDesToMapSubDirName() { return subDirLocs.get("SOM_MapPrspctSrc");}
 	
 	//build prospect data directory structures based on current date
-	public String[] buildProccedDataCSVFNames(boolean eventsOnly, String _desSuffix) {
+	public String[] buildProccedDataCSVFNames(String _desSuffix) {
 		String[] dateTimeStrAra = getDateTimeString(false, "_");
 		String subDir = "preprocData_" + dateTimeStrAra[0] + File.separator;
-		return _buildDataCSVFNames(getDirNameAndBuild(subDirLocs.get("SOM_PreProc"), true),subDir, eventsOnly,_desSuffix);
+		return _buildDataCSVFNames(getDirNameAndBuild(subDirLocs.get("SOM_PreProc"), true),subDir, _desSuffix);
 	}//buildPrspctDataCSVFNames
 	
 	//public 
 	
-	//build the file names for the csv files used to save intermediate data from db that has been partially preprocessed
-	//subdir is just sub directory within root project directory; eventsOnly is old flag use to denote 
-	//if examples were chosen based on having events for a particular jp or if prospects without any events could also be considered valid training examples
+	//build the file names for the csv files used to save intermediate data - raw data that has been partially preprocessed
+	//subdir is just sub directory within root project directory;
 	//_desSuffix is text suffix describing file type
-	public String[] buildProccedDataCSVFNames(String subDir, boolean eventsOnly, String _desSuffix) {
+	public String[] buildProccedDataCSVFNames(String subDir, String _desSuffix) {
 		//build root preproc data dir if doesn't exist
-		return _buildDataCSVFNames(getDirNameAndBuild(subDirLocs.get("SOM_PreProc"), true), subDir, eventsOnly, _desSuffix);
+		return _buildDataCSVFNames(getDirNameAndBuild(subDirLocs.get("SOM_PreProc"), true), subDir, _desSuffix);
 	}
-	private String[] _buildDataCSVFNames(String rootDestDir, String subDir, boolean eventsOnly, String _desSuffix) {
+	private String[] _buildDataCSVFNames(String rootDestDir, String subDir, String _desSuffix) {
 		//build subdir based on date, if doesn't exist
 		String destDir = getDirNameAndBuild(rootDestDir, subDir, true);
-		String suffix;
-		if (eventsOnly) {	suffix = _desSuffix + "Evnts";}
-		else {				suffix = _desSuffix;}		
-		String destForFName = destDir + suffix;				
-		return new String[] {destForFName, suffix, rootDestDir};
+		String destForFName = destDir + _desSuffix;				
+		return new String[] {destForFName, _desSuffix, rootDestDir};
 	}//buildPrspctDataCSVFNames	
 	
 	//this will retrieve a subdirectory name under the main directory of this project and build the subdir if it doesn't exist

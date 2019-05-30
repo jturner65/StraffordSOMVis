@@ -119,8 +119,6 @@ public abstract class SOMExample extends baseDataPtVis{
 	public abstract String getRawDescColNamesForCSV();
 	//finalization after being loaded from baseRawData or from csv record
 	public abstract void finalizeBuildBeforeFtrCalc();
-	//return all jpg/jps in this example record
-	protected abstract HashSet<Tuple<Integer,Integer>> getSetOfAllJpgJpData();
 	
 	public boolean isBadExample() {return getFlag(isBadTrainExIDX);}
 	public void setIsBadExample(boolean val) { setFlag(isBadTrainExIDX,val);}
@@ -281,7 +279,7 @@ public abstract class SOMExample extends baseDataPtVis{
 	}//setExactMapLoc
 	
 	//build feature vector - call externally after finalize
-	public final void buildFeatureVector() {//all jps seen by all examples must exist by here so that mapData.jpToFtrIDX has accurate data
+	public final void buildFeatureVector() {
 		buildAllNonZeroFtrIDXs();
 		buildFeaturesMap();
 		setFlag(ftrsBuiltIDX,true);		
@@ -331,7 +329,6 @@ public abstract class SOMExample extends baseDataPtVis{
 	//all examples features will be scaled with respect to seen calc results 0- do not use this for
 	//exemplar objects (those that represent a particular product, for example)
 	//MUST BE SET WITH APPROPRIATE MINS AND DIFFS
-	//protected final TreeMap<Integer, Float> calcStdFtrVector(TreeMap<Integer, Float> ftrs, ArrayList<Integer> jpIdxs, Float[] mins, Float[] diffs) {
 	protected final void calcStdFtrVector(TreeMap<Integer, Float> from_ftrs, TreeMap<Integer, Float> to_sclFtrs, Float[] mins, Float[] diffs) {
 		to_sclFtrs.clear();
 		for (Integer destIDX : from_ftrs.keySet()) {
@@ -345,7 +342,7 @@ public abstract class SOMExample extends baseDataPtVis{
 			}	
 			to_sclFtrs.put(destIDX,val);
 			
-		}//for each jp
+		}//for each non-zero ftr
 	}//standardizeFeatureVector		getSqDistFromFtrType
 		
 	//initialize structures used to aggregate and report the ranking of particular ftrs for this example
@@ -381,8 +378,8 @@ public abstract class SOMExample extends baseDataPtVis{
 			//after every feature is built, then poll mapOfFtrsToIdxs for ranked features
 			TreeMap<Integer,Integer> mapOfRanks = mapOfFtrIDXVsWtRank[mapToGet];
 			for (Float wtVal : mapOfFtrsToIdxs.keySet()) {
-				ArrayList<Integer> jpsAtRank = mapOfFtrsToIdxs.get(wtVal);
-				for (Integer jp : jpsAtRank) {	mapOfRanks.put(jp, rank);}
+				ArrayList<Integer> ftrsAtRank = mapOfFtrsToIdxs.get(wtVal);
+				for (Integer ftr : ftrsAtRank) {	mapOfRanks.put(ftr, rank);}
 				++rank;
 			}
 			mapOfFtrIDXVsWtRank[mapToGet] = mapOfRanks;//probably not necessary since already initialized (will never be empty or deleted)					
@@ -617,25 +614,25 @@ public abstract class SOMExample extends baseDataPtVis{
 	 * @param _ftrtype : kind of features (unmod, normed, stdized) to be used for comparison/distance calc
 	 * @return
 	 */
-	public final TreeMap<Double, ArrayList<SOMMapNode>> findBMUFromFtrNodes_ftrMaps(TreeMap<Integer, HashSet<SOMMapNode>> _MapNodesByFtr,  BiFunction<TreeMap<Integer, Float>, TreeMap<Integer, Float>, Double> _distFunc, int _ftrType) {
-		HashSet<SOMMapNode> _RelevantMapNodes = new HashSet<SOMMapNode>();
-		buildRelevantMapNodes(_RelevantMapNodes, ftrMaps[_ftrType].keySet(), _MapNodesByFtr);
-		TreeMap<Double, ArrayList<SOMMapNode>> mapNodesByDist = new TreeMap<Double, ArrayList<SOMMapNode>>();	
-		for (SOMMapNode mapNode : _RelevantMapNodes) {
-			double sqDistToNode = _distFunc.apply(mapNode.ftrMaps[_ftrType],  ftrMaps[_ftrType]);
-			ArrayList<SOMMapNode> tmpAra = mapNodesByDist.get(sqDistToNode);
-			if(tmpAra == null) {tmpAra = new ArrayList<SOMMapNode>();}
-			tmpAra.add(mapNode);
-			mapNodesByDist.put(sqDistToNode, tmpAra);		
-		}	
-		//handle if this node has no ftrs that map directly to map node ftrs - perhaps similarity groupings exist to build mappings from
-		//buildMapNodeDistsFromGroupings(mapNodesByDist, _MapNodesByFtr);
-		if(mapNodesByDist.size() == 0) {_setNullBMU(); return null;}
-		_setBMUFromMapNodeDistMap(mapNodesByDist);		
-		//find ftr distance to all 8 surrounding nodes and add them to mapNodeNeighbors
-		buildNghbrhdMapNodes( _ftrType, _distFunc);	
-		return mapNodesByDist;
-	}//findBMUFromNodes 
+//	public final TreeMap<Double, ArrayList<SOMMapNode>> findBMUFromFtrNodes_ftrMaps(TreeMap<Integer, HashSet<SOMMapNode>> _MapNodesByFtr,  BiFunction<TreeMap<Integer, Float>, TreeMap<Integer, Float>, Double> _distFunc, int _ftrType) {
+//		HashSet<SOMMapNode> _RelevantMapNodes = new HashSet<SOMMapNode>();
+//		buildRelevantMapNodes(_RelevantMapNodes, ftrMaps[_ftrType].keySet(), _MapNodesByFtr);
+//		TreeMap<Double, ArrayList<SOMMapNode>> mapNodesByDist = new TreeMap<Double, ArrayList<SOMMapNode>>();	
+//		for (SOMMapNode mapNode : _RelevantMapNodes) {
+//			double sqDistToNode = _distFunc.apply(mapNode.ftrMaps[_ftrType],  ftrMaps[_ftrType]);
+//			ArrayList<SOMMapNode> tmpAra = mapNodesByDist.get(sqDistToNode);
+//			if(tmpAra == null) {tmpAra = new ArrayList<SOMMapNode>();}
+//			tmpAra.add(mapNode);
+//			mapNodesByDist.put(sqDistToNode, tmpAra);		
+//		}	
+//		//handle if this node has no ftrs that map directly to map node ftrs - perhaps similarity groupings exist to build mappings from
+//		//buildMapNodeDistsFromGroupings(mapNodesByDist, _MapNodesByFtr);
+//		if(mapNodesByDist.size() == 0) {_setNullBMU(); return null;}
+//		_setBMUFromMapNodeDistMap(mapNodesByDist);		
+//		//find ftr distance to all 8 surrounding nodes and add them to mapNodeNeighbors
+//		buildNghbrhdMapNodes( _ftrType, _distFunc);	
+//		return mapNodesByDist;
+//	}//findBMUFromNodes 
 	
 	/**
 	 * references current map of nodes, finds best matching unit and returns map of all map node tuple addresses and their ftr distances from this node     
@@ -704,10 +701,9 @@ public abstract class SOMExample extends baseDataPtVis{
 		}		
 	}//toLRNString
 	
-	//for (Integer jpIdx : allJPFtrIDXs) {res += ""+jpIdx+":"+ftrs[jpIdx]+" ";}
 	private final String _toSVMString(TreeMap<Integer, Float> ftrs) {
 		String res = "";
-		for (Integer jpIdx : allNonZeroFtrIDXs) {res += "" + jpIdx + ":" + String.format("%1.7g", ftrs.get(jpIdx)) + " ";}
+		for (Integer ftrIdx : allNonZeroFtrIDXs) {res += "" + ftrIdx + ":" + String.format("%1.7g", ftrs.get(ftrIdx)) + " ";}
 		return res;}//_toSVMString
 	
 	//return SVM-format (sparse) string of this object's features, depending on which type is selected - check to make sure 2ndary features exist before attempting to build data strings
@@ -833,7 +829,8 @@ abstract class baseDataPtVis{
 	//for debugging purposes, gives min and max radii of spheres that will be displayed on map for each node proportional to # of samples - only display related
 	public static float minRad = 100000, maxRad = -100000;
 	//array of color IDXs for specific color roles : idx 0 ==fill, idx 1 == strk, idx 2 == txt
-	protected int[] nodeClrs;		
+	//alt is for displaying alternate state
+	protected int[] nodeClrs, altClrs;		
 	
 	public baseDataPtVis(SOMMapManager _map, ExDataType _type) {
 		mapMgr = _map;type=_type;
@@ -842,7 +839,8 @@ abstract class baseDataPtVis{
 		mapNodeLoc = new myPointf();
 		rad = 1.0f;
 		drawDet = 2;
-		nodeClrs = mapMgr.getClrVal(type);
+		nodeClrs = mapMgr.getClrFillStrkTxtAra(type);
+		altClrs = mapMgr.getAltClrFillStrkTxtAra();
 	}//ctor	
 	
 	//copy ctor
@@ -850,6 +848,8 @@ abstract class baseDataPtVis{
 		this(_otr.mapMgr,_otr.type);	
 		mapLoc = _otr.mapLoc;
 		mapNodeLoc = _otr.mapNodeLoc;
+		nodeClrs = _otr.nodeClrs;
+		altClrs = _otr.altClrs;
 	}//
 	
 	protected void setRad(float _rad){
@@ -910,16 +910,13 @@ abstract class baseDataPtVis{
 
 
 
-
-//class description for a data point - used to distinguish different jp-jpg members - class membership is determined by comparing the label
+//class description for a data point -
 //TODO change this to some other structure, or other comparison mechanism?  allow for subset membership check?
 class dataClass implements Comparable<dataClass> {
 	
 	public String label;
 	public String lrnKey;
 	private String cls;
-	
-	public int jpGrp, jp;
 	//color of this class, for vis rep
 	public int[] clrVal;
 	
@@ -930,8 +927,6 @@ class dataClass implements Comparable<dataClass> {
 		clrVal = _clrVal;
 	}	
 	public dataClass(dataClass _o){this(_o.lrnKey, _o.label,_o.cls, _o.clrVal);}//copy ctor
-	//set the defini
-	public void setJpJPG(int _jpGrp, int _jp) {jpGrp=_jpGrp;jp=_jp;}
 		
 	//this will guarantee that, so long as a string has only one period, the value returned will be in the appropriate format for this mocapClass to match it
 	//reparses and recalcs subject and clip from passed val
@@ -945,7 +940,7 @@ class dataClass implements Comparable<dataClass> {
 	public String getFullLabel(){return label +"|"+cls;}
 	//public static String buildPrfx(int val){return (val < 100 ? (val < 10 ? "00" : "0") : "") + val;}//handles up to 999 val to be prefixed with 0's	
 	public String toString(){
-		String res = "Label :  " +label + "\tLrnKey : " + lrnKey  + "\tJPGroup # : " + String.format("%03d",jpGrp)+ "\tJP # : "+String.format("%03d",jp)+"\tDesc : "+cls;
+		String res = "Label :  " +label + "\tLrnKey : " + lrnKey  +"\tDesc : "+cls;
 		return res;		
 	}	
 }//dataClass

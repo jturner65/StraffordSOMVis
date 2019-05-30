@@ -92,7 +92,7 @@ public abstract class SOMExampleMapper {
 	// prepare and calc feature vectors
 	
 	/**
-	 * pre-condition all examples to prepare for building feature vectors
+	 * pre-condition all examples to prepare for building feature vectors, after pre-processed examples are loaded and all data values are aggregated but before any calculations are performed
 	 */	
 	public final void finalizeAllExamples() {
 		if(!getFlag(dataIsLoadedIDX)) {
@@ -100,7 +100,7 @@ public abstract class SOMExampleMapper {
 			return;
 		}
 		msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildFtrVec","Begin finalizing all " +exampleMap.size()+ " " + exampleName+ " examples to prepare them for ftr calc.", MsgCodes.info1);
-		//finalize each example - this will aggregate all the jp's that are seen and prepare example for calculating ftr vector
+		//finalize each example - this will aggregate all the ftrs's that are seen in src data and prepare example for calculating ftr vector
 		for (SOMExample ex : exampleMap.values()) {			ex.finalizeBuildBeforeFtrCalc();		}	
 		setFlag(dataFtrsPreparedIDX, true);
 		msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildFtrVec","Finished finalizing all " +exampleMap.size()+ " " + exampleName+ " examples to prepare them for ftr calc.", MsgCodes.info1);

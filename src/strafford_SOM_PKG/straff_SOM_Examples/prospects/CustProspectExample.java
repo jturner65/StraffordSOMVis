@@ -240,7 +240,7 @@ public class CustProspectExample extends ProspectExample{
 	@Override
 	public final void setIsTrainingDataIDX_Priv() {
 		type= isTrainingData ? ExDataType.Training : ExDataType.Testing;
-		nodeClrs = mapMgr.getClrVal(type);
+		nodeClrs = mapMgr.getClrFillStrkTxtAra(type);
 	}//setIsTrainingDataIDX
 
 	//column names for raw descriptorCSV output

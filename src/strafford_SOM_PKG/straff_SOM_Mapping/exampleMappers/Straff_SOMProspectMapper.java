@@ -32,7 +32,7 @@ public abstract class Straff_SOMProspectMapper extends Straff_SOMExampleMapper {
 		//load data creation date time, if exists
 		loadDataCreateDateTime(subDir);
 		//
-		String[] loadSrcFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(subDir, true, exampleName+ "MapSrcData");
+		String[] loadSrcFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(subDir, exampleName+ "MapSrcData");
 		String fmtFile = loadSrcFNamePrefixAra[0]+"_format.csv";
 		
 		String[] loadRes = fileIO.loadFileIntoStringAra(fmtFile, exampleName+" Format file loaded", exampleName+" Format File Failed to load");
@@ -60,7 +60,7 @@ public abstract class Straff_SOMProspectMapper extends Straff_SOMExampleMapper {
 			//save date/time of data creation
 			saveDataCreateDateTime();
 			
-			String[] saveDestFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(true, exampleName+"MapSrcData");
+			String[] saveDestFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(exampleName+"MapSrcData");
 			ArrayList<String> csvResTmp = new ArrayList<String>();		
 			int counter = 0;
 			SOMExample ex1 = exampleMap.get(exampleMap.firstKey());

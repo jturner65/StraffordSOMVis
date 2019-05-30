@@ -32,7 +32,7 @@ public abstract class SOMMapManager {
 	protected TreeMap<Tuple<Integer,Integer>, SOMMapNode> MapNodes;	
 	//map of ftr idx and all map nodes that have non-zero presence in that ftr
 	protected TreeMap<Integer, HashSet<SOMMapNode>> MapNodesByFtrIDX;
-	//map nodes that have/don't have training examples
+	//map nodes that have/don't have  examples of specified type
 	private ConcurrentSkipListMap<ExDataType, HashSet<SOMMapNode>> nodesWithEx, nodesWithNoEx;	
 	//array of per ftr idx treemaps of map nodes keyed by ftr weight
 	private TreeMap<Float,ArrayList<SOMMapNode>>[] PerFtrHiWtMapNodes;	
@@ -44,7 +44,9 @@ public abstract class SOMMapManager {
 	
 	//////////////////
 	// class and category mapping
-	// classes belong to training data - they are assigned to map nodes that are bmus for a particular training example.
+	// classes belong to training data - they are assigned to map nodes that are bmus for a particular training example
+	// they are then used to define the nature of segments/clusters on the map, as well as give a probability of class 
+	// membership to an unclassified sample that maps to a praticular BMU
 	// categories are collections of similar classes
 	//Map of classes to segment
 	protected TreeMap<Integer, SOMMapSegment> Class_Segments;
@@ -543,7 +545,11 @@ public abstract class SOMMapManager {
 	
 	public abstract ISOM_DispMapExample buildTmpDataExampleFtrs(myPointf ptrLoc, TreeMap<Integer, Float> ftrs, float sens);
 	public abstract ISOM_DispMapExample buildTmpDataExampleDists(myPointf ptrLoc, float dist, float sens);
-	
+	//to display class and category probabilities
+	public abstract ISOM_DispMapExample buildTmpDataExampleClassProb(myPointf ptrLoc, SOMMapNode nearestNode, float sens);
+	public abstract ISOM_DispMapExample buildTmpDataExampleCategoryProb(myPointf ptrLoc, SOMMapNode nearestNode, float sens);
+	public abstract ISOM_DispMapExample buildTmpDataExampleNodePop(myPointf ptrLoc, SOMMapNode nearestNode, float sens);
+ 
 	/////////////////////////////////////
 	// map node management - map nodes are represented by SOMExample objects called SOMMapNodes
 	// and are classified as either having examples that map to them (they are bmu's for) or not having any
@@ -578,14 +584,60 @@ public abstract class SOMMapManager {
 	}//_setExamplesBMUs
 	
 	//call 1 time for any particular type of data
-	protected void _finalizeBMUProcessing(SOMExample[] _exs, ExDataType dataType) {
+	protected void _completeBMUProcessing(SOMExample[] _exs, ExDataType dataType) {
 		int dataTypeVal = dataType.getVal();
 		for(SOMMapNode mapNode : MapNodes.values()){mapNode.clearBMUExs(dataTypeVal);addExToNodesWithNoExs(mapNode, dataType);}			
 		if(dataType==ExDataType.Training) {			for (int i=0;i<_exs.length;++i) {			_exs[i].mapTrainingToBMU(dataTypeVal);	}		} 
 		else {										for (int i=0;i<_exs.length;++i) {			_exs[i].mapToBMU(dataTypeVal);		}		}
-		filterExFromNoEx(dataType);		//clear out all nodes that have examples from struct holding no-example map nodes
-		finalizeExMapNodes(dataType);		
+		_finalizeBMUProcessing(dataType);
 	}//_finalizeBMUProcessing
+	
+	/**
+	 * finalize the bmu processing - move som nodes that have been mapped to out of the list of nodes that have not been mapped to, copy the closest mapped som node to any som nodes without mappings, finalize all som nodes
+	 * @param dataType
+	 */
+	public void _finalizeBMUProcessing(ExDataType dataType) {
+		msgObj.dispMessage("SOMMapManager","_finalizeBMUProcessing","Start finalizing BMU processing for data type : \"+ dataType.getName()+\".\"", MsgCodes.info5);		
+		
+		HashSet<SOMMapNode> withMap = nodesWithEx.get(dataType);
+		HashSet<SOMMapNode> withOutMap = nodesWithNoEx.get(dataType);
+		int typeIDX = dataType.getVal();
+		//clear out all nodes that have examples from struct holding no-example map nodes
+		//remove all examples that have been mapped to
+		for (SOMMapNode tmpMapNode : withMap) {			withOutMap.remove(tmpMapNode);		}
+		//copy data from map nodes with mapped examples into map nodes without any, using the closest map node
+
+		msgObj.dispMessage("SOMMapManager","_finalizeBMUProcessing","Start assigning " +withOutMap.size() + " map nodes that are not BMUs to any training examples to have nearest map node to them as BMU.", MsgCodes.info5);		
+		boolean isTorroid = isToroidal();
+		float sqDist,minSqDist;
+		//set all empty mapnodes to have a label based on the closest mapped node's label
+		if (isTorroid) {//minimize in-loop if checks
+			for(SOMMapNode emptyNode : withOutMap){//node has no label mappings, so need to determine label
+				minSqDist = 1000000;
+				SOMMapNode closestMapNode  = emptyNode;					//will never be added
+				for(SOMMapNode node2 : withMap){					//this is adding a -map- node
+					sqDist = getSqMapDist_torr(node2, emptyNode);			//actual map topology dist - need to handle wrapping!
+					if (sqDist < minSqDist) {minSqDist = sqDist;		closestMapNode = node2;}
+				}	
+				emptyNode.addMapNodeExToBMUs(minSqDist, closestMapNode, typeIDX);			//adds single closest -map- node we know has a label, or itself if none found
+			}
+		} else {
+			for(SOMMapNode emptyNode : withOutMap){//node has no label mappings, so need to determine label
+				minSqDist = 1000000;
+				SOMMapNode closestMapNode  = emptyNode;					//will never be added
+				for(SOMMapNode node2 : withMap){					//this is adding a -map- node
+					sqDist = getSqMapDist_flat(node2, emptyNode);			//actual map topology dist - need to handle wrapping!
+					if (sqDist < minSqDist) {minSqDist = sqDist;		closestMapNode = node2;}
+				}	
+				emptyNode.addMapNodeExToBMUs(minSqDist, closestMapNode,typeIDX);			//adds single closest -map- node we know has a label, or itself if none found
+			}			
+		}		
+		msgObj.dispMessage("SOMMapManager","_finalizeBMUProcessing","Finished assigning " +withOutMap.size() + " map nodes that are not BMUs to any examples to have nearest map node to them as BMU.", MsgCodes.info5);
+		//finalize all examples
+		//for(SOMMapNode node : withMap){		node.finalizeAllBmus(typeIDX);	}		//only with native examples?  not correct - needs to finalize all nodes to manage the SOMMapNodeBMUExamples for the nodes that have not been mapped to 
+		for(SOMMapNode node : MapNodes.values()){		node.finalizeAllBmus(typeIDX);	}
+		msgObj.dispMessage("SOMMapManager","_finalizeBMUProcessing","Finished finalizing BMU processing for data type : "+ dataType.getName()+".", MsgCodes.info5);		
+	}//sa_finalizeBMUProcessing
 	
 	public abstract void saveProductMappings(double prodZoneDistThresh);
 	public abstract void saveTestTrainMappings(double prodZoneDistThresh);
@@ -604,19 +656,7 @@ public abstract class SOMMapManager {
 	public int getNumNodesWithNoBMUExs(ExDataType _type) {return nodesWithNoEx.get(_type).size();}
 	public HashSet<SOMMapNode> getNodesWithExOfType(ExDataType _type){return nodesWithEx.get(_type);}
 	public HashSet<SOMMapNode> getNodesWithNoExOfType(ExDataType _type){return nodesWithNoEx.get(_type);}
-	//remove all examples in "with" struct from "without" struct
-	public void filterExFromNoEx(ExDataType _type) {
-		//remove all nodes that have been selected by some data point of type _type as a bmu from the "no examples" list
-		HashSet<SOMMapNode> withMap = nodesWithEx.get(_type),withOutMap = nodesWithNoEx.get(_type);		
-		for (SOMMapNode tmpMapNode : withMap) {			withOutMap.remove(tmpMapNode);		}
-	}//filterExFromNoEx
-	
-	//finalize som map nodes that have examples tied to them
-	public void finalizeExMapNodes(ExDataType _type) {
-		HashSet<SOMMapNode> withMap = nodesWithEx.get(_type);
-		int typeIDX = _type.getVal();
-		for(SOMMapNode node : withMap){		node.finalizeAllBmus(typeIDX);	}
-	}//finalizeExMapNodes	
+
 	
 	///////////////////////////
 	// mapNodes obj
@@ -668,16 +708,60 @@ public abstract class SOMMapManager {
 		Integer[] nonZeroIDXs = mapnode.getNonZeroIDXs();
 		for(Integer idx : nonZeroIDXs) {
 			HashSet<SOMMapNode> nodeSet = MapNodesByFtrIDX.get(idx);
-			if(null==nodeSet) {nodeSet = new HashSet<SOMMapNode>();MapNodesByFtrIDX.put(idx,nodeSet);}
+			if(null==nodeSet) {nodeSet = new HashSet<SOMMapNode>();}
 			nodeSet.add(mapnode);
+			MapNodesByFtrIDX.put(idx,nodeSet);
 		}	
 		//initialize : add all nodes to set, will remove nodes when they get mappings
 		addExToNodesWithNoExs(mapnode, ExDataType.Training);//nodesWithNoTrainEx.add(dpt);				//initialize : add all nodes to set, will remove nodes when they get mappings
 	}//addToMapNodes
 	
-	public SOMMapNode getMapNodeLoc(Tuple<Integer,Integer> key) {return MapNodes.get(key);}
-	public TreeMap<Tuple<Integer,Integer>, SOMMapNode> getMapNodes(){return MapNodes;}
-	public TreeMap<Integer, HashSet<SOMMapNode>> getMapNodesByFtr(){return MapNodesByFtrIDX;}
+	//returns sq distance between two map locations - needs to handle wrapping if map built torroidally
+	private float getSqMapDist_flat(SOMMapNode a, SOMMapNode b){		return (a.mapLoc._SqrDist(b.mapLoc));	}//	
+	//returns sq distance between two map locations - needs to handle wrapping if map built torroidally
+	private float getSqMapDist_torr(SOMMapNode a, SOMMapNode b){
+		float 
+			oldXa = a.mapLoc.x - b.mapLoc.x, oldXaSq = oldXa*oldXa,			//a is to right of b
+			newXa = oldXa + getMapWidth(), newXaSq = newXa*newXa,	//a is to left of b
+			oldYa = a.mapLoc.y - b.mapLoc.y, oldYaSq = oldYa*oldYa,			//a is below b
+			newYa = oldYa + getMapHeight(), newYaSq = newYa*newYa;	//a is above b
+		return (oldXaSq < newXaSq ? oldXaSq : newXaSq ) + (oldYaSq < newYaSq ? oldYaSq : newYaSq);
+	}//
+
+	
+//	//any map nodes that do not have best matching features may still have other examples that map to them.  These nodes must be managed 
+	//so give these unmapped nodes the same "tags" (bmus, or classes) that the closest map node to them has
+	//public void addMappedNodesToEmptyNodes(ExDataType _type) {
+	public void addMappedNodesToEmptyNodes(HashSet<SOMMapNode> withMap, HashSet<SOMMapNode> withOutMap, int typeVal) {
+		msgObj.dispMessage("SOMMapManager","addMappedNodesToEmptyNodes","Start assigning map nodes that are not BMUs to any training examples to have nearest map node to them as BMU.", MsgCodes.info5);		
+		boolean isTorroid = isToroidal();
+		float sqDist,minSqDist;
+		//set all empty mapnodes to have a label based on the closest mapped node's label
+		if (isTorroid) {//minimize in-loop if checks
+			for(SOMMapNode emptyNode : withOutMap){//node has no label mappings, so need to determine label
+				minSqDist = 1000000;
+				SOMMapNode closestMapNode  = emptyNode;					//will never be added
+				for(SOMMapNode node2 : withMap){					//this is adding a -map- node
+					sqDist = getSqMapDist_torr(node2, emptyNode);			//actual map topology dist - need to handle wrapping!
+					if (sqDist < minSqDist) {minSqDist = sqDist;		closestMapNode = node2;}
+				}	
+				emptyNode.addMapNodeExToBMUs(minSqDist, closestMapNode, typeVal);			//adds single closest -map- node we know has a label, or itself if none found
+			}
+		} else {
+			for(SOMMapNode emptyNode : withOutMap){//node has no label mappings, so need to determine label
+				minSqDist = 1000000;
+				SOMMapNode closestMapNode  = emptyNode;					//will never be added
+				for(SOMMapNode node2 : withMap){					//this is adding a -map- node
+					sqDist = getSqMapDist_flat(node2, emptyNode);			//actual map topology dist - need to handle wrapping!
+					if (sqDist < minSqDist) {minSqDist = sqDist;		closestMapNode = node2;}
+				}	
+				emptyNode.addMapNodeExToBMUs(minSqDist, closestMapNode,typeVal);			//adds single closest -map- node we know has a label, or itself if none found
+			}			
+		}		
+		msgObj.dispMessage("SOMMapManager","addMappedNodesToEmptyNodes","Finished assigning map nodes that are not BMUs to any examples to have nearest map node to them as BMU.", MsgCodes.info5);		
+	}//addMappedNodesToEmptyNodes
+
+	
 	//build all neighborhood values for UMatrix and distance
 	public void buildAllMapNodeNeighborhood_Dists() {for(SOMMapNode ex : MapNodes.values()) {	ex.buildMapNodeNeighborUMatrixVals(); ex.buildMapNodeNeighborSqDistVals();	}}
 
@@ -844,14 +928,7 @@ public abstract class SOMMapManager {
 		minsVals = _mins;
 		diffsVals = _diffs;
 	}
-	
-	public Float[] getMinVals(int idx){return minsVals[idx];}
-	public Float[] getDiffVals(int idx){return diffsVals[idx];}
-	public abstract Float[] getTrainFtrMins();
-	public abstract Float[] getTrainFtrDiffs();
 
-	public SOMExample[] getTrainingData() {return trainData;}
-	
 	//save mins and diffs of current training data
 	protected void saveMinsAndDiffs() {
 		msgObj.dispMessage("SOMMapManager","saveMinsAndDiffs","Begin Saving Mins and Diffs Files", MsgCodes.info1);
@@ -880,9 +957,12 @@ public abstract class SOMMapManager {
 	
 	//return interpolated feature vector on map at location given by x,y, where x,y is float location of map using mapnodes as integral locations
 	//only uses training features here
-	public TreeMap<Integer, Float> getInterpFtrs(float x, float y){
-		float xInterp = (x+mapNodeCols) %1, yInterp = (y+mapNodeRows) %1;
-		int xInt = (int) Math.floor(x+mapNodeCols)%mapNodeCols, yInt = (int) Math.floor(y+mapNodeRows)%mapNodeRows, xIntp1 = (xInt+1)%mapNodeCols, yIntp1 = (yInt+1)%mapNodeRows;		//assume torroidal map		
+	public TreeMap<Integer, Float> getInterpFtrs(float[] c){
+		float xColShift = (c[0]+mapNodeCols), 
+				yRowShift = (c[1]+mapNodeRows), 
+				xInterp = (xColShift) %1, 
+				yInterp = (yRowShift) %1;
+		int xInt = (int) Math.floor(xColShift)%mapNodeCols, yInt = (int) Math.floor(yRowShift)%mapNodeRows, xIntp1 = (xInt+1)%mapNodeCols, yIntp1 = (yInt+1)%mapNodeRows;		//assume torroidal map		
 		//always compare standardized feature data in test/train data to standardized feature data in map
 		TreeMap<Integer, Float> LowXLowYFtrs = MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt)).getCurrentFtrMap(curMapTrainFtrType), LowXHiYFtrs= MapNodes.get(new Tuple<Integer, Integer>(xInt,yIntp1)).getCurrentFtrMap(curMapTrainFtrType),
 				 HiXLowYFtrs= MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yInt)).getCurrentFtrMap(curMapTrainFtrType),  HiXHiYFtrs= MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yIntp1)).getCurrentFtrMap(curMapTrainFtrType);
@@ -896,9 +976,12 @@ public abstract class SOMMapManager {
 	}//getInterpFtrs
 	
 	//return interpolated UMatrix value on map at location given by x,y, where x,y  is float location of map using mapnodes as integral locations
-	public Float getBiLinInterpUMatVal(float x, float y){
-		float xInterp = (x+mapNodeCols) %1, yInterp = (y+mapNodeRows) %1;
-		int xInt = (int) Math.floor(x+mapNodeCols)%mapNodeCols, yInt = (int) Math.floor(y+mapNodeRows)%mapNodeRows, xIntp1 = (xInt+1)%mapNodeCols, yIntp1 = (yInt+1)%mapNodeRows;		//assume torroidal map		
+	public Float getBiLinInterpUMatVal(float[] c){
+		float xColShift = (c[0]+mapNodeCols), 
+				yRowShift = (c[1]+mapNodeRows), 
+				xInterp = (xColShift) %1, 
+				yInterp = (yRowShift) %1;
+		int xInt = (int) Math.floor(xColShift)%mapNodeCols, yInt = (int) Math.floor(yRowShift)%mapNodeRows, xIntp1 = (xInt+1)%mapNodeCols, yIntp1 = (yInt+1)%mapNodeRows;		//assume torroidal map		
 		//always compare standardized feature data in test/train data to standardized feature data in map
 		Float LowXLowYUMat = MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt)).getUMatDist(), LowXHiYUMat= MapNodes.get(new Tuple<Integer, Integer>(xInt,yIntp1)).getUMatDist(),
 				HiXLowYUMat= MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yInt)).getUMatDist(),  HiXHiYUMat= MapNodes.get(new Tuple<Integer, Integer>(xIntp1,yIntp1)).getUMatDist();
@@ -911,15 +994,21 @@ public abstract class SOMMapManager {
 		}
 	}//getInterpUMatVal
 	
-	private float linInterpVal(float a, float b, float t, float mult) {
-		float res = 0.0f, Onemt = 1.0f-t;
-		return mult*((a*Onemt) + (b*t));		
-	}//interpVal
+	private float linInterpVal(float a, float b, float t, float mult) {		return mult*((a*(1.0f-t)) + (b*t));		}//interpVal
+	
+	//public SOMMapNode getMapNodeByPxlLoc(
+	
+	
+	//private Float _getBiCubicInterp
 	
 	//return interpolated UMatrix value on map at location given by x,y, where x,y  is float location of map using mapnodes as integral locations
-	public Float getBiCubicInterpUMatVal(float x, float y){
-		float xInterp = (x+mapNodeCols) %1, yInterp = (y+mapNodeRows) %1;
-		int xInt = (int) Math.floor(x+mapNodeCols)%mapNodeCols, yInt = (int) Math.floor(y+mapNodeRows)%mapNodeRows;		//assume torroidal map		
+	//public Float getBiCubicInterpUMatVal(float x, float y){
+	public Float getBiCubicInterpUMatVal(float[] c){
+		float xColShift = (c[0]+mapNodeCols), 	//shifted for modulo
+				yRowShift = (c[1]+mapNodeRows), //shifted for modulo
+				xInterp = (xColShift) %1, 
+				yInterp = (yRowShift) %1;
+		int xInt = (int) Math.floor(xColShift)%mapNodeCols, yInt = (int) Math.floor(yRowShift)%mapNodeRows;		//assume torroidal map		
 		SOMMapNode ex = MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt));
 		try{
 			Float uMatVal = 255.0f*(ex.biCubicInterp_UMatrix(xInterp, yInterp));
@@ -931,9 +1020,12 @@ public abstract class SOMMapManager {
 	}//getInterpUMatVal
 	
 	//synthesize umat value
-	public int getUMatrixSegementColorAtPxl(float x, float y) {
-		float xInterp = (x+mapNodeCols) %1, yInterp = (y+mapNodeRows) %1;
-		int xInt = (int) Math.floor(x+mapNodeCols)%mapNodeCols, yInt = (int) Math.floor(y+mapNodeRows)%mapNodeRows;		//assume torroidal map		
+	public int getUMatrixSegementColorAtPxl(float[] c) {
+		float xColShift = (c[0]+mapNodeCols), 
+				yRowShift = (c[1]+mapNodeRows), 
+				xInterp = (xColShift) %1, 
+				yInterp = (yRowShift) %1;
+		int xInt = (int) Math.floor(xColShift)%mapNodeCols, yInt = (int) Math.floor(yRowShift)%mapNodeRows;		//assume torroidal map		
 		SOMMapNode ex = MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt));
 		try{
 			Float uMatVal = (ex.biCubicInterp_UMatrix(xInterp, yInterp));
@@ -1098,12 +1190,36 @@ public abstract class SOMMapManager {
 		pa.popStyle();pa.popMatrix();
 	}//drawFtrWtSegments
 	
-	//draw boxes around every node representing ftrwt-based segments that nodes belong to, with different colors for each segment
+	//draw boxes around every node representing ftrwt-based segments that node belongs to, with color strength proportional to ftr val and different colors for each segment
 	public final void drawAllFtrWtSegments(my_procApplet pa, float valThresh) {		
 		for(int curFtrIdx=0;curFtrIdx<PerFtrHiWtMapNodes.length;++curFtrIdx) {		drawFtrWtSegments(pa, valThresh, curFtrIdx);	}		
 	}//drawFtrWtSegments
 	
+	/**
+	 * draw boxes around each node representing class-based segments that node 
+	 * belongs to, with color strength proportional to probablity and 
+	 * different colors for each segment
+	 * pass class -label- not class index
+	 * @param pa
+	 * @param classLabel - label corresponding to class to be displayed
+	 */
+	public abstract void drawClassSegments(my_procApplet pa, int classLabel);
 	
+	public final void drawAllClassSegments(my_procApplet pa) {	for(Integer key : Class_Segments.keySet()) {	drawClassSegments(pa,key);}	}
+
+	/**
+	 * draw filled boxes around each node representing category-based segments 
+	 * that node belongs to, with color strength proportional to probablity 
+	 * and different colors for each segment
+	 * pass class -label- not class index
+	 * @param pa
+	 * @param classLabel - label corresponding to class to be displayed
+	 */
+	public abstract void drawCategorySegments(my_procApplet pa, int categoryLabel);
+	public final void drawAllCategorySegments(my_procApplet pa) {	for(Integer key : Category_Segments.keySet()) {	drawCategorySegments(pa,key);}	}
+	
+	
+
 	public final void drawAllNodesWted(my_procApplet pa, int curFtrIdx) {//, int[] dpFillClr, int[] dpStkClr) {
 		pa.pushMatrix();pa.pushStyle();
 		//pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
@@ -1137,20 +1253,33 @@ public abstract class SOMMapManager {
 		pa.popStyle();pa.popMatrix();
 	}//drawNodesWithWt
 	
-	public void drawExMapNodes(my_procApplet pa, ExDataType _type) {
-		HashSet<SOMMapNode> nodes = nodesWithEx.get(_type);
+	public void drawPopMapNodes(my_procApplet pa, ExDataType _type) {
 		pa.pushMatrix();pa.pushStyle();
 		int _typeIDX = _type.getVal();
-		for(SOMMapNode node : nodes){	node.drawMePopLbl(pa, _typeIDX);}
+		for(SOMMapNode node : MapNodes.values()){	node.drawMePopLbl(pa, _typeIDX);}
 		pa.popStyle();pa.popMatrix();		
 	}	
-	public void drawExMapNodesNoLbl(my_procApplet pa, ExDataType _type) {
-		HashSet<SOMMapNode> nodes = nodesWithEx.get(_type);
+	public void drawPopMapNodesNoLbl(my_procApplet pa, ExDataType _type) {
 		pa.pushMatrix();pa.pushStyle();
 		int _typeIDX = _type.getVal();
-		for(SOMMapNode node : nodes){				node.drawMePopNoLbl(pa, _typeIDX);}
+		for(SOMMapNode node : MapNodes.values()){				node.drawMePopNoLbl(pa, _typeIDX);}
 		pa.popStyle();pa.popMatrix();		
 	}
+	
+//	public void drawExMapNodes(my_procApplet pa, ExDataType _type) {
+//		HashSet<SOMMapNode> nodes = nodesWithEx.get(_type);
+//		pa.pushMatrix();pa.pushStyle();
+//		int _typeIDX = _type.getVal();
+//		for(SOMMapNode node : nodes){	node.drawMePopLbl(pa, _typeIDX);}
+//		pa.popStyle();pa.popMatrix();		
+//	}	
+//	public void drawExMapNodesNoLbl(my_procApplet pa, ExDataType _type) {
+//		HashSet<SOMMapNode> nodes = nodesWithEx.get(_type);
+//		pa.pushMatrix();pa.pushStyle();
+//		int _typeIDX = _type.getVal();
+//		for(SOMMapNode node : nodes){				node.drawMePopNoLbl(pa, _typeIDX);}
+//		pa.popStyle();pa.popMatrix();		
+//	}
 	
 	//get ftr name/idx/instance-specific value based to save an image of current map
 	public abstract String getSOMLocClrImgForFtrFName(int ftrIDX);
@@ -1214,6 +1343,10 @@ public abstract class SOMMapManager {
 	public int getMapNodeCols(){return mapNodeCols;}
 	public int getMapNodeRows(){return mapNodeRows;}	
 	
+	public SOMMapNode getMapNodeByCoords(Tuple<Integer,Integer> key) {return MapNodes.get(key);}
+	public TreeMap<Tuple<Integer,Integer>, SOMMapNode> getMapNodes(){return MapNodes;}
+	public TreeMap<Integer, HashSet<SOMMapNode>> getMapNodesByFtr(){return MapNodesByFtrIDX;}
+	
 	public float getNodePerPxlCol() {return nodeXPerPxl;}
 	public float getNodePerPxlRow() {return nodeYPerPxl;}	
 	//mean/var,mins/diffs of features of map nodes
@@ -1221,6 +1354,14 @@ public abstract class SOMMapManager {
 	public float[] getMap_ftrsVar() {return map_ftrsVar;}			
 	public float[] getMap_ftrsDiffs() {return map_ftrsDiffs;}			
 	public float[] getMap_ftrsMin() {return map_ftrsMin;}
+	
+	public Float[] getMinVals(int idx){return minsVals[idx];}
+	public Float[] getDiffVals(int idx){return diffsVals[idx];}
+	public abstract Float[] getTrainFtrMins();
+	public abstract Float[] getTrainFtrDiffs();
+
+	public SOMExample[] getTrainingData() {return trainData;}
+
 	
 	//# of features used to train SOM
 	public int getNumTrainFtrs() {return numTrnFtrs;}
@@ -1317,7 +1458,7 @@ public abstract class SOMMapManager {
 	public boolean isMapDrawable(){return getFlag(loaderRtnIDX) && getFlag(mapDataLoadedIDX);}
 	public boolean isToroidal(){return projConfigData.isToroidal();}	
 	//get fill, stroke and text color ID if win exists (to reference papplet) otw returns 0,0,0
-	public int[] getClrVal(ExDataType _type) {
+	public int[] getClrFillStrkTxtAra(ExDataType _type) {
 		if (win==null) {return new int[] {0,0,0};}															//if null then not going to be displaying anything
 		switch(_type) {
 			case Training : {		return new int[] {my_procApplet.gui_Cyan,my_procApplet.gui_Cyan,my_procApplet.gui_Blue};}			//corresponds to prospect training example
@@ -1329,6 +1470,10 @@ public abstract class SOMMapManager {
 		}
 		return new int[] {my_procApplet.gui_White,my_procApplet.gui_White,my_procApplet.gui_White};
 	}//getClrVal
+	public int[] getAltClrFillStrkTxtAra() {
+		if (win==null) {return new int[] {0,0,0};}		
+		return new int[] {my_procApplet.gui_Red,my_procApplet.gui_Red,my_procApplet.gui_White};
+	}
 	
 	
 	//find distance on map

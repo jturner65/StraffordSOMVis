@@ -39,18 +39,23 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 		mapDrawWtMapNodesIDX		= 8,			//draw map nodes with non-0 (present) wt vals
 		mapDrawPopMapNodesIDX	   	= 9,			//draw map nodes that are bmus for training examples
 		mapDrawAllMapNodesIDX		= 10,			//draw all map nodes, even empty
-				
+		//UMatrix 		
 		mapDrawUMatrixIDX			= 11,			//draw visualization of u matrix - distance between nodes
 		mapDrawUMatSegImgIDX		= 12,			//draw the image of the interpolated segments based on UMatrix Distance
 		mapDrawUMatSegMembersIDX	= 13,			//draw umatrix-based segments around regions of maps - visualizes clusters with different colors
-		mapDrawFtrWtSegIDX 			= 14,			//draw ftr-wt-based segments around regions of map - display only segment built from currently display ftr on ftr map
+		//ftr and ftr-dist-based
+		mapDrawDistImageIDX			= 14,			//draw umatrix-like rendering based on sq dist between adjacent node vectors
+		mapDrawFtrWtSegMembersIDX	= 15,			//draw ftr-wt-based segments around regions of map - display only segment built from currently display ftr on ftr map
+		//class and category-based segments
+		mapDrawClassSegmentsIDX		= 16,			//show class (order-based jp) segments
+		mapDrawCategorySegmentsIDX	= 17,			//show category (order-driven jpgroup) segments
 		
-		showSelRegionIDX			= 15,			//highlight a specific region of the map, either all nodes above a certain threshold for a chosen ftr
+		showSelRegionIDX			= 18,			//highlight a specific region of the map, either all nodes above a certain threshold for a chosen ftr
 		//train/test data managemen
-		somTrainDataLoadedIDX		= 16,			//whether data used to build map has been loaded yet
-		saveLocClrImgIDX			= 17;			//
+		somTrainDataLoadedIDX		= 19,			//whether data used to build map has been loaded yet
+		saveLocClrImgIDX			= 20;			//
 	
-	public static final int numSOMBasePrivFlags = 18;
+	public static final int numSOMBasePrivFlags = 21;
 	//instancing class will determine numPrivFlags based on how many more flags are added
 	
 	//SOM map list options
@@ -206,60 +211,81 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 	}//initMe()	
 	
 	protected abstract SOMMapManager buildMapMgr() ;
-	protected abstract void initMeIndiv();
-	
+	protected abstract void initMeIndiv();	
 	
 	@Override
 	//initialize all private-flag based UI buttons here - called by base class
-	public final void initAllPrivBtns(){
-		String[] _truePrivFlagNames = new String[]{								//needs to be in order of flags
-				//"Train W/Recs W/Event Data", 
-				"Building SOM", "Reset Dflt UI Vals", 
-				"Using ChiSq for Ftr Dist", "Prdct Dist ignores 0-ftrs", "Hide Train Data", "Hide Test Data",
-				"Hide Nodes", "Hide Lbls","Hide Nodes (by Pop)",
-				"Showing UMat (Bi-Cubic)","Hide Hot Ftr Nodes (by Wt)","Hide Ftr Wt Segments",				
-				"Hide Clstr (U-Dist)", "Hide Clstr Image", 
-		};
-		String[] _falsePrivFlagNames = new String[]{			//needs to be in order of flags
-				//"Train W/All Recs",
-				"Build SOM ","Reset Dflt UI Vals",
-				"Not Using ChiSq Distance", "Prdct Dist w/all ftrs","Show Train Data","Show Test Data",
-				"Show Nodes", "Show Lbls","Show Nodes (by Pop)",
-				"Showing Ftr Map", "Show Hot Ftr Nodes (by Wt)", "Show Ftr Wt Segments",				
-				"Show Clstr (U-Dist)", "Show Clstr Image", 
-		};
-		int[] _privModFlgIdxs = new int[]{
-				//useOnlyEvntsToTrainIDX, 
-				buildSOMExe, resetMapDefsIDX, 
-				mapUseChiSqDistIDX,mapExclProdZeroFtrIDX,mapDrawTrainDatIDX,mapDrawTestDatIDX,
-				mapDrawAllMapNodesIDX,mapDrawNodeLblIDX,mapDrawPopMapNodesIDX, 
-				mapDrawUMatrixIDX,mapDrawWtMapNodesIDX,mapDrawFtrWtSegIDX,				
-				mapDrawUMatSegMembersIDX,mapDrawUMatSegImgIDX,
-		};
-		initAllSOMPrivBtns_Indiv(_truePrivFlagNames, _falsePrivFlagNames, _privModFlgIdxs);
+	public final void initAllPrivBtns(){	
+		//add an entry for each button, in the order they are wished to be displayed		
+		ArrayList<Object[]> tmpBtnNamesArray = new ArrayList<Object[]>();
+		tmpBtnNamesArray.add(new Object[]{"Building SOM","Build SOM ",buildSOMExe});
+		tmpBtnNamesArray.add(new Object[]{"Reset Dflt UI Vals","Reset Dflt UI Vals",resetMapDefsIDX});
+		tmpBtnNamesArray.add(new Object[]{"Using ChiSq for Ftr Dist", "Not Using ChiSq Distance", mapUseChiSqDistIDX});       
+		tmpBtnNamesArray.add(new Object[]{"Prdct Dist ignores 0-ftrs","Prdct Dist w/all ftrs", mapExclProdZeroFtrIDX});    
+		tmpBtnNamesArray.add(new Object[]{"Hide Train Data", "Show Train Data", mapDrawTrainDatIDX});       
+		tmpBtnNamesArray.add(new Object[]{"Hide Test Data", "Show Test Data", mapDrawTestDatIDX});        
+		tmpBtnNamesArray.add(new Object[]{"Hide Nodes", "Show Nodes", mapDrawAllMapNodesIDX});    
+		tmpBtnNamesArray.add(new Object[]{"Hide Lbls", "Show Lbls", mapDrawNodeLblIDX});        
+		tmpBtnNamesArray.add(new Object[]{"Hide Nodes (by Pop)", "Show Nodes (by Pop)", mapDrawPopMapNodesIDX});    
+		tmpBtnNamesArray.add(new Object[]{"Showing UMat (Bi-Cubic)", "Showing Ftr Map", mapDrawUMatrixIDX});        
+		tmpBtnNamesArray.add(new Object[]{"Hide Hot Ftr Nodes (by Wt)", "Show Hot Ftr Nodes (by Wt)", mapDrawWtMapNodesIDX});     
+		tmpBtnNamesArray.add(new Object[]{"Hide Ftr Wt Segments", "Show Ftr Wt Segments", mapDrawFtrWtSegMembersIDX});
+		tmpBtnNamesArray.add(new Object[]{"Hide Clstr (U-Dist)", "Show Clstr (U-Dist)", mapDrawUMatSegMembersIDX}); 
+		tmpBtnNamesArray.add(new Object[]{"Hide Clstr Image", "Show Clstr Image", mapDrawUMatSegImgIDX});     
+
+		String[] classBtnTFLabels = getClassBtnTFLabels();
+		if((null != classBtnTFLabels) && (classBtnTFLabels.length == 2)) {tmpBtnNamesArray.add(new Object[]{classBtnTFLabels[0],classBtnTFLabels[1],mapDrawClassSegmentsIDX});}
+		String[] catBtnTFLabels = getCategoryBtnTFLabels();
+		if((null != catBtnTFLabels) && (catBtnTFLabels.length == 2)) {tmpBtnNamesArray.add(new Object[]{catBtnTFLabels[0],catBtnTFLabels[1],mapDrawCategorySegmentsIDX});}		
+		
+		//add instancing-class specific buttons
+		initAllSOMPrivBtns_Indiv(tmpBtnNamesArray);
+		//convert to arrays and use
+		initAllPrivBtns_Final(tmpBtnNamesArray);
+		
 	}//initAllPrivBtns
-	
-	protected final void initAllPrivBtns_Final(String[] tmpTru, String[] tmpFalse, int[] tmpFlags,String[] _baseTrueNames, String[] _baseFalseNames, int[] _baseFlags) {
-		
-		truePrivFlagNames = new String[tmpTru.length + _baseTrueNames.length];
-		System.arraycopy(_baseTrueNames, 0, truePrivFlagNames, 0, _baseTrueNames.length);
-		System.arraycopy(tmpTru, 0, truePrivFlagNames, _baseTrueNames.length, tmpTru.length);
-		
-		falsePrivFlagNames = new String[tmpFalse.length + _baseFalseNames.length];
-		System.arraycopy(_baseFalseNames, 0, falsePrivFlagNames, 0, _baseFalseNames.length);
-		System.arraycopy(tmpFalse, 0, falsePrivFlagNames, _baseFalseNames.length, tmpFalse.length);
-	
-		
-		privModFlgIdxs = new int[tmpFlags.length + _baseFlags.length];
-		System.arraycopy(_baseFlags, 0, privModFlgIdxs, 0, _baseFlags.length);
-		System.arraycopy(tmpFlags, 0, privModFlgIdxs, _baseFlags.length, tmpFalse.length);
-		
-		numClickBools = privModFlgIdxs.length;	
-		//maybe have call for 		initPrivBtnRects(0);	
-		initPrivBtnRects(0,numClickBools);
-		
+	/**
+	 * finalize setup for UI toggle buttons
+	 * @param tmpBtnNamesArray arraylist of object arrays, idx0==true name, idx1==false name, idx2==flag idx(integer)
+	 */
+	protected final void initAllPrivBtns_Final(ArrayList<Object[]> tmpBtnNamesArray) {		
+		truePrivFlagNames = new String[tmpBtnNamesArray.size()];
+		falsePrivFlagNames = new String[truePrivFlagNames.length];
+		privModFlgIdxs = new int[truePrivFlagNames.length];
+		for(int i=0;i<truePrivFlagNames.length;++i) {
+			Object[] tmpAra = tmpBtnNamesArray.get(i);
+			truePrivFlagNames[i] = (String) tmpAra[0];
+			falsePrivFlagNames[i] = (String) tmpAra[1];
+			privModFlgIdxs[i] = (int) tmpAra[2];
+		}		
+		numClickBools = truePrivFlagNames.length;	
+		initPrivBtnRects(0,numClickBools);		
 	}	
-	protected abstract void initAllSOMPrivBtns_Indiv(String[] _baseTrueNames, String[] _baseFalseNames, int[] _baseFlags);
+	
+	//instance class(application)-specific UI buttons
+	//protected abstract void initAllSOMPrivBtns_Indiv(String[] _baseTrueNames, String[] _baseFalseNames, int[] _baseFlags);
+	/**
+	 * Instancing class-specific (application driven) UI buttons to display are built 
+	 * in this function.  Add an entry to tmpBtnNamesArray for each button, in the order 
+	 * they are to be displayed
+	 * @param tmpBtnNamesArray array list of Object arrays, where in each object array : 
+	 * 			the first element is the true string label, 
+	 * 			the 2nd elem is false string array, and 
+	 * 			the 3rd element is integer flag idx 
+	 */
+	protected abstract void initAllSOMPrivBtns_Indiv(ArrayList<Object[]> tmpBtnNamesArray);
+	//these are used by instancing class to determine the names of the class and category data values used.  if these are empty then that means these features are not used
+	/**
+	 * Instance class determines the true and false labels the class buttons use - if empty then no classes used
+	 * @return array holding true(idx0) and false(idx1) labels for buttons to control display of class-based segment
+	 */
+	protected abstract String[] getClassBtnTFLabels();
+	/**
+	 * Instance class determines the true and false labels the category buttons use - if empty then no categories used
+	 * @return array holding true(idx0) and false(idx1) labels for buttons to control display of category-based segment
+	 */
+	protected abstract String[] getCategoryBtnTFLabels();
+
 	
 	//initialize structure to hold modifiable menu regions
 	@Override
@@ -399,9 +425,7 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 		
 	}//setupGUIObjsArasFinal
 	
-	public void resetUIVals(){
-		for(int i=0; i<guiStVals.length;++i){				guiObjs[i].setVal(guiStVals[i]);		}
-	}	
+	public final void resetUIVals(){for(int i=0; i<guiStVals.length;++i){				guiObjs[i].setVal(guiStVals[i]);		}}	
 	
 	///////////////////////////////////////////
 	// map image init	
@@ -473,9 +497,11 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 					setPrivFlags(mapDrawWtMapNodesIDX, false);					
 				}
 				break;}	
-			case mapDrawFtrWtSegIDX :{
+			case mapDrawFtrWtSegMembersIDX :{
 				if(val) {mapMgr.buildFtrWtSegmentsOnMap();}
 				break;}
+			case mapDrawClassSegmentsIDX		:{			break;}			
+			case mapDrawCategorySegmentsIDX	:{			break;}			
 			case mapDrawNodeLblIDX : {//whether or not to show labels of nodes being displayed				
 				break;}
 			case mapDrawUMatrixIDX :{//whether to show the UMatrix (distance between nodes) representation of the map - overrides per-ftr display
@@ -747,13 +773,7 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 	}//drawMap()	
 	protected abstract void drawMapIndiv();
 	
-	protected final void drawMseLocWts() {
-		pa.pushMatrix();pa.pushStyle();
-			pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
-			mseOvrData.drawMeLblMap((my_procApplet)pa);
-		pa.popStyle();pa.popMatrix();		
-	}
-	protected final void drawMseLocFtrs() {
+	protected final void drawMseOverData() {
 		pa.pushMatrix();pa.pushStyle();
 			pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
 			mseOvrData.drawMeLblMap((my_procApplet)pa);
@@ -775,24 +795,22 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 				curImgNum = curMapImgIDX;
 			}
 			pa.image(tmpImg,SOM_mapLoc[0]/mapScaleVal,SOM_mapLoc[1]/mapScaleVal); if(getPrivFlags(saveLocClrImgIDX)){tmpImg.save(mapMgr.getSOMLocClrImgForFtrFName(curImgNum));  setPrivFlags(saveLocClrImgIDX,false);}			
-		if(getPrivFlags(mapDrawUMatSegImgIDX)) {pa.image(mapUMatrixCubicSegmentsImg,SOM_mapLoc[0]/mapScaleVal,SOM_mapLoc[1]/mapScaleVal);}
+		if(getPrivFlags(mapDrawUMatSegImgIDX)) {pa.image(mapUMatrixCubicSegmentsImg,SOM_mapLoc[0]/mapScaleVal,SOM_mapLoc[1]/mapScaleVal);}//image synthesized (smoother)
 		pa.popStyle();pa.popMatrix(); 
 		pa.pushMatrix();pa.pushStyle();
-		
+			boolean drawLbl = getPrivFlags(mapDrawNodeLblIDX);
 			pa.translate(SOM_mapLoc[0],SOM_mapLoc[1],0);	
 			if(getPrivFlags(mapDrawTrainDatIDX)){			mapMgr.drawTrainData(pa);}	
 			if(getPrivFlags(mapDrawTestDatIDX)) {			mapMgr.drawTestData(pa);}
-			//instance-specific stuff to draw on map, before nodes are drawn
-			drawMapRectangleIndiv(curImgNum);
-			//draw nodes
-			if(getPrivFlags(mapDrawNodeLblIDX)) {
-				if(getPrivFlags(mapDrawAllMapNodesIDX)){	mapMgr.drawAllNodes(pa);		} 		
-				if(getPrivFlags(mapDrawPopMapNodesIDX)) {	mapMgr.drawExMapNodes(pa, mapNodeDispType);}
-			} else {
-				if(getPrivFlags(mapDrawAllMapNodesIDX)){	mapMgr.drawAllNodesNoLbl(pa);		} 		
-				if(getPrivFlags(mapDrawPopMapNodesIDX)) {	mapMgr.drawExMapNodesNoLbl(pa, mapNodeDispType);}				
-			}
+			//draw nodes by population
+			//if(getPrivFlags(mapDrawPopMapNodesIDX)) {	if(drawLbl) {mapMgr.drawExMapNodes(pa, mapNodeDispType);} else {mapMgr.drawExMapNodesNoLbl(pa, mapNodeDispType);}}
+			if(getPrivFlags(mapDrawPopMapNodesIDX)) {	if(drawLbl) {mapMgr.drawPopMapNodes(pa, mapNodeDispType);} else {mapMgr.drawPopMapNodesNoLbl(pa, mapNodeDispType);}}
+			
 			if(curImgNum == -1) {			drawSegmentsUMatrixDisp();}
+			//instance-specific stuff to draw on map, after nodes are drawn
+			drawMapRectangleIndiv(curImgNum);
+			//if draw all map nodes
+			if(getPrivFlags(mapDrawAllMapNodesIDX)){	if(drawLbl) {mapMgr.drawAllNodes(pa);} else {mapMgr.drawAllNodesNoLbl(pa);} }
 			pa.lights();
 		pa.popStyle();pa.popMatrix();	
 	}//drawMapRectangle
@@ -801,10 +819,25 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 	//draw various segments in UMatrix Display
 	protected void drawSegmentsUMatrixDisp() {
 		if(getPrivFlags(mapDrawUMatSegMembersIDX)) {		mapMgr.drawUMatrixSegments(pa);}
-		if(getPrivFlags(mapDrawFtrWtSegIDX)) {		mapMgr.drawAllFtrWtSegments(pa, mapNodeWtDispThresh);}	//draw all segments - will overlap here, probably will look like garbage		
+		if(getPrivFlags(mapDrawFtrWtSegMembersIDX)) {		mapMgr.drawAllFtrWtSegments(pa, mapNodeWtDispThresh);}	//draw all segments - will overlap here, might look like garbage		
+		if(getPrivFlags(mapDrawClassSegmentsIDX)) {	 		mapMgr.drawAllClassSegments(pa);}
+		if(getPrivFlags(mapDrawCategorySegmentsIDX)) { 		mapMgr.drawAllCategorySegments(pa);}
+
 		drawSegmentsUMatrixDispIndiv();
 	}
+	/**
+	 * Instancing class-specific segments to render during UMatrix display
+	 */
 	protected abstract void drawSegmentsUMatrixDispIndiv();
+	
+	protected final void drawSegmentsFtrWeightDisp(int ftrIDX) {if(getPrivFlags(mapDrawFtrWtSegMembersIDX)) {		mapMgr.drawFtrWtSegments(pa, mapNodeWtDispThresh, ftrIDX);}}//drawSegmentsFtrWeightDisp
+	
+	protected final void drawClassCatDisp(int classVal, int categoryVal) {
+		if(getPrivFlags(mapDrawClassSegmentsIDX)) {	 		mapMgr.drawClassSegments(pa,classVal);	}		
+		if(getPrivFlags(mapDrawCategorySegmentsIDX)) { 		mapMgr.drawCategorySegments(pa,categoryVal);	}
+	}//drawSegmentsFtrWeightDisp
+	
+	
 
 	/////////////////////////////////////////
 	// end draw routines
@@ -834,14 +867,14 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 	//set colors of image of umatrix map
 	public final void setMapUMatImgClrs() {
 		mapCubicUMatrixImg.loadPixels();
-		float[] c;	
+		//float[] c;	
 		//mapUMatrixImg
 		//single threaded exec
 		for(int y = 0; y<mapCubicUMatrixImg.height; ++y){
 			int yCol = y * mapCubicUMatrixImg.width;
 			for(int x = 0; x < mapCubicUMatrixImg.width; ++x){
-				c = getMapNodeLocFromPxlLoc(x, y,mapScaleVal);
-				Float valC = mapMgr.getBiCubicInterpUMatVal(c[0],c[1]);
+				//c = getMapNodeLocFromPxlLoc(x, y,mapScaleVal);
+				Float valC = mapMgr.getBiCubicInterpUMatVal(getMapNodeLocFromPxlLoc(x, y,mapScaleVal));
 				mapCubicUMatrixImg.pixels[x+yCol] = getDataClrFromFloat(valC);
 			}
 		}
@@ -851,13 +884,13 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 	public final void setMapSegmentImgClrs_UMatrix() {
 		reInitMapCubicSegments();//reinitialize map array
 		mapUMatrixCubicSegmentsImg.loadPixels();
-		float[] c;	
+		//float[] c;	
 		//single threaded exec
 		for(int y = 0; y<mapUMatrixCubicSegmentsImg.height; ++y){
 			int yCol = y * mapUMatrixCubicSegmentsImg.width;
 			for(int x = 0; x < mapUMatrixCubicSegmentsImg.width; ++x){
-				c = getMapNodeLocFromPxlLoc(x, y,mapScaleVal);
-				int valC = mapMgr.getUMatrixSegementColorAtPxl(c[0],c[1]);
+				//c = getMapNodeLocFromPxlLoc(x, y,mapScaleVal);
+				int valC = mapMgr.getUMatrixSegementColorAtPxl(getMapNodeLocFromPxlLoc(x, y,mapScaleVal));
 				mapUMatrixCubicSegmentsImg.pixels[x+yCol] = valC;
 			}
 		}
@@ -902,8 +935,8 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 				int yCol = y * mapPerFtrWtImgs[0].width;
 				for(int x = 0; x < mapPerFtrWtImgs[0].width; ++x){
 					int pxlIDX = x+yCol;
-					c = getMapNodeLocFromPxlLoc(x, y,mapScaleVal);
-					TreeMap<Integer, Float> ftrs = mapMgr.getInterpFtrs(c[0],c[1]);
+					//c = getMapNodeLocFromPxlLoc(x, y,mapScaleVal);
+					TreeMap<Integer, Float> ftrs = mapMgr.getInterpFtrs(getMapNodeLocFromPxlLoc(x, y,mapScaleVal));
 					for (Integer jp : ftrs.keySet()) {mapPerFtrWtImgs[jp].pixels[pxlIDX] = getDataClrFromFtrVec(ftrs, jp);}
 				}
 			}
@@ -917,34 +950,48 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 	public final float getSOMRelX (float x){return (x - SOM_mapLoc[0]);}
 	public final float getSOMRelY (float y){return (y - SOM_mapLoc[1]);}	
 	
-	//given pixel location relative to upper left corner of map, return map node
+	//given pixel location relative to upper left corner of map, return map node float - this measures actual distance in map node coords
+	//so rounding to ints give map node tuple coords, while float gives interp between neighbors
 	protected final float[] getMapNodeLocFromPxlLoc(float mapPxlX, float mapPxlY, float sclVal){	return new float[]{(sclVal* mapPxlX * mapMgr.getNodePerPxlCol()) - .5f, (sclVal* mapPxlY * mapMgr.getNodePerPxlRow()) - .5f};}	
 	//check whether the mouse is over a legitimate map location
 	protected final boolean chkMouseOvr(int mouseX, int mouseY){		
 		float mapMseX = getSOMRelX(mouseX), mapMseY = getSOMRelY(mouseY);//, mapLocX = mapX * mapMseX/mapDims[2],mapLocY = mapY * mapMseY/mapDims[3] ;
 		if((mapMseX >= 0) && (mapMseY >= 0) && (mapMseX < SOM_mapDims[0]) && (mapMseY < SOM_mapDims[1])){
 			float[] mapNLoc=getMapNodeLocFromPxlLoc(mapMseX,mapMseY, 1.0f);
-			//msgObj.dispMessage("In Map : Mouse loc : " + mouseX + ","+mouseY+ "\tRel to upper corner ("+  mapMseX + ","+mapMseY +") | mapNLoc : ("+mapNLoc[0]+","+ mapNLoc[1]+")" );
+			//msgObj.dispInfoMessage("SOMMapUIWin","chkMouseOvr","In Map : Mouse loc : " + mouseX + ","+mouseY+ "\tRel to upper corner ("+  mapMseX + ","+mapMseY +") | mapNLoc : ("+mapNLoc[0]+","+ mapNLoc[1]+")" );
 			mseOvrData = getDataPointAtLoc(mapNLoc[0], mapNLoc[1], new myPointf(mapMseX, mapMseY,0));
-//			int[] tmp = getDataClrAtLoc(mapNLoc[0], mapNLoc[1]);
-//			msgObj.dispMessage("Color at mouse map loc :("+mapNLoc[0] + "," +mapNLoc[1]+") : " + tmp[0]+"|"+ tmp[1]+"|"+ tmp[2]);
+			
 			return true;
 		} else {
 			mseOvrData = null;
 			return false;
 		}
 	}//chkMouseOvr
+	
 	//get datapoint at passed location in map coordinates (so should be in frame of map's upper right corner) - assume map is square and not hex
 	protected final ISOM_DispMapExample getDataPointAtLoc(float x, float y, myPointf locPt){//, boolean useScFtrs){
 		float sensitivity = (float) guiObjs[uiMseRegionSensIDX].getVal();
 		ISOM_DispMapExample dp; 
-		if (this.getPrivFlags(mapDrawUMatrixIDX)) {
-			float dist = mapMgr.getBiCubicInterpUMatVal(x, y);
-			dp = mapMgr.buildTmpDataExampleDists(locPt, dist, sensitivity);			
-		} else {
-			TreeMap<Integer, Float> ftrs = mapMgr.getInterpFtrs(x,y);
-			if(ftrs == null) {return null;} 
-			dp = mapMgr.buildTmpDataExampleFtrs(locPt, ftrs, sensitivity);
+		SOMMapNode nearestNode;
+		if (getPrivFlags(mapDrawClassSegmentsIDX)) {			//disp class probs at nearest node
+			//find nearest map node to location
+			nearestNode = mapMgr.getMapNodeByCoords(new Tuple<Integer,Integer> ((int)(x+.5f), (int)(y+.5f)));
+			dp = mapMgr.buildTmpDataExampleClassProb(locPt,nearestNode,sensitivity);
+		} else if (getPrivFlags(mapDrawCategorySegmentsIDX)) {	//disp category probs at nearest node			
+			nearestNode = mapMgr.getMapNodeByCoords(new Tuple<Integer,Integer> ((int)(x+.5f), (int)(y+.5f)));
+			dp = mapMgr.buildTmpDataExampleCategoryProb(locPt,nearestNode,sensitivity);
+			
+		} else if (getPrivFlags(mapDrawPopMapNodesIDX)) { //if showing node pop, mouse over should show actual population
+			nearestNode = mapMgr.getMapNodeByCoords(new Tuple<Integer,Integer> ((int)(x+.5f), (int)(y+.5f)));
+			dp = mapMgr.buildTmpDataExampleNodePop(locPt,nearestNode,sensitivity);
+		} else {//show mouse data based on which display is currently shown
+			if (getPrivFlags(mapDrawUMatrixIDX)) {		
+				dp = mapMgr.buildTmpDataExampleDists(locPt, mapMgr.getBiCubicInterpUMatVal(new float[] {x, y}), sensitivity);				
+			} else {
+				TreeMap<Integer, Float> ftrs = mapMgr.getInterpFtrs(new float[] {x, y});
+				if(ftrs == null) {return null;} 
+				dp = mapMgr.buildTmpDataExampleFtrs(locPt, ftrs, sensitivity);				
+			}
 		}
 		dp.setMapLoc(locPt);
 		return dp;
