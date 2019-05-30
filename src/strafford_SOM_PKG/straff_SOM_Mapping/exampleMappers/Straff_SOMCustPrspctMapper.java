@@ -21,7 +21,7 @@ import strafford_SOM_PKG.straff_Utils.featureCalc.StraffWeightCalc;
  */
 public class Straff_SOMCustPrspctMapper extends Straff_SOMProspectMapper {
 
-	public Straff_SOMCustPrspctMapper(SOMMapManager _mapMgr, String _exName, String _longExampleName) {		super(_mapMgr, _exName, _longExampleName);	}//ctor
+	public Straff_SOMCustPrspctMapper(SOMMapManager _mapMgr, String _exName, String _longExampleName, boolean _shouldValidate) {		super(_mapMgr, _exName, _longExampleName, _shouldValidate);	}//ctor
 	
 	//specific reset functionality for these type of examples
 	@Override
@@ -59,7 +59,7 @@ public class Straff_SOMCustPrspctMapper extends Straff_SOMProspectMapper {
 	//this is here so that if per-order training data is generated via an instance of Straff_SOMCustPrspctPerOrderMapper class
 	//this function will still work to retrieve examples
 	public CustProspectExample[] getCustProspectExamples() {
-		if((null==SOMexampleArray) ||(SOMexampleArray.length==0)) {	buildExampleArray(true);}
+		if((null==SOMexampleArray) ||(SOMexampleArray.length==0)) {	buildExampleArray();}
 		return (CustProspectExample[]) SOMexampleArray;}
 
 	

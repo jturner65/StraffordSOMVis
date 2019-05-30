@@ -169,7 +169,7 @@ public class JPWeightEquation {
 	//calculate a particular example's feature weight value for this object's jp
 	//int _exampleType : whether a customer or a true prospect
 	//int _bndJPType : whether the jp is an actual ftr jp (in products) or is part of the global jp set (might be ftr jp, might not)
-	public float calcFtrVal(ProspectExample ex, JP_OccurrenceData orderJpOccurrences, JP_OccurrenceData linkJpOccurrences, JP_OccurrenceData optJpOccurrences, JP_OccurrenceData srcJpOccurrences, int _exampleType, int _bndJPType, boolean _modBnds) {	
+	public synchronized float calcFtrVal(ProspectExample ex, JP_OccurrenceData orderJpOccurrences, JP_OccurrenceData linkJpOccurrences, JP_OccurrenceData optJpOccurrences, JP_OccurrenceData srcJpOccurrences, int _exampleType, int _bndJPType, boolean _modBnds) {	
 		boolean hasData = false;
 			//for source data - should replace prospect calc above
 		if (srcJpOccurrences != null) {	hasData = true;		ftrCalcStats[_exampleType].setWSVal(srcCoeffIDX, aggregateJPOccsSourceEv(srcJpOccurrences, srcCoeffIDX,FtrParams, now));}//calcStats.workSpace[orderCoeffIDX] = aggregateOccs(orderJpOccurrences, orderCoeffIDX);}
@@ -183,8 +183,8 @@ public class JPWeightEquation {
 		float res = ftrCalcStats[_exampleType].getFtrValFromCalcs(optCoeffIDX, optOutSntnlVal);//(calcStats.workSpace[optCoeffIDX]==optOutSntnlVal);
 		return res;
 	}//calcFtrVal
-	
-	public float calcTrainingFtr(ProspectExample ex, JP_OccurrenceData orderJpOccurrences, JP_OccurrenceData linkJpOccurrences, JP_OccurrenceData optJpOccurrences, JP_OccurrenceData srcJpOccurrences, Date currDate, int _bndJPType, boolean _modBnds) {
+	//this will calculate training features - the date passed is for the particular order date that this example is being built for
+	public synchronized float calcTrainingFtr(ProspectExample ex, JP_OccurrenceData orderJpOccurrences, JP_OccurrenceData linkJpOccurrences, JP_OccurrenceData optJpOccurrences, JP_OccurrenceData srcJpOccurrences, Date currDate, int _bndJPType, boolean _modBnds) {
 		int _exampleType = calcObj.trainCalcObjIDX;
 		boolean hasData = false;
 			//for source data - should replace prospect calc above

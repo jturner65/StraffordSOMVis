@@ -35,20 +35,21 @@ public abstract class SOMExampleMapper {
 		//current state of examples
 	private int[] stFlags;
 	public static final int
-		dataIsPreProccedIDX 	= 0,		//raw data has been preprocessed
-		dataIsLoadedIDX 		= 1,		//preprocessed data has been loaded
-		dataFtrsPreparedIDX 	= 2,		//loaded data features have been pre-procced
-		dataFtrsCalcedIDX 		= 3,		//features have been calced
-		dataPostFtrsBuiltIDX	= 4,		//post feature calc data has been calculated
-		exampleArrayBuiltIDX	= 5;		//array of examples to be used by SOM(potentially) built
-	public static final int numFlags = 6;
+		shouldValidateIDX		= 0,		//whether or not this data should be validated
+		dataIsPreProccedIDX 	= 1,		//raw data has been preprocessed
+		dataIsLoadedIDX 		= 2,		//preprocessed data has been loaded
+		dataFtrsPreparedIDX 	= 3,		//loaded data features have been pre-procced
+		dataFtrsCalcedIDX 		= 4,		//features have been calced
+		dataPostFtrsBuiltIDX	= 5,		//post feature calc data has been calculated
+		exampleArrayBuiltIDX	= 6;		//array of examples to be used by SOM(potentially) built
+	public static final int numFlags = 7;
 	
 		//array of examples actually interacted with by SOM - will be a subset of examples, smaller due to some examples being "bad"
 	protected SOMExample[] SOMexampleArray;
 		//# of actual examples used by SOM of this type
 	protected int numSOMExamples;
 
-	public SOMExampleMapper(SOMMapManager _mapMgr, String _exName, String _longExampleName) {
+	public SOMExampleMapper(SOMMapManager _mapMgr, String _exName, String _longExampleName, boolean _shouldValidate) {
 		mapMgr = _mapMgr;
 		projConfigData = mapMgr.projConfigData;
 		exampleName = _exName;
@@ -59,6 +60,7 @@ public abstract class SOMExampleMapper {
 		
 		exampleMap = new ConcurrentSkipListMap<String, SOMExample>();
 		initFlags();
+		setFlag(shouldValidateIDX, _shouldValidate);
 	}//ctor
 	
 	//reset the data held by this example manager
@@ -152,7 +154,8 @@ public abstract class SOMExampleMapper {
 	 * @param validate whether or not this data should be validated (guaranteed to be reasonable training data - only necessary for data that is going to be used to train)
 	 * @return
 	 */
-	public final SOMExample[] buildExampleArray(boolean validate) {		
+	public final SOMExample[] buildExampleArray() {		
+		boolean validate = getFlag(shouldValidateIDX);
 		if(validate) {
 			ArrayList<SOMExample> tmpList = new ArrayList<SOMExample>();
 			for (String key : exampleMap.keySet()) {			validateAndAddExToArray(tmpList, exampleMap.get(key));	}	//potentially different for every instancing class		

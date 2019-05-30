@@ -16,7 +16,7 @@ import strafford_SOM_PKG.straff_Utils.featureCalc.StraffWeightCalc;
 public class Straff_SOMTruePrspctMapper extends Straff_SOMProspectMapper {
 
 
-	public Straff_SOMTruePrspctMapper(SOMMapManager _mapMgr, String _exName, String _longExampleName) {		super(_mapMgr, _exName, _longExampleName);	}
+	public Straff_SOMTruePrspctMapper(SOMMapManager _mapMgr, String _exName, String _longExampleName, boolean _shouldValidate) {		super(_mapMgr, _exName, _longExampleName,_shouldValidate);	}
 	
 	//specific reset functionality for these type of examples
 	@Override

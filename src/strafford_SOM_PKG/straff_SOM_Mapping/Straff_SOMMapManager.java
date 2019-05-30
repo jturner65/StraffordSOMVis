@@ -129,8 +129,8 @@ public class Straff_SOMMapManager extends SOMMapManager {
 	protected void buildExampleDataMappers() {		
 		//exampleDataMappers holds data mappers - eventually will replace all example maps, and will derive all training data arrays it is declared in base constructor
 		//build appropriate data mappers for this SOM - cust prospects, true prospects, products
-		exampleDataMappers.put("custProspect", new Straff_SOMCustPrspctPerOrderMapper(this, "custProspect", "Customer Prospects (with past orders)"));
-		exampleDataMappers.put("trueProspect", new Straff_SOMTruePrspctMapper(this, "trueProspect", "True Prospects (with no past orders)"));
+		exampleDataMappers.put("custProspect", new Straff_SOMCustPrspctPerOrderMapper(this, "custProspect", "Customer Prospects (with past orders)", true));
+		exampleDataMappers.put("trueProspect", new Straff_SOMTruePrspctMapper(this, "trueProspect", "True Prospects (with no past orders)", false));
 		exampleDataMappers.put("product", new Straff_SOMProductMapper(this, "product", "Products"));
 		
 		custPrspctExMapper = (Straff_SOMCustPrspctPerOrderMapper) exampleDataMappers.get("custProspect");
@@ -183,7 +183,7 @@ public class Straff_SOMMapManager extends SOMMapManager {
 			resetAllMaps();
 			//build prospectMap - first get prospect data and add to map
 			//ConcurrentSkipListMap<String, SOMExample> tmpProspectMap = new ConcurrentSkipListMap<String, SOMExample>();
-			Straff_SOMCustPrspctPerOrderMapper tmpProspectMapper = new Straff_SOMCustPrspctPerOrderMapper(this, "custProspect","Customer Prospects (with past orders)");
+			Straff_SOMCustPrspctPerOrderMapper tmpProspectMapper = new Straff_SOMCustPrspctPerOrderMapper(this, "custProspect","Customer Prospects (with past orders)", true);
 			//data loader will build prospect and product maps
 			
 			rawDataLdr.procRawLoadedData(tmpProspectMapper, prodExMapper);		
@@ -279,14 +279,14 @@ public class Straff_SOMMapManager extends SOMMapManager {
 	private void buildValidationDataArray() {
 		//this is if customers were used as training data
 		if(getFlag(custOrdersAsTrainDataIDX)) {
-			SOMExample[] tmpTruePrspctsAra = truePrspctExMapper.buildExampleArray(false), tmpCustPrspctsAra = custPrspctExMapper.getCustProspectExamples();
+			SOMExample[] tmpTruePrspctsAra = truePrspctExMapper.buildExampleArray(), tmpCustPrspctsAra = custPrspctExMapper.getCustProspectExamples();
 			validationData = new SOMExample[tmpTruePrspctsAra.length + tmpCustPrspctsAra.length];
 			System.arraycopy(tmpTruePrspctsAra, 0, validationData, 0, tmpTruePrspctsAra.length);
 			System.arraycopy(tmpCustPrspctsAra, 0, validationData, tmpTruePrspctsAra.length, tmpCustPrspctsAra.length);		
 			numValidationData = validationData.length;
 		} else {
 			//build array of trueProspectData used to map
-			validationData = truePrspctExMapper.buildExampleArray(false);
+			validationData = truePrspctExMapper.buildExampleArray();
 			//this is if orders were used as training data			
 		}
 	}
@@ -621,7 +621,7 @@ public class Straff_SOMMapManager extends SOMMapManager {
 	protected SOMExample[] buildSOM_InputData() {
 		SOMExample[] res;
 		if(getFlag(custOrdersAsTrainDataIDX)) {
-			res = ((Straff_SOMCustPrspctPerOrderMapper)custPrspctExMapper).buildExampleArray(true);
+			res = ((Straff_SOMCustPrspctPerOrderMapper)custPrspctExMapper).buildExampleArray();
 		} else {
 			res = ((Straff_SOMCustPrspctMapper)custPrspctExMapper).getCustProspectExamples();
 			//if using every order as training			
@@ -635,7 +635,7 @@ public class Straff_SOMMapManager extends SOMMapManager {
 	protected void buildTestTrainFromPartition(float trainTestPartition) {
 		getMsgObj().dispMessage("StraffSOMMapManager","buildTestTrainFromInput","Starting Building Input, Test, Train, Product data arrays.", MsgCodes.info5);
 		//build array of product examples based on product map
-		productData = (ProductExample[]) prodExMapper.buildExampleArray(false);
+		productData = (ProductExample[]) prodExMapper.buildExampleArray();
 		setFlag(testTrainProdDataBuiltIDX,true);
 		//set input data, shuffle it and set test and train partitions
 		setInputTestTrainDataArasShuffle(trainTestPartition);

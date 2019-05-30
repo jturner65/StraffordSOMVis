@@ -17,8 +17,8 @@ public abstract class Straff_SOMExampleMapper extends SOMExampleMapper  {
 	//ref to mt executor
 	protected ExecutorService th_exec;
 
-	public Straff_SOMExampleMapper(SOMMapManager _mapMgr, String _exName, String _longExampleName) {
-		super(_mapMgr,  _exName, _longExampleName);
+	public Straff_SOMExampleMapper(SOMMapManager _mapMgr, String _exName, String _longExampleName, boolean _shouldValidate) {
+		super(_mapMgr,  _exName, _longExampleName, _shouldValidate);
 		jpJpgrpMon = ((Straff_SOMMapManager)mapMgr).jpJpgrpMon;
 		th_exec = mapMgr.getTh_Exec();
 	}

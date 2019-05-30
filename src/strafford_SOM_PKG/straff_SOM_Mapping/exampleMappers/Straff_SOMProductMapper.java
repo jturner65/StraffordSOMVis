@@ -13,9 +13,9 @@ import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 public class Straff_SOMProductMapper extends Straff_SOMExampleMapper {
 		//maps of product arrays, with key for each map being either jpg or jp
 	private TreeMap<Integer, ArrayList<ProductExample>> productsByJpg, productsByJp;
-
+	//products don't validate
 	public Straff_SOMProductMapper(SOMMapManager _mapMgr, String _exName, String _longExampleName) {		
-		super(_mapMgr,  _exName, _longExampleName);
+		super(_mapMgr,  _exName, _longExampleName, false);
 		productsByJpg = new TreeMap<Integer, ArrayList<ProductExample>>();
 		productsByJp = new TreeMap<Integer, ArrayList<ProductExample>>();
 	}//ctor

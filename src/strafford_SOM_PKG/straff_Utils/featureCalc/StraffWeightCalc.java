@@ -224,7 +224,7 @@ public class StraffWeightCalc {
 	// calculate feature vectors - currently only works on product features - and comparator vectors - built off membership in jpgroups
 
 	//calculate feature vector for true prospect example on actual product-based features - these features are for comparison, not training!
-	public void calcTruePrspctFtrVec(ProspectExample ex, HashSet<Integer> jps,TreeMap<Integer, Float> ftrDest,
+	public synchronized void calcTruePrspctFtrVec(ProspectExample ex, HashSet<Integer> jps,TreeMap<Integer, Float> ftrDest,
 			TreeMap<Integer, JP_OccurrenceData> linkOccs,TreeMap<Integer, JP_OccurrenceData> optOccs,
 			TreeMap<Integer, JP_OccurrenceData> srcOccs) {
 		ftrDest.clear();

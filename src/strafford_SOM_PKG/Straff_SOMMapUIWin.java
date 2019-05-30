@@ -481,8 +481,6 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 		if (getPrivFlags( mapDrawCurProdZoneIDX)){		((Straff_SOMMapManager) mapMgr).drawProductRegion(pa,curProdToShowIDX,prodZoneDistThresh);}
 	}//drawMapRectangleIndiv
 	
-	
-	
 	@Override
 	/**
 	 * Instancing class-specific segments to render during UMatrix display

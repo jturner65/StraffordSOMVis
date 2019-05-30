@@ -15,8 +15,8 @@ import strafford_SOM_PKG.straff_SOM_Mapping.*;
 
 public abstract class Straff_SOMProspectMapper extends Straff_SOMExampleMapper {
 	private final int preProcDatPartSz;
-	public Straff_SOMProspectMapper(SOMMapManager _mapMgr, String _exName, String _longExampleName) {
-		super(_mapMgr,  _exName, _longExampleName);		
+	public Straff_SOMProspectMapper(SOMMapManager _mapMgr, String _exName, String _longExampleName, boolean _shouldValidate) {
+		super(_mapMgr,  _exName, _longExampleName, _shouldValidate);		
 		preProcDatPartSz = ((Straff_SOMMapManager)mapMgr).preProcDatPartSz;
 	}
 	

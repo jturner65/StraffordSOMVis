@@ -58,7 +58,7 @@ public class CalcAnalysis{//per JPWeightEquation analysis of data
 		for(int i=0;i<eq.numEqs;++i) {legendSizes[i]= 1.0f/eq.numEqs;}
 	}//ctor
 	//reset this calc analysis object
-	public void reset() {
+	public synchronized void reset() {
 		vals = new float[eq.numEqs];
 		eqTypeCount = new int[eq.numEqs];
 		valSq = new float[vals.length];
@@ -77,13 +77,13 @@ public class CalcAnalysis{//per JPWeightEquation analysis of data
 	}//reset()
 	
 	//overwrites old workspace calcs
-	public void setWSVal(int idx, float val) {
+	public synchronized void setWSVal(int idx, float val) {
 		workSpace[idx]=val;		
 		if (val != 0.0f) {eqTypeCount[idx]++;}		
 	}
 	
 	//add values for a particular calc run - returns calc total
-	public float getFtrValFromCalcs(int optCoeffIDX, float optOutValCk) {
+	public synchronized float getFtrValFromCalcs(int optCoeffIDX, float optOutValCk) {
 			//if below is true, then this means this JP's opt out value was set to sentinel val to allow for calculations but ultimately to set the weight of this jp's contribution to 0
 		boolean optOut = workSpace[optCoeffIDX]==optOutValCk;
 		++numExamplesWithJP;		//if optOut is true, then this increases # of examples, but all values will be treated as 0
