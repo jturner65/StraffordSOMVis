@@ -1,0 +1,34 @@
+SOM Report for SOM Trained in directory :D:\Eclipse Workspace\eclipse workspace\SOM_StraffordExp\StraffordProject\SOM\StraffSOM_2019_05_31_14_11\
+The SOM represented in this directory was trained with the following configuration : 
+SOM Map Configuration : Map config : SOM_MAP Dir : D:\Eclipse Workspace\eclipse workspace\SOM_StraffordExp\StraffordProject\SOM\
+Data Format and Computation Method(k) : Sparse CPU	#Cols : 50	#Rows : 50	#Epochs : 50	Start Radius : 25	End Radius : 1
+Start Learning Rate : 1.0000	End Learning Rate : 0.0100
+Boundaries : toroid	Grid Shape : rectangular	Neighborhood Function : gaussian
+Learning Cooling: linear	Radius Cooling : linear
+Training data (full path) : .svm (Sparse) file name : D:\Eclipse Workspace\eclipse workspace\SOM_StraffordExp\StraffordProject\SOM\StraffSOM_2019_05_31_14_11\Train_straff_Smp_291419_of_291419_typ_normFtrs_Dt_05_31_14_11.svm
+Output files prefix (full path) : D:\Eclipse Workspace\eclipse workspace\SOM_StraffordExp\StraffordProject\SOM\StraffSOM_2019_05_31_14_11\Out_straff_Smp_291419_x50_y50_k2
+Training data : .svm (Sparse) file name : Train_straff_Smp_291419_of_291419_typ_normFtrs_Dt_05_31_14_11.svm
+Output files prefix : Out_straff_Smp_291419_x50_y50_k2
+
+ dbgString of exec string : D:\Eclipse Workspace\eclipse workspace\SOM_StraffordExp\StraffordProject\SOM\straff_SOM.exe -k 2 -x 50 -y 50 -e 50 -r 25 -R 1 -l 1.0000 -L 0.0100 -m toroid -g rectangular -n gaussian -T linear -v 2 -t linear "D:\Eclipse Workspace\eclipse workspace\SOM_StraffordExp\StraffordProject\SOM\StraffSOM_2019_05_31_14_11\Train_straff_Smp_291419_of_291419_typ_normFtrs_Dt_05_31_14_11.svm" "D:\Eclipse Workspace\eclipse workspace\SOM_StraffordExp\StraffordProject\SOM\StraffSOM_2019_05_31_14_11\Out_straff_Smp_291419_x50_y50_k2"
+
+
+
+SOM Training Data configuration :
+Uses Sparse Training Data : true
+# of Training Examples : 291419
+Nature of the features used to train the SOM : normFtrs
+Date and time of Map Training : 05_31_14_11 : 2019_05_31_14_11
+
+
+SOM Processing results : 
+Customer Prospects (with past orders) per Order examples. date and time of creation/pre-processing : 5/29/19 8:37 AM
+Number of training (product-present) jps : 214
+Products date and time of creation/pre-processing : 5/29/19 8:36 AM
+SOM Training Begin Wall Time and Time elapsed from Start of program execution : 5/31/19 2:15 PM | 00:03:59.978
+SOM Training Finished Wall Time and Time elapsed from Start of program execution : 5/31/19 2:21 PM | 00:09:15.453
+Total number of jps seen across all prospects and products : 330
+Training Data JPs (in feature idx order)
+ : 50,54,56,58,63,66,67,68,69,76,78,79,85,87,90,91,96,97,104,108,110,111,117,121,122,123,126,129,130,138,143,145,157,186,190,198,205,208,209,210,211,214,215,216,217,220,221,222,224,225,226,227,229,232,233,234,235,236,237,238,240,241,242,243,244,246,247,248,250,252,253,255,256,257,259,260,261,262,263,265,266,267,269,276,277,278,279,280,281,282,283,284,285,286,287,288,289,290,291,292,293,294,295,296,297,299,303,312,315,319,326,327,328,329,330,331,332,333,335,336,339,340,341,358,359,360,361,362,363,364,365,366,367,368,369,370,371,373,374,375,376,377,378,379,380,381,382,383,384,387,389,390,391,392,393,394,395,396,397,398,399,400,401,402,403,404,407,408,409,410,411,412,413,414,416,418,420,421,422,423,424,425,426,427,433,434,435,436,437,438,439,440,441,442,443,444,445,462,463,464,465,466,467,468,469,470,471,472,473,474,475,476,477,497
+
+True Prospects (with no past orders) date and time of creation/pre-processing : null
