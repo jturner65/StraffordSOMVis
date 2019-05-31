@@ -1,6 +1,7 @@
 package strafford_SOM_PKG.straff_SOM_Mapping;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.TreeMap;
 
 import base_SOM_Objects.*;
@@ -17,6 +18,11 @@ public class MapProductDataToBMUs extends MapDataToBMUs{
 		super(_mapMgr, _stProdIDX,  _endProdIDX,  _thdIDX, "Product", _useChiSqDist);
 		exs = _exs;		//make sure these are cast appropriately
 	}	
+
+	/**
+	 * do we need to map to bmus?  Probably should map to class segments present in map nodes
+	 */
+	//old mapping version
 	@Override
 	protected boolean mapAllDataToBMUs() {
 		//we want to map products to bmus
@@ -24,6 +30,7 @@ public class MapProductDataToBMUs extends MapDataToBMUs{
 		msgObj.dispMessage("mapTestDataToBMUs", "Run Thread : " +thdIDX, "Starting "+dataType+" data to BMU mapping using " + (endIdx-stIdx) + " of " + exs.length+" examples ["+stIdx+":"+endIdx+"] with " + ftrTypeDesc + " Features and both including and excluding unshared features in distance.", MsgCodes.info5);
 		TreeMap<Double, ArrayList<SOMMapNode>> mapNodesByDist;
 		ProductExample ex;
+		HashSet<Integer> prodJPs, prodJPGroups;
 		if (useChiSqDist) {	
 			for (int i=stIdx;i<endIdx;++i) {
 				ex = exs[i];
@@ -36,6 +43,11 @@ public class MapProductDataToBMUs extends MapDataToBMUs{
 				else {ex.setMapNodesStruct(ProductExample.SharedFtrsIDX, mapNodesByDist);}
 				//build example map of order-based map node probabilities
 				ex.setAllMapNodeProbs();
+				prodJPs = ex.getAllProdJPs();
+				for(Integer jp : prodJPs) {			ex.addClassSegment(jp, Class_Segments.get(jp));		}			
+				prodJPGroups = ex.getAllProdJPGroups();
+				for(Integer jpg : prodJPGroups) {   ex.addCategorySegment(jpg, Category_Segments.get(jpg));	}			
+				
 				incrProgress(i);
 			}
 		} else {							
@@ -50,6 +62,10 @@ public class MapProductDataToBMUs extends MapDataToBMUs{
 				else {ex.setMapNodesStruct(ProductExample.SharedFtrsIDX, mapNodesByDist);}
 				//build example map of order-based map node probabilities
 				ex.setAllMapNodeProbs();
+				prodJPs = ex.getAllProdJPs();
+				for(Integer jp : prodJPs) {			ex.addClassSegment(jp, Class_Segments.get(jp));		}			
+				prodJPGroups = ex.getAllProdJPGroups();
+				for(Integer jpg : prodJPGroups) {   ex.addCategorySegment(jpg, Category_Segments.get(jpg));	}			
 				incrProgress(i);
 			}
 		}					

@@ -6,12 +6,14 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import base_SOM_Objects.som_examples.ExDataType;
 import base_SOM_Objects.som_examples.SOMExample;
 import base_SOM_Objects.som_examples.SOMMapNode;
+import base_SOM_Objects.som_utils.segments.SOM_MapNodeSegmentData;
 import base_UI_Objects.my_procApplet;
 import base_Utils_Objects.MsgCodes;
 import base_Utils_Objects.Tuple;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.TcTagData;
 import strafford_SOM_PKG.straff_SOM_Examples.Straff_SOMExample;
 import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.TcTagRawToTrainData;
+import strafford_SOM_PKG.straff_SOM_Examples.prospects.ProspectExample;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 
 
@@ -26,12 +28,13 @@ import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 public class ProductExample extends Straff_SOMExample{
 //		//column names for csv output of this SOM example
 	private static final String csvColDescrPrfx = "ID,NumJPs";
+	//this object manages the translation from raw data to product example, and also builds and translates preprocced data csv record for this product
 	protected TcTagRawToTrainData trainPrdctData;		
 	//this array holds float reps of "sumtorial" of idx vals, used as denominators of ftr vectors so that 
 	//arrays of jps of size idx will use this value as denominator, and (idx - jp idx)/denominator as weight value for ftr vec 
 	private static float[] ordrWtAraPerSize;
 	//this is a vector of all seen mins and maxs for wts for every product. Only used for debugging display of spans of values
-	private static TreeMap<Integer, Float> wtMins, wtMaxs, wtDists;		
+	private static TreeMap<Integer, Float> wtMins, wtMaxs, wtDists;	
 	
 	//types to conduct similarity mapping
 	private static int[] prospectTypes_idxs = new int[] {ExDataType.Training.getVal(), ExDataType.Testing.getVal(), ExDataType.Validation.getVal()};
@@ -45,19 +48,26 @@ public class ProductExample extends Straff_SOMExample{
 
 	//color to illustrate map (around bmu) region corresponding to this product - use distance as alpha value
 	private int[] prodClr;
-		
+	//from raw data - TcTagData holds this record's data from db
 	public ProductExample(Straff_SOMMapManager _map, TcTagData data) {
 		super(_map,ExDataType.Product,data.OID);
 		trainPrdctData = new TcTagRawToTrainData(data);	
 		initProdBMUMaps();		
 	}//ctor
-	
+	//from csv - preprocessed product data
 	public ProductExample(Straff_SOMMapManager _map,String _OID, String _csvDataStr) {
 		super(_map,ExDataType.Product,_OID);
 		trainPrdctData = new TcTagRawToTrainData(_csvDataStr);
 		initProdBMUMaps();
 	}//ctor
+	public ProductExample(ProductExample _otr) {
+		super(_otr);
+		trainPrdctData = _otr.trainPrdctData;
+		perJPProductProbMap = _otr.perJPProductProbMap;
+		perJPGroupProductProbMap = _otr.perJPGroupProductProbMap;
+	}//copy ctor
 	
+	//initialize structures to manage product examples
 	private void initProdBMUMaps() {
 		prodClr = mapMgr.getRndClr();
 		rad = 3.0f;
@@ -143,9 +153,7 @@ public class ProductExample extends Straff_SOMExample{
 	 * @param _ignored : ignored
 	 */
 	@Override
-	public final void buildCompFtrVector(float _ignored) {
-		compFtrMaps = ftrMaps;
-	}
+	public final void buildCompFtrVector(float _ignored) {	compFtrMaps = ftrMaps;}
 
 	//this will return the training label of this example - all jps
 	//the training label corresponds to a tag or a class referring to the data that can be assigned to a map node - a vote about the bmu from this example
@@ -298,7 +306,7 @@ public class ProductExample extends Straff_SOMExample{
 	//take loaded data and convert to output data
 	@Override
 	protected void buildFeaturesMap() {
-		ftrMaps[ftrMapTypeKey].clear();	
+		clearFtrMap(ftrMapTypeKey);//ftrMaps[ftrMapTypeKey].clear();	
 		//order map gives order value of each jp - provide multiplier for higher vs lower priority jps
 		TreeMap<Integer, Integer> orderMap = trainPrdctData.getJPOrderMap();
 		int numJPs = orderMap.size();
@@ -326,7 +334,7 @@ public class ProductExample extends Straff_SOMExample{
 
 	@Override
 	protected void buildStdFtrsMap() {
-		ftrMaps[stdFtrMapTypeKey].clear();
+		clearFtrMap(stdFtrMapTypeKey);//ftrMaps[stdFtrMapTypeKey].clear();
 		for (Integer IDX : ftrMaps[ftrMapTypeKey].keySet()) {ftrMaps[stdFtrMapTypeKey].put(IDX,ftrMaps[ftrMapTypeKey].get(IDX));}//since features are all weighted to sum to 1, can expect ftrmap == strdizedmap
 		setFlag(stdFtrsBuiltIDX,true);
 	}//buildStdFtrsMap

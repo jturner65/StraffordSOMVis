@@ -69,11 +69,11 @@ public class SOM_MapDat{
 		
 		isSparse = (mapInts.get("mapKType") > 1);//0 and 1 are dense cpu/gpu, 2 is sparse cpu
 		//setAllDirs(_config);
-		updateMapState();
+		updateMapDescriptorState();
 	}//SOM_MapDat ctor from data	
 	
 	//must be called -every time- any internal map data is changed
-	public void updateMapState() {
+	public void updateMapDescriptorState() {
 		setAllDirs();
 		init();
 	}//setAllDirs

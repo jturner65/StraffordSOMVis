@@ -528,9 +528,8 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 		setPrivFlags(mapDrawAllMapNodesIDX, false);
 	}//setFlagsDoneMapBuild
 	
-	protected void sendAllUIValsToMapDat() {
-		//build structures used to describe map from UI inputs
-		//TODO : will derive these values from config file once optimal configuration has been determined
+	
+	protected HashMap<String, Integer> getIntUIValMap(){
 		HashMap<String, Integer> mapInts = new HashMap<String, Integer>(); 
 		mapInts.put("mapCols", (int)this.guiObjs[uiMapColsIDX].getVal());
 		mapInts.put("mapRows", (int)this.guiObjs[uiMapRowsIDX].getVal());
@@ -538,34 +537,37 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 		mapInts.put("mapKType", (int)this.guiObjs[uiMapKTypIDX].getVal());
 		mapInts.put("mapStRad", (int)this.guiObjs[uiMapRadStIDX].getVal());
 		mapInts.put("mapEndRad", (int)this.guiObjs[uiMapRadEndIDX].getVal());
-		for (String key : mapInts.keySet()) {msgObj.dispMessage("SOMMapUIWin","buildNewSOMMap","mapInts["+key+"] = "+mapInts.get(key), MsgCodes.info1);}		
+		for (String key : mapInts.keySet()) {msgObj.dispMessage("SOMMapUIWin","buildNewSOMMap->getIntUIValMap","mapInts["+key+"] = "+mapInts.get(key), MsgCodes.info1);}		
+		return mapInts;
+	}
+	
+	protected HashMap<String, Float> getFloatUIValMap(){
 		HashMap<String, Float> mapFloats = new HashMap<String, Float>(); 
 		mapFloats.put("mapStLrnRate",(float)this.guiObjs[uiMapLrnStIDX].getVal());
 		mapFloats.put("mapEndLrnRate",(float)this.guiObjs[uiMapLrnEndIDX].getVal());
-		for (String key : mapFloats.keySet()) {msgObj.dispMessage("SOMMapUIWin","buildNewSOMMap","mapFloats["+key+"] = "+ String.format("%.4f",mapFloats.get(key)), MsgCodes.info1);}		
+		for (String key : mapFloats.keySet()) {msgObj.dispMessage("SOMMapUIWin","buildNewSOMMap->getFloatUIValMap","mapFloats["+key+"] = "+ String.format("%.4f",mapFloats.get(key)), MsgCodes.info1);}		
+		return mapFloats;
+	}
+	
+	protected HashMap<String, String> getStringUIValMap(){
 		HashMap<String, String> mapStrings = new HashMap<String, String> ();
 		mapStrings.put("mapGridShape", getUIListValStr(uiMapShapeIDX, (int)this.guiObjs[uiMapShapeIDX].getVal()));	
 		mapStrings.put("mapBounds", getUIListValStr(uiMapBndsIDX, (int)this.guiObjs[uiMapBndsIDX].getVal()));	
 		mapStrings.put("mapRadCool", getUIListValStr(uiMapRadCoolIDX, (int)this.guiObjs[uiMapRadCoolIDX].getVal()));	
 		mapStrings.put("mapNHood", getUIListValStr(uiMapNHdFuncIDX, (int)this.guiObjs[uiMapNHdFuncIDX].getVal()));	
 		mapStrings.put("mapLearnCool", getUIListValStr(uiMapLrnCoolIDX, (int)this.guiObjs[uiMapLrnCoolIDX].getVal()));	
-		for (String key : mapStrings.keySet()) {msgObj.dispMessage("SOMMapUIWin","buildNewSOMMap","mapStrings["+key+"] = "+mapStrings.get(key), MsgCodes.info1);}
-		//call map mgr object to build data
-		mapMgr.updateAllMapArgsFromUI(mapInts, mapFloats, mapStrings);				
-	}//
+		for (String key : mapStrings.keySet()) {msgObj.dispMessage("SOMMapUIWin","buildNewSOMMap->getStringUIValMap","mapStrings["+key+"] = "+mapStrings.get(key), MsgCodes.info1);}
+		return mapStrings;
+	}
 	
+
 	//first verify that new .lrn file exists, then
 	//build new SOM_MAP map using UI-entered values, then load resultant data - map nodes, bmus to training data
 	protected final void buildNewSOMMap(){
 		msgObj.dispMessage("SOMMapUIWin","buildNewSOMMap","Starting Map Build", MsgCodes.info5);
 		setPrivFlags(buildSOMExe, false);
-		//load test and train data, set up directories to build map in
-		mapMgr.loadTrainDataMapConfig();
-		//set current UI values to map config
-		sendAllUIValsToMapDat();
-		//run map
-		boolean returnCode = mapMgr.runSOMExperiment(true);
-		if(returnCode) {			mapMgr.loadMapAndBMUs_Synch();		}	//if success then run loader of bmus, etc
+		//send current UI values to map manager, load appropriate data, build directory structure and execute map
+		boolean returnCode = mapMgr.loadTrainDataMapConfigAndBuildMap_UI(true, getIntUIValMap(), getFloatUIValMap(), getStringUIValMap());
 
 		//returnCode is whether map was built and trained successfully
 		setFlagsDoneMapBuild();
@@ -959,8 +961,7 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 		if((mapMseX >= 0) && (mapMseY >= 0) && (mapMseX < SOM_mapDims[0]) && (mapMseY < SOM_mapDims[1])){
 			float[] mapNLoc=getMapNodeLocFromPxlLoc(mapMseX,mapMseY, 1.0f);
 			//msgObj.dispInfoMessage("SOMMapUIWin","chkMouseOvr","In Map : Mouse loc : " + mouseX + ","+mouseY+ "\tRel to upper corner ("+  mapMseX + ","+mapMseY +") | mapNLoc : ("+mapNLoc[0]+","+ mapNLoc[1]+")" );
-			mseOvrData = getDataPointAtLoc(mapNLoc[0], mapNLoc[1], new myPointf(mapMseX, mapMseY,0));
-			
+			mseOvrData = getDataPointAtLoc(mapNLoc[0], mapNLoc[1], new myPointf(mapMseX, mapMseY,0));			
 			return true;
 		} else {
 			mseOvrData = null;

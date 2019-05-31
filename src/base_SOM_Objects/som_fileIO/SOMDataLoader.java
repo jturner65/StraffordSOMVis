@@ -42,10 +42,10 @@ public class SOMDataLoader implements Runnable {
 		//if(projConfigData.allReqFileNamesSet()){
 			msgObj.dispMessage("SOMDataLoader","run","All required files are loaded.", MsgCodes.info1);			
 			boolean success = execDataLoad() ;
-			mapMgr.setMapDataIsLoaded(success);
+			mapMgr.setSOMMapNodeDataIsLoaded(success);
 			mapMgr.setLoaderRTNSuccess(true);
 			mapMgr.setMapImgClrs();
-			msgObj.dispMessage("SOMDataLoader","run","Finished data loader : SOM Data Loaded : " + mapMgr.getMapDataIsLoaded()  + " | loader ret code : " +mapMgr.getLoaderRTNSuccess(), MsgCodes.info5 );			
+			msgObj.dispMessage("SOMDataLoader","run","Finished data loader : SOM Data Loaded : " + mapMgr.getSOMMapNodeDataIsLoaded()  + " | loader ret code : " +mapMgr.getLoaderRTNSuccess(), MsgCodes.info5 );			
 		//}
 //		else {
 //			mapMgr.setLoaderRTNSuccess(false);

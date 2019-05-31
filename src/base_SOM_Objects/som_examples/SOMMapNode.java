@@ -77,7 +77,7 @@ public abstract class SOMMapNode extends SOMExample{
 	}
 	//build feature vector from passed feature array
 	private void setFtrsFromFloatAra(float[] _ftrs) {
-		ftrMaps[ftrMapTypeKey].clear();
+		clearFtrMap(ftrMapTypeKey);//ftrMaps[ftrMapTypeKey].clear();
 		//ArrayList<Integer> nonZeroIDXList = new ArrayList<Integer>();
 		float ftrVecSqMag = 0.0f;
 		for(int i = 0; i < _ftrs.length; ++i) {	
@@ -142,7 +142,7 @@ public abstract class SOMMapNode extends SOMExample{
 	 */
 	protected abstract void _initDataFtrMappings();
 	
-	private final Tuple<Integer,Integer> compLoc = new Tuple<Integer,Integer>(47,8);
+	//private final Tuple<Integer,Integer> compLoc = new Tuple<Integer,Integer>(47,8);
 	
 	///////////////////
 	// class-based segment data
@@ -159,10 +159,7 @@ public abstract class SOMMapNode extends SOMExample{
 			class_SegData.get(cls).clearSeg();			//clear each class's segment manager
 			class_SegDataRatio.put(cls, mappedClassCounts.get(cls)/ttlNumMappedClassInstances);
 		}	
-//		if((compLoc.x==this.mapNodeCoord.x) && (compLoc.y==this.mapNodeCoord.y)) {
-//			mapMgr.getMsgObj().dispInfoMessage("SOMMapNode", "clearClassSeg","47,8 Info :  mappedClassCounts.size() : " + mappedClassCounts.size() + " | class_SegData.size() : " + class_SegData.size()+ " | class_SegDataRatio.size() : " + class_SegDataRatio.size());
-//			
-//		}
+//		if((compLoc.x==this.mapNodeCoord.x) && (compLoc.y==this.mapNodeCoord.y)) {mapMgr.getMsgObj().dispInfoMessage("SOMMapNode", "clearClassSeg","47,8 Info :  mappedClassCounts.size() : " + mappedClassCounts.size() + " | class_SegData.size() : " + class_SegData.size()+ " | class_SegDataRatio.size() : " + class_SegDataRatio.size());}
 		
 	}//clearClassSeg()
 	public final void setClassSeg(Integer _cls, SOM_ClassSegment _clsSeg) {		
@@ -593,7 +590,7 @@ class SOMMapNodeBMUExamples{
 		nodeSphrDet = (int)( Math.log(logExSize+1)+2);
 		visLabel = new String[] {""+node.OID+" : ", ""+numMappedEx};
 		dispClrs = hasExamples ? node.nodeClrs : node.altClrs;
-		if(!hasExamples) {
+		if(!hasExamples && (dataType==ExDataType.Training)) {
 			node.mapMgr.getMsgObj().dispInfoMessage("SOMMapNodeBMUExamples", "finalize", "Finalize for " +dataType.getName() + " nonex map node in SOMMapNodeBMUExamples with "+numMappedEx+" copied ex | dispClrs : ["+dispClrs[0]+","+dispClrs[1]+","+dispClrs[2]+"] | node addr : " + node.mapNodeCoord +" | copied node addr : "+copyNode.mapNodeCoord+" | dist to copy node : " + sqDistToCopyNode+".");
 		}
 	}

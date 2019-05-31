@@ -169,37 +169,48 @@ public class JPWeightEquation {
 	//calculate a particular example's feature weight value for this object's jp
 	//int _exampleType : whether a customer or a true prospect
 	//int _bndJPType : whether the jp is an actual ftr jp (in products) or is part of the global jp set (might be ftr jp, might not)
-	public synchronized float calcFtrVal(ProspectExample ex, JP_OccurrenceData orderJpOccurrences, JP_OccurrenceData linkJpOccurrences, JP_OccurrenceData optJpOccurrences, JP_OccurrenceData srcJpOccurrences, int _exampleType, int _bndJPType, boolean _modBnds) {	
+	/**
+	 * calculate a particular example's feature weight value for this object's jp
+	 * @param ex the example to be 
+	 * @param orderJpOccurrences occurences of orders
+	 * @param linkJpOccurrences link events
+	 * @param optJpOccurrences opt events
+	 * @param srcJpOccurrences source events
+	 * @param dateOfOrder the date to decay all events from - 
+	 * 							for comparison classes (such as true prospects) this will be the "now",the current execution time of the program; 
+	 * 							for training data it will be the date of the order responsible for the record
+	 * @param _exampleType the type of propsect example being calculated for (cust, true, training).
+	 * @return the ftr value for this eq's jp
+	 */
+	public synchronized float calcFtrVal(ProspectExample ex, JP_OccurrenceData orderJpOccurrences, JP_OccurrenceData linkJpOccurrences, JP_OccurrenceData optJpOccurrences, JP_OccurrenceData srcJpOccurrences, Date dateOfOrder, int _exampleType) {	
 		boolean hasData = false;
 			//for source data - should replace prospect calc above
-		if (srcJpOccurrences != null) {	hasData = true;		ftrCalcStats[_exampleType].setWSVal(srcCoeffIDX, aggregateJPOccsSourceEv(srcJpOccurrences, srcCoeffIDX,FtrParams, now));}//calcStats.workSpace[orderCoeffIDX] = aggregateOccs(orderJpOccurrences, orderCoeffIDX);}
+		if (srcJpOccurrences != null) {	hasData = true;		ftrCalcStats[_exampleType].setWSVal(srcCoeffIDX, aggregateJPOccsSourceEv(srcJpOccurrences, srcCoeffIDX,FtrParams, dateOfOrder));}
 			//handle order occurrences for this jp.   aggregate every order occurrence, with decay on importance based on date
-		if (orderJpOccurrences != null) {hasData = true;	ftrCalcStats[_exampleType].setWSVal(orderCoeffIDX, aggregateJPOccs(orderJpOccurrences, orderCoeffIDX,FtrParams, now));}//calcStats.workSpace[orderCoeffIDX] = aggregateOccs(orderJpOccurrences, orderCoeffIDX);}
+		if (orderJpOccurrences != null) {hasData = true;	ftrCalcStats[_exampleType].setWSVal(orderCoeffIDX, aggregateJPOccs(orderJpOccurrences, orderCoeffIDX,FtrParams, dateOfOrder));}
 			//for links use same mechanism as orders - handle differences through weightings - aggregate every order occurrence, with decay on importance based on date
-		if (linkJpOccurrences != null) {hasData = true;		ftrCalcStats[_exampleType].setWSVal(linkCoeffIDX, aggregateJPOccs(linkJpOccurrences, linkCoeffIDX,FtrParams, now));	}//calcStats.workSpace[linkCoeffIDX] = aggregateOccs(linkJpOccurrences, linkCoeffIDX);	}
+		if (linkJpOccurrences != null) {hasData = true;		ftrCalcStats[_exampleType].setWSVal(linkCoeffIDX, aggregateJPOccs(linkJpOccurrences, linkCoeffIDX,FtrParams, dateOfOrder));	}
 			//user opts - these are handled differently - calcOptRes return of -9999 means negative opt specified for this jp alone (ignores negative opts across all jps) - should force total from eq for this jp to be ==0
-		if (optJpOccurrences != null) {	hasData = true;		ftrCalcStats[_exampleType].setWSVal(optCoeffIDX, calcOptRes(optJpOccurrences,FtrParams, now));}	//calcStats.workSpace[optCoeffIDX] = calcOptRes(optJpOccurrences);}	
-		if (_modBnds && hasData) {calcObj.incrBnds(_bndJPType,jpIDXs[_bndJPType]);		}//_modBnds means this calc should actually modify bounds - if calcing for true prospect, we don't necessarily want to do this, since this may modify how training data ends up being
+		if (optJpOccurrences != null) {	hasData = true;		ftrCalcStats[_exampleType].setWSVal(optCoeffIDX, calcOptRes(optJpOccurrences,FtrParams, dateOfOrder));}	
+		if (hasData) {calcObj.incrBnds(StraffWeightCalc.bndAra_ProdJPsIDX,_exampleType,jpIDXs[StraffWeightCalc.bndAra_ProdJPsIDX]);		}
 		float res = ftrCalcStats[_exampleType].getFtrValFromCalcs(optCoeffIDX, optOutSntnlVal);//(calcStats.workSpace[optCoeffIDX]==optOutSntnlVal);
 		return res;
 	}//calcFtrVal
-	//this will calculate training features - the date passed is for the particular order date that this example is being built for
-	public synchronized float calcTrainingFtr(ProspectExample ex, JP_OccurrenceData orderJpOccurrences, JP_OccurrenceData linkJpOccurrences, JP_OccurrenceData optJpOccurrences, JP_OccurrenceData srcJpOccurrences, Date currDate, int _bndJPType, boolean _modBnds) {
-		int _exampleType = calcObj.trainCalcObjIDX;
-		boolean hasData = false;
-			//for source data - should replace prospect calc above
-		if (srcJpOccurrences != null) {	hasData = true;		ftrCalcStats[_exampleType].setWSVal(srcCoeffIDX, aggregateJPOccsSourceEv(srcJpOccurrences, srcCoeffIDX,FtrParams, currDate));}//calcStats.workSpace[orderCoeffIDX] = aggregateOccs(orderJpOccurrences, orderCoeffIDX);}
-			//handle order occurrences for this jp.   aggregate every order occurrence, with decay on importance based on date
-		if (orderJpOccurrences != null) {hasData = true;	ftrCalcStats[_exampleType].setWSVal(orderCoeffIDX, aggregateJPOccs(orderJpOccurrences, orderCoeffIDX,FtrParams, currDate));}//calcStats.workSpace[orderCoeffIDX] = aggregateOccs(orderJpOccurrences, orderCoeffIDX);}
-			//for links use same mechanism as orders - handle differences through weightings - aggregate every order occurrence, with decay on importance based on date
-		if (linkJpOccurrences != null) {hasData = true;		ftrCalcStats[_exampleType].setWSVal(linkCoeffIDX, aggregateJPOccs(linkJpOccurrences, linkCoeffIDX,FtrParams, currDate));	}//calcStats.workSpace[linkCoeffIDX] = aggregateOccs(linkJpOccurrences, linkCoeffIDX);	}
-			//user opts - these are handled differently - calcOptRes return of -9999 means negative opt specified for this jp alone (ignores negative opts across all jps) - should force total from eq for this jp to be ==0
-		if (optJpOccurrences != null) {	hasData = true;		ftrCalcStats[_exampleType].setWSVal(optCoeffIDX, calcOptRes(optJpOccurrences,FtrParams, currDate));}	//calcStats.workSpace[optCoeffIDX] = calcOptRes(optJpOccurrences);}	
-		if (_modBnds && hasData) {calcObj.incrBnds(_bndJPType,jpIDXs[_bndJPType]);		}//_modBnds means this calc should actually modify bounds - if calcing for true prospect, we don't necessarily want to do this, since this may modify how training data ends up being
-		float res = ftrCalcStats[_exampleType].getFtrValFromCalcs(optCoeffIDX, optOutSntnlVal);//(calcStats.workSpace[optCoeffIDX]==optOutSntnlVal);
-		return res;
-	}//calcTrainingFtr
-	
+//	//this will calculate training features - the date passed is for the particular order date that this example is being built for
+//	public synchronized float calcTrainingFtr(ProspectExample ex, JP_OccurrenceData orderJpOccurrences, JP_OccurrenceData linkJpOccurrences, JP_OccurrenceData optJpOccurrences, JP_OccurrenceData srcJpOccurrences, Date dateOfOrder, int _exampleType) {
+//		boolean hasData = false;
+//			//for source data - should replace prospect calc above
+//		if (srcJpOccurrences != null) {	hasData = true;		ftrCalcStats[_exampleType].setWSVal(srcCoeffIDX, aggregateJPOccsSourceEv(srcJpOccurrences, srcCoeffIDX,FtrParams, dateOfOrder));}//calcStats.workSpace[orderCoeffIDX] = aggregateOccs(orderJpOccurrences, orderCoeffIDX);}
+//			//handle order occurrences for this jp.   aggregate every order occurrence, with decay on importance based on date
+//		if (orderJpOccurrences != null) {hasData = true;	ftrCalcStats[_exampleType].setWSVal(orderCoeffIDX, aggregateJPOccs(orderJpOccurrences, orderCoeffIDX,FtrParams, dateOfOrder));}//calcStats.workSpace[orderCoeffIDX] = aggregateOccs(orderJpOccurrences, orderCoeffIDX);}
+//			//for links use same mechanism as orders - handle differences through weightings - aggregate every order occurrence, with decay on importance based on date
+//		if (linkJpOccurrences != null) {hasData = true;		ftrCalcStats[_exampleType].setWSVal(linkCoeffIDX, aggregateJPOccs(linkJpOccurrences, linkCoeffIDX,FtrParams, dateOfOrder));	}//calcStats.workSpace[linkCoeffIDX] = aggregateOccs(linkJpOccurrences, linkCoeffIDX);	}
+//			//user opts - these are handled differently - calcOptRes return of -9999 means negative opt specified for this jp alone (ignores negative opts across all jps) - should force total from eq for this jp to be ==0
+//		if (optJpOccurrences != null) {	hasData = true;		ftrCalcStats[_exampleType].setWSVal(optCoeffIDX, calcOptRes(optJpOccurrences,FtrParams, dateOfOrder));}	//calcStats.workSpace[optCoeffIDX] = calcOptRes(optJpOccurrences);}	
+//		if (hasData) {calcObj.incrBnds(StraffWeightCalc.bndAra_ProdJPsIDX,_exampleType, jpIDXs[StraffWeightCalc.bndAra_ProdJPsIDX]);		}//_modBnds means this calc should actually modify bounds - if calcing for true prospect, we don't necessarily want to do this, since this may modify how training data ends up being
+//		float res = ftrCalcStats[_exampleType].getFtrValFromCalcs(optCoeffIDX, optOutSntnlVal);//(calcStats.workSpace[optCoeffIDX]==optOutSntnlVal);
+//		return res;
+//	}//calcTrainingFtr
 	
 	
 	//////////////////
@@ -272,7 +283,7 @@ public class JPWeightEquation {
 	
 	//string rep of this calc
 	public String toString() {
-		int jpFtrIDX = jpIDXs[calcObj.bndAra_TrainJPsIDX];
+		int jpFtrIDX = jpIDXs[calcObj.bndAra_ProdJPsIDX];
 		int jpAllIDX = jpIDXs[calcObj.bndAra_AllJPsIDX];
 		String jpAllBuffer = (jpAllIDX >=100) ? "" : (jpAllIDX >=10) ? " " : "  ";//to align output 
 		String res = "JP : "+ String.format("%3d", jp) + " JPs["+jpAllIDX+"]" + jpAllBuffer;

@@ -5,8 +5,8 @@ import strafford_SOM_PKG.straff_RawDataHandling.raw_data.OptEvent;
 import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.JpgJpDataRecord;
 
 public class OptEventRawToTrainData extends StraffEvntRawToTrainData{
-	public OptEventRawToTrainData(OptEvent ev) {		super(ev);		addEventDataFromEventObj(ev);}	//put in child ctor in case child-event specific data needed for training		
-	public OptEventRawToTrainData(Integer _evIDStr, String _evTypeStr, String _evDateStr, String _evntStr){super(_evIDStr, _evTypeStr, _evDateStr);		addJPG_JPDataFromCSVString(_evntStr);}	//put in child ctor in case child-event specific data needed for training	
+	public OptEventRawToTrainData(OptEvent ev) {		super(ev, "Opt Event->Prospect");		addEventDataFromEventObj(ev);}	//put in child ctor in case child-event specific data needed for training		
+	public OptEventRawToTrainData(Integer _evIDStr, String _evTypeStr, String _evDateStr, String _evntStr){super(_evIDStr, _evTypeStr, _evDateStr, "Opt Event->Prospect");		addJPG_JPDataFromCSVString(_evntStr);}	//put in child ctor in case child-event specific data needed for training	
 	@Override
 	public void addEventDataFromEventObj(BaseRawData ev) {
 		Integer optValKey = ((OptEvent)ev).getOptType();

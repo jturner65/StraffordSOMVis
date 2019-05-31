@@ -23,15 +23,15 @@ public abstract class StraffEvntRawToTrainData extends StraffRawToTrainData{
 	protected Date eventDate;
 	protected String eventType;	
 	
-	public StraffEvntRawToTrainData(EventRawData ev) {
-		super();
+	public StraffEvntRawToTrainData(EventRawData ev, String _srcTypeName) {
+		super(_srcTypeName);
 		eventID = ev.getEventID();//should be the same event type for event ID
 		eventType = ev.getEventType();
 		eventDate = ev.getDate();
 	}//ctor from rawDataObj
 	
-	public StraffEvntRawToTrainData(Integer _evIDStr, String _evTypeStr, String _evDateStr) {
-		super();
+	public StraffEvntRawToTrainData(Integer _evIDStr, String _evTypeStr, String _evDateStr, String _srcTypeName) {
+		super(_srcTypeName);
 		eventID = _evIDStr;//should be the same event type for event ID
 		eventType = _evTypeStr;
 		eventDate = BaseRawData.buildDateFromString(_evDateStr);		

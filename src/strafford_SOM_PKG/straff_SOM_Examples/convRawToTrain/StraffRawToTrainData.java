@@ -1,28 +1,32 @@
 package strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.TreeMap;
+import java.util.*;
 
-import base_Utils_Objects.Tuple;
+import base_Utils_Objects.*;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.BaseRawData;
 
 /**
- * this class holds information from a single record.  It manages functionality to convert from the raw data to the format used to construct training examples
+ * this class holds information from a single record and performs conversion from 
+ * the raw data to the format used to construct training examples (preproc examples)
+ *  as well as to/from csv for preprocced examples of products (using this for propsects
+ *  has beend deprecated in favor of using jpOccurrence structure)
  * @author john
  *
  */
 public abstract class StraffRawToTrainData{
-	
+	//object for managing logging and informational/error messages
+	private static final MessageObject msgObj = MessageObject.buildMe();
 	protected static final String jpgrpStTag = "JPG_St,", jpgrpEndTag = "JPG_End,";
 	//magic value for opt key field in map, to use for non-opt records. 
 	protected static final int FauxOptVal = 3;
 	//array of jpg/jp records for this training data example
 	protected ArrayList<JpgJpDataRecord> listOfJpgsJps;
+	//type of instancing/owning example's source data (prospect, product, etc)
+	public final String sourceTypeName;
 	
-	public StraffRawToTrainData() {
+	public StraffRawToTrainData(String _sourceTypeName) {
 		listOfJpgsJps = new ArrayList<JpgJpDataRecord>(); 
+		sourceTypeName = _sourceTypeName;
 	}
 	
 	public abstract void addJPG_JPDataFromCSVString(String _csvDataStr);
@@ -75,7 +79,7 @@ public abstract class StraffRawToTrainData{
 				ArrayList<Integer>tmp=new ArrayList<Integer>(Arrays.asList(-9));
 				newEvMapOfJPAras.put(-10, tmp);				
 			} else {										//should never happen, means empty jp array of non-opt events (like order events) - should always have an order jpg/jp data.
-				System.out.println("StraffTrainData::addEventDataRecsFromRaw : Warning : Attempting to add a non-Opt event (" + ev.TypeOfData + "-type) with an empty JPgroup-keyed JP list - event had no corresponding usable data so being ignored.");
+				msgObj.dispMessage("StraffRawToTrainData","addEventDataRecsFromRawData (" +sourceTypeName+")" , "Warning : Attempting to add a non-Opt event (" + ev.TypeOfData + "-type) with an empty JPgroup-keyed JP list - event had no corresponding usable data so being ignored.", MsgCodes.warning1);
 				return;
 			}
 		}			

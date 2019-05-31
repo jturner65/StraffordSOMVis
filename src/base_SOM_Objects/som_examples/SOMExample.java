@@ -5,6 +5,8 @@ import java.util.Map.Entry;
 import java.util.function.BiFunction;
 
 import base_SOM_Objects.*;
+import base_SOM_Objects.som_utils.segments.SOMMapSegment;
+import base_SOM_Objects.som_utils.segments.SOM_MapNodeSegmentData;
 import base_UI_Objects.*;
 import base_Utils_Objects.*;
 
@@ -69,7 +71,8 @@ public abstract class SOMExample extends baseDataPtVis{
 	protected boolean isTrainingData;
 	//this is index for this data point in training/testing data array; original index in preshuffled array (reflecting build order)
 	protected int testTrainDataIDX;
-	//two maps of distances to each map node for each example, including unshared features and excluding unshared features in distance calc
+	//two maps of distances to each map node for each example, with each array either including unshared features or excluding unshared features in distance calc
+	//keyed by distance, array list is list of map nodes at that distance
 	protected TreeMap<Double,ArrayList<SOMMapNode>>[] allMapNodesDists;	
 	//two kinds of maps to bmus available - all ftrs looks at all feature values for distances, 
 	//while shared only measures distances where this example's wts are non-zero
@@ -77,6 +80,12 @@ public abstract class SOMExample extends baseDataPtVis{
 		AllFtrsIDX = 0,				//looks at all features in this node for distance calculations
 		SharedFtrsIDX = 1;			//looks only at non-zero features in this node for distance calculations
 	protected static int numFtrCompVals = 2;
+
+	//segments this product belongs to, based on features, classes(jp) and categories(jp groups)
+	//there will be 1 entry for all ftrs, jps and jpgroups this example belongs to	
+	private TreeMap<Integer, SOMMapSegment> ftrWtSegData;			//keyed by non-zero ftr index	
+	private TreeMap<Integer, SOMMapSegment> class_SegData;			//segment membership manager class mapping
+	private TreeMap<Integer, SOMMapSegment> categorys_SegData;		//segment membership manager category mapping
 
 	
 	public SOMExample(SOMMapManager _map, ExDataType _type, String _id) {
@@ -86,8 +95,11 @@ public abstract class SOMExample extends baseDataPtVis{
 		initFlags();	
 		ftrMaps = new TreeMap[ftrMapTypeKeysAra.length];
 		for (int i=0;i<ftrMaps.length;++i) {			ftrMaps[i] = new TreeMap<Integer, Float>(); 		}
+		compFtrMaps = new TreeMap[ftrMapTypeKeysAra.length];		
+		for (int i=0;i<compFtrMaps.length;++i) {			compFtrMaps[i] = new TreeMap<Integer, Float>(); 		}
 		String tmp = OID + "" + type;
 		_hashCode = tmp.hashCode();
+		_initSegStructs();
 	}//ctor
 	
 	//copy ctor - shallow copy of _otr - used to provide casting between nearly identical example types
@@ -95,19 +107,48 @@ public abstract class SOMExample extends baseDataPtVis{
 	public SOMExample(SOMExample _otr) {
 		super(_otr);
 		OID = _otr.OID;
+		setBmu(_otr.getBmu());
 		set_sqDistToBMU(_otr.get_sqDistToBMU());
+		_hashCode = _otr._hashCode;
 		ftrMaps = _otr.ftrMaps;
+		compFtrMaps = _otr.compFtrMaps;
 		ftrVecMag = _otr.ftrVecMag;
 		allNonZeroFtrIDXs = _otr.allNonZeroFtrIDXs;
 		mapOfWtsToFtrIDXs = _otr.mapOfWtsToFtrIDXs;
 		mapOfFtrIDXVsWtRank = _otr.mapOfFtrIDXVsWtRank;
 		mapNodeNghbrs = _otr.mapNodeNghbrs;
-		setBmu(_otr.getBmu());
+		isTrainingData = _otr.isTrainingData;
+		testTrainDataIDX = _otr.testTrainDataIDX;
+		allMapNodesDists = _otr.allMapNodesDists;
+		ftrWtSegData = _otr.ftrWtSegData;	
+		class_SegData  = _otr.class_SegData;		
+		categorys_SegData  = _otr.categorys_SegData;		
+
 		stFlags = _otr.stFlags;		
 	}//copy ctor
 	
+	private void _initSegStructs() {
+		ftrWtSegData = new TreeMap<Integer, SOMMapSegment>();		//keyed by non-zero ftr index	                   
+		class_SegData	= new TreeMap<Integer, SOMMapSegment>();	//segment membership manager class mapping         
+		categorys_SegData = new TreeMap<Integer, SOMMapSegment>();	//segment membership manager category mapping      
+	}
+	
+	//mapped segments for this example
+	public void addFtrSegment(int idx, SOMMapSegment seg) {		ftrWtSegData.put(idx, seg);}
+	public void addClassSegment(int idx, SOMMapSegment seg) {		class_SegData.put(idx, seg);}
+	public void addCategorySegment(int idx, SOMMapSegment seg) {	categorys_SegData.put(idx, seg);}
+	
+	public SOMMapSegment getFtrSegment(int idx) {		return ftrWtSegData.get(idx);}
+	public SOMMapSegment getClassSegment(int idx) {		return class_SegData.get(idx);}
+	public SOMMapSegment getCategorySegment(int idx) {		return categorys_SegData.get(idx);}
+
+
+	//clear instead of reinstance - if ftr maps are cleared then compFtrMaps should be cleared as well
+	protected void clearAllFtrMaps() {for (int i=0;i<ftrMaps.length;++i) {	clearFtrMap(i);}}	
+	protected void clearFtrMap(int idx) {ftrMaps[idx].clear(); clearCompFtrMap(idx);}
 	//clear instead of reinstance
-	protected void clearFtrMaps() {for (int i=0;i<ftrMaps.length;++i) {			ftrMaps[i].clear();}}
+	protected void clearAllCompFtrMaps() {for (int i=0;i<compFtrMaps.length;++i) {	clearCompFtrMap(i);}}
+	protected void clearCompFtrMap(int idx) {compFtrMaps[idx].clear();}
 
 	//build feature vector
 	protected abstract void buildFeaturesMap();	
@@ -117,7 +158,7 @@ public abstract class SOMExample extends baseDataPtVis{
 	public abstract String getRawDescrForCSV();	
 	//column names of rawDescrForCSV data
 	public abstract String getRawDescColNamesForCSV();
-	//finalization after being loaded from baseRawData or from csv record
+	//finalization after being loaded from baseRawData or from csv record but before ftrs are calculated
 	public abstract void finalizeBuildBeforeFtrCalc();
 	
 	public boolean isBadExample() {return getFlag(isBadTrainExIDX);}
@@ -315,7 +356,7 @@ public abstract class SOMExample extends baseDataPtVis{
 	//build normalized vector of data - only after features have been set
 	protected final void buildNormFtrData() {
 		if(!getFlag(ftrsBuiltIDX)) {mapMgr.getMsgObj().dispMessage("SOMExample","buildNormFtrData","OID : " + OID + " : Features not built, cannot normalize feature data since marked as not built!", MsgCodes.warning2);return;}
-		ftrMaps[normFtrMapTypeKey].clear();
+		clearFtrMap(normFtrMapTypeKey);//ftrMaps[normFtrMapTypeKey].clear();
 		if(this.ftrVecMag == 0) {return;}
 		for (Integer IDX : ftrMaps[ftrMapTypeKey].keySet()) {
 			Float val  = ftrMaps[ftrMapTypeKey].get(IDX)/this.ftrVecMag;

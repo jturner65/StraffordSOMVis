@@ -33,6 +33,7 @@ public class Cust_OneOrderTrainingExample extends CustProspectExample{
 		//orderOnDateOcc = _order;
 		orderDate = _order.evntDate;
 		mostRecentOrderCounts = _order.getOccurrenceCounts();
+		//build occ structure, as if calling finalizeBuildBeforeFtrCalc
 		buildOccStructFromDateEvents(navigableMap);
 	}//ctor
 	
@@ -78,7 +79,9 @@ public class Cust_OneOrderTrainingExample extends CustProspectExample{
 	protected void buildFeaturesMap() {
 		//access calc object for this 	
 		if (allProdJPs.size() > 0) {
-			((Straff_SOMMapManager)mapMgr).ftrCalcObj.calcTrainingFtrDataVec(this,allProdJPs, ftrMaps[ftrMapTypeKey],orderDate, JpOccurrences.get("orders"), JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"));				
+			clearFtrMap(ftrMapTypeKey);//
+			//((Straff_SOMMapManager)mapMgr).ftrCalcObj.calcTrainingFtrDataVec(this,allProdJPs, ftrMaps[ftrMapTypeKey],orderDate, JpOccurrences.get("orders"), JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"));				
+			((Straff_SOMMapManager)mapMgr).ftrCalcObj.calcTrainingFtrDataVec(this,allProdJPs, ftrMaps[ftrMapTypeKey],orderDate, JpOccurrences);				
 		} else {ftrMaps[ftrMapTypeKey].clear();}
 	}//buildFeaturesMap
 

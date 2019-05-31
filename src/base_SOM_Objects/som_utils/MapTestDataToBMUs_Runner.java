@@ -61,15 +61,6 @@ public class MapTestDataToBMUs_Runner implements Runnable {
 		return (int) ((numVals -1)/(1.0*numThds)) + 1;
 	}//calcNumPerThd
 	
-	//call 1 time for any particular type of data
-	protected void _finalizeBMUProcessing(SOMExample[] _exs, ExDataType dataType) {
-		int dataTypeVal = dataType.getVal();
-		for(SOMMapNode mapNode : MapNodes.values()){mapNode.clearBMUExs(dataTypeVal);mapMgr.addExToNodesWithNoExs(mapNode, dataType);}	
-		if(dataType==ExDataType.Training) {			for (int i=0;i<_exs.length;++i) {			_exs[i].mapTrainingToBMU(dataTypeVal);	}		} 
-		else {										for (int i=0;i<_exs.length;++i) {			_exs[i].mapToBMU(dataTypeVal);		}		}		
-		mapMgr._finalizeBMUProcessing(dataType);
-	}//_finalizeBMUProcessing
-
 	protected void incrTTLProgress(int len, int idx) {
 		ttlProgress = idx/(1.0 * len);
 		if((ttlProgress * 100) % 10 == 0) {
@@ -129,8 +120,8 @@ public class MapTestDataToBMUs_Runner implements Runnable {
 		
 		//go through every test example, if any, and attach prod to bmu - needs to be done synchronously because don't want to concurrently modify bmus from 2 different test examples		
 		mapMgr.getMsgObj().dispMessage("MapTestDataToBMUs_Runner","run","Finished finding bmus for all " +exData.length + " "+dataTypName+" data. Start adding "+dataTypName+" data to appropriate bmu's list.", MsgCodes.info1);
-		//below must be done when -all- dataType are done
-		_finalizeBMUProcessing(exData, dataType);
+		//below must be done when -all- dataType examples are done
+		mapMgr._completeBMUProcessing(exData, dataType);
 		mapMgr.getMsgObj().dispMessage("MapTestDataToBMUs_Runner","run","Finished Mapping "+dataTypName+" data to best matching units.", MsgCodes.info5);		
 
 		//Set some flag here stating that saving/further processing results is now available

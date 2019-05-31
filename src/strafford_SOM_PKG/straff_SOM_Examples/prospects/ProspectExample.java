@@ -373,8 +373,7 @@ public abstract class ProspectExample extends Straff_SOMExample{
 			calcCompValMaps();
 			if(_ratio >= 1) {compFtrMaps = compValFtrDataMaps;}
 			else {
-				compFtrMaps = new TreeMap[ftrMapTypeKeysAra.length];		
-				for (int i=0;i<compFtrMaps.length;++i) {			compFtrMaps[i] = new TreeMap<Integer, Float>(); 		}
+				clearAllCompFtrMaps();
 				Float val;
 				for(int mapIdx = 0; mapIdx < ftrMaps.length;++mapIdx) {
 					TreeMap<Integer, Float> ftrMap = ftrMaps[mapIdx];

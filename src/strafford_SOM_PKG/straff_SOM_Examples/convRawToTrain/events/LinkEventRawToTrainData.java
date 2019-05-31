@@ -5,8 +5,8 @@ import strafford_SOM_PKG.straff_RawDataHandling.raw_data.LinkEvent;
 import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.JpgJpDataRecord;
 
 public class LinkEventRawToTrainData extends StraffEvntRawToTrainData{
-	public LinkEventRawToTrainData(LinkEvent ev) {	super(ev);		addEventDataFromEventObj(ev);}	//put in child ctor in case child-event specific data needed for training		
-	public LinkEventRawToTrainData(Integer _evIDStr, String _evTypeStr, String _evDateStr, String _evntStr){	super(_evIDStr, _evTypeStr, _evDateStr);addJPG_JPDataFromCSVString(_evntStr);}	//put in child ctor in case child-event specific data needed for training		
+	public LinkEventRawToTrainData(LinkEvent ev) {	super(ev, "Link Event->Prospect");		addEventDataFromEventObj(ev);}	//put in child ctor in case child-event specific data needed for training		
+	public LinkEventRawToTrainData(Integer _evIDStr, String _evTypeStr, String _evDateStr, String _evntStr){	super(_evIDStr, _evTypeStr, _evDateStr, "Link Event->Prospect");addJPG_JPDataFromCSVString(_evntStr);}	//put in child ctor in case child-event specific data needed for training		
 	@Override
 	public void addEventDataFromEventObj(BaseRawData ev) {super.addEventDataRecsFromRawData(FauxOptVal,ev, false);}//addEventDataFromEventObj
 	@Override

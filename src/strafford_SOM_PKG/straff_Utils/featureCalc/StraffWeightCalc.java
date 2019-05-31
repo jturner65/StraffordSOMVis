@@ -17,7 +17,7 @@ import strafford_SOM_PKG.straff_Utils.MonitorJpJpgrp;
  * the appropriate weighting of the various component terms that make up 
  * the weight vector used to train/query the SOM.  Allow this calculation to be built
  * from values in format file
- * @author john
+ * @author john  
  */
 public class StraffWeightCalc {
 	//public StraffSOMMapManager mapMgr;
@@ -39,9 +39,9 @@ public class StraffWeightCalc {
 	
 	//hold relevant quantities for each jp calculation across all data; IDX 0 is for ftr vec calc, idx 1 is for all jps
 	//idx 0 is for ftr vector calculation; idx 1 will be for alternate comparator vector calc
-	private Float[][][] bndsAra;
+	private dataBoundArray[] bndsAra;
 	public static final int
-		bndAra_TrainJPsIDX = 0,			//jps used for training (correspond to jps with products) - this is from ftr vector calcs
+		bndAra_ProdJPsIDX = 0,			//jps used for training (correspond to jps with products) - this is from ftr vector calcs
 		bndAra_AllJPsIDX = 1;			//all jps in system, including those jps who do not have any products - this is from -comparator- calcs
 	public static final int numJPInBndTypes = 2;	
 	//separates calculations based on whether calc is done on a customer example, or on a true prospect example
@@ -52,13 +52,6 @@ public class StraffWeightCalc {
 	public static final int numExamplTypeObjs = 3;
 	//set initial values to properly initialize bnds ara
 	private static final float[] initBnd = new float[] {1000000000.0f,-1000000000.0f, 0.0f, 0.0f, 0.0f};//min, max, count, diff
-	//meaning of each idx in bndsAra 1st dimension 
-	private static final int 
-			minBndIDX = 0,					//mins for each feature
-			maxBndIDX = 1,					//maxs for each feature
-			countBndIDX = 2,				//count of entries for each feature
-			diffBndIDX = 3; 				//max-min for each feature
-	private static final int numBndTypes = 4;	
 		
 	private int[] stFlags;						//state flags - bits in array holding relevant process/state info
 	private static final int
@@ -176,147 +169,102 @@ public class StraffWeightCalc {
 		
 	}//_buildDefaultEQs
 	
-	private Float[] fastCopyAra(int len, float val) {
-		Float[] res = new Float[len];
-		res[0]=val;	
-		for (int i = 1; i < len; i += i) {System.arraycopy(res, 0, res, i, ((len - i) < i) ? (len - i) : i);}
-		return res;
-	}//fastCopyAra
-		
 	//reinit bounds ara
 	//first key is 0==training ftr jps; 1==all jps;
 	//second key is type of bound; 3rd key is jp
 	private void initBnds() {	
-		bndsAra = new Float[numJPInBndTypes][][];	
+		bndsAra = new dataBoundArray[numJPInBndTypes];
 		int[] numFtrs = new int[] {jpJpgMon.getNumTrainFtrs(),jpJpgMon.getNumAllJpsFtrs()}; 
-		for(int j=0;j<bndsAra.length;++j) {
-			Float[][] tmpBndsAra = new Float[numBndTypes][];		
-			for (int i=0;i<tmpBndsAra.length;++i) {
-				tmpBndsAra[i]=fastCopyAra(numFtrs[j], initBnd[i]);
-			}	
-			bndsAra[j]=tmpBndsAra;
-		}
-	}//initBnds() 
+		for (int j=0;j<bndsAra.length;++j) {bndsAra[j] = new dataBoundArray(numFtrs[j]);}
+	}//initBnds() 	
 	
 	//get mins/diffs for ftr vals per ftr jp and for all vals per all jps
-	public Float[][] getMinBndsAra() {return new Float[][] {bndsAra[0][0],bndsAra[1][0]};}
-	public Float[][] getDiffsBndsAra() {return new Float[][] {bndsAra[0][3],bndsAra[1][3]};}
-		
-	//check if value is in bnds array for particular jp, otherwise modify bnd
-	private void checkValInBnds(int bndJpType, Integer jpidx, Integer destIDX, float val) {
-		if (val < bndsAra[bndJpType][minBndIDX][destIDX]) {bndsAra[bndJpType][minBndIDX][destIDX]=val;bndsAra[bndJpType][diffBndIDX][destIDX] = bndsAra[bndJpType][maxBndIDX][destIDX]-bndsAra[bndJpType][minBndIDX][destIDX];}
-		if (val > bndsAra[bndJpType][maxBndIDX][destIDX]) {bndsAra[bndJpType][maxBndIDX][destIDX]=val;bndsAra[bndJpType][diffBndIDX][destIDX] = bndsAra[bndJpType][maxBndIDX][destIDX]-bndsAra[bndJpType][minBndIDX][destIDX];}
+	public Float[][] getMinBndsAra() {
+		ArrayList<Float[]> tmpBnds = new ArrayList<Float[]>();
+		for(int i=0;i<bndsAra.length;++i) {	tmpBnds.add(i,bndsAra[i].getMinBndsAra());}		
+		return tmpBnds.toArray(new Float[1][] );
 	}
+	public Float[][] getDiffsBndsAra() {		
+		ArrayList<Float[]> tmpBnds = new ArrayList<Float[]>();
+		for(int i=0;i<bndsAra.length;++i) {	tmpBnds.add(i,bndsAra[i].getDiffBndsAra());}		
+		return tmpBnds.toArray(new Float[1][] );
+	}	
+	
+	public Float[][] getMinTrainDataBndsAra() {		return getMinBndsAraForDataType(trainCalcObjIDX);}
+	public Float[][] getDiffsTrainDataBndsAra() {	return getDiffsBndsAraForDataType(trainCalcObjIDX);}
+
+	//get mins/diffs for ftr vals per ftr jp and for all vals per all jps
+	public Float[][] getMinBndsAraForDataType(int _typeIDX) {
+		ArrayList<Float[]> tmpBnds = new ArrayList<Float[]>();
+		for(int i=0;i<bndsAra.length;++i) {	tmpBnds.add(i,bndsAra[i].getMinBndsAra(_typeIDX));}		
+		return tmpBnds.toArray(new Float[1][] );
+	}
+	public Float[][] getDiffsBndsAraForDataType(int _typeIDX) {		
+		ArrayList<Float[]> tmpBnds = new ArrayList<Float[]>();
+		for(int i=0;i<bndsAra.length;++i) {	tmpBnds.add(i,bndsAra[i].getDiffBndsAra(_typeIDX));}		
+		return tmpBnds.toArray(new Float[1][] );
+	}	
+	//check if value is in bnds array for particular jp, otherwise modify bnd
+	private void checkValInBnds(int bndJpType, Integer calcTypeIDX, Integer destIDX, float val) {	bndsAra[bndJpType].checkValInBnds(calcTypeIDX,destIDX, val);}
 	
 	//increment count of training examples with jp data represented by destIDX, and total calc value seen
-	public synchronized void incrBnds(int bndJpType, Integer destIDX) {
-		bndsAra[bndJpType][countBndIDX][destIDX] +=1;
-	}
+	public void incrBnds(int bndJpType, Integer calcTypeIDX, Integer destIDX) {bndsAra[bndJpType].incrBnds(calcTypeIDX,destIDX);}
 
 	//read in string array of weight values, convert and put in float array
 	private Float[] getFAraFromStrAra(String[] sAra, int[] idxs) {
 		ArrayList<Float> res = new ArrayList<Float>();
 		for(int i : idxs) {			res.add(Float.parseFloat(sAra[i]));		}		
 		return res.toArray(new Float[0]);
-	}
-	
+	}	
+
 	///////////////////////////
 	// calculate feature vectors - currently only works on product features - and comparator vectors - built off membership in jpgroups
 
-	//calculate feature vector for true prospect example on actual product-based features - these features are for comparison, not training!
-	public synchronized void calcTruePrspctFtrVec(ProspectExample ex, HashSet<Integer> jps,TreeMap<Integer, Float> ftrDest,
-			TreeMap<Integer, JP_OccurrenceData> linkOccs,TreeMap<Integer, JP_OccurrenceData> optOccs,
-			TreeMap<Integer, JP_OccurrenceData> srcOccs) {
-		ftrDest.clear();
+	private JP_OccurrenceData getOptAndCheck(ProspectExample ex, TreeMap<Integer, JP_OccurrenceData> optOccs, Integer jp, String srcMethod) {
+		JP_OccurrenceData optOcc = optOccs.get(jp);
+		if ((optOcc != null )&& ((ex.getPosOptAllOccObj() != null) || (ex.getNegOptAllOccObj() != null))) {	//opt all means they have opted for positive behavior for all jps that allow opts
+			msgObj.dispMessage("StraffWeightCalc","getOptAndCheck("+srcMethod+")","Multiple opt refs for prospect : " + ex.OID + " : indiv opt and opt-all | This should not happen - opt events will be overly-weighted.", MsgCodes.warning4);	
+		}		
+		return optOcc;
+	}//getOptAndCheck
+		
+	public synchronized void calcTruePrspctFtrVec(ProspectExample ex, HashSet<Integer> jps,TreeMap<Integer, Float> ftrDest,TreeMap<String, TreeMap<Integer, JP_OccurrenceData>> JpOccurrences){		
+		_calcFtrDataVec(ex,jps, ftrDest, new TreeMap<Integer, JP_OccurrenceData>(), JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"),tpCalcObjIDX,JPWeightEquation.now, "calcTruePrspctFtrVec");
+	}		
+	public synchronized void calcCustFtrDataVec(ProspectExample ex, HashSet<Integer> jps,TreeMap<Integer, Float> ftrDest,TreeMap<String, TreeMap<Integer, JP_OccurrenceData>> JpOccurrences) {
+		_calcFtrDataVec(ex,jps, ftrDest,  JpOccurrences.get("orders"), JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"),custCalcObjIDX, JPWeightEquation.now, "calcCustFtrDataVec");
+	}
+	public synchronized void calcTrainingFtrDataVec(ProspectExample ex, HashSet<Integer> jps,TreeMap<Integer, Float> ftrDest, Date orderDate, TreeMap<String, TreeMap<Integer, JP_OccurrenceData>> JpOccurrences) {
+		_calcFtrDataVec(ex,jps, ftrDest,  JpOccurrences.get("orders"), JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"),trainCalcObjIDX, orderDate, "calcTrainingFtrDataVec");
+	}//
+	
+	//calculate feature vector for this ProspectExample example on actual product-based features - these features are for comparison, not training!
+	private void _calcFtrDataVec(ProspectExample ex, HashSet<Integer> jps,TreeMap<Integer, Float> ftrDest,
+			TreeMap<Integer, JP_OccurrenceData> orderOccs,TreeMap<Integer, JP_OccurrenceData> linkOccs, 
+			TreeMap<Integer, JP_OccurrenceData> optOccs,TreeMap<Integer, JP_OccurrenceData> srcOccs, int _exampleType, Date orderDate, String _type) {
 		float ftrVecSqMag = 0.0f;
 		JP_OccurrenceData optOcc;
 		//for each jp present in ex, perform calculation
-		Integer destIDX;
+		Integer destIDX;		
 		boolean isZeroMagExample = true;		//if all values are 0 then this is a bad training example, we want to ignore it
 		for (Integer jp : jps) {
 			//find destIDX
 			destIDX = jpJpgMon.getFtrJpToIDX(jp);
 			if (destIDX==null) {continue;}//ignore unknown/unmapped jps
-			optOcc = optOccs.get(jp);
-			if ((optOcc != null )&& ((ex.getPosOptAllOccObj() != null) || (ex.getNegOptAllOccObj() != null))) {	//opt all means they have opted for positive behavior for all jps that allow opts
-				msgObj.dispMessage("StraffWeightCalc","calcTruePrspctFtrVec","Multiple opt refs for prospect : " + ex.OID + " : indiv opt and opt-all | This should not happen - opt events will be overly-weighted.", MsgCodes.warning4);	
-			}
-			float val = allEqs.get(jp).calcFtrVal(ex,null, linkOccs.get(jp), optOcc, srcOccs.get(jp),tpCalcObjIDX, bndAra_TrainJPsIDX, true);
+			optOcc = getOptAndCheck(ex, optOccs, jp, _type);
+			float val = allEqs.get(jp).calcFtrVal(ex,orderOccs.get(jp),linkOccs.get(jp), optOcc, srcOccs.get(jp),orderDate, _exampleType);
 			
 			if (val != 0) {
 				isZeroMagExample = false;
 				ftrVecSqMag += (val*val);
 			}
 			ftrDest.put(destIDX,val);		//add zero value 			
-			checkValInBnds(bndAra_TrainJPsIDX,jp,destIDX, val);
+			checkValInBnds(bndAra_ProdJPsIDX,_exampleType, destIDX, val);
 		}		
 		ex.ftrVecMag = (float) Math.sqrt(ftrVecSqMag);
 		ex.setIsBadExample(isZeroMagExample);
 	}//calcFeatureVector	
-
-	//calculate feature vector for this ProspectExample example on actual product-based features - these features are for comparison, not training!
-	public void calcCustFtrDataVec(ProspectExample ex, HashSet<Integer> jps,TreeMap<Integer, Float> ftrDest,
-			TreeMap<Integer, JP_OccurrenceData> orderOccs,TreeMap<Integer, JP_OccurrenceData> linkOccs, 
-			TreeMap<Integer, JP_OccurrenceData> optOccs,TreeMap<Integer, JP_OccurrenceData> srcOccs) {
-		ftrDest.clear();
-		float ftrVecSqMag = 0.0f;
-		JP_OccurrenceData optOcc;
-		//for each jp present in ex, perform calculation
-		Integer destIDX;
-		boolean isZeroMagExample = true;		//if all values are 0 then this is a bad training example, we want to ignore it
-		for (Integer jp : jps) {
-			//find destIDX
-			destIDX = jpJpgMon.getFtrJpToIDX(jp);
-			if (destIDX==null) {continue;}//ignore unknown/unmapped jps
-			optOcc = optOccs.get(jp);
-			if ((optOcc != null )&& ((ex.getPosOptAllOccObj() != null) || (ex.getNegOptAllOccObj() != null))) {	//opt all means they have opted for positive behavior for all jps that allow opts
-				msgObj.dispMessage("StraffWeightCalc","calcCustFtrDataVec","Multiple opt refs for prospect : " + ex.OID + " : indiv opt and opt-all | This should not happen - opt events will be overly-weighted.", MsgCodes.warning4);	
-			}
-			float val = allEqs.get(jp).calcFtrVal(ex,orderOccs.get(jp),linkOccs.get(jp), optOcc, srcOccs.get(jp),custCalcObjIDX ,bndAra_TrainJPsIDX, false);
-			
-			if (val != 0) {
-				isZeroMagExample = false;
-				ftrVecSqMag += (val*val);
-			}
-			ftrDest.put(destIDX,val);		//add zero value 			
-			checkValInBnds(bndAra_TrainJPsIDX,jp,destIDX, val);
-		}		
-		ex.ftrVecMag = (float) Math.sqrt(ftrVecSqMag);
-		ex.setIsBadExample(isZeroMagExample);
-	}//calcFeatureVector
 	
-	//calculate feature vector for this training data example on actual product-based features - this will be a single order event-based training example
-	public void calcTrainingFtrDataVec(ProspectExample ex, HashSet<Integer> jps,TreeMap<Integer, Float> ftrDest, Date orderDate,
-			TreeMap<Integer, JP_OccurrenceData> orderOccs,TreeMap<Integer, JP_OccurrenceData> linkOccs, 
-			TreeMap<Integer, JP_OccurrenceData> optOccs,TreeMap<Integer, JP_OccurrenceData> srcOccs) {
-		ftrDest.clear();
-		float ftrVecSqMag = 0.0f;
-		JP_OccurrenceData optOcc;
-		//for each jp present in ex, perform calculation
-		Integer destIDX;
-		boolean isZeroMagExample = true;		//if all values are 0 then this is a bad training example, we want to ignore it
-		for (Integer jp : jps) {
-			//find destIDX
-			destIDX = jpJpgMon.getFtrJpToIDX(jp);
-			if (destIDX==null) {continue;}//ignore unknown/unmapped jps
-			optOcc = optOccs.get(jp);
-			if ((optOcc != null )&& ((ex.getPosOptAllOccObj() != null) || (ex.getNegOptAllOccObj() != null))) {	//opt all means they have opted for positive behavior for all jps that allow opts
-				msgObj.dispMessage("StraffWeightCalc","calcTrainingFtrDataVec","Multiple opt refs for prospect : " + ex.OID + " : indiv opt and opt-all | This should not happen - opt events will be overly-weighted.", MsgCodes.warning4);	
-			}
-			float val = allEqs.get(jp).calcTrainingFtr(ex,orderOccs.get(jp),linkOccs.get(jp), optOcc, srcOccs.get(jp), orderDate, bndAra_TrainJPsIDX, false);
-			
-			if (val != 0) {
-				isZeroMagExample = false;
-				ftrVecSqMag += (val*val);
-			}
-			ftrDest.put(destIDX,val);		//add zero value 			
-			checkValInBnds(bndAra_TrainJPsIDX,jp,destIDX, val);
-		}		
-		ex.ftrVecMag = (float) Math.sqrt(ftrVecSqMag);
-		ex.setIsBadExample(isZeroMagExample);
-	}//calcFeatureVector
-	
-
 	//initialize and finalize all calcs for CUSTOMER data - this builds the exemplar training data vector for each non-prod jp
 	public void initAllEqsForCustNonTrainCalc() {setFlag(custNonProdCalcCompleteIDX, false);	for(JPWeightEquation jpEq:allEqs.values()) {jpEq.initCalcCustNonProdWtVec();}}
 	public void finalizeAllEqsCustForNonTrainCalc() {for(JPWeightEquation jpEq:allEqs.values()) {jpEq.finalizeCalcCustNonProdWtVec();}setFlag(custNonProdCalcCompleteIDX, true);}
@@ -430,7 +378,7 @@ public class StraffWeightCalc {
 		p.pushMatrix();p.pushStyle();		
 		for(JPWeightEquation jpEq:ftrEqs.values()) {	//only draw eqs that calculated actual feature values (jps found in products)
 			//draw bar
-			jpEq.drawFtrVec(p, ht, barWidth, jpEq.jpIDXs[bndAra_TrainJPsIDX]==curJPIdx,bndAra_TrainJPsIDX,_exampleType);
+			jpEq.drawFtrVec(p, ht, barWidth, jpEq.jpIDXs[bndAra_ProdJPsIDX]==curJPIdx,bndAra_ProdJPsIDX,_exampleType);
 			//move over for next bar
 			p.translate(barWidth, 0.0f, 0.0f);
 		}
@@ -445,8 +393,7 @@ public class StraffWeightCalc {
 		p.popStyle();p.popMatrix();			
 	}//drawSingleFtr
 	
-	/////////////////////////////////////
-	
+	/////////////////////////////////////	
 	
 	private void initFlags(){stFlags = new int[1 + numFlags/32]; for(int i = 0; i<numFlags; ++i){setFlag(i,false);}}
 	public void setAllFlags(int[] idxs, boolean val) {for (int idx : idxs) {setFlag(idx, val);}}
@@ -475,15 +422,11 @@ public class StraffWeightCalc {
 	public String toString() {
 		String res  = "";
 		for (JPWeightEquation eq : allEqs.values()) {
-			Integer numSeen = jpJpgMon.getCountProdJPSeen(eq.jp);
-			Float[][] ftrBndsAra = bndsAra[bndAra_TrainJPsIDX], allBndsAra = bndsAra[bndAra_AllJPsIDX];
-			Integer ftrIDX = eq.jpIDXs[bndAra_TrainJPsIDX], allIDX = eq.jpIDXs[bndAra_AllJPsIDX];
-			if(ftrIDX != -1) {
-				res+= eq.toString()+"  | # Ftr Calcs done : " + String.format("%6d", (Math.round(ftrBndsAra[2][ftrIDX]))) + "\t| Min val : " +String.format("%6.4f", ftrBndsAra[0][ftrIDX]) + "\t| Max val : " +String.format("%6.4f", ftrBndsAra[1][ftrIDX]);
-			} else {
-				res+=eq.toString()+"  | # Ftr Calcs done : 0 (not a feature JP)";
-			}
-			res+= " | # Ttl Calcs done : " + String.format("%6d", (Math.round(allBndsAra[2][allIDX]))) + " ==  # of Product Occs : " +String.format("%6d", numSeen) + "\t| Min val : " +String.format("%6.4f", allBndsAra[0][allIDX]) + "\t| Max val : " +String.format("%6.4f", allBndsAra[1][allIDX]) + "\n";
+			Integer numSeen = jpJpgMon.getCountProdJPSeen(eq.jp);			
+			Integer ftrIDX = eq.jpIDXs[bndAra_ProdJPsIDX], allIDX = eq.jpIDXs[bndAra_AllJPsIDX];
+			if(ftrIDX != -1) {	res+= eq.toString() + " | # Ftr Calcs done : " +  bndsAra[bndAra_ProdJPsIDX].getDescForIdx(ftrIDX) + "\n";;	} 
+			else {				res+= eq.toString() +"  | # Ftr Calcs done : 0 (not a feature JP)";}			
+			res+= " | # Ttl Calcs done : # of Product Occs : " +String.format("%6d", numSeen) + " == " +  bndsAra[bndAra_ProdJPsIDX].getDescForIdx(allIDX) + "\n";
 		}
 		res += "# eqs : " + allEqs.size() + "\t|Built from file : " + fileName+ "\t| Equation Configuration : \n";
 		res += "-- DLU : Days since prospect lookup\n";
@@ -499,3 +442,85 @@ public class StraffWeightCalc {
 	
 }//StraffWeightCalc
 
+
+/**
+ * this class will manage a single data bound multi-dim array, consisting of 
+ * per-jp arrays for min, max, diff, count, etc.
+ * @author john
+ *
+ */
+class dataBoundArray{	
+	private Float[][][] bndsAra;
+
+	//first dim of bndsAra
+	//separates calculations based on whether calc is done on a customer example, or on a true prospect example
+	public static final int 
+		custCalcObjIDX 		= 0,		//type of calc : this is data aggregated off of customer data (has prior order events and possibly other events deemed relevant) - this corresponds to training data source records
+		tpCalcObjIDX 		= 1,		//type of calc : this is data from true prospect, who lack prior orders and possibly other event behavior
+		trainCalcObjIDX		= 2,		//type of calc : actual training data, based on date of orders - 1 or more of these examples will be synthesized for each customer prospect
+		ttlOfAllCalcIDX		= 3;		//aggregate totals across all types
+	public static final int numExamplTypeObjs = 4;
+	//2nd dim of bndsAra
+	//meaning of each idx in bndsAra 1st dimension 
+	private static final int 
+			minBndIDX = 0,					//mins for each feature
+			maxBndIDX = 1,					//maxs for each feature
+			countBndIDX = 2,				//count of entries for each feature
+			diffBndIDX = 3; 				//max-min for each feature
+	private static final int numBndTypes = 4;	
+	//set initial values to properly initialize bnds ara
+	private static final float[] initBnd = new float[] {1000000000.0f,-1000000000.0f, 0.0f, 0.0f};//min, max, count, diff
+
+	//# of individaul elements per bound type - 3rd dim of bndsAra
+	public final int numElems;
+	
+	public dataBoundArray(int _numElems) {
+		numElems = _numElems;
+		bndsAra = new Float[numExamplTypeObjs][][];
+		for (int i=0;i<bndsAra.length;++i) {
+			bndsAra[i] = new Float[numBndTypes][];
+			for (int j=0;j<bndsAra[i].length;++j) {	bndsAra[i][j]=fastCopyAra(numElems, initBnd[j]);	}	
+		}
+	}//ctor
+	private Float[] fastCopyAra(int len, float val) {
+		Float[] res = new Float[len];
+		res[0]=val;	
+		for (int i = 1; i < len; i += i) {System.arraycopy(res, 0, res, i, ((len - i) < i) ? (len - i) : i);}
+		return res;
+	}//fastCopyAra
+	
+	//check if value is in bnds array for particular jp, otherwise modify bnd
+	public void checkValInBnds(Integer typeIDX, Integer destIDX, float val) {
+		if (val < bndsAra[typeIDX][minBndIDX][destIDX]) {bndsAra[typeIDX][minBndIDX][destIDX]=val;bndsAra[typeIDX][diffBndIDX][destIDX] = bndsAra[typeIDX][maxBndIDX][destIDX]-bndsAra[typeIDX][minBndIDX][destIDX]; checkInAllBounds( destIDX, val);}
+		if (val > bndsAra[typeIDX][maxBndIDX][destIDX]) {bndsAra[typeIDX][maxBndIDX][destIDX]=val;bndsAra[typeIDX][diffBndIDX][destIDX] = bndsAra[typeIDX][maxBndIDX][destIDX]-bndsAra[typeIDX][minBndIDX][destIDX]; checkInAllBounds( destIDX, val);}
+	}
+	//manages mins, maxs, diffs of all calc types (customers, validation, training examples
+	private void checkInAllBounds(Integer destIDX, float val) {
+		if (val < bndsAra[ttlOfAllCalcIDX][minBndIDX][destIDX]) {bndsAra[ttlOfAllCalcIDX][minBndIDX][destIDX]=val;bndsAra[ttlOfAllCalcIDX][diffBndIDX][destIDX] = bndsAra[ttlOfAllCalcIDX][maxBndIDX][destIDX]-bndsAra[ttlOfAllCalcIDX][minBndIDX][destIDX]; }
+		if (val > bndsAra[ttlOfAllCalcIDX][maxBndIDX][destIDX]) {bndsAra[ttlOfAllCalcIDX][maxBndIDX][destIDX]=val;bndsAra[ttlOfAllCalcIDX][diffBndIDX][destIDX] = bndsAra[ttlOfAllCalcIDX][maxBndIDX][destIDX]-bndsAra[ttlOfAllCalcIDX][minBndIDX][destIDX];}
+	}
+		
+	//get mins/diffs for ftr vals per ftr jp and for all vals per all jps
+	public Float[] getMinBndsAra() {return bndsAra[ttlOfAllCalcIDX][minBndIDX];}
+	public Float[] getMaxBndsAra() {return bndsAra[ttlOfAllCalcIDX][maxBndIDX];}
+	public Float[] getDiffBndsAra() {return bndsAra[ttlOfAllCalcIDX][diffBndIDX];}
+	//aggregate all counts
+	public Float[] getCountBndsAra() {	return bndsAra[ttlOfAllCalcIDX][countBndIDX];}
+	
+	//individual type of data getters/setters
+	public Float[] getMinBndsAra(int typeIDX) {return bndsAra[typeIDX][minBndIDX];}
+	public Float[] getMaxBndsAra(int typeIDX) {return bndsAra[typeIDX][maxBndIDX];}
+	public Float[] getDiffBndsAra(int typeIDX) {return bndsAra[typeIDX][diffBndIDX];}
+	public Float[] getCountBndsAra(int typeIDX) {return bndsAra[typeIDX][countBndIDX];}
+	
+	//increment count of training examples with jp data represented by destIDX, and total calc value seen
+	public synchronized void incrBnds(int typeIDX, int destIDX) {bndsAra[typeIDX][countBndIDX][destIDX] +=1; bndsAra[ttlOfAllCalcIDX][countBndIDX][destIDX] +=1;}	
+	
+	public String getDescForIdx(int idx) {
+		return String.format("%6d", (Math.round(bndsAra[ttlOfAllCalcIDX][countBndIDX][idx]))) + "\t| Min val : " +String.format("%6.4f", bndsAra[ttlOfAllCalcIDX][minBndIDX][idx]) + "\t| Max val : " +String.format("%6.4f", bndsAra[ttlOfAllCalcIDX][maxBndIDX][idx]);
+	}
+	public String getDescForIdx(int typeIDX,int idx) {
+		return String.format("%6d", (Math.round(bndsAra[typeIDX][countBndIDX][idx]))) + "\t| Min val : " +String.format("%6.4f", bndsAra[typeIDX][minBndIDX][idx]) + "\t| Max val : " +String.format("%6.4f", bndsAra[typeIDX][maxBndIDX][idx]);
+	}
+	
+}//class dataBoundArray

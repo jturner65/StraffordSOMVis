@@ -83,7 +83,7 @@ public class MonitorJpJpgrp {
 	//When acquiring new data, this must be performed after all data is loaded, but before
 	//the prospect data is finalized and actual map is built due to the data finalization 
 	//requiring a knowledge of the entire dataset to build weights appropriately
-	public void setJPDataFromExampleData(Straff_SOMCustPrspctMapper customerMapper, Straff_SOMTruePrspctMapper prospectMapper, Straff_SOMProductMapper prdctMapper) {
+	public void setJPDataFromExampleData(Straff_SOMCustPrspctMapper_Base customerMapper, Straff_SOMTruePrspctMapper prospectMapper, Straff_SOMProductMapper prdctMapper) {
 		initAllStructs();
 		msgObj.dispMessage("MonitorJpJpgrp","setJPDataFromExampleData","State after init : " + this.toString(), MsgCodes.info1);
 		

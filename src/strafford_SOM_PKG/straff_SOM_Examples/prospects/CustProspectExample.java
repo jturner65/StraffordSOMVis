@@ -105,16 +105,31 @@ public class CustProspectExample extends ProspectExample{
 	
     //take loaded data and convert to feature data via calc object 
 	public static TreeMap<Integer,Integer[]> ttlOrderCount = new TreeMap<Integer,Integer[]>();
+	public static TreeMap<Integer,Integer[]> ttlBadOrderCount = new TreeMap<Integer,Integer[]>();
 	private void dbg_addOrderCountToTTLMap() {
-		TreeMap<Integer, JP_OccurrenceData> map = JpOccurrences.get("orders");
-		int numOrders = map.size();//# of different jps having orders
-		Integer[] orderDat = ttlOrderCount.get(numOrders);//array of values - first value is count of different jp occurrences, 2nd value is count of all orders for all jps
+		addOrderToOrderCountMap(JpOccurrences.get("orders"),ttlOrderCount);	
+//		int numOrders = map.size();//# of different jps having orders
+//		Integer[] orderDat = ttlOrderCount.get(numOrders);//array of values - first value is count of different jp occurrences, 2nd value is count of all orders for all jps
+//		if(orderDat==null) {orderDat = new Integer[2];orderDat[0]=0;orderDat[1]=0;}
+//		orderDat[0] +=1;								//this customer has this many different unique jp orders
+//		int numOccsAllOrders = 0;						//this customer has this many unique order dates of all jps
+//		for(JP_OccurrenceData occ  : map.values()) {			numOccsAllOrders += occ.getNumberOfOccurrences();		}
+//		orderDat[1] += numOccsAllOrders;
+//		ttlOrderCount.put(numOrders, orderDat);
+	}
+	private void dbg_addBadOrderCountToTTLMap() {
+		addOrderToOrderCountMap(JpOccurrences.get("orders"),ttlBadOrderCount);		
+	}
+	
+	private synchronized static void addOrderToOrderCountMap(TreeMap<Integer, JP_OccurrenceData> map, TreeMap<Integer,Integer[]> orderCountMap) {
+		int numOrders = map.size();
+		Integer[] orderDat = orderCountMap.get(numOrders);//array of values - first value is count of different jp occurrences, 2nd value is count of all orders for all jps
 		if(orderDat==null) {orderDat = new Integer[2];orderDat[0]=0;orderDat[1]=0;}
 		orderDat[0] +=1;								//this customer has this many different unique jp orders
 		int numOccsAllOrders = 0;						//this customer has this many unique order dates of all jps
 		for(JP_OccurrenceData occ  : map.values()) {			numOccsAllOrders += occ.getNumberOfOccurrences();		}
 		orderDat[1] += numOccsAllOrders;
-		ttlOrderCount.put(numOrders, orderDat);
+		orderCountMap.put(numOrders, orderDat);
 	}
 	
 	//this will build training features based on individual orders - each individual order will correspond to a training feature
@@ -174,7 +189,7 @@ public class CustProspectExample extends ProspectExample{
 	//standardize this feature vector - across each feature, set value to be between 0 and 1
 	protected final void buildStdFtrsMap() {		
 		if (allNonZeroFtrIDXs.size() > 0) {calcStdFtrVector(ftrMaps[ftrMapTypeKey],ftrMaps[stdFtrMapTypeKey], mapMgr.getTrainFtrMins(), mapMgr.getTrainFtrDiffs());}
-		else {ftrMaps[stdFtrMapTypeKey].clear();}
+		else {clearFtrMap(stdFtrMapTypeKey);}//ftrMaps[stdFtrMapTypeKey].clear();}
 		if(mapOfSingleOrderTrainingExamples != null) {		for(Cust_OneOrderTrainingExample ex : mapOfSingleOrderTrainingExamples.values() ) {	ex.buildPostFeatureVectorStructs();}}
 		setFlag(stdFtrsBuiltIDX,true);
 	}//buildStdFtrsMap
@@ -188,16 +203,23 @@ public class CustProspectExample extends ProspectExample{
 	public TreeMap<Tuple<Integer, Integer>, Integer> getOrderCountsForExample(){return mostRecentOrderCounts;}		
 	
 	public static int NumBadExamplesAfterFtrsBuilt = 0;
+	public static int NumBadExampleOrdersAfterFtrsBuilt = 0;
 	@Override
 	protected void buildFeaturesMap() {
 		//access calc object		
 		if (allProdJPs.size() > 0) {
 			//this is to monitor order counts - purely debug/informational
 			dbg_addOrderCountToTTLMap();
-			((Straff_SOMMapManager)mapMgr).ftrCalcObj.calcCustFtrDataVec(this,allProdJPs, ftrMaps[ftrMapTypeKey],JpOccurrences.get("orders"), JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"));	
+			clearFtrMap(ftrMapTypeKey);//
+			((Straff_SOMMapManager)mapMgr).ftrCalcObj.calcCustFtrDataVec(this,allProdJPs, ftrMaps[ftrMapTypeKey],JpOccurrences);	
 			//if is good training data, then build date-based occurrence structs and calculate actual training data
 			if(!isBadExample()) {buildDateBasedOccsAndTrainingFtrData();}
-			else {++NumBadExamplesAfterFtrsBuilt; mostRecentOrderCounts = new TreeMap<Tuple<Integer, Integer>, Integer>(); }//if bad then won't contribute any training data - shouldn't be used to train!!! 
+			else {
+				++NumBadExamplesAfterFtrsBuilt; 
+				NumBadExampleOrdersAfterFtrsBuilt+= JpOccurrences.get("orders").size(); 
+				dbg_addBadOrderCountToTTLMap();
+				mostRecentOrderCounts = new TreeMap<Tuple<Integer, Integer>, Integer>(); 
+			}//if bad then won't contribute any training data - shouldn't be used to train!!! 
 			
 		} else {ftrMaps[ftrMapTypeKey].clear();}
 		//now, if there's a non-null posOptAllEventObj then for all jps who haven't gotten an opt conribution to calculation, add positive opt-all result

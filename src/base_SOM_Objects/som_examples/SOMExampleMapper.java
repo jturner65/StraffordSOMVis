@@ -88,7 +88,7 @@ public abstract class SOMExampleMapper {
 		setFlag(dataFtrsCalcedIDX, false); 	
 		setFlag(dataPostFtrsBuiltIDX, false);
 		setFlag(exampleArrayBuiltIDX, false);
-	}
+	}//clearDataStateFlags
 	
 	///////////////////////////////
 	// prepare and calc feature vectors
@@ -100,11 +100,16 @@ public abstract class SOMExampleMapper {
 		if(!getFlag(dataIsLoadedIDX)) {
 			msgObj.dispMessage("SOMExampleMapper::"+exampleName,"finalizeAllExamples","Unable to finalizeAllExamples " + exampleName+ " examples due to them not having been loaded.  Aborting.", MsgCodes.warning1);
 			return;
+		} else if (getFlag(dataFtrsPreparedIDX)) {
+			msgObj.dispMessage("SOMExampleMapper::"+exampleName,"finalizeAllExamples","Data has already been finalized for " + exampleName+ " examples.", MsgCodes.warning1);
+			return;			
 		}
 		msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildFtrVec","Begin finalizing all " +exampleMap.size()+ " " + exampleName+ " examples to prepare them for ftr calc.", MsgCodes.info1);
 		//finalize each example - this will aggregate all the ftrs's that are seen in src data and prepare example for calculating ftr vector
 		for (SOMExample ex : exampleMap.values()) {			ex.finalizeBuildBeforeFtrCalc();		}	
 		setFlag(dataFtrsPreparedIDX, true);
+		setFlag(dataFtrsCalcedIDX, false);
+		setFlag(dataPostFtrsBuiltIDX, false);
 		msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildFtrVec","Finished finalizing all " +exampleMap.size()+ " " + exampleName+ " examples to prepare them for ftr calc.", MsgCodes.info1);
 	}//finalizeAllExamples()
 
@@ -120,6 +125,7 @@ public abstract class SOMExampleMapper {
 		//instance-specific feature vector building
 		buildFtrVec_Priv();		
 		setFlag(dataFtrsCalcedIDX, true);
+		setFlag(dataPostFtrsBuiltIDX, false);
 		msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildFtrVec","Finished building feature vectors for " +exampleMap.size()+ " " + exampleName+ " examples.", MsgCodes.info1);
 		
 	}//buildFtrVec	
@@ -131,6 +137,9 @@ public abstract class SOMExampleMapper {
 	public final void buildPostFtrVecStructs() {
 		if(!getFlag(dataFtrsCalcedIDX)) {
 			msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildPostFtrVecStructs","Unable to build Post-feature vector data for " + exampleName+ " examples due to them not having had features calculated.  Aborting.", MsgCodes.warning1);
+			return;
+		} else if(getFlag(dataPostFtrsBuiltIDX)){
+			msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildPostFtrVecStructs","Post-feature data for " + exampleName+ " examples Already built.", MsgCodes.warning1);
 			return;
 		}
 		msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildPostFtrVecStructs","Begin building Post-feature vector data for " +exampleMap.size()+ " " + exampleName+ " examples.", MsgCodes.info1);

@@ -50,14 +50,13 @@ public class SOM_Strafford_Main {
 	private void execSOMProc(TreeMap<String, Object> resMap) {
 		Integer exec = (Integer) resMap.get("exec");
 		switch(exec) {
-		case 0 :{		//preprocess data
+		case 0 :{		//preprocess raw data and save
 			Integer rawDataSource = (Integer) resMap.get("rawDataSource");
-			((Straff_SOMMapManager) mapMgr).loadAllRawData((rawDataSource==0));//, getPrivFlags(useOnlyEvntsToTrainIDX));			
+			mapMgr.loadAndPreProcAllRawData((rawDataSource==0));
 			return;}
 		case 1 :{		//build map using values specified in map config
-			//this will load all true prospects from preprocessed prospect files.
-			mapMgr.loadTrainDataMapConfigAndBuildMap();//pass fraction of data to use for training
-			
+			//this will load training data and build map
+			boolean success = mapMgr.loadTrainDataMapConfigAndBuildMap(false);			
 			return;}
 		case 2 :{
 			//this will take pretrained map specified in config file, load it and then process all products, customers and prospects against map for 
@@ -68,10 +67,7 @@ public class SOM_Strafford_Main {
 			return;}
 		}
 		
-		
 	}//execSOMProc
-
-	
 	
 	private ArgumentParser buildArgParser() {
        ArgumentParser parser = ArgumentParsers.newFor("SOM_Strafford_Main").build()
@@ -101,7 +97,7 @@ public class SOM_Strafford_Main {
         	.type(Integer.class)
 	    	.choices(0, 1, 2)
 	    	.setDefault(0)
-	    	.help("Specify which process to execute : 0 : Preprocess Raw Data : 1 : Train SOM from preproc data (using configuration specified in ProjectConfig.txt file) : 2 : Map all products, customers and prospects to specified product listing (set in ProjectConfig.txt file)");
+	    	.help("Specify which process to execute : 0 : Preprocess Raw Data; 1 : Train SOM from preproc data (using configuration specified in ProjectConfig.txt file); 2 : Map all products, customers and prospects to specified product listing (set in ProjectConfig.txt file)");
 
         parser.addArgument("-r","--rawdatasrc")
         	.dest("rawDataSource")

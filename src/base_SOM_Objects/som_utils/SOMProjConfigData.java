@@ -424,33 +424,6 @@ public class SOMProjConfigData {
 		SOMExeDat.setArgsMapData(mapInts, mapFloats, mapStrings);		
 	}//setSOM_MapArgs
 	
-	//uses existing SOMExeDat to run a SOM training
-	public boolean runSOMExperiment() {
-		//set currently defined directories and values in SOM manager
-		SOMExeDat.updateMapState();
-		boolean res = true;
-		msgObj.dispMultiLineMessage("SOMProjConfigData","runSOMExperiment","SOM map descriptor : \n" + SOMExeDat.toString() + "SOMOutExpSffx str : " + SOMOutExpSffx, MsgCodes.info5);		
-		//save configuration data
-		saveSOM_Exp();
-		//save start time
-		String startTime = msgObj.getCurrWallTimeAndTimeFromStart();
-		//launch in a thread? - needs to finish to be able to proceed, so not necessary
-		boolean runSuccess = mapMgr.buildNewMap(SOMExeDat);		
-		if(!runSuccess) {			return false;		}
-		
-		mapMgr.setLoaderRtnFalse();
-		
-		//build values for human-readable report
-		TreeMap<String, String> externalVals = mapMgr.getSOMExecInfo();
-		externalVals.put("SOM Training Start Wall Time and Time elapsed from Start of program execution", startTime);
-		externalVals.put("SOM Training Finished Wall Time and Time elapsed from Start of program execution", msgObj.getCurrWallTimeAndTimeFromStart());
-		//save results of execution in human-readable report format		
-		saveSOM_ExecReport(externalVals);
-		
-		//setAllFileNames();
-		return res;			
-	}//runSOMExperiment
-	
 	//return if map is toroidal
 	public boolean isToroidal(){if(null==SOMExeDat){return false;}	return SOMExeDat.isToroidal();	}
 	
@@ -605,10 +578,9 @@ public class SOMProjConfigData {
 		//load and map config
 		loadSOMMap_Config();
 		//structure holding SOM_MAP specific cmd line args and file names and such
-		SOMExeDat.updateMapState();
-		//now load new map data and configure SOMMapManager obj to hold all appropriate data
-		mapMgr.setLoaderRtnFalse();
-			
+		SOMExeDat.updateMapDescriptorState();
+		//now config flags before we launch loader to load results from SOM and map values
+		mapMgr.setLoaderRtnFalse();			
 	}//setSOM_UsePreBuilt
 	
 	public String SOM_MapDat_ToString() {return SOMExeDat.toString();}
@@ -689,7 +661,11 @@ public class SOMProjConfigData {
 	public void setUseSparseTestingData(boolean val) {useSparseTestingData = val;}
 	
 	public boolean isUseSparseTrainingData() {return useSparseTrainingData;}
-	public boolean isUseSparseTestingData() {return useSparseTestingData;}
+	public boolean isUseSparseTestingData() {return useSparseTestingData;}	
+	
+	public SOM_MapDat getSOMExeDat() {return SOMExeDat;}
+	public String getSOMOutExpSffx() {return SOMOutExpSffx;}
+
 	
 	//file name to save record of bad events
 	public String getBadEventFName(String dataFileName) { return SOM_QualifiedDataDir + dataFileName +"_bad_OIDs.csv";	}

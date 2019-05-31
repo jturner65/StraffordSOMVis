@@ -19,7 +19,7 @@ public class SOMUIToMapCom {
 	protected ISOM_UIWinMapDat win;
 
 	public SOMUIToMapCom(SOMMapManager _mapMgr, ISOM_UIWinMapDat _win) {	
-		mapMgr = _mapMgr;
+		mapMgr = _mapMgr;win=_win;
 	}	
 	////////////////////////////////////
 	// update UI window with new values

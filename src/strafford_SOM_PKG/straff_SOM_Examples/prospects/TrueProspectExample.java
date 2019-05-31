@@ -66,7 +66,9 @@ public class TrueProspectExample extends ProspectExample{
 	protected void buildFeaturesMap() {	//TODO do we wish to modify this for prospects?  probably
 		//access calc object
 		if (allProdJPs.size() > 0) {//getting from orders should yield empty list, might yield null - has no order occurrences by definition	
-			((Straff_SOMMapManager)mapMgr).ftrCalcObj.calcTruePrspctFtrVec(this,allProdJPs,ftrMaps[ftrMapTypeKey], JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"));			
+			clearFtrMap(ftrMapTypeKey);//
+			//((Straff_SOMMapManager)mapMgr).ftrCalcObj.calcTruePrspctFtrVec(this,allProdJPs,ftrMaps[ftrMapTypeKey], JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"));			
+			((Straff_SOMMapManager)mapMgr).ftrCalcObj.calcTruePrspctFtrVec(this,allProdJPs,ftrMaps[ftrMapTypeKey], JpOccurrences);			
 		} else {ftrMaps[ftrMapTypeKey].clear(); }
 		//now, if there's a non-null posOptAllEventObj then for all jps who haven't gotten an opt conribution to calculation, add positive opt-all result
 	}//buildFeaturesMap	

@@ -11,17 +11,18 @@ import strafford_SOM_PKG.straff_RawDataHandling.raw_data.TcTagData;
  * this class corresponds to the data for a training/testing data point for a product.  It is built from relevant data from TC_Taggings
  * we can treat it like an event-based data point, but doesn't have any date so wont be added to any kind of jpoccurence structure.
  * Also, this is designed expecting that TC data will ever only have 1 JPGroup, with 1 or more, priority-ordered jps from that group.
+ * This object both translates from raw data to example data and builds/deciphers the csv record used to save the corresponding (owning) product
  * @author john
  *
  */
 public class TcTagRawToTrainData extends StraffRawToTrainData{
 	public TcTagRawToTrainData(TcTagData ev) {
-		super();
+		super("TcTaggings->Product");
 		addEventDataFromEventObj(ev);
 	}	//put in child ctor in case child-event specific data needed for training	
 	
 	public TcTagRawToTrainData(String _taggingCSVStr){
-		super();
+		super("TcTaggings->Product");
 		addJPG_JPDataFromCSVString(_taggingCSVStr);	
 	}//put in child ctor in case child-event specific data needed for training		}//ctor from rawDataObj
 	

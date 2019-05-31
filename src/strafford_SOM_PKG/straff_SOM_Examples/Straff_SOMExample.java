@@ -4,6 +4,7 @@ import java.util.*;
 
 import base_SOM_Objects.*;
 import base_SOM_Objects.som_examples.*;
+import base_SOM_Objects.som_utils.segments.SOM_MapNodeSegmentData;
 import base_Utils_Objects.*;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.*;
 import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.events.LinkEventRawToTrainData;
@@ -49,6 +50,7 @@ public abstract class Straff_SOMExample extends SOMExample{
 	//each map has key == to _jpg_ and value == multiplier
 	protected TreeMap<Integer, Float>[] compValFtrDataMaps;
 	public float compValFtrDataMapMag = 0.0f;
+	
 
 	//idxs corresponding to types of events
 	
@@ -58,12 +60,8 @@ public abstract class Straff_SOMExample extends SOMExample{
 		allProdJPs = new HashSet<Integer> ();	
 		allProdJPGroups = new HashSet<Integer> ();	
 		compValFtrDataMaps = new TreeMap[ftrMapTypeKeysAra.length];
-		for (int i=0;i<compValFtrDataMaps.length;++i) {			compValFtrDataMaps[i] = new TreeMap<Integer, Float>(); 		}
-
+		for (int i=0;i<compValFtrDataMaps.length;++i) {			compValFtrDataMaps[i] = new TreeMap<Integer, Float>(); 		}	
 	}//ctor
-	
-	//return all jpg/jps in this example record
-	protected abstract HashSet<Tuple<Integer,Integer>> getSetOfAllJpgJpData();
 	
 	public Straff_SOMExample(Straff_SOMExample _otr) {
 		super(_otr);	
@@ -71,6 +69,8 @@ public abstract class Straff_SOMExample extends SOMExample{
 		allProdJPGroups = _otr.allProdJPGroups;
 		compValFtrDataMaps = _otr.compValFtrDataMaps;
 	}//copy ctor
+	//initialize all segment-holding structues
+		
 	//instead of rebuilding these, just clear them
 	protected void clearCompValMaps() {		for (int i=0;i<compValFtrDataMaps.length;++i) {			compValFtrDataMaps[i].clear(); 		}compValFtrDataMapMag = 0.0f;}
 	
@@ -87,9 +87,13 @@ public abstract class Straff_SOMExample extends SOMExample{
 			if(jpIDX==null) {msgObj.dispMessage("StraffSOMExample","buildAllNonZeroFtrIDXs","ERROR!  null value in jpJpgMon.getJpToFtrIDX("+jp+")", MsgCodes.error2 ); }
 			else {allNonZeroFtrIDXs.add(jpIDX);}
 		}
-	}//buildAllNonZeroFtrIDXs (was buildAllJPFtrIDXsJPs)
+	}//buildAllNonZeroFtrIDXs (was buildAllJPFtrIDXsJPs)	
 	
 	public final HashSet<Integer> getAllProdJPs(){return allProdJPs;}
+	public final HashSet<Integer> getAllProdJPGroups(){return allProdJPGroups;}
+	
+	//return all jpg/jps in this example record
+	protected abstract HashSet<Tuple<Integer,Integer>> getSetOfAllJpgJpData();
 	
 	@Override
 	//build a string describing what a particular feature value is

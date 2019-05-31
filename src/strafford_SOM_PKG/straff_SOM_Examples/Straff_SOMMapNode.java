@@ -111,7 +111,7 @@ public class Straff_SOMMapNode extends SOMMapNode{
 	@Override
 	//called by SOMDataLoader - these are standardized based on data mins and diffs seen in -map nodes- feature data, not in training data
 	public void buildStdFtrsMapFromFtrData_MapNode(float[] minsAra, float[] diffsAra) {
-		ftrMaps[stdFtrMapTypeKey].clear();
+		clearFtrMap(stdFtrMapTypeKey);//ftrMaps[stdFtrMapTypeKey].clear();
 		if (ftrMaps[ftrMapTypeKey].size() > 0) {
 			for(Integer destIDX : ftrMaps[ftrMapTypeKey].keySet()) {
 				Float lb = minsAra[destIDX], diff = diffsAra[destIDX];

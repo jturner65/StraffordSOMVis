@@ -5,6 +5,7 @@ import java.util.concurrent.Callable;
 
 import base_SOM_Objects.*;
 import base_SOM_Objects.som_examples.*;
+import base_SOM_Objects.som_utils.segments.SOMMapSegment;
 import base_Utils_Objects.*;
 
 //class to manage mapping of examples to bmus
@@ -17,7 +18,11 @@ public abstract class MapDataToBMUs implements Callable<Boolean>{
 	protected final TreeMap<Tuple<Integer,Integer>, SOMMapNode> MapNodes;
 	//map of ftr idx and all map nodes that have non-zero presence in that ftr
 	protected TreeMap<Integer, HashSet<SOMMapNode>> MapNodesByFtr;
-
+	//Map of classes to segment - segment contains the map nodes that participate in that segment
+	protected TreeMap<Integer, SOMMapSegment> Class_Segments;
+	//map of categories to segment
+	protected TreeMap<Integer, SOMMapSegment> Category_Segments;
+	
 	protected String ftrTypeDesc, dataType;
 	protected static final float progAmt = .2f;
 	protected double progress = -progAmt;
@@ -26,6 +31,9 @@ public abstract class MapDataToBMUs implements Callable<Boolean>{
 		mapMgr = _mapMgr;
 		MapNodes = mapMgr.getMapNodes();
 		MapNodesByFtr = mapMgr.getMapNodesByFtr();
+		//segments own the map nodes that map to them
+		Class_Segments = mapMgr.getClass_Segments();
+		Category_Segments = mapMgr.getCategory_Segments();
 		msgObj = mapMgr.buildMsgObj();//make a new one for every thread
 		stIdx = _stProdIDX;
 		endIdx = _endProdIDX;
