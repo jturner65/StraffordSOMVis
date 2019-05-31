@@ -12,27 +12,32 @@ import strafford_SOM_PKG.straff_SOM_Examples.prospects.CustProspectExample;
  * @author john
  */
 
-public class Straff_SOMCustPrspctPerOrderMapper extends Straff_SOMCustPrspctMapper  {
+public class Straff_SOMTrainExPerOrderMapper extends Straff_SOMCustPrspctMapper_Base  {
 	//a reference to the array holding the customer prospect examples; 
 	//this is necessary because the actual examples managed by this mapper are the individual per-order examples
 	private CustProspectExample[] custProspectExamples;
 	
-	public Straff_SOMCustPrspctPerOrderMapper(SOMMapManager _mapMgr, String _exName, String _longExampleName, boolean _shouldValidate) {super(_mapMgr, _exName, _longExampleName + " per Order examples.", _shouldValidate);}
+	public Straff_SOMTrainExPerOrderMapper(SOMMapManager _mapMgr, String _exName, String _longExampleName, boolean _shouldValidate) {super(_mapMgr, _exName, _longExampleName + " per Order examples.", _shouldValidate);}
+	//specific reset functionality for these type of examples
+	@Override
+	protected final void reset_Priv() {
+		mapMgr.resetTrainDataAras();
+		custProspectExamples = new CustProspectExample[0];
+	}//reset_Priv
 
 	//this treats every customer's order as an individual example
 	@Override
-	protected void validateAndAddExToArray(ArrayList<SOMExample> tmpList, SOMExample ex) {
-		if(!ex.isBadExample()) {	tmpList.addAll(((CustProspectExample) ex).getSingleOrderTrainingExamples());}		
+	protected final void validateAndAddExToArray(ArrayList<SOMExample> tmpList, SOMExample ex) {
+		if(!ex.isBadExample()) {	tmpList.addAll(((CustProspectExample) ex).getSingleOrderTrainingExamples());}
 	}//validateAndAddEx
 	
 	@Override
 	//add example from map to array without validation - all per-order training examples
-	protected SOMExample[] noValidateBuildExampleArray() {
+	protected final SOMExample[] noValidateBuildExampleArray() {
 		ArrayList<SOMExample> tmpList = new ArrayList<SOMExample>();
 		for (String key : exampleMap.keySet()) {tmpList.addAll(((CustProspectExample) exampleMap.get(key)).getSingleOrderTrainingExamples());}	
 		return tmpList.toArray(new CustProspectExample[0]);
 	}
-	
 	
 	@Override
 	/**
@@ -42,7 +47,7 @@ public class Straff_SOMCustPrspctPerOrderMapper extends Straff_SOMCustPrspctMapp
 	 * orders from each customer
 	 * @param validate whether data should be validated or not (to meet certain criteria for the SOM as training data)
 	 */
-	protected void buildExampleArrayEnd_Priv(boolean validate) {
+	protected final void buildExampleArrayEnd_Priv(boolean validate) {
 		if(validate) {
 			ArrayList<SOMExample> tmpList = new ArrayList<SOMExample>();
 			for (String key : exampleMap.keySet()) {
@@ -54,7 +59,16 @@ public class Straff_SOMCustPrspctPerOrderMapper extends Straff_SOMCustPrspctMapp
 		else {	custProspectExamples = exampleMap.values().toArray(new CustProspectExample[0]);}		
 	}//buildExampleArrayEnd_Priv
 	
-	//return customer prospect example array 
-	public CustProspectExample[] getCustProspectExamples() {return custProspectExamples;}
+	/**
+	 * return customer prospect example array - this will an array of customerProspect records always
+	 * this is here so that if per-order training data is generated via an instance of 
+	 * Straff_SOMCustPrspctPerOrderMapper class this function will still work to retrieve original customerProspect examples                                                                       
+	 * @return array of customerProspect examples
+	 */
+	@Override
+	public final CustProspectExample[] getCustProspectExamples() {
+		if((null==SOMexampleArray) ||(SOMexampleArray.length==0)) {	buildExampleArray();}
+		return custProspectExamples;
+	}
 
 }//Straff_SOMCustPrspctPerOrderMapper
