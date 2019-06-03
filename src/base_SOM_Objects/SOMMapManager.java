@@ -131,7 +131,7 @@ public abstract class SOMMapManager {
 	private static final int
 			debugIDX 					= 0,
 			isMTCapableIDX				= 1,
-			SOMmapNodeDataLoadedIDX			= 2,			//som map data is cleanly loaded
+			SOMmapNodeDataLoadedIDX		= 2,			//som map data is cleanly loaded
 			loaderRtnIDX				= 3,			//dataloader has finished - wait on this to draw map
 			denseTrainDataSavedIDX 		= 4,			//all current prospect data has been saved as a training data file for SOM (.lrn format) 
 			sparseTrainDataSavedIDX		= 5,			//sparse data format using .svm file descriptions (basically a map with a key:value pair of ftr index : ftr value
