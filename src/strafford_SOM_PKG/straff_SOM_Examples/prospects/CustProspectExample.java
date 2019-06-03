@@ -99,7 +99,6 @@ public class CustProspectExample extends ProspectExample{
 			buildOccurrenceStructs(jpOccTypeKeys, jpOccMapUseOccData);
 			//allprodjps holds all jps in this example based on occurences that will be used in training; will not reference jps implied by opt-all records
 			buildJPListsAndSetBadExample();
-			//build date-based event occurrence struct (only 
 		}
 	}//finalize
 	

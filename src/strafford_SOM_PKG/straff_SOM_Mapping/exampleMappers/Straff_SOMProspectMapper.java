@@ -26,7 +26,7 @@ public abstract class Straff_SOMProspectMapper extends Straff_SOMExampleMapper {
 	@Override
 	public void loadAllPreProccedMapData(String subDir) {
 		//perform in multiple threads if possible
-		msgObj.dispMessage("Straff_SOMProspectMapper::"+exampleName,"loadAllPreProccedMapData","Loading all " + exampleName+ " map data that only have event-based training info from : " +subDir, MsgCodes.info5);//" + (eventsOnly ? "that only have event-based training info" : "that have any training info (including only prospect jpg/jp specification)"));
+		msgObj.dispMessage("Straff_SOMProspectMapper::"+exampleName,"loadAllPreProccedMapData","Loading all " + exampleName+ " map data that have event-based training info from : " +subDir, MsgCodes.info5);//" + (eventsOnly ? "that only have event-based training info" : "that have any training info (including only prospect jpg/jp specification)"));
 		//all data managed by this example mapper needs to be reset
 		reset();
 		//load data creation date time, if exists

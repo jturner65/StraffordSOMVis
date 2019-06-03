@@ -1,6 +1,7 @@
 package base_SOM_Objects.som_utils.segments;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentSkipListMap;
 
 import base_SOM_Objects.*;
 import base_SOM_Objects.som_examples.*;
@@ -18,7 +19,7 @@ public abstract class SOMMapSegment {
 	public final int ID;
 	private static int count=0;
 	//map nodes making up this segment, keyed by location in map
-	protected TreeMap<Tuple<Integer,Integer>, SOMMapNode> MapNodes;
+	protected ConcurrentSkipListMap<Tuple<Integer,Integer>, SOMMapNode> MapNodes;
 	//color to paint this segment
 	protected int[] segClr;
 	//color as int value
@@ -29,7 +30,7 @@ public abstract class SOMMapSegment {
 		mapMgr = _mapMgr; ID = count++;  
 		segClr = mapMgr.getRndClr(150);
 		segClrAsInt = ((segClr[3] & 0xff) << 24) + ((segClr[0] & 0xff) << 16)  + ((segClr[1] & 0xff) << 8) + (segClr[2] & 0xff);
-		MapNodes = new TreeMap<Tuple<Integer,Integer>, SOMMapNode>();
+		MapNodes = new ConcurrentSkipListMap<Tuple<Integer,Integer>, SOMMapNode>();
 	}//ctor
 	
 	//called internally by instancing class

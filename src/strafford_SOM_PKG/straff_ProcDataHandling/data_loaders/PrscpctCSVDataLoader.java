@@ -13,5 +13,5 @@ public class PrscpctCSVDataLoader extends SOMExCSVDataLoader{
 		super(_mapMgr, _thdIDX, _fileName, _yStr, _nStr, _mapToAddTo);type="prscpctCSVDataLoader";
 	}
 	@Override
-	protected SOMExample buildExample(String oid, String str) {return new TrueProspectExample(mapMgr, oid, str);}
+	protected synchronized SOMExample buildExample(String oid, String str) {return new TrueProspectExample(mapMgr, oid, str);}
 }//class prscpctCSVDataLoader

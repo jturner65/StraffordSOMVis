@@ -17,7 +17,6 @@ import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
  * @author john
  *
  */
-
 public abstract class ProspectExample extends Straff_SOMExample{
 	//prospect last lookup date, if any specified
 	public Date prs_LUDate;
@@ -39,6 +38,7 @@ public abstract class ProspectExample extends Straff_SOMExample{
 	protected HashSet<Tuple<Integer,Integer>> nonProdJpgJps; 
 	
 	//this object denotes a positive or non-positive opt-all event for a user (i.e. an opts occurrence with a jp of -9)
+	//this object is built from raw data by procJPOccForAllJps in StraffEvntRawToTrainData object
 	private JP_OccurrenceData posOptAllEventObj = null, negOptAllEventObj = null;
 	
 	//boolean that tells whether jpOcc struct is built or not; this is to prevent empty event data map structure from clobbering existing jpOcc map
@@ -159,15 +159,7 @@ public abstract class ProspectExample extends Straff_SOMExample{
 			//dispString += "\tallOccsData["+i+"] : " + allOccsData[i]+  " | occ obj : " + occ.toString() + "\n";
 		}			
 	}//buildJPOccTrainDataFromCSVStr
-	
-    //build occurence structure for type of events in this data, including aggregating build-later opt event data
-	private void _buildIndivOccStructs(String key, TreeMap<Date, TreeMap<Integer, StraffEvntRawToTrainData>> mapByDate, boolean usesOpt ) {
-		TreeMap<Integer, JP_OccurrenceData> occs = new TreeMap<Integer, JP_OccurrenceData>();
-		for (TreeMap<Integer, StraffEvntRawToTrainData> map : mapByDate.values()) {
-			for (StraffEvntRawToTrainData ev : map.values()) {ev.procJPOccForAllJps(this, occs, key,usesOpt,_numOptAllOccs);}			
-		}
-		JpOccurrences.put(key, occs);
-	}//_buildIndivOccStructs
+
 	//build occurence structures based on mappings - must be called once mappings are completed but before the features are built
 	//feature vec is built from occurrence structure
 	protected final void buildOccurrenceStructs(String[] eventMapTypeKeys, boolean[] jpOccMapUseOccData) { // should be executed when finished building all xxxEventsByDateMap(s)
@@ -175,9 +167,17 @@ public abstract class ProspectExample extends Straff_SOMExample{
 		JpOccurrences = new TreeMap<String, TreeMap<Integer, JP_OccurrenceData>> ();
 		//for orders and opts, pivot structure to build map holding occurrence records keyed by jp - must be done after all events are aggregated for each prospect
 		//for every date, for every event, aggregate occurences		
+		TreeMap<Date, TreeMap<Integer, StraffEvntRawToTrainData>> mapByDate;
 		for(int i=0;i<eventMapTypeKeys.length;++i) {
 			String key = eventMapTypeKeys[i];
-			_buildIndivOccStructs(key, eventsByDateMap.get(key), jpOccMapUseOccData[i]);	
+			mapByDate = eventsByDateMap.get(key);
+			TreeMap<Integer, JP_OccurrenceData> occs = new TreeMap<Integer, JP_OccurrenceData>();
+			for (TreeMap<Integer, StraffEvntRawToTrainData> map : mapByDate.values()) {
+				for (StraffEvntRawToTrainData ev : map.values()) {
+					ev.procJPOccForAllJps(this, occs, key,jpOccMapUseOccData[i],_numOptAllOccs);
+				}			
+			}
+			JpOccurrences.put(key, occs);	
 		}
 		//for (String key : eventMapTypeKeys) {_buildIndivOccStructs(key, eventsByDateMap.get(key));			}		
 	}//buildOccurrenceStructs
@@ -203,6 +203,7 @@ public abstract class ProspectExample extends Straff_SOMExample{
 		return res;
 	}//buildOrderCSVString
 	
+
 	///////////////////////////////////
 	// getters/setters	
 

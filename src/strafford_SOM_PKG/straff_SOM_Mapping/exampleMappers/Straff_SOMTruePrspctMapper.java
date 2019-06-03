@@ -6,7 +6,7 @@ import java.util.concurrent.Future;
 import base_SOM_Objects.SOMMapManager;
 import base_SOM_Objects.som_examples.SOMExample;
 import base_SOM_Objects.som_fileIO.SOMExCSVDataLoader;
-
+import base_Utils_Objects.MsgCodes;
 import strafford_SOM_PKG.straff_SOM_Mapping.*;
 import strafford_SOM_PKG.straff_ProcDataHandling.data_loaders.PrscpctCSVDataLoader;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.CustProspectExample;
@@ -54,7 +54,9 @@ public class Straff_SOMTruePrspctMapper extends Straff_SOMProspectMapper {
 	protected void buildMTLoader(String[] loadSrcFNamePrefixAra, int numPartitions) {
 		List<Future<Boolean>> preProcLoadFtrs = new ArrayList<Future<Boolean>>();
 		List<SOMExCSVDataLoader> preProcLoaders = new ArrayList<SOMExCSVDataLoader>();
+		msgObj.dispMessage("Straff_SOMTruePrspctMapper::"+exampleName,"buildMTLoader","Building " +numPartitions+" " + exampleName+ " data multi-threaded loaders.", MsgCodes.info5);
 		for (int i=0; i<numPartitions;++i) {	preProcLoaders.add(new PrscpctCSVDataLoader(mapMgr, i, loadSrcFNamePrefixAra[0]+"_"+i+".csv",  exampleName+ " Data file " + i +" of " +numPartitions +" loaded",  exampleName+ " Data File " + i +" of " +numPartitions +" Failed to load", exampleMap));}
+		msgObj.dispMessage("Straff_SOMTruePrspctMapper::"+exampleName,"buildMTLoader","Launching " +numPartitions+" " + exampleName+ " data multi-threaded loaders.", MsgCodes.info5);
 		try {preProcLoadFtrs = th_exec.invokeAll(preProcLoaders);for(Future<Boolean> f: preProcLoadFtrs) { 			f.get(); 		}} catch (Exception e) { e.printStackTrace(); }					
 	}//buildMTLoader
 	

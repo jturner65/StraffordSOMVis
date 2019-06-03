@@ -365,11 +365,11 @@ public abstract class SOMMapManager {
 	}
 	
 	//this will load the map into memory, bmus, umatrix, etc - this is necessary to consume map - this is done synchronously (not launched into another thread)
-	private void loadMapAndBMUs_Synch() {
-		msgObj.dispMessage("SOMMapManager","loadMapAndBMUs_Synch","Current projConfigData before dataLoader Call : " + projConfigData.toString(), MsgCodes.info1);
+	protected void loadMapAndBMUs_Synch() {
+		msgObj.dispMessage("SOMMapManager","loadMapAndBMUs_Synch","Building Mappings synchronously.", MsgCodes.info1);
 		SOMDataLoader ldr = new SOMDataLoader(this,projConfigData);//can be run in separate thread, but isn't here
 		ldr.run();		
-	}	
+	}//loadMapAndBMUs_Synch
 	
 	/**
 	 * Load a prebuilt map;
@@ -611,7 +611,7 @@ public abstract class SOMMapManager {
 	//set examples - either test data or validation data
 	protected void _setExamplesBMUs(SOMExample[] exData, String dataTypName, ExDataType dataType, int _rdyToSaveFlagIDX) {
 		msgObj.dispMessage("SOMMapManager","_setExamplesBMUs","Start Mapping " +exData.length + " "+dataTypName+" data to best matching units.", MsgCodes.info5);
-		if(testData.length > 0) {		
+		if(exData.length > 0) {		
 			//launch a MapTestDataToBMUs_Runner - keep in main thread to enable more proc threads
 			MapTestDataToBMUs_Runner rnr = new MapTestDataToBMUs_Runner(this, th_exec, exData, dataTypName, dataType, _rdyToSaveFlagIDX);	
 			rnr.run();

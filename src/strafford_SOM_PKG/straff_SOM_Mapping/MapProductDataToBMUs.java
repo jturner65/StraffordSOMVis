@@ -20,9 +20,9 @@ public class MapProductDataToBMUs extends MapDataToBMUs{
 	}	
 
 	/**
-	 * do we need to map to bmus?  Probably should map to class segments present in map nodes
+	 * map to bmus and segments
 	 */
-	//old mapping version
+	//NOTE only 1 example will be accessed per thread, so no possible concurrency issues will be caused by this code.  however, multiple mapnodes may be accessed
 	@Override
 	protected boolean mapAllDataToBMUs() {
 		//we want to map products to bmus

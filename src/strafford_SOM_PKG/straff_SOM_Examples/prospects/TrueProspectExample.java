@@ -99,7 +99,7 @@ public class TrueProspectExample extends ProspectExample{
 	//---maps event data to occurrence structs; builds allJPs list
 	//needs to have separate instances for customers and true prospects because they have different jpOccTypeKeys, jpOccMapUseOccData lists
 	@Override
-	public void finalizeBuildBeforeFtrCalc() {
+	public final void finalizeBuildBeforeFtrCalc() {
 		if(jpOccNotBuiltYet) {
 			buildOccurrenceStructs(jpOccTypeKeys, jpOccMapUseOccData);		
 			//allprodjps holds all jps in this example based on occurences that will be used in training; will not reference jps implied by opt-all records
@@ -114,7 +114,6 @@ public class TrueProspectExample extends ProspectExample{
 		else {ftrMaps[stdFtrMapTypeKey].clear();}
 		setFlag(stdFtrsBuiltIDX,true);
 	}//buildStdFtrsMap
-
 	
 	//this will return the training label(s) of this example - true prospects by definition do not have any labels - no past orders
 	//they should not be used for supervision during/after training

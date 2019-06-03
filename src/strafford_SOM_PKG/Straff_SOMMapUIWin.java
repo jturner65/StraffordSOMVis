@@ -83,7 +83,7 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 	public String[][] menuBtnNames = new String[][] {	//each must have literals for every button defined in side bar menu, or ignored
 		{"Load All Raw ---", "Func 01","Recalc Features"},	//row 1
 		{"Train Data","True Prspcts", "Prods", "SOM Cfg"},	//row 2
-		{"All/Bld Map","All->Map", "Func 22", "Prblt Map"},	//row 3
+		{"Train->Bld Map","Map&All Data", "Func 22", "Prblt Map"},	//row 3
 		{"Raw","Proced","JpJpg","MapDat","Dbg 5"}	
 	};
 
@@ -260,7 +260,6 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 			{0.0, uiRawDataSourceList.length-1, 1},			//uiRawDataSourceIDX
 			{0.0, 100, 1.0},			//uiFtrJPGToDispIDX		
 			{0.0, 260, 1.0},			//uiFtrJPToDispIDX	
-//		    {0.0, 100, 1.0},			//uiAllJpgSeenToDispIDX	
 			{0.0, 260, 1.0},			//uiAllJpSeenToDispIDX	
 			{0.0, 2, .01},				//uiProdZoneDistThreshIDX	
 		};					
@@ -268,7 +267,6 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 			0,		//uiRawDataSourceIDX
 			0,      //uiFtrJPGToDispIDX		
 			0,     	//uiFtrJPToDispIDX	
-//			0,		//uiAllJpgSeenToDispIDX	
 			0,     	//uiAllJpSeenToDispIDX	
 			0.99,	//uiProdZoneDistThreshIDX
 		};								//starting value
@@ -276,7 +274,6 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 			"Raw Data Source", 			//uiRawDataSourceIDX
 			"JPGrp Ftrs Shown",     	//uiFtrJPGToDispIDX		
 			"JP Ftr Shown", 			//uiFtrJPToDispIDX		
-//			"All JPGrp to Show",   		//uiAllJpgSeenToDispIDX	
 			"All JP to Show",   		//uiAllJpSeenToDispIDX	
 			"Prod Max Sq Dist",			//uiProdZoneDistThreshIDX			
 		};			//name/label of component	
@@ -286,7 +283,6 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 			{true, true, true},			//uiRawDataSourceIDX
 			{true, true, true},			//uiFtrJPGToDispIDX		
 			{true, true, true},			//uiFtrJPToDispIDX		
-//			{true, true, true},			//uiAllJpgSeenToDispIDX	
 			{true, true, true},			//uiAllJpSeenToDispIDX	
 			{false, false, true}, 		//uiProdZoneDistThreshIDX
 		};						//per-object  list of boolean flags
@@ -303,7 +299,6 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 			case uiRawDataSourceIDX 			: {return uiRawDataSourceList[validx % uiRawDataSourceList.length];}
 			case uiFtrJPGToDispIDX				: {return ((Straff_SOMMapManager) mapMgr).getFtrJpGrpStrByIdx(validx); 	}	
 			case uiFtrJPToDispIDX				: {return ((Straff_SOMMapManager) mapMgr).getFtrJpStrByIdx(validx); 	}	
-			//case uiAllJpgSeenToDispIDX			: {return ((StraffSOMMapManager) mapMgr).getAllJpGrpByIdxStr(validx); 		}	
 			case uiAllJpSeenToDispIDX			: {return ((Straff_SOMMapManager) mapMgr).getAllJpStrByIdx(validx); 		}	
 		}
 		return "";
@@ -379,35 +374,9 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 				//msgObj.dispInfoMessage("SOM WIN","setUIWinVals::uiFtrJPToDispIDX", "End : settingJPGFromJp : "+settingJPGFromJp+" | settingProdJPGFromJp : "+settingProdJPGFromJp+" | settingJPFromJPG : "+settingJPFromJPG+" | settingProdJPFromJPG : "+settingProdJPFromJPG);
 				//msgObj.dispMessage("mySOMMapUIWin","setUIWinVals","uiJPToDispIDX : Setting UI JP Map to display to be idx :" + curMapImgIDX + " Corresponding to JP : " + mapMgr.getJpByIdxStr(curMapImgIDX) );					
 				break;}
-			
-//			case uiAllJpgSeenToDispIDX		: {
-//				if(!settingProdJPGFromJp) {
-//					int curJPIdxVal = (int)guiObjs[uiAllJpSeenToDispIDX].getVal();
-//					int jpIdxToSet = ((StraffSOMMapManager) mapMgr).getUI_FirstJPIdxFromAllJPG((int)guiObjs[uiAllJpgSeenToDispIDX].getVal(), curJPIdxVal);
-//					//msgObj.dispInfoMessage("SOM WIN","setUIWinVals:uiJPGToDispIDX", "Attempt to modify uiJPToDispIDX : curJPVal : "  +curJPVal + " | jpToSet : " + jpToSet, MsgCodes.info1);
-//					if(curJPIdxVal != jpIdxToSet) {
-//						settingProdJPFromJPG = true;
-//						guiObjs[uiAllJpSeenToDispIDX].setVal(jpIdxToSet);	
-//						setUIWinValsIndiv(uiAllJpSeenToDispIDX);
-//						uiVals[uiAllJpSeenToDispIDX] =guiObjs[uiAllJpSeenToDispIDX].getVal();
-//						settingProdJPFromJPG = false;
-//					}
-//				}
-//				break;}			
+	
 			case uiAllJpSeenToDispIDX		: {
 				curAllJPToShowIDX = (int)guiObjs[uiAllJpSeenToDispIDX].getVal();
-//				if(!settingProdJPFromJPG) {
-//					int curJPGIdxVal = (int)guiObjs[uiAllJpgSeenToDispIDX].getVal();
-//					int jpgIdxToSet = ((StraffSOMMapManager) mapMgr).getUI_JPGrpFromAllJP(curAllJPToShowIDX, curJPGIdxVal);
-//					//msgObj.dispInfoMessage("SOM WIN","setUIWinVals::uiJPToDispIDX", "Attempt to modify uiJPGToDispIDX : cur JPG val : "+ curJPGVal + " | jpgToSet : " + jpgToSet, MsgCodes.info1);	
-//					if(curJPGIdxVal != jpgIdxToSet) {
-//						settingProdJPGFromJp = true;
-//						guiObjs[uiAllJpgSeenToDispIDX].setVal(jpgIdxToSet);
-//						setUIWinValsIndiv(uiAllJpgSeenToDispIDX);
-//						uiVals[uiAllJpgSeenToDispIDX] =guiObjs[uiAllJpgSeenToDispIDX].getVal();
-//						settingProdJPGFromJp = false;
-//					}
-//				}
 				break;}	
 			case uiProdZoneDistThreshIDX : {//max distance for a node to be considered a part of a product's "region" of influence		
 				prodZoneDistThresh = this.guiObjs[uiProdZoneDistThreshIDX].getVal();			
@@ -591,6 +560,7 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 					resetButtonState();
 					break;}
 				case 1 : {	
+					((Straff_SOMMapManager) mapMgr).loadAllDataAndBuildMappings();
 					resetButtonState();
 					break;}
 				case 2 : {	

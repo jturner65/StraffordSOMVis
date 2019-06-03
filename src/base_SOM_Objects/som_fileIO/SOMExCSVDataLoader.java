@@ -29,6 +29,7 @@ public abstract class SOMExCSVDataLoader implements Callable<Boolean>{
 	
 	@Override
 	public Boolean call() throws Exception {	
+		msgObj.dispMessage("SOMExCSVDataLoader", type+": call thd : " +String.format("%02d", thdIDX),"Start loading file :"+fileName, MsgCodes.info1);	
 		String[] csvLoadRes = fileIO.loadFileIntoStringAra(fileName, dispYesStr, dispNoStr);
 		//ignore first entry - header
 		for (int j=1;j<csvLoadRes.length; ++j) {
@@ -40,6 +41,7 @@ public abstract class SOMExCSVDataLoader implements Callable<Boolean>{
 			SOMExample oldEx = mapToAddTo.put(ex.OID, ex);	//mapMgr.prospectMap.put(ex.OID, ex);	
 			if(oldEx != null) {msgObj.dispMessage("SOMExCSVDataLoader", type+": call thd : " +String.format("%02d", thdIDX), "ERROR : "+thdIDX+" : Attempt to add duplicate record to prospectMap w/OID : " + oid, MsgCodes.error2);	}
 		}		
+		msgObj.dispMessage("SOMExCSVDataLoader", type+": call thd : " +String.format("%02d", thdIDX),"Finished loading file :"+fileName, MsgCodes.info1);	
 		return true;
 	}	
 }//class SOMExCSVDataLoader

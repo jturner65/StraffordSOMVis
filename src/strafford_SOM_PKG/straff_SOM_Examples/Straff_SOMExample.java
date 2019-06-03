@@ -51,9 +51,6 @@ public abstract class Straff_SOMExample extends SOMExample{
 	protected TreeMap<Integer, Float>[] compValFtrDataMaps;
 	public float compValFtrDataMapMag = 0.0f;
 	
-
-	//idxs corresponding to types of events
-	
 	public Straff_SOMExample(SOMMapManager _map, ExDataType _type, String _id) {
 		super(_map, _type, _id);
 		jpJpgMon = ((Straff_SOMMapManager) mapMgr).jpJpgrpMon;

@@ -14,6 +14,6 @@ public class CustCSVDataLoader extends SOMExCSVDataLoader{
 		super(_mapMgr, _thdIDX, _fileName, _yStr, _nStr, _mapToAddTo);type="custCSVDataLoader";
 	}
 	@Override
-	protected SOMExample buildExample(String oid, String str) {return new CustProspectExample(mapMgr, oid, str);}
+	protected synchronized SOMExample buildExample(String oid, String str) {return new CustProspectExample(mapMgr, oid, str);}
 	
 }//custCSVDataLoader

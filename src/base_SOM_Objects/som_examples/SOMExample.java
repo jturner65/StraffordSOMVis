@@ -134,21 +134,21 @@ public abstract class SOMExample extends baseDataPtVis{
 	}
 	
 	//mapped segments for this example
-	public void addFtrSegment(int idx, SOMMapSegment seg) {		ftrWtSegData.put(idx, seg);}
-	public void addClassSegment(int idx, SOMMapSegment seg) {		class_SegData.put(idx, seg);}
-	public void addCategorySegment(int idx, SOMMapSegment seg) {	categorys_SegData.put(idx, seg);}
+	public synchronized void addFtrSegment(int idx, SOMMapSegment seg) {		ftrWtSegData.put(idx, seg);}
+	public synchronized void addClassSegment(int idx, SOMMapSegment seg) {		class_SegData.put(idx, seg);}
+	public synchronized void addCategorySegment(int idx, SOMMapSegment seg) {	categorys_SegData.put(idx, seg);}
 	
-	public SOMMapSegment getFtrSegment(int idx) {		return ftrWtSegData.get(idx);}
-	public SOMMapSegment getClassSegment(int idx) {		return class_SegData.get(idx);}
-	public SOMMapSegment getCategorySegment(int idx) {		return categorys_SegData.get(idx);}
+	public synchronized SOMMapSegment getFtrSegment(int idx) {		return ftrWtSegData.get(idx);}
+	public synchronized SOMMapSegment getClassSegment(int idx) {		return class_SegData.get(idx);}
+	public synchronized SOMMapSegment getCategorySegment(int idx) {		return categorys_SegData.get(idx);}
 
 
 	//clear instead of reinstance - if ftr maps are cleared then compFtrMaps should be cleared as well
-	protected void clearAllFtrMaps() {for (int i=0;i<ftrMaps.length;++i) {	clearFtrMap(i);}}	
-	protected void clearFtrMap(int idx) {ftrMaps[idx].clear(); clearCompFtrMap(idx);}
+	protected synchronized void clearAllFtrMaps() {for (int i=0;i<ftrMaps.length;++i) {	clearFtrMap(i);}}	
+	protected synchronized void clearFtrMap(int idx) {ftrMaps[idx].clear(); clearCompFtrMap(idx);}
 	//clear instead of reinstance
-	protected void clearAllCompFtrMaps() {for (int i=0;i<compFtrMaps.length;++i) {	clearCompFtrMap(i);}}
-	protected void clearCompFtrMap(int idx) {compFtrMaps[idx].clear();}
+	protected synchronized void clearAllCompFtrMaps() {for (int i=0;i<compFtrMaps.length;++i) {	clearCompFtrMap(i);}}
+	protected synchronized void clearCompFtrMap(int idx) {compFtrMaps[idx].clear();}
 
 	//build feature vector
 	protected abstract void buildFeaturesMap();	
@@ -596,22 +596,6 @@ public abstract class SOMExample extends baseDataPtVis{
 	public abstract TreeMap<Integer,Integer> getTrainingLabels();	
 	
 	/**
-	 * relevant map nodes are nodes with non-zero values in 1 or more of the ftrs this example also has non-zero values in
-	 * @param _RelevantMapNodes : pre-allocated empty set of map nodes that are relevant by direct feature membership
-	 * @param _RelevantMapNodesByFtrGroup : pre-allocated empty set of map nodes that are relevant by having weight in features that belong to some app-specific grouping of features that this node also has weight in
-	 * @param _MapNodesByFtr : map of all nodes keyed by feature index containing non-zero index
-	 * @return set of nodes that have non-zero values in features this node also has non-zero values in
-	 */
-	private final void buildRelevantMapNodes(HashSet<SOMMapNode> _RelevantMapNodes, Set<Integer> nonZeroFtrIDXs, TreeMap<Integer, HashSet<SOMMapNode>> _MapNodesByFtr){
-		//query _MapNodesByFtr by all non-zero features in this map
-		for(Integer idx : nonZeroFtrIDXs) {
-			HashSet<SOMMapNode> nodesWithNonZeroFtrs = _MapNodesByFtr.get(idx);
-			if(null==nodesWithNonZeroFtrs) {continue;}
-			for(SOMMapNode node : nodesWithNonZeroFtrs) {		_RelevantMapNodes.add(node);}
-		}		
-	}//buildRelevantMapNodes
-
-	/**
 	 *  this will build the comparison feature vector array that is used as the comparison vector 
 	 *  in distance measurements - for most cases this will just be a copy of the ftr vector array
 	 *  but in some instances, there might be an alternate vector to be used to handle when, for 
@@ -678,6 +662,23 @@ public abstract class SOMExample extends baseDataPtVis{
 //		buildNghbrhdMapNodes( _ftrType, _distFunc);	
 //		return mapNodesByDist;
 //	}//findBMUFromNodes 
+	/**
+	 * relevant map nodes are nodes with non-zero values in 1 or more of the ftrs this example also has non-zero values in
+	 * @param _RelevantMapNodes : pre-allocated empty set of map nodes that are relevant by direct feature membership
+	 * @param _RelevantMapNodesByFtrGroup : pre-allocated empty set of map nodes that are relevant by having weight in features that belong to some app-specific grouping of features that this node also has weight in
+	 * @param _MapNodesByFtr : map of all nodes keyed by feature index containing non-zero index
+	 * @return set of nodes that have non-zero values in features this node also has non-zero values in
+	 */
+	private final void buildRelevantMapNodes(HashSet<SOMMapNode> _RelevantMapNodes, Set<Integer> nonZeroFtrIDXs, TreeMap<Integer, HashSet<SOMMapNode>> _MapNodesByFtr){
+		//query _MapNodesByFtr by all non-zero features in this map
+		HashSet<SOMMapNode> nodesWithNonZeroFtrs;
+		for(Integer idx : nonZeroFtrIDXs) {
+			nodesWithNonZeroFtrs = _MapNodesByFtr.get(idx);
+			if(null==nodesWithNonZeroFtrs) {continue;}
+			for(SOMMapNode node : nodesWithNonZeroFtrs) {		_RelevantMapNodes.add(node);}
+		}		
+	}//buildRelevantMapNodes
+
 	
 	/**
 	 * returns a map keyed by distance with values being a list of nodes at key distance
@@ -702,6 +703,7 @@ public abstract class SOMExample extends baseDataPtVis{
 	}//findMapNodesByDist
 	/**
 	 * returns the entry in a distance-keyed map of lists of nodes for the list of 1 or more nodes that have the least distance
+	 * Should not be called in a multi-threaded context
 	 * @param _MapNodesByFtr : map of all mapnodes keyed by feature idx with non-zero features
 	 * @param _distFunc : function to use to calculate distance
 	 * @param _ftrType : kind of features (unmod, normed, stdized) to be used for comparison/distance calc
@@ -723,7 +725,7 @@ public abstract class SOMExample extends baseDataPtVis{
 	 * @param _ftrType : kind of features (unmod, normed, stdized) to be used for comparison/distance calc
 	 * @return
 	 */
-	public final TreeMap<Double, ArrayList<SOMMapNode>> findBMUFromFtrNodes(TreeMap<Integer, HashSet<SOMMapNode>> _MapNodesByFtr,  BiFunction<TreeMap<Integer, Float>, TreeMap<Integer, Float>, Double> _distFunc, int _ftrType) {
+	public synchronized final TreeMap<Double, ArrayList<SOMMapNode>> findBMUFromFtrNodes(TreeMap<Integer, HashSet<SOMMapNode>> _MapNodesByFtr,  BiFunction<TreeMap<Integer, Float>, TreeMap<Integer, Float>, Double> _distFunc, int _ftrType) {
 		TreeMap<Double, ArrayList<SOMMapNode>> mapNodesByDist = findMapNodesByDist(_MapNodesByFtr,_distFunc, _ftrType );
 		//handle if this node has no ftrs that map directly to map node ftrs - perhaps similarity groupings exist to build mappings from
 		//buildMapNodeDistsFromGroupings(mapNodesByDist, _MapNodesByFtr);

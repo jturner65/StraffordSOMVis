@@ -178,7 +178,6 @@ public class MonitorJpJpgrp {
 	
 	public Integer[] getTrainJpByIDXAra() {return trainingJpJpgData.getJpByIDXAra();}
 	public Integer[] getTrainJpgrpByIDXAra() {return trainingJpJpgData.getJpgrpByIDXAra();}
-
 	
 	//get set of jps for passed jpgroup in prod data
 	public TreeSet<Integer> getProdJPsforSpecifiedJpgrp(int jpg){
@@ -526,8 +525,7 @@ abstract class JP_JPG_Data{
 		for(int i=0;i<jpByIdx.length-1;++i) {res+=jpByIdx[i]+",";}
 		res+=jpByIdx[jpByIdx.length-1];
 		return res;
-	}
-	
+	}	
 	
 	public int getLenJpByIdx() {		return jpByIdx.length;	}//# of jps seen
 	public int getLenJpGrpByIdx(){	return jpGrpByIdx.length; }//# of jpgrps seen
