@@ -12,7 +12,7 @@ import base_Utils_Objects.*;
 
 //structure to hold all the file names, file configurations and general program configurations required to run the SOM project
 //will manage that all file names need to be reset when any are changed
-public class SOMProjConfigData {
+public abstract class SOMProjConfigData {
 	//owning map manager
 	protected SOMMapManager mapMgr;
 	//object to manage screen and log output
@@ -24,68 +24,48 @@ public class SOMProjConfigData {
 	
 	//string delimiter defining a comment in a file
 	public static final String fileComment = "#";
-	
-	//this is redundant TODO merge the use of this with SOMFileNamesAra
-//	private String[] fnames; 
-//	private static final int numFiles = 5;		
 		
 	//TODO these are a function of data stucture, so should be set via config file
 	protected boolean useSparseTrainingData, useSparseTestingData;
 	
 	//fileNow date string array for most recent experiment
-	private String[] dateTimeStrAra;
+	protected String[] dateTimeStrAra;
 
 	//test/train partition - ratio of # of training data points to total # of data points 0->1.0f
-	private float trainTestPartition = 1.0f;	
+	protected float trainTestPartition = 1.0f;	
 	//current experiment # of samples total, train partition and test partition
-	private int expNumSmpls, expNumTrain, expNumTest;
+	protected int expNumSmpls, expNumTrain, expNumTest;
 	//current type of data used to train map - unmodified features, normalized features (ftr vec sums to 1) or standardized features (normalized across all data examples per ftr)
-	private String dataType;
+	protected String dataType;
 	
 	//calendar object to be used to query instancing time
-	private final Calendar instancedNow;
+	protected final Calendar instancedNow;
 	//os used by project - this is passed from map
-	private final String OSUsed;
+	protected final String OSUsed;
 	//whether current OS supports ansi terminal color settings
 	public static boolean supportsANSITerm = false;
 	
 	//file name of project config file - these should not be changed 
-	private static final String projectConfigFile = "projectConfig.txt";
+	protected static final String projectConfigFile = "projectConfig.txt";
 	//file name of experimental config for a particular experiment
-	private static final String expProjConfigFileName = "SOM_EXEC_Proj_Config.txt";
+	protected static final String expProjConfigFileName = "SOM_EXEC_Proj_Config.txt";
 	
 	//fully qualified source directory for reading all source csv files, writing intermediate outputs, executing SOM_MAP and writing results
-	private String SOM_QualifiedDataDir, SOM_QualifiedConfigDir;	
+	protected String SOM_QualifiedDataDir, SOM_QualifiedConfigDir;	
 	//name of som executable without extension or path info, if any
-	private String SOMExeName_base;
+	protected String SOMExeName_base;
 	//short name to be used in file names to denote this project; first letter capitalized project name
-	private String SOMProjName, SOMProjNameCap;
+	protected String SOMProjName, SOMProjNameCap;
 	
 	//string to invoke som executable - platform dependent
-	private final String SOM_Map_EXECSTR;
+	protected final String SOM_Map_EXECSTR;
 
 	// config file names; file IO/subdirectory locations
-	private HashMap<String,String> configFileNames, subDirLocs;
+	protected HashMap<String,String> configFileNames, subDirLocs;
 	
 	//directory under SOM where prebuilt map resides that is desired to be loaded into UI - replaces dbg files - set in project config file
-	private String preBuiltMapDir;
+	protected String preBuiltMapDir;
 	
-	//type of event membership that defines a prospect as a customer and as a true prospect (generally will be cust has order event, prospect doesnt)
-	private int custTruePrsTypeEvents;
-
-	//boolean flags
-//	private int[] stFlags;						//state flags - bits in array holding relevant process info
-//	private static final int 
-//		trainDatFNameIDX	= 0,				//training data file name has been set
-//		somResFPrfxIDX		= 1,				//som results file prefix has been set
-//		diffsFNameIDX		= 2,				//file name holding per-ftr max-min differences in training data
-//		minsFNameIDX		= 3,				//file name holding per ftr mins in training data
-//		csvSavFNameIDX		= 4,				//file name prefix holding class saving file prefixs
-//		isDirty				= 5,				//current fnames is dirty - not all files are in sync
-//		outputSffxSetIDX	= 6;				//output suffix has been set to match current experimental parameters
-//	private static final int numFlags = 7;		
-	
-
 	public static final String[] SOMResExtAra = new String[]{".wts", ".bm",".umx"};			//extensions for different SOM output file types
 	//idxs of different kinds of SOM output files
 	public static final int
@@ -94,7 +74,7 @@ public class SOMProjConfigData {
 		umtxIDX = 2;	
 	//all flags corresponding to file names required to run SOM
 	//private int[] reqFileNameFlags = new int[]{trainDatFNameIDX, somResFPrfxIDX, diffsFNameIDX, minsFNameIDX, csvSavFNameIDX};
-	private String[] reqFileNames = new String[]{"trainDatFNameIDX", "somResFPrfxIDX", "diffsFNameIDX", "minsFNameIDX", "csvSavFNameIDX"};
+	//private String[] reqFileNames = new String[]{"trainDatFNameIDX", "somResFPrfxIDX", "diffsFNameIDX", "minsFNameIDX", "csvSavFNameIDX"};
 	//
 	private String[] SOMFileNamesAra;
 	//indexes in fname array of individual file names/file name prefixes
@@ -154,7 +134,29 @@ public class SOMProjConfigData {
 		loadDefaultSOMExp_Config();
 		
 		dateTimeStrAra = getDateTimeString(false, "_");
+		dispSpecifiedSubDirs();
+		dispSpecifiedConfigFNames();
 	}//ctor
+	
+	/**
+	 * display to screen all specified subdirectory and config file variable names and their values
+	 */
+	private void dispSpecifiedSubDirs() {
+		String res = "Variables specified in Project config for subdirectory Locations.";
+		for(String key : subDirLocs.keySet()) {	res+=" Variable Name : " +key+" | Value : " + subDirLocs.get(key) + "\n";	}	
+		msgObj.dispMultiLineInfoMessage("SOMProjConfigData", "ctor->dispSpecifiedSubDirs", res);
+	}//dispSpecifiedSubDirs
+	
+	/**
+	 * display to screen all specified subdirectory and config file variable names and their values
+	 */
+	private void dispSpecifiedConfigFNames() {
+		String res = "Variables specified in Project config for config file names.";
+		for(String key : configFileNames.keySet()) {	res+=" Variable Name : " +key+" | Value : " + configFileNames.get(key) + "\n";	}		
+		msgObj.dispMultiLineInfoMessage("SOMProjConfigData", "ctor->dispSpecifiedConfigFNames", res);
+	}//dispSpecifiedSubDirsAndFNames
+	
+
 
 	private String buildQualifiedBaseDir(String _dir, String _type) {
 		String qualifiedDir = "";
@@ -222,20 +224,28 @@ public class SOMProjConfigData {
 			if((s.contains(fileComment)) || (s.trim().length() == 0)){++stIDX; continue;}
 			String[] tkns = s.trim().split(SOMMapManager.csvFileToken);
 			String val = tkns[1].trim().replace("\"", "");
-			switch (tkns[0].trim()) {
+			String varName = tkns[0].trim();
+			switch (varName) {
 				case "preBuiltMapDir" : 		{	preBuiltMapDir = val + File.separator; break;}
-				case "custTruePrsTypeEvents": 	{	custTruePrsTypeEvents = Integer.parseInt(val);		break;}
 				case "SOMExeName_base" : 		{	SOMExeName_base = val;		break;}
 				case "SOMProjName" : 			{	SOMProjName = val;	SOMProjNameCap = val.substring(0, 1).toUpperCase() + val.substring(1);	break;}
 				case "useSparseTrainingData" : {	useSparseTrainingData = Boolean.parseBoolean(val.toLowerCase());  break;}
 				case "useSparseTestingData" : {		useSparseTestingData = Boolean.parseBoolean(val.toLowerCase());  break;}
-				//add more variables here - use string rep of name in config file, followed by a comma, followed by the string value (may include 2xquotes (") around string;) then can add more cases here
+				//add more variables here in instancing class - use string rep of name in config file, followed by a comma, followed by the string value (may include 2xquotes (") around string;) then can add more cases here
+				default	 					:{_loadIndivConfigVarsPriv(varName,val);}
 			}	
 			++stIDX;
 		}
 		return -1;			
-	}//_loadIndivConfigVars
+	}//_loadIndivConfigVars	
+	protected abstract void _loadIndivConfigVarsPriv(String varName, String val);
 	
+	
+	/**
+	 * build file names of raw data csv files - search each specified directory and return all csv files listed
+	 * @param dataDirNames
+	 * @return
+	 */
 	public TreeMap<String, String[]> buildRawFileNameMap(String[] dataDirNames) {
 		msgObj.dispMessage("SOMProjConfigData","buildFileNameMap","Begin building list of raw data file names for each type of data.", MsgCodes.info3);
 		TreeMap<String, String[]> rawDataFileNames = new TreeMap<String, String[]>();
@@ -265,9 +275,6 @@ public class SOMProjConfigData {
 	
 	//public MessageObject buildMsgObj() {return new MessageObject(msgObj);}
 	public MessageObject buildMsgObj() {return MessageObject.buildMe();}
-	
-	//return int representing type of events that should be used to define a prospect as a customer (generally has a order event in history) and a true prospect (lacks orders but has sources)
-	public int getTypeOfEventsForCustAndProspect(){		return custTruePrsTypeEvents;}//getTypeOfEventsForCustAndProspect()
 	
 	//this will save all essential information for a SOM-based experimental run, to make duplication of experiment easier
 	//Info saved : SOM_MapData; 
@@ -466,10 +473,9 @@ public class SOMProjConfigData {
 	}//updateMapDat_String
 	
 	
-	
 	//build a date with each component separated by token
-	private String[] getDateTimeString(){return getDateTimeString(false,".");}
-	private String[] getDateTimeString(boolean toSecond, String token){
+	protected String[] getDateTimeString(){return getDateTimeString(false,".");}
+	protected String[] getDateTimeString(boolean toSecond, String token){
 		Calendar now = instancedNow;
 		String res, resWithYear="", resWithoutYear="";
 		int val;
@@ -501,8 +507,7 @@ public class SOMProjConfigData {
 		//setSOM_ExpFileNames( fileNow, nowDir);		
 		setSOM_ExpFileNames( fileNow, nowSubDirNoSep);		//lacking hardcoded ref to 	subDirLocs.get("SOM_MapProc") 
 		msgObj.dispMessage("SOMProjConfigData","setSOM_ExpFileNames","Finished setting file names and example counts", MsgCodes.info5);
-	}//setSOM_ExpFileNames
-	
+	}//setSOM_ExpFileNames	
 			
 	//file names used specifically for SOM data
 	private void setSOM_ExpFileNames(String fileNow, String nowDir){
@@ -549,22 +554,29 @@ public class SOMProjConfigData {
 	public String getSOMMapConfigFileName() {return getCurrSOMFullSubDir()+ SOMFileNamesAra[fName_SOMMapConfig_IDX];	}	
 	//ref to file name for data and project configuration relevant for current SOM execution
 	public String getProjConfigForSOMExeFileName() {return getCurrSOMFullSubDir()+ SOMFileNamesAra[fName_EXECProjConfig_IDX];	}	
-	//ref to file name for human readable report 
-	//return subdirectory to use to write results for product with passed OID
-	public String getPerProdOutSubDirName(String fullBaseDir,  String OID) {return getDirNameAndBuild(fullBaseDir, OID+File.separator, true);}
-	public String getFullProdOutMapperBaseDir(String sfx) {
-		String [] tmpNow = getDateTimeString(false, "_");
-		return getDirNameAndBuild(subDirLocs.get("SOM_ProdSuggest") + "PerProdMaps_"+sfx+"_"+ tmpNow[1] + "_data_" +dateTimeStrAra[0]+File.separator, true);}
-	
+
 	//log file name
 	public String getFullLogFileNameString() {
 		String [] tmpNow = getDateTimeString(false, "_");
 		String logDirName= getDirNameAndBuild(subDirLocs.get("SOM_Logs") + "log_"+tmpNow[1] +File.separator, false);
 		return logDirName + "SOM_Run_Log.txt";
 	}
-	//these file names are specified above but may be modified/set via a config file in future
-	public String getFullCalcInfoFileName(){ return SOM_QualifiedConfigDir + configFileNames.get("calcWtFileName");}
-	public String getFullProdOutMapperInfoFileName(){ return SOM_QualifiedConfigDir + configFileNames.get("reqProdConfigFileName");}
+	
+	/**
+	 * this will return the fully qualified path to the file in a sub directory in SOM_QualifiedConfigDir 
+	 * specified in fNameKey - subDirs contains sub directories to query under SOM_QualifiedConfigDir 
+	 * 
+	 * This is intended to be consumed by the instancing class to call directories specific to the instancing application
+	 * 
+	 * @param fNameKey the key in the configFileNames dir containing the file name in question
+	 * @param subDirs array of keys of subdirectory names under SOM_QualifiedConfigDir to use to build directory
+	 * @return fully qualified path to specified config file name
+	 */
+	protected String getFullPathConfigFileName(String fNameKey, String[] subDirs) {
+		String resDir = SOM_QualifiedConfigDir;
+		for(int i=0;i<subDirs.length;++i) {	resDir += subDirLocs.get(subDirs[i]) + File.separator;	}
+		return resDir + configFileNames.get(fNameKey);
+	}//getFullPathConfigFileName	
 	
 	/**
 	 * this loads prebuilt map configurations
@@ -579,60 +591,72 @@ public class SOMProjConfigData {
 		loadSOMMap_Config();
 		//structure holding SOM_MAP specific cmd line args and file names and such
 		SOMExeDat.updateMapDescriptorState();
-		//now config flags before we launch loader to load results from SOM and map values
-		mapMgr.setLoaderRtnFalse();			
+		//now set flag to false before we launch loader to load results from SOM and map values
+		mapMgr.setLoaderRTN(false);			
 	}//setSOM_UsePreBuilt
 	
 	public String SOM_MapDat_ToString() {return SOMExeDat.toString();}
 	
-	//get location for raw data files
-	//baseDirName : directory/file type name
-	//baseFName : specific file base name (without extension) - will be same as baseDirName unless multiple files for specific file type were necessary for raw data due to size of data set
-	public String getRawDataLoadInfo(boolean fromFiles, String baseDirName, String baseFName) {
-		String dataLocStrData = "";
-		if (fromFiles) {
-			dataLocStrData = SOM_QualifiedDataDir + subDirLocs.get("SOM_SourceCSV") + baseDirName + File.separator + baseFName+".csv";
-		} else {//SQL connection configuration needs to be determined/designed
-			dataLocStrData = SOM_QualifiedDataDir + subDirLocs.get("SOM_SQLProc") + "sqlConnData_"+baseDirName+".csv";
-			msgObj.dispMessage("SOMProjConfigData","getLoadRawDataStrs","Need to construct appropriate sql connection info and put in text config file : " + dataLocStrData, MsgCodes.warning2);
-		}
-		return dataLocStrData;
-	}//getRawDataLoadInfo
-	
+	public abstract String getRawDataLoadInfo(boolean fromFiles, String baseDirName, String baseFName); 
 	//return the subdirectory under subDirLocs.get("SOM_PreProc")) to the desired preprocessed data to use to train/compare to the map
 	//TODO perhaps replace this with info from global project config data ?
 	//keeping as "default" right now to keep raw data processing output and map training data reading in separate directories
-	public String getPreProcDataDesiredSubDirName() {	return "default" + File.separator;	}
-	
+	public String getPreProcDataDesiredSubDirName() {	return getPreProcDataDesToMapSubDirName(true);	}	
 	//return desired subdirectory to use to get custs and true prospects data for mapping
-	public String getPreProcDataDesToMapSubDirName() { return subDirLocs.get("SOM_MapPrspctSrc");}
+	public String getPreProcDataDesToMapSubDirName(boolean _forceDefault) { return getDesExCSVDataSubDir("SOM_PreProc","SOM_PreProcPrspctSrc",  _forceDefault);}
 	
-	//build prospect data directory structures based on current date
-	public String[] buildProccedDataCSVFNames(String _desSuffix) {
-		String[] dateTimeStrAra = getDateTimeString(false, "_");
-		String subDir = "preprocData_" + dateTimeStrAra[0] + File.separator;
-		return _buildDataCSVFNames(getDirNameAndBuild(subDirLocs.get("SOM_PreProc"), true),subDir, _desSuffix);
-	}//buildPrspctDataCSVFNames
+	//build pre-processed data directory structures based on current date - this is for saving pre-processed data
+	public String[] buildPreProccedDataCSVFNames_Save(String _desSuffix) {	return buildCSVFileNamesAra("preprocData_" + getDateTimeString(false, "_")[0] + File.separator, _desSuffix,"SOM_PreProc");}
+	/**
+	 * Build the file names for the csv files used to load intermediate data - raw data that has been preprocced - this returns the directory we wish to load from
+	 * @param subDir sub directory to load from
+	 * @param _desSuffix text string describing file type
+	 * @return array with 3 elements holding [destination file name, _desSuffix (being returned), rootDestDir]
+	 */
+	public String[] buildPreProccedDataCSVFNames_Load(String subDir, String _desSuffix) {return buildCSVFileNamesAra(subDir, _desSuffix,"SOM_PreProc");}
 	
-	//public 
-	
-	//build the file names for the csv files used to save intermediate data - raw data that has been partially preprocessed
-	//subdir is just sub directory within root project directory;
-	//_desSuffix is text suffix describing file type
-	public String[] buildProccedDataCSVFNames(String subDir, String _desSuffix) {
-		//build root preproc data dir if doesn't exist
-		return _buildDataCSVFNames(getDirNameAndBuild(subDirLocs.get("SOM_PreProc"), true), subDir, _desSuffix);
+	/**
+	 * build desired target directory for specified data type, and default to "default" if improperly specified or  == true
+	 * @param _dataLocKey subdir for this type of data
+	 * @param _dataSubDirLocKey subdir under _dataLocKey to use, if exists
+	 * @param _forceDefault force to use "default" subdir
+	 * @return
+	 */
+	public String getDesExCSVDataSubDir(String _dataLocKey, String _dataSubDirLocKey, boolean _forceDefault) {
+		if (_forceDefault) {return "default" + File.separator;}
+		String res = subDirLocs.get(_dataSubDirLocKey);
+		if((res==null) || (!checkIfSubDirExists(SOM_QualifiedDataDir, subDirLocs.get(_dataLocKey) + res))) {	res = "default" + File.separator;}	
+		return res;
 	}
+	
+	/**
+	 * build csv file names array for specified _fileTypeKey
+	 * @param subDir : subdirectory within specified file directory to use for csv data
+	 * @param _desSuffix
+	 * @param _fileTypeKey
+	 * @return
+	 */
+	protected String[] buildCSVFileNamesAra(String subDir, String _desSuffix, String _fileTypeKey) {
+		return _buildDataCSVFNames(getDirNameAndBuild(subDirLocs.get(_fileTypeKey), true), subDir, _desSuffix);	
+	}//buildCSVFileNamesAra	
+	
 	private String[] _buildDataCSVFNames(String rootDestDir, String subDir, String _desSuffix) {
 		//build subdir based on date, if doesn't exist
 		String destDir = getDirNameAndBuild(rootDestDir, subDir, true);
 		String destForFName = destDir + _desSuffix;				
 		return new String[] {destForFName, _desSuffix, rootDestDir};
-	}//buildPrspctDataCSVFNames	
+	}//_buildDataCSVFNames	
+	
+	//this will return whether the passed subdir exists under the passed base directory
+	public boolean checkIfSubDirExists(String baseDir, String subdir) {
+		String dirName = baseDir +subdir;
+		File directory = new File(dirName);
+		return directory.exists();		
+	}//checkIfDirExists
 	
 	//this will retrieve a subdirectory name under the main directory of this project and build the subdir if it doesn't exist
 	//subdir assumed to have file.separator already appended (might not be necessary)
-	private String getDirNameAndBuild(String subdir, boolean _buildDir) {return getDirNameAndBuild(SOM_QualifiedDataDir,subdir,_buildDir);} 
+	protected String getDirNameAndBuild(String subdir, boolean _buildDir) {return getDirNameAndBuild(SOM_QualifiedDataDir,subdir,_buildDir);} 
 	//baseDir must exist already
 	public String getDirNameAndBuild(String baseDir, String subdir, boolean _buildDir) {
 		String dirName = baseDir +subdir;

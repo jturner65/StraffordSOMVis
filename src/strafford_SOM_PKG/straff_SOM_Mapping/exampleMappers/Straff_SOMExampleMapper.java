@@ -4,8 +4,8 @@ import java.util.concurrent.ExecutorService;
 
 import base_SOM_Objects.SOMMapManager;
 import base_SOM_Objects.som_examples.SOMExampleMapper;
+import strafford_SOM_PKG.straff_Features.MonitorJpJpgrp;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
-import strafford_SOM_PKG.straff_Utils.MonitorJpJpgrp;
 /**
  * class to manage mapping for all examples (prospects and products) in Strafford project
  * @author john
@@ -36,13 +36,13 @@ public abstract class Straff_SOMExampleMapper extends SOMExampleMapper  {
 	
 	//load date and time of data creation, if exists
 	protected final void loadDataCreateDateTime(String subDir) {
-		String[] loadDateTimeFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(subDir, exampleName+ "CreationDateTime");
+		String[] loadDateTimeFNamePrefixAra = projConfigData.buildPreProccedDataCSVFNames_Load(subDir, exampleName+ "CreationDateTime");
 		String dateTimeFileName = loadDateTimeFNamePrefixAra[0]+".csv";
 		loadDateAndTimeOfDataCreation(dateTimeFileName, exampleName);
 	}
 	
 	protected final void saveDataCreateDateTime() {
-		String[] saveDataFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(exampleName+"CreationDateTime");
+		String[] saveDataFNamePrefixAra = projConfigData.buildPreProccedDataCSVFNames_Save(exampleName+"CreationDateTime");
 		String dateTimeFileName = saveDataFNamePrefixAra[0]+".csv";
 		saveDateAndTimeOfDataCreation(dateTimeFileName, exampleName);
 	}

@@ -80,10 +80,18 @@ public class Cust_OneOrderTrainingExample extends CustProspectExample{
 		//access calc object for this 	
 		if (allProdJPs.size() > 0) {
 			clearFtrMap(ftrMapTypeKey);//
-			//((Straff_SOMMapManager)mapMgr).ftrCalcObj.calcTrainingFtrDataVec(this,allProdJPs, ftrMaps[ftrMapTypeKey],orderDate, JpOccurrences.get("orders"), JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"));				
 			((Straff_SOMMapManager)mapMgr).ftrCalcObj.calcTrainingFtrDataVec(this,allProdJPs, ftrMaps[ftrMapTypeKey],orderDate, JpOccurrences);				
 		} else {ftrMaps[ftrMapTypeKey].clear();}
 	}//buildFeaturesMap
+	
+	@Override
+	/**
+	 *  this will build the comparison feature vector array that is used as the comparison vector in distance measurements
+	 *  these kinds of per-order examples should never be used, or needed, to be -mapped- to the SOM, since the SOM calc will provide
+	 *  their mappings, and furthermore we never wish to quantify these examples - they don't represent customers or true prospects
+	 * @param _ratio : 0 means all base ftrs, 1 means all compValMap for features
+	 */
+	public final void buildCompFtrVector(float _ratio) {compFtrMaps = ftrMaps;}
 
 	
 }//class Cust_1OrderTrainingExample

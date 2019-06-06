@@ -1,11 +1,14 @@
 package strafford_SOM_PKG.straff_SOM_Examples;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentSkipListMap;
 
 import base_SOM_Objects.*;
 import base_SOM_Objects.som_examples.*;
+import base_SOM_Objects.som_utils.segments.SOMMapSegment;
 import base_SOM_Objects.som_utils.segments.SOM_MapNodeSegmentData;
 import base_Utils_Objects.*;
+import strafford_SOM_PKG.straff_Features.MonitorJpJpgrp;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.*;
 import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.events.LinkEventRawToTrainData;
 import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.events.OptEventRawToTrainData;
@@ -14,7 +17,6 @@ import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.events.SrcEventRawTo
 import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.events.StraffEvntRawToTrainData;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.JP_OccurrenceData;
 import strafford_SOM_PKG.straff_SOM_Mapping.*;
-import strafford_SOM_PKG.straff_Utils.MonitorJpJpgrp;
 
 
 /**
@@ -51,6 +53,13 @@ public abstract class Straff_SOMExample extends SOMExample{
 	protected TreeMap<Integer, Float>[] compValFtrDataMaps;
 	public float compValFtrDataMapMag = 0.0f;
 	
+	//probability structure for this prospect/product - probability of every node for each jp this product covers
+	//keyed by jp, value is map keyed by mapnode tuple loc, value is probablity (ratio of # of orders of key jp mapped to that node over # of all jps mapped to that node)
+	protected ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>> perJPProductProbMap;
+	//probability structure for this product - probability of every node for each jp group this product covers
+	//keyed by jpgroup, value is map keyed by mapnode tuple loc, value is probablity (ratio of # of orders of key jpgroup mapped to that node over # of all jpgroups mapped to that node)
+	protected ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>> perJPGroupProductProbMap;
+	
 	public Straff_SOMExample(SOMMapManager _map, ExDataType _type, String _id) {
 		super(_map, _type, _id);
 		jpJpgMon = ((Straff_SOMMapManager) mapMgr).jpJpgrpMon;
@@ -58,6 +67,8 @@ public abstract class Straff_SOMExample extends SOMExample{
 		allProdJPGroups = new HashSet<Integer> ();	
 		compValFtrDataMaps = new TreeMap[ftrMapTypeKeysAra.length];
 		for (int i=0;i<compValFtrDataMaps.length;++i) {			compValFtrDataMaps[i] = new TreeMap<Integer, Float>(); 		}	
+		perJPProductProbMap = new ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>>();
+		perJPGroupProductProbMap = new ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>>();
 	}//ctor
 	
 	public Straff_SOMExample(Straff_SOMExample _otr) {
@@ -65,6 +76,9 @@ public abstract class Straff_SOMExample extends SOMExample{
 		allProdJPs = _otr.allProdJPs;	
 		allProdJPGroups = _otr.allProdJPGroups;
 		compValFtrDataMaps = _otr.compValFtrDataMaps;
+		perJPProductProbMap = _otr.perJPProductProbMap;
+		perJPGroupProductProbMap = _otr.perJPGroupProductProbMap;
+
 	}//copy ctor
 	//initialize all segment-holding structues
 		
@@ -92,6 +106,7 @@ public abstract class Straff_SOMExample extends SOMExample{
 	//return all jpg/jps in this example record
 	protected abstract HashSet<Tuple<Integer,Integer>> getSetOfAllJpgJpData();
 	
+
 	@Override
 	//build a string describing what a particular feature value is
 	protected String dispFtrVal(TreeMap<Integer, Float> ftrs, Integer i) {

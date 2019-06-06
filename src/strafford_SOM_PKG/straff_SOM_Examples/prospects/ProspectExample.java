@@ -1,10 +1,12 @@
 package strafford_SOM_PKG.straff_SOM_Examples.prospects;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.regex.Pattern;
 
 import base_SOM_Objects.*;
 import base_SOM_Objects.som_examples.*;
+import base_SOM_Objects.som_utils.segments.SOMMapSegment;
 import base_Utils_Objects.MsgCodes;
 import base_Utils_Objects.Tuple;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.*;
@@ -51,7 +53,7 @@ public abstract class ProspectExample extends Straff_SOMExample{
 	//build this object based on prospectData object from raw data
 	public ProspectExample(SOMMapManager _map, ExDataType _type, ProspectData _prspctData) {
 		super(_map,_type,_prspctData.OID);	
-		initProspectEx();
+		initProspectEx(true);
 		prs_LUDate = _prspctData.getDate();
 		jpOccNotBuiltYet = true;
 	}//prospectData ctor
@@ -59,15 +61,15 @@ public abstract class ProspectExample extends Straff_SOMExample{
 	//build this object based on csv string - rebuild data from csv string columns 4+
 	public ProspectExample(SOMMapManager _map, ExDataType _type, String _OID, String _csvDataStr) {
 		super(_map,_type,_OID);		
-		initProspectEx();
+		initProspectEx(false);
 		jpOccNotBuiltYet = false;		//is built directly from saved data
 	}//csv string ctor
 	
-	private void initProspectEx() {
+	private void initProspectEx(boolean makeEventsMap) {
 		allProdJPGroups = new HashSet<Integer>();
 		nonProdJpGrps = new HashSet<Integer>();
 		nonProdJpgJps = new HashSet<Tuple<Integer,Integer>>();
-		initObjsData();
+		initObjsData(makeEventsMap);
 	}
 		
 	//copy ctor
@@ -133,11 +135,14 @@ public abstract class ProspectExample extends Straff_SOMExample{
 	protected abstract int[] _getCSVNumEvsAra(String[] dataAra);
 	
 	//instancing class needs to have this
-	protected void initObjsData() {
+	protected void initObjsData(boolean makeEventsByData) {
 		rad = 3.0f;			//for display
 		//occurrence structures - keyed by type, then by JP
 		JpOccurrences = new TreeMap<String, TreeMap<Integer, JP_OccurrenceData>> ();
-		eventsByDateMap = new TreeMap<String, TreeMap<Date, TreeMap<Integer, StraffEvntRawToTrainData>>>();
+		eventsByDateMap = (makeEventsByData ? new TreeMap<String, TreeMap<Date, TreeMap<Integer, StraffEvntRawToTrainData>>>() : null);
+		perJPProductProbMap = new ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>>();
+		perJPGroupProductProbMap = new ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>>();
+
 		_initObjsIndiv();
 	}//initObjsData
 
@@ -207,6 +212,40 @@ public abstract class ProspectExample extends Straff_SOMExample{
 	///////////////////////////////////
 	// getters/setters	
 
+	/**
+	 * set jp(class) and jpgroup(category) segments and probabilities for this example - for prospects only use mapped BMU's segments and probs
+	 * @param Class_Segments
+	 * @param Category_Segments
+	 */
+	@Override
+	public synchronized void setSegmentsAndProbsFromBMU() {
+		//build this node's segment membership and probabilities based on its BMU
+		//verify not null
+		perJPProductProbMap.clear();		
+		perJPGroupProductProbMap.clear();
+		if(isBmuNull()) {	msgObj.dispMessage("prospectExample","setSegmentsAndProbsFromBMU","Error !!! No BMU defined for this prospect example : " + OID + " | Aborting further segment calculations.",MsgCodes.warning2 ); return;	}
+		Tuple<Integer,Integer> bmuCoords = getBMUMapNodeCoord();
+		//set all jp(class)-based map node probabilities
+		ConcurrentSkipListMap<Tuple<Integer,Integer>,Float> jpClassMapNodes;
+		Set<Integer> classKeySet = getBMUClassSegIDs();
+		for(Integer jp : classKeySet) {
+			addClassSegment(jp, getBMUClassSegment(jp));
+			jpClassMapNodes = new ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>();
+			jpClassMapNodes.put(bmuCoords, getBMUProbForClass(jp));
+			perJPProductProbMap.put(jp, jpClassMapNodes);			
+		}
+		//set all jpgroup(category)-based map node probabilities				
+		ConcurrentSkipListMap<Tuple<Integer,Integer>,Float> jpgCatMapNodes;		
+		Set<Integer> catKeySet = getBMUCategorySegIDs();
+		for(Integer jpg : catKeySet) {
+			addCategorySegment(jpg, getBMUCategorySegment(jpg));
+			jpgCatMapNodes = new ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>();
+			jpgCatMapNodes.put(bmuCoords, getBMUProbForCategory(jpg));
+			perJPGroupProductProbMap.put(jpg, jpgCatMapNodes);
+		}		
+	}//setAllMapNodeSegmentsAndProbs
+
+	
 	//return # of values in data map
 	protected final int getSizeOfDataMap(TreeMap<Date, TreeMap<Integer, StraffEvntRawToTrainData>> map) {
 		int res = 0;
@@ -219,7 +258,7 @@ public abstract class ProspectExample extends Straff_SOMExample{
 	//this will build a single record (row) for each OID (prospect)
 	@Override
 	//public final String getRawDescrForCSV() {	return useJPOccToPreProc ? getRawDescrForCSV_JPOcc() : getRawDescrForCSV_Event() ;}//getRawDescrForCSV()
-	public final String getRawDescrForCSV() {	return getRawDescrForCSV_JPOcc();}//getRawDescrForCSV()
+	public final String getPreProcDescrForCSV() {	return getRawDescrForCSV_JPOcc();}//getRawDescrForCSV()
 	
 	//build off occurence structure - doing this to try to save memory space
 	private final String getRawDescrForCSV_JPOcc() {
@@ -347,50 +386,21 @@ public abstract class ProspectExample extends Straff_SOMExample{
 	@Override
 	//called after all features of this kind of object are built HashSet<Integer> nonProdJpGrps
 	public final void postFtrVecBuild() {		}//postFtrVecBuild
-	
+	//calculate alternate comparison vector based on comparison to customer examples with similar "imaginary" jps in sources data.
+	//basically all customers build a comparison vector for the non-prod jps, based on having these non-prod jps, that consists of their prod-jp normalized wt vector
 	protected final void calcCompValMaps() {
 		//build prod and non-prod jpgroup data here	
 		clearCompValMaps();
 		if(nonProdJpgJps.size() > 0) {
 			((Straff_SOMMapManager)mapMgr).ftrCalcObj.calcNonProdJpTrainFtrContribVec(this, nonProdJpgJps,compValFtrDataMaps[ftrMapTypeKey], JpOccurrences.get("sources"));
-			//build normalized comparison vector also
+			//build normalized and standardized comparison vector also
 			if(compValFtrDataMapMag != 0.0) {
 				for(Integer key : compValFtrDataMaps[ftrMapTypeKey].keySet()) {	compValFtrDataMaps[normFtrMapTypeKey].put(key,  compValFtrDataMaps[ftrMapTypeKey].get(key)/compValFtrDataMapMag);}	
+				//use training example history to build std vector
 				calcStdFtrVector(compValFtrDataMaps[ftrMapTypeKey],  compValFtrDataMaps[stdFtrMapTypeKey], mapMgr.getTrainFtrMins(), mapMgr.getTrainFtrDiffs());
 			}			
 		} 
 	}//calcComValMaps()
-		
-	@Override
-	/**
-	 *  this will build the comparison feature vector array that is used as the comparison vector in distance measurements
-	 * @param _ratio : 0 means all base ftrs, 1 means all compValMap for features
-	 */
-	public final void buildCompFtrVector(float _ratio) {
-		//ratio needs to be [0..1], is ratio of compValMaps value to ftr value
-		if(_ratio <=0) {compFtrMaps = ftrMaps;}
-		else {  
-			//must be called after compValMaps have been populated by customer data
-			calcCompValMaps();
-			if(_ratio >= 1) {compFtrMaps = compValFtrDataMaps;}
-			else {
-				clearAllCompFtrMaps();
-				Float val;
-				for(int mapIdx = 0; mapIdx < ftrMaps.length;++mapIdx) {
-					TreeMap<Integer, Float> ftrMap = ftrMaps[mapIdx];
-					TreeMap<Integer, Float> compMap = compValFtrDataMaps[mapIdx];
-					Set<Integer> allIdxs = new HashSet<Integer>(ftrMap.keySet());
-					allIdxs.addAll(compMap.keySet());
-					for (Integer key : allIdxs) {//either map will have this key
-						Float frmVal = ftrMap.get(key);if(frmVal == null) {frmVal = 0.0f;}
-						Float toVal = compMap.get(key);
-						val = (toVal == null) ? frmVal : (_ratio * toVal) + (1.0f - _ratio)*frmVal;
-						compFtrMaps[mapIdx].put(key, val);					
-					}//for all idxs			
-				}//for map idx
-			}//if ration >= 1 else
-		}
-	}//buildCompFtrVector
 
 	protected String toStringDateMap(TreeMap<Date, TreeMap<Integer, StraffEvntRawToTrainData>> map, String mapName) {
 		String res = "\n# of " + mapName + " in Date Map (count of unique dates - multiple " + mapName + " per same date possible) : "+ map.size()+"\n";

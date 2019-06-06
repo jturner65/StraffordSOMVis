@@ -9,7 +9,7 @@ import base_SOM_Objects.som_examples.*;
 import base_SOM_Objects.som_utils.SOMProjConfigData;
 import base_Utils_Objects.*;
 import strafford_SOM_PKG.straff_SOM_Examples.products.ProductExample;
-
+import strafford_SOM_PKG.straff_Utils.Straff_SOMProjConfig;
 
 /**
  * Instances of this object will load a desired set of product IDs and compare them to the constructed SOM to derive appropriate prospects.
@@ -75,8 +75,8 @@ public class Straff_ProdMapOutputBuilder {
 		zoneDistThreshStr.replace('.', '-');
 		String sfx = String.format("dTyp_%1d", prodDistType) + zoneDistThreshStr;
 		
-		fullQualOutPerProspectDir = projConfigData.getFullProdOutMapperBaseDir(sfx);
-		for (int i=0;i<prodsToMap.length;++i) {			fullQualOutPerProdDirs[i]=projConfigData.getPerProdOutSubDirName(fullQualOutPerProspectDir, prodsToMap[i].OID);}	
+		fullQualOutPerProspectDir = ((Straff_SOMProjConfig)projConfigData).getFullProdOutMapperBaseDir(sfx);
+		for (int i=0;i<prodsToMap.length;++i) {			fullQualOutPerProdDirs[i]=((Straff_SOMProjConfig)projConfigData).getPerProdOutSubDirName(fullQualOutPerProspectDir, prodsToMap[i].OID);}	
 		msgObj.dispMessage("StraffProdMapOutputBuilder", "loadConfigAndSetVars","Finished loading product-to-prospect mapping configurations.", MsgCodes.info5);
 	}//loadConfigAndSetVars	
 	

@@ -9,7 +9,7 @@
 #BEGIN CONFIG FILE NAMES
 #changing any of these names might render old runs of the program invalid
 #
-#	name of file holding configs (_train and _compare) for calc object - do not include .txt extension!
+#	name of file holding config for calc object - do not include .txt extension!
 #no date decay
 #calcWtFileName,"WeightEqConfig"
 #
@@ -31,6 +31,9 @@ SOMDfltConfigFileName,"SOM_MapConfig_default.txt"
 #END CONFIG FILE NAMES
 #BEGIN SUBDIR DEFS
 #changing any of these names might render old runs of the program invalid
+#these are where the program will look for specified data
+#	subdir under config directory of location of weight files
+StraffCalcEqWtFiles,"CalcWtConfigs"
 #
 #	subdir to hold prospect and product suggestions
 SOM_ProdSuggest,"PerProdSuggestions"
@@ -39,7 +42,15 @@ SOM_ProdSuggest,"PerProdSuggestions"
 SOM_PreProc,"PreprocData"
 #
 #	subdir to use for customers and prospects to compare to map - the products must have the same format as those used to train the map
-SOM_MapPrspctSrc,"preprocData_2019_05_06_11_15"
+#   if not specified or dir doesn't exist then uses "default" which should always exist under SOM_PreProc 
+#SOM_PreProcPrspctSrc,"preprocData_2019_05_06_11_15"
+#
+#	subdir to use to save csvs of mapped examples containing their segments and probs TODO not yet supported - not yet saving mapped but not proposed examples
+SOM_MappedExData,"MappedExData"
+#
+#	subdir to use for mapped examples to use to generate report
+#   if not specified or dir doesn't exist then uses "default" which should always exist under SOM_MappedExData  TODO not yet supported
+#SOM_MappedExDataSrc, "----"
 #
 #	subdir to hold source csv files
 SOM_SourceCSV,"source_csvs"

@@ -4,10 +4,10 @@ import java.util.*;
 
 import base_SOM_Objects.SOMMapManager;
 import base_SOM_Objects.som_examples.*;
+import strafford_SOM_PKG.straff_Features.featureCalc.StraffWeightCalc;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.*;
 import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.events.StraffEvntRawToTrainData;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
-import strafford_SOM_PKG.straff_Utils.featureCalc.StraffWeightCalc;
 
 /**
  * This class will hold a reduced prospect that is defined as a true prospect - most likely defined as a prospect without any actual orders
@@ -60,25 +60,10 @@ public class TrueProspectExample extends ProspectExample{
 	@Override
 	//get #'s of events from partitioned csv data held in dataAra - need to accommodate source events - idxs depend on how the data was originally built - true prospects have no orders
 	protected int[] _getCSVNumEvsAra(String[] dataAra) {return new int[] {Integer.parseInt(dataAra[2]),Integer.parseInt(dataAra[3]),Integer.parseInt(dataAra[4])};}
-	
-   //take loaded data and convert to feature data via calc object
-	@Override
-	protected void buildFeaturesMap() {	//TODO do we wish to modify this for prospects?  probably
-		//access calc object
-		if (allProdJPs.size() > 0) {//getting from orders should yield empty list, might yield null - has no order occurrences by definition	
-			clearFtrMap(ftrMapTypeKey);//
-			//((Straff_SOMMapManager)mapMgr).ftrCalcObj.calcTruePrspctFtrVec(this,allProdJPs,ftrMaps[ftrMapTypeKey], JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"));			
-			((Straff_SOMMapManager)mapMgr).ftrCalcObj.calcTruePrspctFtrVec(this,allProdJPs,ftrMaps[ftrMapTypeKey], JpOccurrences);			
-		} else {ftrMaps[ftrMapTypeKey].clear(); }
-		//now, if there's a non-null posOptAllEventObj then for all jps who haven't gotten an opt conribution to calculation, add positive opt-all result
-	}//buildFeaturesMap	
-
 	@Override
 	protected void _initObjsIndiv() {	
-		for (String key : jpOccTypeKeys) {
-			eventsByDateMap.put(key, new TreeMap<Date, TreeMap<Integer, StraffEvntRawToTrainData>> ());	
-			JpOccurrences.put(key, new TreeMap<Integer,JP_OccurrenceData>());
-		}	
+		if(eventsByDateMap != null) {	for (String key : jpOccTypeKeys) {	eventsByDateMap.put(key, new TreeMap<Date, TreeMap<Integer, StraffEvntRawToTrainData>> ());	}	}
+		for (String key : jpOccTypeKeys) {		JpOccurrences.put(key, new TreeMap<Integer,JP_OccurrenceData>());	}	
 		
 	}//_initObjsIndiv()
 	
@@ -107,6 +92,54 @@ public class TrueProspectExample extends ProspectExample{
 		}
 	}//finalize
 	
+   //take loaded data and convert to feature data via calc object
+	@Override
+	protected void buildFeaturesMap() {	//TODO do we wish to modify this for prospects?  probably
+		//access calc object
+		if (allProdJPs.size() > 0) {//getting from orders should yield empty list, might yield null - has no order occurrences by definition	
+			clearFtrMap(ftrMapTypeKey);//		
+			((Straff_SOMMapManager)mapMgr).ftrCalcObj.calcTruePrspctFtrVec(this,allProdJPs,ftrMaps[ftrMapTypeKey], JpOccurrences);			
+		} else {ftrMaps[ftrMapTypeKey].clear(); }
+		//now, if there's a non-null posOptAllEventObj then for all jps who haven't gotten an opt conribution to calculation, add positive opt-all result
+	}//buildFeaturesMap	
+	
+
+	public static int NumTPWithNoFtrs = 0;
+	public static int maxNumNonProdJps= 0;
+	@Override
+	/**
+	 *  this will build the comparison feature vector array that is used as the comparison vector in distance measurements
+	 * @param _ratio : 0 means all base ftrs, 1 means all compValMap for features
+	 */
+	public synchronized final void buildCompFtrVector(float _ratio) {
+		//ratio needs to be [0..1], is ratio of compValMaps value to ftr value
+		if((_ratio <=0) && (ftrMaps[0].size()>0)) {compFtrMaps = ftrMaps;}
+		else {  
+			//if no features then just use complete comValFtrDataMaps
+			if((_ratio >= 1) || (ftrMaps[0].size()==0)){
+				//call here since this will most likely need to be built for true prospects
+				if(this.nonProdJpgJps.size() > maxNumNonProdJps) {maxNumNonProdJps = this.nonProdJpgJps.size();}
+				++NumTPWithNoFtrs;
+				calcCompValMaps();compFtrMaps = compValFtrDataMaps;		//this is very slow	
+				//compFtrMaps = ftrMaps;
+			} else {
+				clearAllCompFtrMaps();
+				Float val;
+				for(int mapIdx = 0; mapIdx < ftrMaps.length;++mapIdx) {
+					TreeMap<Integer, Float> ftrMap = ftrMaps[mapIdx];
+					TreeMap<Integer, Float> compMap = compValFtrDataMaps[mapIdx];
+					Set<Integer> allIdxs = new HashSet<Integer>(ftrMap.keySet());
+					allIdxs.addAll(compMap.keySet());
+					for (Integer key : allIdxs) {//either map will have this key
+						Float frmVal = ftrMap.get(key);if(frmVal == null) {frmVal = 0.0f;}
+						Float toVal = compMap.get(key);
+						val = (toVal == null) ? frmVal : (_ratio * toVal) + (1.0f - _ratio)*frmVal;
+						compFtrMaps[mapIdx].put(key, val);					
+					}//for all idxs			
+				}//for map idx
+			}//if ration >= 1 else
+		}
+	}//buildCompFtrVector
 	@Override
 	//standardize this feature vector - across each feature, set value to be between 0 and 1
 	protected final void buildStdFtrsMap() {		

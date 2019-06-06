@@ -1,4 +1,4 @@
-package strafford_SOM_PKG.straff_Utils.featureCalc;
+package strafford_SOM_PKG.straff_Features.featureCalc;
 
 import java.util.ArrayList;
 

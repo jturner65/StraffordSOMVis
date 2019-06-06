@@ -53,7 +53,12 @@ public class Straff_SOMProductMapper extends Straff_SOMExampleMapper {
 		for (SOMExample ex : exampleMap.values()) {		addProductToJPProductMaps(ex);	}
 		
 	}//buildFtrVec_Priv
-	
+	/**
+	 * code to execute after examples have had ftrs calculated - this will calculate std features and any alternate ftr mappings if used
+	 */
+	@Override
+	protected void buildAfterAllFtrVecsBuiltStructs_Priv() {	for (SOMExample ex : exampleMap.values()) {	ex.buildAfterAllFtrVecsBuiltStructs();}}
+
 	
 	//add constructed product example to maps holding products keyed by their constituent jps and jpgs
 	public void addProductToJPProductMaps(SOMExample exRaw) {
@@ -89,7 +94,7 @@ public class Straff_SOMProductMapper extends Straff_SOMExampleMapper {
 		//load data creation date time, if exists
 		loadDataCreateDateTime(subDir);
 		
-		String[] loadSrcFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(subDir, "productMapSrcData");
+		String[] loadSrcFNamePrefixAra = projConfigData.buildPreProccedDataCSVFNames_Load(subDir, "productMapSrcData");
 		String dataFile =  loadSrcFNamePrefixAra[0]+".csv";
 		String[] csvLoadRes = fileIO.loadFileIntoStringAra(dataFile, "Product Data file loaded", "Product Data File Failed to load");
 		//ignore first entry - header
@@ -113,13 +118,13 @@ public class Straff_SOMProductMapper extends Straff_SOMExampleMapper {
 			//save date/time of data creation
 			saveDataCreateDateTime();
 			
-			String[] saveDestFNamePrefixAra = projConfigData.buildProccedDataCSVFNames("productMapSrcData");
+			String[] saveDestFNamePrefixAra = projConfigData.buildPreProccedDataCSVFNames_Save("productMapSrcData");
 			ArrayList<String> csvResTmp = new ArrayList<String>();		
 			ProductExample ex1 = (ProductExample) exampleMap.get(exampleMap.firstKey());
 			String hdrStr = ex1.getRawDescColNamesForCSV();
 			csvResTmp.add( hdrStr);	
 			for (SOMExample ex : exampleMap.values()) {			
-				csvResTmp.add(ex.getRawDescrForCSV());
+				csvResTmp.add(ex.getPreProcDescrForCSV());
 			}
 			fileIO.saveStrings(saveDestFNamePrefixAra[0]+".csv", csvResTmp);		
 			msgObj.dispMessage("Straff_SOMProductMapper","saveAllPreProccedMapData","Finished saving all product map data", MsgCodes.info5);

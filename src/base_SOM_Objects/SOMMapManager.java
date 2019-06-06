@@ -132,7 +132,7 @@ public abstract class SOMMapManager {
 			debugIDX 					= 0,
 			isMTCapableIDX				= 1,
 			SOMmapNodeDataLoadedIDX		= 2,			//som map data is cleanly loaded
-			loaderRtnIDX				= 3,			//dataloader has finished - wait on this to draw map
+			loaderFinishedRtnIDX		= 3,			//dataloader has finished - wait on this to draw map
 			denseTrainDataSavedIDX 		= 4,			//all current prospect data has been saved as a training data file for SOM (.lrn format) 
 			sparseTrainDataSavedIDX		= 5,			//sparse data format using .svm file descriptions (basically a map with a key:value pair of ftr index : ftr value
 			testDataSavedIDX			= 6,			//save test data in sparse format csv
@@ -165,7 +165,7 @@ public abstract class SOMMapManager {
 		projConfigData = buildProjConfigData(_argsMap);
 		Integer _logLevel = (Integer)_argsMap.get("logLevel");
 		msgObj.setOutputMethod(projConfigData.getFullLogFileNameString(), _logLevel);
-		
+
 		//fileIO is used to load and save info from/to local files except for the raw data loading, which has its own handling
 		fileIO = new FileIOManager(msgObj,"SOMMapManager");
 		//want # of usable background threads.  Leave 2 for primary process (and potential draw loop)
@@ -283,24 +283,30 @@ public abstract class SOMMapManager {
 
 	//execute post-feature vector build code in multiple threads if supported
 	public void _ftrVecBuild(Collection<SOMExample> exs, int _typeOfProc, String exType) {
-		getMsgObj().dispMessage("SOMMapManager","_postFtrVecBuild : " + exType + " Examples","Begin "+exs.size()+" example processing.", MsgCodes.info1);
+		getMsgObj().dispMessage("SOMMapManager","_ftrVecBuild : " + exType + " Examples","Begin "+exs.size()+" example processing.", MsgCodes.info1);
 		boolean canMultiThread=isMTCapable();//if false this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
-		if((canMultiThread) && (exs.size()>MapExFtrCalcs_Runner.rawNumPerPartition*2)){
+		if((canMultiThread) && (exs.size()>MapExFtrCalcs_Runner.rawNumPerPartition*10)){
 			//MapExFtrCalcs_Runner(SOMMapManager _mapMgr, ExecutorService _th_exec, SOMExample[] _exData, String _dataTypName, ExDataType _dataType, int _typeOfProc)
-			MapExFtrCalcs_Runner calcRunner = new MapExFtrCalcs_Runner(this, th_exec, exs.toArray(new SOMExample[0]), exType, _typeOfProc);
+			//shuffling examples to attempt to spread out calculations more evenly - the examples that require the alt comp vector calc are expensive to calculate
+			MapExFtrCalcs_Runner calcRunner = new MapExFtrCalcs_Runner(this, th_exec, shuffleProspects(exs.toArray(new SOMExample[0]),12345L) , exType, _typeOfProc);
 			calcRunner.run();
 		} else {//called after all features of this kind of object are built - this calculates alternate compare object
 			if(_typeOfProc==0) {
 				getMsgObj().dispMessage("SOMMapManager","_ftrVecBuild : " + exType + " Examples","Begin build "+exs.size()+" feature vector.", MsgCodes.info1);
 				for (SOMExample ex : exs) {			ex.buildFeatureVector();	}
 				getMsgObj().dispMessage("SOMMapManager","_ftrVecBuild : " + exType + " Examples","Finished build "+exs.size()+" feature vector.", MsgCodes.info1);
-			} else {
-				getMsgObj().dispMessage("SOMMapManager","_ftrVecBuild : " + exType + " Examples","Begin "+exs.size()+" Post Feature Vector Build.", MsgCodes.info1);
+			} else if(_typeOfProc==1) {
+				getMsgObj().dispMessage("SOMMapManager","_ftrVecBuild : " + exType + " Examples","Begin "+exs.size()+" After Feature Vector Build (Per example finalizing).", MsgCodes.info1);
 				for (SOMExample ex : exs) {			ex.postFtrVecBuild();	}		
-				getMsgObj().dispMessage("SOMMapManager","_ftrVecBuild : " + exType + " Examples","Finished "+exs.size()+" Post Feature Vector Build.", MsgCodes.info1);
-			}			
+				getMsgObj().dispMessage("SOMMapManager","_ftrVecBuild : " + exType + " Examples","Finished "+exs.size()+" After Feature Vector Build (Per example finalizing).", MsgCodes.info1);
+			} else if(_typeOfProc==2) {
+				getMsgObj().dispMessage("SOMMapManager","_ftrVecBuild : " + exType + " Examples","Begin "+exs.size()+" Post Feature Vector Structures (STD Vecs) Build.", MsgCodes.info1);
+				for (SOMExample ex : exs) {			ex.buildAfterAllFtrVecsBuiltStructs();	}		
+				getMsgObj().dispMessage("SOMMapManager","_ftrVecBuild : " + exType + " Examples","Finished "+exs.size()+" Post Feature Vector Structures (STD Vecs) Build.", MsgCodes.info1);
+				
+			}
 		}
-		getMsgObj().dispMessage("SOMMapManager","_postFtrVecBuild : " + exType + " Examples","Finished "+exs.size()+" example processing.", MsgCodes.info1);
+		getMsgObj().dispMessage("SOMMapManager","_ftrVecBuild : " + exType + " Examples","Finished "+exs.size()+" example processing.", MsgCodes.info1);
 	}//_postFtrVecBuild
 	
 	//this function will build the input data used by the SOM - this will be partitioned by some amount into test and train data (usually will use 100% train data, but may wish to test label mapping)
@@ -368,7 +374,9 @@ public abstract class SOMMapManager {
 	protected void loadMapAndBMUs_Synch() {
 		msgObj.dispMessage("SOMMapManager","loadMapAndBMUs_Synch","Building Mappings synchronously.", MsgCodes.info1);
 		SOMDataLoader ldr = new SOMDataLoader(this,projConfigData);//can be run in separate thread, but isn't here
-		ldr.run();		
+		boolean success = ldr.call();	
+	
+		msgObj.dispMessage("SOMMapManager","loadMapAndBMUs_Synch","Finished data loader : SOM Data Loaded successfully : " + success, MsgCodes.info5 );		
 	}//loadMapAndBMUs_Synch
 	
 	/**
@@ -387,7 +395,7 @@ public abstract class SOMMapManager {
 		//don't execute in a thread, execute synchronously so we can use results immediately upon return
 		loadMapAndBMUs_Synch();
 		msgObj.dispMessage("SOMMapManager","loadPretrainedExistingMap","Data loader finished loading map nodes and matching training data and products to BMUs." , MsgCodes.info3);
-	}//dbgBuildExistingMap
+	}//loadPretrainedExistingMap
 
 	
 	//load currently specified map in config file, load preproc train data used to build map
@@ -466,8 +474,8 @@ public abstract class SOMMapManager {
 			externalVals.put("SOM Training Finished Wall Time and Time elapsed from Start of program execution", msgObj.getCurrWallTimeAndTimeFromStart());
 			//save report of results of execution in human-readable report format		
 			projConfigData.saveSOM_ExecReport(externalVals);
-			//set flags b
-			setLoaderRtnFalse();
+			//set flags before calling loader
+			setLoaderRTN(false);
 			//map training data to map nodes
 			if(mapNodesToData) {			loadMapAndBMUs_Synch();		}
 		}		
@@ -599,6 +607,11 @@ public abstract class SOMMapManager {
 	// map node management - map nodes are represented by SOMExample objects called SOMMapNodes
 	// and are classified as either having examples that map to them (they are bmu's for) or not having any
 	//   furthermore, they can have types of examples mapping to them - training, product, validation
+
+	/**
+	 * build the array of data to be clustered by the trained map
+	 */
+	protected abstract void buildValidationDataAra();
 	
 	//products are zone/segment descriptors corresponding to certain feature configurations
 	protected abstract void setProductBMUs();
@@ -613,7 +626,7 @@ public abstract class SOMMapManager {
 		msgObj.dispMessage("SOMMapManager","_setExamplesBMUs","Start Mapping " +exData.length + " "+dataTypName+" data to best matching units.", MsgCodes.info5);
 		if(exData.length > 0) {		
 			//launch a MapTestDataToBMUs_Runner - keep in main thread to enable more proc threads
-			MapTestDataToBMUs_Runner rnr = new MapTestDataToBMUs_Runner(this, th_exec, exData, dataTypName, dataType, _rdyToSaveFlagIDX);	
+			MapExampleDataToBMUs_Runner rnr = new MapExampleDataToBMUs_Runner(this, th_exec, exData, dataTypName, dataType, _rdyToSaveFlagIDX);	
 			rnr.run();
 		} else {			msgObj.dispMessage("SOMMapManager","_setExamplesBMUs","No "+dataTypName+" data to map to BMUs. Aborting.", MsgCodes.warning5);	return;	}
 		msgObj.dispMessage("SOMMapManager","_setExamplesBMUs","Finished Mapping " +exData.length + " "+dataTypName+" data to best matching units.", MsgCodes.info5);
@@ -1409,14 +1422,14 @@ public abstract class SOMMapManager {
 	
 	public boolean isMTCapable() {return getFlag(isMTCapableIDX);}		
 	//set flag that SOM file loader is finished to false
-	public void setLoaderRtnFalse() {setFlag(loaderRtnIDX, false);}	
+	//public void setLoaderRtnFalse() {setFlag(loaderFinishedRtnIDX, false);}	
 	// use functions to easily access states
 	public void setIsDebug(boolean val) {setFlag(debugIDX, val);}
 	public boolean getIsDebug() {return getFlag(debugIDX);}	
 	public void setSOMMapNodeDataIsLoaded(boolean val) {setFlag(SOMmapNodeDataLoadedIDX, val);}
 	public boolean getSOMMapNodeDataIsLoaded() {return getFlag(SOMmapNodeDataLoadedIDX);}	
-	public void setLoaderRTNSuccess(boolean val) {setFlag(loaderRtnIDX, val);}
-	public boolean getLoaderRTNSuccess() {return getFlag(loaderRtnIDX);}
+	public void setLoaderRTN(boolean val) {setFlag(loaderFinishedRtnIDX, val);}
+	public boolean getLoaderRTN() {return getFlag(loaderFinishedRtnIDX);}
 	public void setDenseTrainDataSaved(boolean val) {setFlag(denseTrainDataSavedIDX, val);}
 	public void setSparseTrainDataSaved(boolean val) {setFlag(sparseTrainDataSavedIDX, val);}
 	public void setCSVTestDataSaved(boolean val) {setFlag(testDataSavedIDX, val);}	
@@ -1445,7 +1458,7 @@ public abstract class SOMMapManager {
 			case isMTCapableIDX : {						//whether or not the host architecture can support multiple execution threads
 				break;}
 			case SOMmapNodeDataLoadedIDX		: {break;}		
-			case loaderRtnIDX 			: {break;}
+			case loaderFinishedRtnIDX 			: {break;}
 			case denseTrainDataSavedIDX : {
 				if (val) {msgObj.dispMessage("SOMMapManager","setFlag","All "+ this.numTrainData +" Dense Training data saved to .lrn file", MsgCodes.info5);}
 				break;}				//all prospect examples saved as training data
@@ -1477,7 +1490,7 @@ public abstract class SOMMapManager {
 		return ((kVal <= 1) && (getFlag(denseTrainDataSavedIDX)) || ((kVal == 2) && getFlag(sparseTrainDataSavedIDX)));
 	}	
 	//return true if loader is done and if data is successfully loaded
-	public boolean isMapDrawable(){return getFlag(loaderRtnIDX) && getFlag(SOMmapNodeDataLoadedIDX);}
+	public boolean isMapDrawable(){return getFlag(loaderFinishedRtnIDX) && getFlag(SOMmapNodeDataLoadedIDX);}
 	public boolean isToroidal(){return projConfigData.isToroidal();}	
 	//get fill, stroke and text color ID if win exists (to reference papplet) otw returns 0,0,0
 	public int[] getClrFillStrkTxtAra(ExDataType _type) {

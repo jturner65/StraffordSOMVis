@@ -3,6 +3,7 @@ package strafford_SOM_PKG.straff_SOM_Examples;
 import java.util.*;
 
 import base_SOM_Objects.som_examples.*;
+import base_SOM_Objects.som_utils.segments.SOMMapSegment;
 import base_UI_Objects.*;
 import base_Utils_Objects.*;
 
@@ -180,7 +181,7 @@ public class Straff_SOMDispMapExample extends Straff_SOMExample implements ISOM_
 	@Override
 	protected void buildFeaturesMap() { }	
 	@Override
-	public String getRawDescrForCSV() {	return "Should not save DispSOMMapExample to CSV";}
+	public String getPreProcDescrForCSV() {	return "Should not save DispSOMMapExample to CSV";}
 	@Override
 	public String getRawDescColNamesForCSV() {return "Do not save DispSOMMapExample to CSV";}
 	@Override
@@ -194,6 +195,10 @@ public class Straff_SOMDispMapExample extends Straff_SOMExample implements ISOM_
 	//they should not be used for supervision during/after training
 	@Override
 	public TreeMap<Integer,Integer> getTrainingLabels() {return null;}
+	/**
+	 * mouse-based display "example" doesn't use this currently
+	 */
+	public void setSegmentsAndProbsFromBMU() {};
 
 	/**
 	 *  this will build the comparison feature vector array that is used as the comparison vector 

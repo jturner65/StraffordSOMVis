@@ -17,7 +17,7 @@ public class MapExFtrCalcs_Runner implements Runnable {
 	//ref to thread executor
 	protected ExecutorService th_exec;
 	//approx # per partition, divied up among the threads
-	public static final int rawNumPerPartition = 200000;
+	public static final int rawNumPerPartition = 40000;
 	//type of execution - 0 is build features, 1 is postftrveccalc
 	private final int typeOfProc;
 	private final String calcTypeStr;
@@ -105,8 +105,10 @@ class MapFtrCalc implements Callable<Boolean>{
 		//typeOfCalc==0 means build features
 		if(typeOfCalc==0) {
 			for (int i=stIdx;i<endIdx;++i) {exs[i].buildFeatureVector();incrProgress(i);}		
-		} else if(typeOfCalc==1) {//typeOfCalc==1 means post ftr build calc
+		} else if(typeOfCalc==1) {//typeOfCalc==1 means post ftr build calc - (Per example finalizing)
 			for (int i=stIdx;i<endIdx;++i) {exs[i].postFtrVecBuild();incrProgress(i);}			
+		} else if(typeOfCalc==2) {//after all ftr vecs have been build 
+			for (int i=stIdx;i<endIdx;++i) {exs[i].buildAfterAllFtrVecsBuiltStructs();incrProgress(i);}			
 		}
 		msgObj.dispMessage("MapFtrCalc", "Run Thread : " +thdIDX, "Finished Ftr Calc on "+dataType+" Data["+stIdx+":"+endIdx+"] calc : ", MsgCodes.info5);		
 		return true;

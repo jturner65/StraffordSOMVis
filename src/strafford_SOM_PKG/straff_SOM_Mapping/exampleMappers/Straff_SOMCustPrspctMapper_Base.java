@@ -1,15 +1,16 @@
 package strafford_SOM_PKG.straff_SOM_Mapping.exampleMappers;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.Future;
 
 import base_SOM_Objects.SOMMapManager;
 import base_SOM_Objects.som_examples.SOMExample;
 import base_SOM_Objects.som_fileIO.SOMExCSVDataLoader;
+import strafford_SOM_PKG.straff_Features.featureCalc.StraffWeightCalc;
 import strafford_SOM_PKG.straff_ProcDataHandling.data_loaders.CustCSVDataLoader;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.CustProspectExample;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
-import strafford_SOM_PKG.straff_Utils.featureCalc.StraffWeightCalc;
 
 /**
  * base class to manage customer prospects - instanced by either per-customer training example manager or per-order training example manager.
@@ -31,6 +32,8 @@ public abstract class Straff_SOMCustPrspctMapper_Base extends Straff_SOMProspect
 		msgObj.dispInfoMessage("Straff_SOMCustPrspctMapper","buildStraffFtrVec_Priv->dispAllNumOrderCounts","\tTotal # of Orders across all customers : " + ttlOrders);
 		// the # of customers considered "bad" after features were built
 		msgObj.dispInfoMessage("Straff_SOMCustPrspctMapper","buildStraffFtrVec_Priv->dispAllNumOrderCounts","\tTotal # Of Customers considered 'bad' after features were built : " + CustProspectExample.NumBadExamplesAfterFtrsBuilt + " responsible for " + CustProspectExample.NumBadExampleOrdersAfterFtrsBuilt+" orders.  These examples shouldn't be used to train.");
+
+		dbg_dispFtrVecMinMaxs(StraffWeightCalc.mapOfTrainCompFtrVecMins, StraffWeightCalc.mapOfTrainCompFtrVecMaxs, "Straff_SOMCustPrspctMapper");
 	}//dispAllNumOrderCounts
 	
 	@Override
@@ -82,6 +85,14 @@ public abstract class Straff_SOMCustPrspctMapper_Base extends Straff_SOMProspect
 		((Straff_SOMMapManager)mapMgr).ftrCalcObj.finishFtrCalcs(StraffWeightCalc.trainCalcObjIDX);	
 	}//buildFtrVec_Priv()
 	
+	/**
+	 * code to execute after examples have had ftrs calculated - this will calculate std features and any alternate ftr mappings if used
+	 */
+	@Override
+	protected void buildAfterAllFtrVecsBuiltStructs_Priv() {
+		//call to buildFeatureVector for all examples to perform -finalization- after all feature vectors of this type have been built
+		mapMgr._ftrVecBuild(exampleMap.values(),2,exampleName);	
+	}
 	
 	@Override
 	//manage multi-threaded loading

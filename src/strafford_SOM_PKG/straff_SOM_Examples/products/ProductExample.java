@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import base_SOM_Objects.som_examples.ExDataType;
 import base_SOM_Objects.som_examples.SOMExample;
 import base_SOM_Objects.som_examples.SOMMapNode;
+import base_SOM_Objects.som_utils.segments.SOMMapSegment;
 import base_SOM_Objects.som_utils.segments.SOM_MapNodeSegmentData;
 import base_UI_Objects.my_procApplet;
 import base_Utils_Objects.MsgCodes;
@@ -39,13 +40,6 @@ public class ProductExample extends Straff_SOMExample{
 	//types to conduct similarity mapping
 	private static int[] prospectTypes_idxs = new int[] {ExDataType.Training.getVal(), ExDataType.Testing.getVal(), ExDataType.Validation.getVal()};
 	
-	//probability structure for this product - probability of every node for each jp this product covers
-	//keyed by jp, value is map keyed by mapnode tuple loc, value is probablity (ratio of # of orders of key jp mapped to that node over # of all jps mapped to that node)
-	private ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>> perJPProductProbMap;
-	//probability structure for this product - probability of every node for each jp group this product covers
-	//keyed by jpgroup, value is map keyed by mapnode tuple loc, value is probablity (ratio of # of orders of key jpgroup mapped to that node over # of all jpgroups mapped to that node)
-	private ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>> perJPGroupProductProbMap;
-
 	//color to illustrate map (around bmu) region corresponding to this product - use distance as alpha value
 	private int[] prodClr;
 	//from raw data - TcTagData holds this record's data from db
@@ -63,8 +57,6 @@ public class ProductExample extends Straff_SOMExample{
 	public ProductExample(ProductExample _otr) {
 		super(_otr);
 		trainPrdctData = _otr.trainPrdctData;
-		perJPProductProbMap = _otr.perJPProductProbMap;
-		perJPGroupProductProbMap = _otr.perJPGroupProductProbMap;
 	}//copy ctor
 	
 	//initialize structures to manage product examples
@@ -74,8 +66,6 @@ public class ProductExample extends Straff_SOMExample{
 		prodClr[3]=255;
 		allMapNodesDists = new TreeMap[numFtrCompVals];
 		for (Integer i=0; i<numFtrCompVals;++i) {			allMapNodesDists[i] = new TreeMap<Double,ArrayList<SOMMapNode>>();		}
-		perJPProductProbMap = new ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>>();
-		perJPGroupProductProbMap = new ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>>();
 	}	
 	
 	//Only used for products since products extend over non-exclusive zones of the map
@@ -84,31 +74,40 @@ public class ProductExample extends Straff_SOMExample{
 		allMapNodesDists[mapNodeIDX] =  mapNodes;
 	}
 	
-	//this will query mapmanager and retrieve specific probabilities for this product's jps and jpgroups 
-	public void setAllMapNodeProbs() {		setJPMapNodeProbs();setJPGMapNodeProbs();	}
-
-	private void setJPMapNodeProbs() {
-		perJPProductProbMap.clear();		
-		ConcurrentSkipListMap<Tuple<Integer,Integer>,Float> jpRes, tmpJpRes;
-		for(Integer jp : allProdJPs) {
-			jpRes = ((Straff_SOMMapManager)mapMgr).getMapNodeJPProbsForJP(jp);
-			tmpJpRes = new ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>();
-			for(Tuple<Integer,Integer> key : jpRes.keySet()) {				tmpJpRes.put(key, jpRes.get(key));			}
-			perJPProductProbMap.put(jp, tmpJpRes);
-		}
-	}//setJPMapNodeProbs	
-
-	private void setJPGMapNodeProbs() {
-		perJPGroupProductProbMap.clear();
-		ConcurrentSkipListMap<Tuple<Integer,Integer>,Float> jpgRes, tmpJpgRes;		
-		for(Integer jpg : allProdJPGroups) {
-			jpgRes = ((Straff_SOMMapManager)mapMgr).getMapNodeJPGroupProbsForJPGroup(jpg);
-			tmpJpgRes = new ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>();
-			for(Tuple<Integer,Integer> key : jpgRes.keySet()) {				tmpJpgRes.put(key, jpgRes.get(key));			}
-			perJPGroupProductProbMap.put(jpg, tmpJpgRes);
-		}		
-	}//setJPGMapNodeProbs
+	/**
+	 * set this example's segment membership and probabilities from the mapped bmu - class/category label-driven examples won't use this function
+	 * products use class and category membership and prob of all map nodes - represented on map by segment (collection of map nodes), not bmu
+	 */
+	public void setSegmentsAndProbsFromBMU() {};
 	
+	/**
+	 * set jp(class) and jpgroup(category) segments and probabilities for this example
+	 * @param Class_Segments
+	 * @param Category_Segments
+	 */
+	public synchronized void setSegmentsAndProbsFromAllMapNodes(TreeMap<Integer, SOMMapSegment> Class_Segments, TreeMap<Integer, SOMMapSegment> Category_Segments) {
+		//set all jp(class)-based map node probabilities
+		perJPProductProbMap.clear();		
+		ConcurrentSkipListMap<Tuple<Integer,Integer>,Float> jpClassMapNodes, tmpJpMapNodes;
+		for(Integer jp : allProdJPs) {
+			jpClassMapNodes = ((Straff_SOMMapManager)mapMgr).getMapNodeJPProbsForJP(jp);
+			tmpJpMapNodes = new ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>();
+			for(Tuple<Integer,Integer> key : jpClassMapNodes.keySet()) {				tmpJpMapNodes.put(key, jpClassMapNodes.get(key));			}
+			perJPProductProbMap.put(jp, tmpJpMapNodes);
+			addClassSegment(jp, Class_Segments.get(jp));
+		}
+		//set all jpgroup(category)-based map node probabilities
+		perJPGroupProductProbMap.clear();
+		ConcurrentSkipListMap<Tuple<Integer,Integer>,Float> jpgClassMapNodes, tmpJpgMapNodes;		
+		for(Integer jpg : allProdJPGroups) {
+			jpgClassMapNodes = ((Straff_SOMMapManager)mapMgr).getMapNodeJPGroupProbsForJPGroup(jpg);
+			tmpJpgMapNodes = new ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>();
+			for(Tuple<Integer,Integer> key : jpgClassMapNodes.keySet()) {				tmpJpgMapNodes.put(key, jpgClassMapNodes.get(key));			}
+			perJPGroupProductProbMap.put(jpg, tmpJpgMapNodes);
+			addCategorySegment(jpg, Category_Segments.get(jpg));
+		}		
+	}//setAllMapNodeSegmentsAndProbs
+		
 	
 	//call this before any data loading that will over-write the existing product examples is performed
 	public static void initAllStaticProdData() {
@@ -168,7 +167,7 @@ public class ProductExample extends Straff_SOMExample{
 	
 	//required info for this example to build feature data  - this is ignored. these objects can be rebuilt on demand.
 	@Override
-	public String getRawDescrForCSV() {
+	public String getPreProcDescrForCSV() {
 		String res = ""+OID+","+allProdJPs.size()+",";
 		res += trainPrdctData.buildCSVString();
 		return res;	
