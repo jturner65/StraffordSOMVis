@@ -8,15 +8,15 @@ import base_SOM_Objects.som_ui.*;
 import base_UI_Objects.*;
 import base_Utils_Objects.*;
 import processing.core.PImage;
+import strafford_SOM_PKG.straff_Features.featureCalc.StraffWeightCalc;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
-import strafford_SOM_PKG.straff_Utils.featureCalc.StraffWeightCalc;
 
 //window that accepts trajectory editing
 public class Straff_SOMMapUIWin extends SOMMapUIWin {
 	
 	//idxs of boolean values/flags - instance-specific
 	public static final int 
-		custExCalcedIDX					= numSOMBasePrivFlags + 0,			//whether customer prospect examples have been loaded and ftrs have been calculated or not
+		custExCalcedIDX					= numSOMBasePrivFlags + 0,			//whether customer prospect examples have been loaded and ftrs have been calculated or not  StraffWeightCalc.bndAra_ProdJPsIDX StraffWeightCalc.bndAra_AllJPsIDX
 		tpExCalcedIDX					= numSOMBasePrivFlags + 1,			//whether true propsect examples have been loaded and ftrs have been calculated or not
 		trainExCalcedIDX				= numSOMBasePrivFlags + 2,			//whether training data examples have been loaded and ftrs have been calculated or not - these are per-order training examples
 		
@@ -53,9 +53,8 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 	public final int numGUIObjs = numSOMBaseGUIObjs + 5;
 	
 	//types of data that can be used for calc analysis 
-	//private int[] calcAnalysisTypes = new int[] {StraffSOMMapManager.jps_FtrIDX,StraffSOMMapManager.jps_AllIDX};
-	private int curCalcAnalysisTypeIDX = Straff_SOMMapManager.jps_AllIDX;
-	private int curCalcAnalysisJPTypeIDX = Straff_SOMMapManager.jps_AllIDX;
+	private int curCalcAnalysisSrcDataTypeIDX = StraffWeightCalc.bndAra_AllJPsIDX;
+	private int curCalcAnalysisJPTypeIDX = StraffWeightCalc.bndAra_AllJPsIDX;
 	
 	//raw data source : 0 == csv, 1 == sql
 	private int rawDataSource;
@@ -184,7 +183,7 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 		for(int i=0;i<mapPerJpgWtImgs.length;++i) {
 			mapPerJpgWtImgs[i] = pa.createImage(w, h, format);
 		}	
-	}//instance-specific init
+	}//instance-specific init 
 		
 	@Override
 	protected void setPrivFlagsIndiv(int idx, boolean val) {
@@ -192,7 +191,7 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 			case mapDrawTruePspctIDX	: {//draw true prospect examples
 				break;}		
 			case mapDrawCalcFtrOrAllVisIDX : {
-				curCalcAnalysisJPTypeIDX = (val ? Straff_SOMMapManager.jps_FtrIDX : Straff_SOMMapManager.jps_AllIDX);		
+				curCalcAnalysisJPTypeIDX = (val ? StraffWeightCalc.bndAra_ProdJPsIDX : StraffWeightCalc.bndAra_AllJPsIDX);		
 				setAnalysisDimWidth();
 				break;}
 			case mapDrawCustAnalysisVisIDX	: {//whether or not to draw feature calc analysis graphs  
@@ -200,8 +199,8 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 					setPrivFlags(mapDrawTPAnalysisVisIDX, false);
 					setPrivFlags(mapDrawTrainDataAnalysisVisIDX, false);
 					
-					curCalcAnalysisTypeIDX= StraffWeightCalc.custCalcObjIDX;
-					((Straff_SOMMapManager) mapMgr).processCalcAnalysis(curCalcAnalysisTypeIDX);	
+					curCalcAnalysisSrcDataTypeIDX= StraffWeightCalc.custCalcObjIDX;
+					((Straff_SOMMapManager) mapMgr).processCalcAnalysis(curCalcAnalysisSrcDataTypeIDX);	
 					setAnalysisDimWidth();
 				} else {
 					
@@ -212,8 +211,8 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 					setPrivFlags(mapDrawCustAnalysisVisIDX, false);
 					setPrivFlags(mapDrawTrainDataAnalysisVisIDX, false);
 					
-					curCalcAnalysisTypeIDX= StraffWeightCalc.tpCalcObjIDX;
-					((Straff_SOMMapManager) mapMgr).processCalcAnalysis(curCalcAnalysisTypeIDX);	
+					curCalcAnalysisSrcDataTypeIDX= StraffWeightCalc.tpCalcObjIDX;
+					((Straff_SOMMapManager) mapMgr).processCalcAnalysis(curCalcAnalysisSrcDataTypeIDX);	
 					setAnalysisDimWidth();
 				} else {
 					
@@ -225,8 +224,8 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 					setPrivFlags(mapDrawCustAnalysisVisIDX, false);
 					setPrivFlags(mapDrawTPAnalysisVisIDX, false);
 					
-					curCalcAnalysisTypeIDX= StraffWeightCalc.trainCalcObjIDX;
-					((Straff_SOMMapManager) mapMgr).processCalcAnalysis(curCalcAnalysisTypeIDX);	
+					curCalcAnalysisSrcDataTypeIDX= StraffWeightCalc.trainCalcObjIDX;
+					((Straff_SOMMapManager) mapMgr).processCalcAnalysis(curCalcAnalysisSrcDataTypeIDX);	
 					setAnalysisDimWidth();
 				}else {
 					
@@ -469,25 +468,23 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 	
 	private void _drawAnalysis(int exCalcedIDX, int mapDrawAnalysisIDX) {
 		if (getPrivFlags(exCalcedIDX)){	
-			//determine what kind of jps are being displayed
+			//determine what kind of jps are being displayed 
 			//int curJPIdx = ( ? curMapImgIDX : curAllJPToShowIDX);
 			pa.pushMatrix();pa.pushStyle();	
 			pa.translate(calcAnalysisLocs[0],SOM_mapLoc[1]*calcScale + 10,0.0f);			
-			if(curCalcAnalysisJPTypeIDX == Straff_SOMMapManager.jps_AllIDX) {		
-				int curJPIdx = curAllJPToShowIDX;
-				((Straff_SOMMapManager) mapMgr).drawAnalysisOneJp_All(pa,analysisHt, analysisPerJPWidth,curJPIdx, curCalcAnalysisTypeIDX);	
+			if(curCalcAnalysisJPTypeIDX == StraffWeightCalc.bndAra_AllJPsIDX) {		//choose between displaying calc analysis of training feature jps or all jps
+				((Straff_SOMMapManager) mapMgr).drawAnalysisOneJp_All(pa,analysisHt, analysisPerJPWidth,curAllJPToShowIDX, curCalcAnalysisSrcDataTypeIDX);	
 				pa.popStyle();pa.popMatrix();			
 				pa.pushMatrix();pa.pushStyle();
 				pa.translate(rectDim[0]+5,calcAnalysisLocs[1],0.0f);					
-				((Straff_SOMMapManager) mapMgr).drawAnalysisAllJps(pa, analysisHt, analysisAllJPBarWidth, curJPIdx, curCalcAnalysisTypeIDX);
+				((Straff_SOMMapManager) mapMgr).drawAnalysisAllJps(pa, analysisHt, analysisAllJPBarWidth, curAllJPToShowIDX, curCalcAnalysisSrcDataTypeIDX);
 				
-			} else if(curCalcAnalysisJPTypeIDX == Straff_SOMMapManager.jps_FtrIDX)  {		
-				int curJPIdx = curMapImgIDX;
-				((Straff_SOMMapManager) mapMgr).drawAnalysisOneJp_Ftr(pa,analysisHt, analysisPerJPWidth,curJPIdx, curCalcAnalysisTypeIDX);	
+			} else if(curCalcAnalysisJPTypeIDX == StraffWeightCalc.bndAra_ProdJPsIDX)  {		
+				((Straff_SOMMapManager) mapMgr).drawAnalysisOneJp_Ftr(pa,analysisHt, analysisPerJPWidth,curMapImgIDX, curCalcAnalysisSrcDataTypeIDX);	
 				pa.popStyle();pa.popMatrix();			
 				pa.pushMatrix();pa.pushStyle();
 				pa.translate(rectDim[0]+5,calcAnalysisLocs[1],0.0f);					
-				((Straff_SOMMapManager) mapMgr).drawAnalysisFtrJps(pa, analysisHt, analysisAllJPBarWidth, curJPIdx, curCalcAnalysisTypeIDX);				
+				((Straff_SOMMapManager) mapMgr).drawAnalysisFtrJps(pa, analysisHt, analysisAllJPBarWidth, curMapImgIDX, curCalcAnalysisSrcDataTypeIDX);				
 			}			
 			
 			pa.popStyle();pa.popMatrix();

@@ -1,10 +1,11 @@
-package strafford_SOM_PKG.straff_Utils.featureCalc;
+package strafford_SOM_PKG.straff_Features.featureCalc;
 
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -34,10 +35,11 @@ public class JPWeightEquation {
 			orderCoeffIDX = 0, 
 			optCoeffIDX = 1,
 			linkCoeffIDX = 2,
-			srcCoeffIDX = 3;
-	public static final int numEqs = 4;
+			srcCoeffIDX = 3,
+			srcCompareCoeffIDX = 4;
+	public static final int numEqs = 5;
 	//these names must match order and number of component idxs above
-	public static final String[] calcNames = new String[] {"Order","Opt","Link","Source"};
+	public static final String[] calcNames = new String[] {"Order","Opt","Link","Source", "SrcForComp"};
 	
 	//ftr calc coefficients : 
 	protected final Float[] FtrMult;						//multiplier for membership functions
@@ -47,20 +49,12 @@ public class JPWeightEquation {
 	protected final Float[] FtrDecay;
 	protected final Float[][] FtrParams;
 	
-	//comparator calc coefficients - this is for non-training-feature handling
-	protected final Float[] CompMult;						//multiplier for membership functions
-	protected final Float[] CompOffset;					//offsets for membership functions	
-	//membership functions hold sum( x / (1 + decay*delT)) for each x, where x is # of occurences on a 
-	//particular date and decay is some multiplier based on elapsed time delT (in days)
-	protected final Float[] CompDecay;
-	protected final Float[][] CompParams;
-	
 	//analysis function for this eq component
 	protected CalcAnalysis[] ftrCalcStats;
 	
 	//this only is used by weight equations that correspond to jps that do not provide training data
 	//this is the training data vector built from all training data examples for this non-product jp
-	protected TreeMap<Integer, Float> aggTrueTrainFtrData;
+	protected ConcurrentSkipListMap<Integer, Float> aggTrueTrainFtrData;
 	protected Float aggTrueTrainTtlWt;
 	
 	
@@ -76,19 +70,12 @@ public class JPWeightEquation {
 		FtrOffset = new Float[numEqs];
 		FtrDecay = new Float[numEqs];
 		//for comparator object calculations
-		CompMult = new Float[numEqs];
-		CompOffset = new Float[numEqs];
-		CompDecay = new Float[numEqs];
 		System.arraycopy(_eqVals[0], 0, FtrMult, 0, numEqs);
 		System.arraycopy(_eqVals[1], 0, FtrOffset, 0, numEqs);
 		System.arraycopy(_eqVals[2], 0, FtrDecay, 0, numEqs);	
-		System.arraycopy(_eqVals[3], 0, CompMult, 0, numEqs);
-		System.arraycopy(_eqVals[4], 0, CompOffset, 0, numEqs);
-		System.arraycopy(_eqVals[5], 0, CompDecay, 0, numEqs);	
 		FtrParams = new Float[][] {FtrMult, FtrOffset, FtrDecay};
-		CompParams = new Float[][] {CompMult, CompOffset, CompDecay};
 		
-		aggTrueTrainFtrData = new TreeMap<Integer, Float>();
+		aggTrueTrainFtrData = new ConcurrentSkipListMap<Integer, Float>();
 		aggTrueTrainTtlWt = 0.0f;		
 		
 		isDefault = _isDefault;
@@ -196,58 +183,53 @@ public class JPWeightEquation {
 		float res = ftrCalcStats[_exampleType].getFtrValFromCalcs(optCoeffIDX, optOutSntnlVal);//(calcStats.workSpace[optCoeffIDX]==optOutSntnlVal);
 		return res;
 	}//calcFtrVal
-//	//this will calculate training features - the date passed is for the particular order date that this example is being built for
-//	public synchronized float calcTrainingFtr(ProspectExample ex, JP_OccurrenceData orderJpOccurrences, JP_OccurrenceData linkJpOccurrences, JP_OccurrenceData optJpOccurrences, JP_OccurrenceData srcJpOccurrences, Date dateOfOrder, int _exampleType) {
-//		boolean hasData = false;
-//			//for source data - should replace prospect calc above
-//		if (srcJpOccurrences != null) {	hasData = true;		ftrCalcStats[_exampleType].setWSVal(srcCoeffIDX, aggregateJPOccsSourceEv(srcJpOccurrences, srcCoeffIDX,FtrParams, dateOfOrder));}//calcStats.workSpace[orderCoeffIDX] = aggregateOccs(orderJpOccurrences, orderCoeffIDX);}
-//			//handle order occurrences for this jp.   aggregate every order occurrence, with decay on importance based on date
-//		if (orderJpOccurrences != null) {hasData = true;	ftrCalcStats[_exampleType].setWSVal(orderCoeffIDX, aggregateJPOccs(orderJpOccurrences, orderCoeffIDX,FtrParams, dateOfOrder));}//calcStats.workSpace[orderCoeffIDX] = aggregateOccs(orderJpOccurrences, orderCoeffIDX);}
-//			//for links use same mechanism as orders - handle differences through weightings - aggregate every order occurrence, with decay on importance based on date
-//		if (linkJpOccurrences != null) {hasData = true;		ftrCalcStats[_exampleType].setWSVal(linkCoeffIDX, aggregateJPOccs(linkJpOccurrences, linkCoeffIDX,FtrParams, dateOfOrder));	}//calcStats.workSpace[linkCoeffIDX] = aggregateOccs(linkJpOccurrences, linkCoeffIDX);	}
-//			//user opts - these are handled differently - calcOptRes return of -9999 means negative opt specified for this jp alone (ignores negative opts across all jps) - should force total from eq for this jp to be ==0
-//		if (optJpOccurrences != null) {	hasData = true;		ftrCalcStats[_exampleType].setWSVal(optCoeffIDX, calcOptRes(optJpOccurrences,FtrParams, dateOfOrder));}	//calcStats.workSpace[optCoeffIDX] = calcOptRes(optJpOccurrences);}	
-//		if (hasData) {calcObj.incrBnds(StraffWeightCalc.bndAra_ProdJPsIDX,_exampleType, jpIDXs[StraffWeightCalc.bndAra_ProdJPsIDX]);		}//_modBnds means this calc should actually modify bounds - if calcing for true prospect, we don't necessarily want to do this, since this may modify how training data ends up being
-//		float res = ftrCalcStats[_exampleType].getFtrValFromCalcs(optCoeffIDX, optOutSntnlVal);//(calcStats.workSpace[optCoeffIDX]==optOutSntnlVal);
-//		return res;
-//	}//calcTrainingFtr
-	
 	
 	//////////////////
 	//For non-product jps using jp-occurrences
 	
 	//initialize this non-product jp's equation to aggregate the appropriate ftr vector info
-	public void initCalcCustNonProdWtVec() {	aggTrueTrainFtrData = new TreeMap<Integer, Float>();	aggTrueTrainTtlWt = 0.0f;		}//initCalcCustNonProdWtVec
+	public synchronized void initCalcCustNonProdWtVec() {	aggTrueTrainFtrData.clear();	aggTrueTrainTtlWt = 0.0f;		}//initCalcCustNonProdWtVec
 	//source data contribution calculation 
 	public float getSrcContrib_Now(JP_OccurrenceData srcJpOccurrences) {
-		if (srcJpOccurrences != null) { return aggregateJPOccsSourceEv(srcJpOccurrences, srcCoeffIDX,CompParams, now);}//calcStats.workSpace[orderCoeffIDX] = aggregateOccs(orderJpOccurrences, orderCoeffIDX);}
-		else return 0.0f;
+		return aggregateJPOccsSourceEv(srcJpOccurrences, srcCoeffIDX,FtrParams, now);//calcStats.workSpace[orderCoeffIDX] = aggregateOccs(orderJpOccurrences, orderCoeffIDX);}
 	}//getSrcContrib	
-	//calculate the training data feature vector corresponding to this (non-prod - will only exist for non-prod) jp-based eq (this eq object will represent a non-training-data jp)
-	//by calculating the source info wt as normal
-	public synchronized void buildCustNonProdWtVecContrib(ProspectExample ex, JP_OccurrenceData srcJpOccurrences) {	
+	
+	/**
+	 * This function uses the fact that the passed customer example has activity in 
+	 * this equation's non-product-based JP (this is only run for non-product JPs)
+	 * The function will record the ftr vector (of product jps) for this example, 
+	 * weighted by this example's source data information.  All customer examples with activity 
+	 * in this eq's non-product jp will have their product-based ftr vectors recorded in this way,
+	 * to synthesize a weighted average ftr vector of all customers sharing this nonprod jp.
+	 * Then, this ftr vector will be assigned to True prospects (weighted by the TP's source contribution)
+	 * as a feature vector.
+	 * @param ftrData the feature data for the customer example having this eq's non-product jp
+	 * @param srcJpOccurrences the occurrences of source event records (The only events having non-product jp data)
+	 */
+	public synchronized void buildCustNonProdWtVecContrib(TreeMap<Integer, Float> ftrData, JP_OccurrenceData srcJpOccurrences) {	
 			//for source data - should replace prospect calc above
 		float wt = 0;
-		if (srcJpOccurrences != null) {	wt = aggregateJPOccsSourceEv(srcJpOccurrences, srcCoeffIDX,CompParams, now);}//calcStats.workSpace[orderCoeffIDX] = aggregateOccs(orderJpOccurrences, orderCoeffIDX);}
+		if (srcJpOccurrences != null) {	wt = aggregateJPOccsSourceEv(srcJpOccurrences, srcCoeffIDX,FtrParams, now);}//calcStats.workSpace[orderCoeffIDX] = aggregateOccs(orderJpOccurrences, orderCoeffIDX);}
 		if(wt==0) {return;}
-		//use normalized ftr vector from ex, weight this example's contribution by it's source calced value 
-		TreeMap<Integer, Float> normData = ex.getCurrentFtrMap(SOMMapManager.useNormedDat);
-		for(Integer key : normData.keySet()) {
+	
+		for(Integer key : ftrData.keySet()) {
 			Float ftrWt = aggTrueTrainFtrData.get(key);
 			if(ftrWt==null) {ftrWt = 0.0f;}
-			ftrWt += wt * normData.get(key);
+			ftrWt += wt * ftrData.get(key);
 			aggTrueTrainFtrData.put(key, ftrWt);
 		}
 		aggTrueTrainTtlWt +=wt;				
 	}//calcVal		
-	public void finalizeCalcCustNonProdWtVec() {//normalize feature vector weight multiplier
-		if(0==aggTrueTrainTtlWt) {aggTrueTrainFtrData = new TreeMap<Integer, Float>();return;}
+	
+	public synchronized void finalizeCalcCustNonProdWtVec() {//normalize feature vector weight multiplier
+		if(0==aggTrueTrainTtlWt) {aggTrueTrainFtrData.clear();return;}
 		for(Integer key : aggTrueTrainFtrData.keySet()){aggTrueTrainFtrData.put(key, aggTrueTrainFtrData.get(key)/aggTrueTrainTtlWt);}
+		//for(Integer key : aggTrueTrainFtrData.keySet()){	if(aggTrueTrainFtrData.get(key) < .00001f) {aggTrueTrainFtrData.remove(key);}	}
 	}//
 	
 	//calculate the training data feature vector corresponding to this (non-prod - will only exist for non-prod) jp-based eq (this eq object will represent a non-training-data jp)
 	//for the passed true prospect by seeing their weight and multiplying the pre-calculated ftr vector 
-	public TreeMap<Integer, Float> calcNonProdWtVec(ProspectExample ex, float wt) {	
+	public synchronized TreeMap<Integer, Float> calcNonProdWtVec(ProspectExample ex, float wt) {	
 			//for source data - should replace prospect calc above
 		TreeMap<Integer, Float> res = new TreeMap<Integer, Float>();		
 		//get this non-prod jp's contribution to ex's weight vector
@@ -260,17 +242,6 @@ public class JPWeightEquation {
 	//////////////////////////////////////////////////////
 	// end handle jp-occurrence based calc
 
-	
-	//////////////////////////////////////////////////////
-	// handle date-occurrence based calc - should only be used to synthesize -training- data
-	
-
-	
-	
-	
-	
-	
-	
 	
 	//reset analysis object to clear out all stats from previous run
 	public void resetAnalysis(int _exampleType) {ftrCalcStats[_exampleType].reset();	}	

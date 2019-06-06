@@ -126,7 +126,6 @@ public abstract class SOMMapNode extends SOMExample{
 		mappedClassCounts = new TreeMap<Integer, Integer>();
 		//build structure that holds counts of categories mapped to this node (category is a collection of similar classes)
 		mappedCategoryCounts = new TreeMap<Integer, TreeMap<Integer, Integer>>();
-
 		class_SegData = new TreeMap<Integer, SOM_MapNodeSegmentData>();
 		class_SegDataRatio = new TreeMap<Integer, Float>();
 		category_SegData = new TreeMap<Integer, SOM_MapNodeSegmentData>();	
@@ -180,17 +179,18 @@ public abstract class SOMMapNode extends SOMExample{
 	}	
 	
 	//for passed -class (not idx)- give this node's probability
-	public float getClassProb(Integer _cls) {
+	public final float getClassProb(Integer _cls) {
 		Float prob = class_SegDataRatio.get(_cls);
 		if(null==prob) {return 0.0f;}
 		return prob;
 	}
+	public final Set<Integer> getClassSegIDs(){	return class_SegData.keySet();}
 	/**
 	 * return class segment ratios (probabilities of each class) mapped to this map node
 	 * @return
 	 */
-	public TreeMap<Integer, Float> getClass_SegDataRatio(){return class_SegDataRatio;}
-	public Float getTtlNumMappedClassInstances() { return ttlNumMappedClassInstances;}
+	public final TreeMap<Integer, Float> getClass_SegDataRatio(){return class_SegDataRatio;}
+	public final Float getTtlNumMappedClassInstances() { return ttlNumMappedClassInstances;}
 	
 	///////////////////
 	// category order-based segment data
@@ -235,17 +235,18 @@ public abstract class SOMMapNode extends SOMExample{
 	}	
 		
 	//for passed -Category label (not cat idx)- give this node's probability
-	public float getCategoryProb(Integer category) {
+	public final float getCategoryProb(Integer category) {
 		Float prob = category_SegDataRatio.get(category);
 		if(null==prob) {return 0.0f;}
 		return prob;
 	}
+	public final Set<Integer> getCategorySegIDs(){	return category_SegData.keySet();}
 	/**
 	 * return category segment ratios (probabilities of each category) mapped to this map node
 	 * @return
 	 */	
-	public TreeMap<Integer, Float> getCategory_SegDataRatio(){return category_SegDataRatio;}
-	public Float getTtlNumMappedCategoryInstances() { return ttlNumMappedCategoryInstances;}
+	public final TreeMap<Integer, Float> getCategory_SegDataRatio(){return category_SegDataRatio;}
+	public final Float getTtlNumMappedCategoryInstances() { return ttlNumMappedCategoryInstances;}
 
 	///////////////////
 	// ftr-wt based segment data
@@ -278,6 +279,10 @@ public abstract class SOMMapNode extends SOMExample{
 	public final void setUMatDist(float _d) {uMatDist = (_d < 0 ? 0.0f : _d > 1.0f ? 1.0f : _d); int clr=(int) (255*uMatDist); uMatClr = new int[] {clr,clr,clr};}
 	public final float getUMatDist() {return uMatDist;}	
 	
+	/**
+	 * map nodes don't have bmus and so this functionality would be meaningless for them
+	 */
+	public void setSegmentsAndProbsFromBMU() {};
 	
 	//////////////////////////////
 	// neighborhood construction and calculations
@@ -398,8 +403,7 @@ public abstract class SOMMapNode extends SOMExample{
 	
 	//call this instead of buildStdFtrsMap, passing mins and diffs
 	//called by SOMDataLoader - these are standardized based on data mins and diffs seen in -map nodes- feature data, not in training data
-	public abstract void buildStdFtrsMapFromFtrData_MapNode(float[] minsAra, float[] diffsAra);		
-	
+	public abstract void buildStdFtrsMapFromFtrData_MapNode(float[] minsAra, float[] diffsAra);			
 	
 	//this will return the training label(s) of this example - a map node -never- is used as training
 	//they should not be used for supervision during/after training (not sure how that could even happen)
@@ -420,6 +424,21 @@ public abstract class SOMMapNode extends SOMExample{
 	public String[] getAllExampleDescs(int _typeIDX) {return BMUExampleNodes[_typeIDX].getAllExampleDescs();}
 	
 	public float[] getDispBoxDims() {return dispBoxDims;}
+	
+	//get class probability from bmu for passed class
+	//treat this example's probability for a particular class as the probability of its BMU for that class (# examples of that class divided by total # of class seen at that node)
+	//override these base class functions to be aliases for map node functions
+	public final float getBMUProbForClass(Integer cls) {	return getClassProb(cls);}
+	
+	public final float getBMUProbForCategory(Integer category) {	return getCategoryProb(category);	}
+	//assumes bmu exists and is not null
+	public final Set<Integer> getBMUClassSegIDs(){			return getClassSegIDs();}
+	public final Set<Integer> getBMUCategorySegIDs(){			return getCategorySegIDs();}
+	public final SOMMapSegment getBMUClassSegment(int cls) {	return getClassSegment(cls);}
+	public final SOMMapSegment getBMUCategorySegment(int cat) {	return getCategorySegment(cat);}
+	
+	public final Tuple<Integer,Integer> getBMUMapNodeCoord(){	return mapNodeCoord;}
+
 	
 	//////////////////////////
 	// draw routines
@@ -492,7 +511,7 @@ public abstract class SOMMapNode extends SOMExample{
 	//feature is already made in constructor, read from map, so this is ignored
 	protected void buildFeaturesMap() {	}
 	@Override
-	public String getRawDescrForCSV() {	return "Should not save SOMMapNode to intermediate CSV";}
+	public String getPreProcDescrForCSV() {	return "Should not save SOMMapNode to intermediate CSV";}
 	@Override
 	public String getRawDescColNamesForCSV() {return "Do not save SOMMapNode to intermediate CSV";}
 	//map nodes do not use finalize

@@ -1,6 +1,7 @@
 package strafford_SOM_PKG.straff_SOM_Mapping.exampleMappers;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.Future;
 
 import base_SOM_Objects.SOMMapManager;
@@ -8,13 +9,11 @@ import base_SOM_Objects.som_examples.SOMExample;
 import base_SOM_Objects.som_fileIO.SOMExCSVDataLoader;
 import base_Utils_Objects.MsgCodes;
 import strafford_SOM_PKG.straff_SOM_Mapping.*;
+import strafford_SOM_PKG.straff_Features.featureCalc.StraffWeightCalc;
 import strafford_SOM_PKG.straff_ProcDataHandling.data_loaders.PrscpctCSVDataLoader;
-import strafford_SOM_PKG.straff_SOM_Examples.prospects.CustProspectExample;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.TrueProspectExample;
-import strafford_SOM_PKG.straff_Utils.featureCalc.StraffWeightCalc;
 
 public class Straff_SOMTruePrspctMapper extends Straff_SOMProspectMapper {
-
 
 	public Straff_SOMTruePrspctMapper(SOMMapManager _mapMgr, String _exName, String _longExampleName, boolean _shouldValidate) {		super(_mapMgr, _exName, _longExampleName,_shouldValidate);	}
 	
@@ -47,7 +46,40 @@ public class Straff_SOMTruePrspctMapper extends Straff_SOMProspectMapper {
 		((Straff_SOMMapManager)mapMgr).ftrCalcObj.finishFtrCalcs(StraffWeightCalc.tpCalcObjIDX);	
 	}//buildFtrVecs NumBadExamplesAfterFtrsBuilt
 	//instance-specific code to execute after examples have had ftrs calculated
+	
+	//debugging functionality 
+	private void dispCompFtrVecRes() {
+		msgObj.dispInfoMessage("Straff_SOMTruePrspctMapper","buildPostFtrVecStructs_Priv","Showing Results of mapping avg ftr vec to appropriate training examples by matching source data");
+		msgObj.dispInfoMessage("Straff_SOMTruePrspctMapper","buildPostFtrVecStructs_Priv","Size of Comp Vec,# of True Prospects with this size Comp Vec,# of actual ftr configs for this count.");
 
+		for(Integer sizeOfCompVec : StraffWeightCalc.mapOfNonProdFtrVecDims.keySet()) {
+			ConcurrentSkipListMap<Integer, Integer> mapOfFtrs = StraffWeightCalc.mapOfTPNonProdJpsPerSizeNonProdFtrVec.get(sizeOfCompVec);
+			String tmp = "";
+			for(Integer jp : mapOfFtrs.keySet()) {tmp += ""+jp+","+mapOfFtrs.get(jp)+",";}
+			msgObj.dispInfoMessage("Straff_SOMTruePrspctMapper","buildPostFtrVecStructs_Priv","\t" + sizeOfCompVec + ", " + StraffWeightCalc.mapOfNonProdFtrVecDims.get(sizeOfCompVec)+ ", " +mapOfFtrs.size() + "," + tmp);
+		}
+		
+		msgObj.dispInfoMessage("Straff_SOMTruePrspctMapper","buildPostFtrVecStructs_Priv","" + TrueProspectExample.NumTPWithNoFtrs+ " True Prospect records with no product-jp-related information - max nonprod jps seen : " +TrueProspectExample.maxNumNonProdJps+" | largest comp vector seen : " + StraffWeightCalc.numNonProdFtrVecDims+".");
+		
+		dbg_dispFtrVecMinMaxs(StraffWeightCalc.mapOfTPCompFtrVecMins, StraffWeightCalc.mapOfTPCompFtrVecMaxs, "Straff_SOMTruePrspctMapper");
+
+		TrueProspectExample.NumTPWithNoFtrs = 0;
+		TrueProspectExample.maxNumNonProdJps =0;
+		StraffWeightCalc.numNonProdFtrVecDims= 0;
+		StraffWeightCalc.mapOfNonProdFtrVecDims.clear();
+		StraffWeightCalc.mapOfTPNonProdJpsPerSizeNonProdFtrVec.clear();
+	}//dispCompFtrVecRes
+	
+	/**
+	 * code to execute after examples have had ftrs calculated - this will calculate std features and any alternate ftr mappings if used
+	 */
+	@Override
+	protected void buildAfterAllFtrVecsBuiltStructs_Priv() {
+		//call to buildFeatureVector for all examples
+		mapMgr._ftrVecBuild(exampleMap.values(),2,exampleName);	
+		//display results of building comparison vector for all true prospects
+		dispCompFtrVecRes();
+	}
 	
 	@Override
 	//manage multi-threaded loading

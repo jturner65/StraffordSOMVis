@@ -14,7 +14,7 @@ import base_Utils_Objects.*;
  * Will Process results from SOM execution
  * @author john
  */
-public class SOMDataLoader implements Runnable {
+public class SOMDataLoader implements Callable<Boolean> {
 	public SOMMapManager mapMgr;				//the map these files will use
 	//object that manages message displays on screen
 	private MessageObject msgObj;
@@ -37,44 +37,42 @@ public class SOMDataLoader implements Runnable {
 	}
 
 	@Override
-	public void run(){
-		msgObj.dispMessage("SOMDataLoader","run","Starting data loader", MsgCodes.info5);			
-		//if(projConfigData.allReqFileNamesSet()){
-			msgObj.dispMessage("SOMDataLoader","run","All required files are loaded.", MsgCodes.info1);			
-			boolean success = execDataLoad() ;
-			mapMgr.setSOMMapNodeDataIsLoaded(success);
-			mapMgr.setLoaderRTNSuccess(true);
-			mapMgr.setMapImgClrs();
-			msgObj.dispMessage("SOMDataLoader","run","Finished data loader : SOM Data Loaded : " + mapMgr.getSOMMapNodeDataIsLoaded()  + " | loader ret code : " +mapMgr.getLoaderRTNSuccess(), MsgCodes.info5 );			
-		//}
-//		else {
-//			mapMgr.setLoaderRTNSuccess(false);
-//			msgObj.dispMessage("SOMDataLoader","run","Data loader Failed : Required files not all loaded or file IO error ", MsgCodes.error2);
-//		}
-		mapMgr.resetButtonState();
-		msgObj.dispMessage("SOMDataLoader","run","Finished data loader", MsgCodes.info5);			
-	}//run
-	
-	//load results from map processing - fnames needs to be modified to handle this
-	private boolean execDataLoad(){
+	public Boolean call(){
+		msgObj.dispMessage("SOMDataLoader","run","Starting Trained SOM map node data loader", MsgCodes.info5);	
+			//load results from map processing - fnames needs to be modified to handle this
 		ftrTypeUsedToTrain = mapMgr.getCurrentTrainDataFormat();
+			//whether chi-sq dist or regular l2 dist should be used
 		useChiSqDist = mapMgr.getUseChiSqDist();
-		//must load jp's and jpg's that were used for this map
-		//load map weights for all map nodes
+			//load map weights for all map nodes
 		boolean success = loadSOMWts();	
-		//set u-matrix for all map nodes
-		success = loadSOM_UMatrixDists();
-		//load mins and diffs of data used to train map
-		success = mapMgr.loadDiffsMins();		
-		//load SOM's best matching units for training data - must be after map wts and training data has been loaded
+		if(success) {msgObj.dispMessage("SOMDataLoader", "execDataLoad", "Loading SOM Weights successfully completed.", MsgCodes.info1);}
+		else		{msgObj.dispMessage("SOMDataLoader", "execDataLoad", "Loading SOM Weights failed.  Aborting further processing.", MsgCodes.error2);	return false;}
+			//set u-matrix for all map nodes
+		success = loadSOM_UMatrixDists();		
+		if(success) {msgObj.dispMessage("SOMDataLoader", "execDataLoad", "Loading UMatrix distances successfully completed.", MsgCodes.info1);}
+		else		{msgObj.dispMessage("SOMDataLoader", "execDataLoad", "Loading UMatrix distances failed.  Aborting further processing.", MsgCodes.error2);	return false;}
+			//load mins and diffs of data used to train map
+		success = mapMgr.loadDiffsMins();	
+		if(success) {msgObj.dispMessage("SOMDataLoader", "execDataLoad", "Loading Diffs/Mins of training data successfully completed.", MsgCodes.info1);}
+		else		{msgObj.dispMessage("SOMDataLoader", "execDataLoad", "Loading Diffs/Mins of training data failed.  Aborting further processing.", MsgCodes.error2);	return false;}		
+			//load SOM's best matching units for training data - must be after map wts and training data has been loaded
 		success = loadSOM_BMUs();
-		//if bmus loaded, set bmus for all products
-		if (success) {			mapMgr.setAllBMUsFromMap();} 
-		else {					msgObj.dispMessage("SOMDataLoader", "execDataLoad", "Unable to match products to map nodes since BMU loading failed", MsgCodes.error2);	}
-		//		//load SOM's sorted best matching units for each feature - must be after map wts and training data has been loaded
-		return success;
-	}//execDataLoad
-	
+		if(success) {
+			msgObj.dispMessage("SOMDataLoader", "execDataLoad", "Loading BMUs for training data successfully completed.", MsgCodes.info1);
+			mapMgr.setAllBMUsFromMap();
+		} else {
+			msgObj.dispMessage("SOMDataLoader", "execDataLoad", "Loading BMUs for training data failed.  Unable to match products to map nodes since BMU loading failed.  Aborting further processing.", MsgCodes.error2);	
+			return false;
+		}		
+			//finish up 
+		mapMgr.setSOMMapNodeDataIsLoaded(true);
+		mapMgr.setLoaderRTN(true);
+		mapMgr.setMapImgClrs();
+		mapMgr.resetButtonState();
+		msgObj.dispMessage("SOMDataLoader","run","Finished data loader", MsgCodes.info5);	
+		return true;
+	}//run
+
 	//return file name from file name and path name
 	protected String getFName(String fNameAndPath){
 		File file = new File(fNameAndPath);

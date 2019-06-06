@@ -9,16 +9,18 @@ import java.util.concurrent.Future;
 
 import base_SOM_Objects.SOMMapManager;
 import base_SOM_Objects.som_examples.*;
+import base_Utils_Objects.MessageObject;
 import base_Utils_Objects.MsgCodes;
 import base_Utils_Objects.Tuple;
 
 /**
- * this will build a runnable to perform mapping in its own thread - fire and forget
+ * this will build a runnable to perform mapping in its own thread, to find bmus for passed examples
  * @author john
  *
  */
-public class MapTestDataToBMUs_Runner implements Runnable {
+public class MapExampleDataToBMUs_Runner implements Runnable {
 	SOMMapManager mapMgr;
+	MessageObject msgObj;
 	boolean canMultiThread;
 	String dataTypName;
 	ExDataType dataType;
@@ -37,11 +39,12 @@ public class MapTestDataToBMUs_Runner implements Runnable {
 	
 	protected double ttlProgress=-.1;
 	
-	List<Future<Boolean>> testMapperFtrs = new ArrayList<Future<Boolean>>();
-	List<MapTestDataToBMUs> testMappers = new ArrayList<MapTestDataToBMUs>();
+	List<Future<Boolean>> ExMapperFtrs = new ArrayList<Future<Boolean>>();
+	List<MapExampleDataToBMUs> ExMappers = new ArrayList<MapExampleDataToBMUs>();
 		
-	public MapTestDataToBMUs_Runner(SOMMapManager _mapMgr, ExecutorService _th_exec, SOMExample[] _exData, String _dataTypName, ExDataType _dataType, int _readyToSaveIDX) {
+	public MapExampleDataToBMUs_Runner(SOMMapManager _mapMgr, ExecutorService _th_exec, SOMExample[] _exData, String _dataTypName, ExDataType _dataType, int _readyToSaveIDX) {
 		mapMgr = _mapMgr; 
+		msgObj = mapMgr.getMsgObj();
 		MapNodes = mapMgr.getMapNodes();
 		MapNodesByFtr = mapMgr.getMapNodesByFtr();
 		curMapTestFtrType = mapMgr.getCurrentTestDataFormat();		
@@ -64,7 +67,7 @@ public class MapTestDataToBMUs_Runner implements Runnable {
 	protected void incrTTLProgress(int len, int idx) {
 		ttlProgress = idx/(1.0 * len);
 		if((ttlProgress * 100) % 10 == 0) {
-			mapMgr.getMsgObj().dispInfoMessage("MapTestDataToBMUs_Runner","incrTTLProgress", "Total Progress at : " + String.format("%.4f",ttlProgress));
+			msgObj.dispInfoMessage("MapTestDataToBMUs_Runner","incrTTLProgress", "Total Progress at : " + String.format("%.4f",ttlProgress));
 		}
 		if(ttlProgress > 1.0) {ttlProgress = 1.0;}	
 	}
@@ -81,25 +84,25 @@ public class MapTestDataToBMUs_Runner implements Runnable {
 			int stIDX = dataSt;
 			int endIDX = dataSt + numForEachThrd;		
 			String partStr = " in partition "+pIdx+" of "+ttlParts;
-			int numExistThds = testMappers.size();
+			int numExistThds = ExMappers.size();
 			for (int i=0; i<(numUsableThreads-1);++i) {				
-				testMappers.add(new MapTestDataToBMUs(mapMgr,stIDX, endIDX,  exData, i+numExistThds, dataTypName+partStr, useChiSqDist));
+				ExMappers.add(new MapExampleDataToBMUs(mapMgr,stIDX, endIDX,  exData, i+numExistThds, dataTypName+partStr, useChiSqDist));
 				stIDX = endIDX;
 				endIDX += numForEachThrd;
 			}
 			//last one probably won't end at endIDX, so use length
-			if(stIDX < dataEnd) {testMappers.add(new MapTestDataToBMUs(mapMgr,stIDX, dataEnd, exData, numUsableThreads-1 + numExistThds, dataTypName+partStr,useChiSqDist));}
+			if(stIDX < dataEnd) {ExMappers.add(new MapExampleDataToBMUs(mapMgr,stIDX, dataEnd, exData, numUsableThreads-1 + numExistThds, dataTypName+partStr,useChiSqDist));}
 	}//runner
 
 	@Override
 	public void run() {
 		mapMgr.setFlag(flagsRdyToSaveIDX, false);
 		if(canMultiThread) {
-			testMappers = new ArrayList<MapTestDataToBMUs>();
+			ExMappers = new ArrayList<MapExampleDataToBMUs>();
 			int numPartitions = exData.length/rawNumPerPartition;
 			if(numPartitions < 1) {numPartitions = 1;}
 			int numPerPartition = calcNumPerThd(exData.length,numPartitions);
-			mapMgr.getMsgObj().dispMessage("MapTestDataToBMUs_Runner","run","Starting finding bmus for all " +exData.length + " "+dataTypName+" data using " +numPartitions + " partitions of length " +numPerPartition +".", MsgCodes.info1);
+			msgObj.dispMessage("MapTestDataToBMUs_Runner","run","Starting finding bmus for all " +exData.length + " "+dataTypName+" data using " +numPartitions + " partitions of length " +numPerPartition +".", MsgCodes.info1);
 			int dataSt = 0;
 			int dataEnd = numPerPartition;
 			for(int pIdx = 0; pIdx < numPartitions-1;++pIdx) {
@@ -109,20 +112,20 @@ public class MapTestDataToBMUs_Runner implements Runnable {
 			}
 			runner(dataSt, exData.length, numPartitions-1,numPartitions);			
 			
-			testMapperFtrs = new ArrayList<Future<Boolean>>();
-			try {testMapperFtrs = th_exec.invokeAll(testMappers);for(Future<Boolean> f: testMapperFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }		
+			ExMapperFtrs = new ArrayList<Future<Boolean>>();
+			try {ExMapperFtrs = th_exec.invokeAll(ExMappers);for(Future<Boolean> f: ExMapperFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }		
 
 		} else {//for every product find closest map node
 			ttlProgress=-.1;
 			if (useChiSqDist) {			for (int i=0;i<exData.length;++i){	exData[i].findBMUFromFtrNodes(MapNodesByFtr, exData[i]::getSqDistFromFtrType_ChiSq , curMapTestFtrType);incrTTLProgress(i,exData.length);		}}			
-			else {						for (int i=0;i<exData.length;++i) {	exData[i].findBMUFromFtrNodes(MapNodesByFtr,exData[i]::getSqDistFromFtrType, curMapTestFtrType);	incrTTLProgress(i,exData.length);		}	}			
+			else {						for (int i=0;i<exData.length;++i) {	exData[i].findBMUFromFtrNodes(MapNodesByFtr, exData[i]::getSqDistFromFtrType, curMapTestFtrType);	incrTTLProgress(i,exData.length);		}	}			
 		}
 		
 		//go through every test example, if any, and attach prod to bmu - needs to be done synchronously because don't want to concurrently modify bmus from 2 different test examples		
-		mapMgr.getMsgObj().dispMessage("MapTestDataToBMUs_Runner","run","Finished finding bmus for all " +exData.length + " "+dataTypName+" data. Start adding "+dataTypName+" data to appropriate bmu's list.", MsgCodes.info1);
+		msgObj.dispMessage("MapTestDataToBMUs_Runner","run","Finished finding bmus for all " +exData.length + " "+dataTypName+" data. Start adding "+dataTypName+" data to appropriate bmu's list.", MsgCodes.info1);
 		//below must be done when -all- dataType examples are done
 		mapMgr._completeBMUProcessing(exData, dataType);
-		mapMgr.getMsgObj().dispMessage("MapTestDataToBMUs_Runner","run","Finished Mapping "+dataTypName+" data to best matching units.", MsgCodes.info5);		
+		msgObj.dispMessage("MapTestDataToBMUs_Runner","run","Finished Mapping "+dataTypName+" data to best matching units.", MsgCodes.info5);		
 
 		//Set some flag here stating that saving/further processing results is now available
 		mapMgr.setFlag(flagsRdyToSaveIDX, true);

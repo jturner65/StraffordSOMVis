@@ -2,10 +2,12 @@ package strafford_SOM_PKG.straff_SOM_Mapping.exampleMappers;
 
 
 import java.util.ArrayList;
+import java.util.concurrent.ConcurrentSkipListMap;
 
 import base_SOM_Objects.SOMMapManager;
 import base_SOM_Objects.som_examples.SOMExample;
 import base_Utils_Objects.MsgCodes;
+import strafford_SOM_PKG.straff_Features.featureCalc.StraffWeightCalc;
 import strafford_SOM_PKG.straff_SOM_Mapping.*;
 
 /**
@@ -19,8 +21,7 @@ public abstract class Straff_SOMProspectMapper extends Straff_SOMExampleMapper {
 		super(_mapMgr,  _exName, _longExampleName, _shouldValidate);		
 		preProcDatPartSz = ((Straff_SOMMapManager)mapMgr).preProcDatPartSz;
 	}
-	
-	
+		
 	//load prospect mapped training data into StraffSOMExamples from disk
 	//must reset prospect/validation maps before this is called
 	@Override
@@ -32,7 +33,7 @@ public abstract class Straff_SOMProspectMapper extends Straff_SOMExampleMapper {
 		//load data creation date time, if exists
 		loadDataCreateDateTime(subDir);
 		//
-		String[] loadSrcFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(subDir, exampleName+ "MapSrcData");
+		String[] loadSrcFNamePrefixAra = projConfigData.buildPreProccedDataCSVFNames_Load(subDir, exampleName+ "MapSrcData");
 		String fmtFile = loadSrcFNamePrefixAra[0]+"_format.csv";
 		
 		String[] loadRes = fileIO.loadFileIntoStringAra(fmtFile, exampleName+" Format file loaded", exampleName+" Format File Failed to load");
@@ -56,50 +57,60 @@ public abstract class Straff_SOMProspectMapper extends Straff_SOMExampleMapper {
 	@Override
 	public final boolean saveAllPreProccedMapData() {
 		if ((null != exampleMap) && (exampleMap.size() > 0)) {
-			msgObj.dispMessage("StraffSOMMapManager","saveAllExampleMapData","Saving all "+exampleName+" map data : " + exampleMap.size() + " examples to save.", MsgCodes.info5);
+			msgObj.dispMessage("Straff_SOMExampleMapper","saveAllExampleMapData","Saving all "+exampleName+" map data : " + exampleMap.size() + " examples to save.", MsgCodes.info5);
 			//save date/time of data creation
 			saveDataCreateDateTime();
 			
-			String[] saveDestFNamePrefixAra = projConfigData.buildProccedDataCSVFNames(exampleName+"MapSrcData");
+			String[] saveDestFNamePrefixAra = projConfigData.buildPreProccedDataCSVFNames_Save(exampleName+"MapSrcData");
 			ArrayList<String> csvResTmp = new ArrayList<String>();		
 			int counter = 0;
 			SOMExample ex1 = exampleMap.get(exampleMap.firstKey());
 			String hdrStr = ex1.getRawDescColNamesForCSV();
 			csvResTmp.add( hdrStr);
 			int nameCounter = 0, numFiles = (1+((int)((exampleMap.size()-1)/preProcDatPartSz)));
-			msgObj.dispMessage("StraffSOMMapManager","saveAllExampleMapData","Start Building "+exampleName+" String Array : " +nameCounter + " of "+numFiles+".", MsgCodes.info1);
+			msgObj.dispMessage("Straff_SOMExampleMapper","saveAllExampleMapData","Start Building "+exampleName+" String Array : " +nameCounter + " of "+numFiles+".", MsgCodes.info1);
 			for (SOMExample ex : exampleMap.values()) {			
-				csvResTmp.add(ex.getRawDescrForCSV());
+				csvResTmp.add(ex.getPreProcDescrForCSV());
 				++counter;
 				if(counter % preProcDatPartSz ==0) {
 					String fileName = saveDestFNamePrefixAra[0]+"_"+nameCounter+".csv";
-					msgObj.dispMessage("StraffSOMMapManager","saveAllExampleMapData","Done Building "+exampleName+" String Array : " +nameCounter + " of "+numFiles+".  Saving to file : "+fileName, MsgCodes.info1);
+					msgObj.dispMessage("Straff_SOMExampleMapper","saveAllExampleMapData","Done Building "+exampleName+" String Array : " +nameCounter + " of "+numFiles+".  Saving to file : "+fileName, MsgCodes.info1);
 					//csvRes.add(csvResTmp); 
 					fileIO.saveStrings(fileName, csvResTmp);
 					csvResTmp = new ArrayList<String>();
 					csvResTmp.add( hdrStr);
 					counter = 0;
 					++nameCounter;
-					msgObj.dispMessage("StraffSOMMapManager","saveAllExampleMapData","Start Building "+exampleName+" String Array : " +nameCounter + " of "+numFiles+".", MsgCodes.info1);
+					msgObj.dispMessage("Straff_SOMExampleMapper","saveAllExampleMapData","Start Building "+exampleName+" String Array : " +nameCounter + " of "+numFiles+".", MsgCodes.info1);
 				}
 			}
 			//last array if has values
 			if(csvResTmp.size() > 1) {	
 				String fileName = saveDestFNamePrefixAra[0]+"_"+nameCounter+".csv";
-				msgObj.dispMessage("StraffSOMMapManager","saveAllExampleMapData","Done Building "+exampleName+" String Array : " +nameCounter + " of "+numFiles+".  Saving to file : "+fileName, MsgCodes.info1);
+				msgObj.dispMessage("Straff_SOMExampleMapper","saveAllExampleMapData","Done Building "+exampleName+" String Array : " +nameCounter + " of "+numFiles+".  Saving to file : "+fileName, MsgCodes.info1);
 				//csvRes.add(csvResTmp);
 				fileIO.saveStrings(fileName, csvResTmp);
 				csvResTmp = new ArrayList<String>();
 				++nameCounter;
 			}			
-			msgObj.dispMessage("StraffSOMMapManager","saveAllExampleMapData","Finished partitioning " + exampleMap.size()+ " "+exampleName+" records into " + nameCounter + " "+exampleName+" record files, each holding up to " + preProcDatPartSz + " records and saving to files.", MsgCodes.info1);
+			msgObj.dispMessage("Straff_SOMExampleMapper","saveAllExampleMapData","Finished partitioning " + exampleMap.size()+ " "+exampleName+" records into " + nameCounter + " "+exampleName+" record files, each holding up to " + preProcDatPartSz + " records and saving to files.", MsgCodes.info1);
 			//save the data in a format file
 			String[] data = new String[] {"Number of file partitions for " + saveDestFNamePrefixAra[1] +" data : "+ nameCounter + "\n"};
 			fileIO.saveStrings(saveDestFNamePrefixAra[0]+"_format.csv", data);		
-			msgObj.dispMessage("StraffSOMMapManager","saveAllExampleMapData","Finished saving all "+exampleName+" map data", MsgCodes.info5);
+			msgObj.dispMessage("Straff_SOMExampleMapper","saveAllExampleMapData","Finished saving all "+exampleName+" map data", MsgCodes.info5);
 			return true;
-		} else {msgObj.dispMessage("StraffSOMMapManager","saveAllExampleMapData","No "+exampleName+" example data to save. Aborting", MsgCodes.error2); return false;}
+		} else {msgObj.dispMessage("Straff_SOMExampleMapper","saveAllExampleMapData","No "+exampleName+" example data to save. Aborting", MsgCodes.error2); return false;}
 	}//saveAllPreProccedMapData
+	
+	protected final void dbg_dispFtrVecMinMaxs(ConcurrentSkipListMap<Integer, Float> minMap, ConcurrentSkipListMap<Integer, Float> maxMap, String callClass) {	
+		msgObj.dispInfoMessage(callClass,"dbg_dispFtrVecMinMaxs","JP,Min Value,Max Value.");
+		for(Integer idx : minMap.keySet()) {
+			Integer jp = jpJpgrpMon.getFtrJpByIdx(idx);
+			msgObj.dispInfoMessage(callClass,"dbg_dispFtrVecMinMaxs",""+jp+","+minMap.get(idx)+","+maxMap.get(idx));
+		}
+		minMap.clear();
+		maxMap.clear();
+	}
 
 
 }//class Straff_SOMProspectMapper

@@ -68,10 +68,9 @@ public class CustProspectExample extends ProspectExample{
 	//this is customer-specific 
 	@Override
 	protected final void _initObjsIndiv() {
-		for (String key : jpOccTypeKeys) {
-			eventsByDateMap.put(key, new TreeMap<Date, TreeMap<Integer, StraffEvntRawToTrainData>> ());	
-			JpOccurrences.put(key, new TreeMap<Integer,JP_OccurrenceData>());
-		}
+		if(eventsByDateMap != null) {for (String key : jpOccTypeKeys) {	eventsByDateMap.put(key, new TreeMap<Date, TreeMap<Integer, StraffEvntRawToTrainData>> ());	}}
+		
+		for (String key : jpOccTypeKeys) {	JpOccurrences.put(key, new TreeMap<Integer,JP_OccurrenceData>());}
 		//set these when this data is partitioned into testing and training data
 		isTrainingData = false;
 		testTrainDataIDX = -1;
@@ -116,9 +115,7 @@ public class CustProspectExample extends ProspectExample{
 //		orderDat[1] += numOccsAllOrders;
 //		ttlOrderCount.put(numOrders, orderDat);
 	}
-	private void dbg_addBadOrderCountToTTLMap() {
-		addOrderToOrderCountMap(JpOccurrences.get("orders"),ttlBadOrderCount);		
-	}
+	private void dbg_addBadOrderCountToTTLMap() {		addOrderToOrderCountMap(JpOccurrences.get("orders"),ttlBadOrderCount);		}
 	
 	private synchronized static void addOrderToOrderCountMap(TreeMap<Integer, JP_OccurrenceData> map, TreeMap<Integer,Integer[]> orderCountMap) {
 		int numOrders = map.size();
@@ -189,7 +186,7 @@ public class CustProspectExample extends ProspectExample{
 	protected final void buildStdFtrsMap() {		
 		if (allNonZeroFtrIDXs.size() > 0) {calcStdFtrVector(ftrMaps[ftrMapTypeKey],ftrMaps[stdFtrMapTypeKey], mapMgr.getTrainFtrMins(), mapMgr.getTrainFtrDiffs());}
 		else {clearFtrMap(stdFtrMapTypeKey);}//ftrMaps[stdFtrMapTypeKey].clear();}
-		if(mapOfSingleOrderTrainingExamples != null) {		for(Cust_OneOrderTrainingExample ex : mapOfSingleOrderTrainingExamples.values() ) {	ex.buildPostFeatureVectorStructs();}}
+		if((mapOfSingleOrderTrainingExamples != null) && (mapOfSingleOrderTrainingExamples.size() > 0)) {		for(Cust_OneOrderTrainingExample ex : mapOfSingleOrderTrainingExamples.values() ) {	ex.buildAfterAllFtrVecsBuiltStructs();} }
 		setFlag(stdFtrsBuiltIDX,true);
 	}//buildStdFtrsMap
 	
@@ -225,7 +222,40 @@ public class CustProspectExample extends ProspectExample{
 	}//buildFeaturesMap
 	
 	//this will build the training-ftr configured vector contribution for this example to all non-product jps this example has.
-	public final void buildNonProdJpFtrVec() {if(nonProdJpgJps.size() > 0) {		((Straff_SOMMapManager)mapMgr).ftrCalcObj.buildCustNonProdFtrVecs(this, nonProdJpgJps, JpOccurrences.get("sources"));}}
+	//build off un-modified features, since this will construct a vector that will then be used as the unmodified features of the True prospect records sharing the non-prod jps
+	public final void buildNonProdJpFtrVec() {if(nonProdJpgJps.size() > 0) {		((Straff_SOMMapManager)mapMgr).ftrCalcObj.buildCustNonProdFtrVecs(this, ftrMaps[ftrMapTypeKey], nonProdJpgJps, JpOccurrences.get("sources"));}}	
+	
+	@Override
+	/**
+	 *  this will build the comparison feature vector array that is used as the comparison vector in distance measurements
+	 * @param _ratio : 0 means all base ftrs, 1 means all compValMap for features
+	 */
+	public void buildCompFtrVector(float _ratio) {
+		//ratio needs to be [0..1], is ratio of compValMaps value to ftr value
+		if(_ratio <=0)  {compFtrMaps = ftrMaps;}
+		else {  
+			//must be called after compValMaps have been populated by customer data
+			calcCompValMaps();//<--- this is only currently built on demand for customer prospects - no need for it otherwise
+			//if no features then just use complete comValFtrDataMaps
+			if(_ratio >= 1){compFtrMaps = compValFtrDataMaps;}
+			else {
+				clearAllCompFtrMaps();
+				Float val;
+				for(int mapIdx = 0; mapIdx < ftrMaps.length;++mapIdx) {
+					TreeMap<Integer, Float> ftrMap = ftrMaps[mapIdx];
+					TreeMap<Integer, Float> compMap = compValFtrDataMaps[mapIdx];
+					Set<Integer> allIdxs = new HashSet<Integer>(ftrMap.keySet());
+					allIdxs.addAll(compMap.keySet());
+					for (Integer key : allIdxs) {//either map will have this key
+						Float frmVal = ftrMap.get(key);if(frmVal == null) {frmVal = 0.0f;}
+						Float toVal = compMap.get(key);
+						val = (toVal == null) ? frmVal : (_ratio * toVal) + (1.0f - _ratio)*frmVal;
+						compFtrMaps[mapIdx].put(key, val);					
+					}//for all idxs			
+				}//for map idx
+			}//if ration >= 1 else
+		}
+	}//buildCompFtrVector
 	
 	//check whether this prospect has a particular jp in either his prospect data, events or opts
 	//idxs : 0==if in an order; 1==if in an opt, 2 == if is in link, 3==if in source event,4 if in any non-source event (denotes action by customer), 5 if in any event, including source, 

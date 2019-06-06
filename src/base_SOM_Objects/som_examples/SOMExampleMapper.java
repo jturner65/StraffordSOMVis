@@ -134,20 +134,27 @@ public abstract class SOMExampleMapper {
 	 */
 	protected abstract void buildFtrVec_Priv();
 	
-	public final void buildPostFtrVecStructs() {
+	/** 
+	 * code to execute after every example has had ftr vectors calculated - this will calculate std-ized ftrs, along with other things
+	 */
+	public final void buildAfterAllFtrVecsBuiltStructs() {
 		if(!getFlag(dataFtrsCalcedIDX)) {
-			msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildPostFtrVecStructs","Unable to build Post-feature vector data for " + exampleName+ " examples due to them not having had features calculated.  Aborting.", MsgCodes.warning1);
+			msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildAfterAllFtrVecsBuiltStructs","Unable to execute Post-feature calc process for " + exampleName+ " examples due to them not having had features calculated.  Aborting.", MsgCodes.warning1);
 			return;
 		} else if(getFlag(dataPostFtrsBuiltIDX)){
-			msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildPostFtrVecStructs","Post-feature data for " + exampleName+ " examples Already built.", MsgCodes.warning1);
+			msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildAfterAllFtrVecsBuiltStructs","Post-feature calc process for " + exampleName+ " examples already executed.", MsgCodes.warning1);
 			return;
 		}
 		msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildPostFtrVecStructs","Begin building Post-feature vector data for " +exampleMap.size()+ " " + exampleName+ " examples.", MsgCodes.info1);
 		//instance-specific feature vector building - here primarily are the standardized feature vectors built
-		for (SOMExample ex : exampleMap.values()) {	ex.buildPostFeatureVectorStructs();}
+		buildAfterAllFtrVecsBuiltStructs_Priv();
 		setFlag(dataPostFtrsBuiltIDX, true);
 		msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildPostFtrVecStructs","Finished building Post-feature vector data for " +exampleMap.size()+ " " + exampleName+ " examples.", MsgCodes.info1);		
 	}//buildFtrVec	
+	/**
+	 * code to execute after examples have had ftrs calculated - this will calculate std features and any alternate ftr mappings if used
+	 */
+	protected abstract void buildAfterAllFtrVecsBuiltStructs_Priv();
 		
 	/////////////////////////////////////////////
 	// load and save preprocced data
