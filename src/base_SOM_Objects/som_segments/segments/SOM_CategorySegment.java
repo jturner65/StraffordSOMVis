@@ -1,4 +1,4 @@
-package base_SOM_Objects.som_utils.segments;
+package base_SOM_Objects.som_segments.segments;
 
 
 import java.util.TreeMap;
@@ -7,17 +7,16 @@ import base_SOM_Objects.SOMMapManager;
 import base_SOM_Objects.som_examples.*;
 
 /**
- * this class corresponds to a segment built from orders orders being present in map nodes used to train map being present with specific JP - this jp must be a valid product jp
+ * this class corresponds to a segment built from categories (collections of similar classes) being present in map nodes
  * @author john
  */
-public class SOM_ClassSegment extends SOMMapSegment {
-	public final Integer cls;
-
-	public SOM_ClassSegment(SOMMapManager _mapMgr, Integer _class) {	
+public class SOM_CategorySegment extends SOMMapSegment {
+	public final Integer category;
+	public SOM_CategorySegment(SOMMapManager _mapMgr, Integer _cat) {
 		super(_mapMgr);
-		cls=_class;		
+		category=_cat;
 	}
-	
+
 	/**
 	 * determine whether a node belongs in this segment - base it kind of example and whether it has a bmu or not
 	 * @param ex the example to check
@@ -38,18 +37,17 @@ public class SOM_ClassSegment extends SOMMapSegment {
 			case MouseOver	: {		return false;}
 		}//switch
 		return false;
-	}//doesExampleBelongInSeg
-	
-	@Override
-	public boolean doesMapNodeBelongInSeg(SOMMapNode ex) {
-		
-		TreeMap<Integer, Integer> classMap = ex.getMappedClassCounts();
-		//System.out.println("JP : " + jp + " JPMap for SOMMapNode : " + ex.OID +  " : " + jpMap);
-		return (ex.getClassSegment(cls)== null) && classMap.keySet().contains(cls);
 	}
 
 	@Override
-	protected void setMapNodeSegment(SOMMapNode mapNodeEx) {	mapNodeEx.setClassSeg(cls, this);	}
+	public boolean doesMapNodeBelongInSeg(SOMMapNode ex) {
+				//return map of jpgs to jps to counts present
+		TreeMap<Integer, TreeMap<Integer, Float>> categoryMap = ex.getMappedCategoryCounts();
+		return (ex.getCategorySegment(category)== null) && categoryMap.keySet().contains(category);
+	}
 
-	
-}//class Straff_JPOrderSegement
+	@Override
+	protected void setMapNodeSegment(SOMMapNode mapNodeEx) {	mapNodeEx.setCategorySeg(category, this);	}
+
+
+}//class Straff_JPGroupOrderSegment

@@ -178,6 +178,10 @@ public class MonitorJpJpgrp {
 	
 	public Integer[] getTrainJpByIDXAra() {return trainingJpJpgData.getJpByIDXAra();}
 	public Integer[] getTrainJpgrpByIDXAra() {return trainingJpJpgData.getJpgrpByIDXAra();}
+	//needc to return array of jps that are specifically Non product,with value being their IDX
+	public Integer[] getNonProductJpByIDXAra() {		return new Integer[] {};}
+	//non prod jp group is jp groups that non prod jps belong to - groups may have prod jp membership as well
+	public Integer[] getNonProductJpGroupByIDXAra() {	return new Integer[] {};}
 	
 	//get set of jps for passed jpgroup in prod data
 	public TreeSet<Integer> getProdJPsforSpecifiedJpgrp(int jpg){
@@ -841,6 +845,7 @@ class allJP_JPG_Data extends JP_JPG_Data{
 		msgObj.dispMessage("MonitorJpJpgrp::JP_JPG_Data("+type+")","aggregateAllData","Finished aggregateAllData all "+type+" jp data : jpSeenCount : "+jpSeenCount.size()+" | jpPerEventSeenCount : " + jpPerEventSeenCount.size(), MsgCodes.info5);
 	}//aggregateAllData
 	
+		
 	public void copyNamesToJpJpgData(JP_JPG_Data obj) {
 		obj.copyRawNames(jpNamesRaw,jpGrpNamesRaw);
 	}

@@ -5,8 +5,8 @@ import java.util.Map.Entry;
 import java.util.function.BiFunction;
 
 import base_SOM_Objects.*;
-import base_SOM_Objects.som_utils.segments.SOMMapSegment;
-import base_SOM_Objects.som_utils.segments.SOM_MapNodeSegmentData;
+import base_SOM_Objects.som_segments.segmentData.SOM_MapNodeSegmentData;
+import base_SOM_Objects.som_segments.segments.SOMMapSegment;
 import base_UI_Objects.*;
 import base_Utils_Objects.*;
 
@@ -146,6 +146,10 @@ public abstract class SOMExample extends baseDataPtVis{
 	 * set this example's segment membership and probabilities from the mapped bmu - class/category label-driven examples won't use this function
 	 */
 	public abstract void setSegmentsAndProbsFromBMU();
+	/**
+	 * get CSV string representation of segment membership data
+	 */
+	public abstract String getCSVSegmentMembershipData();
 
 	//clear instead of reinstance - if ftr maps are cleared then compFtrMaps should be cleared as well
 	protected synchronized void clearAllFtrMaps() {for (int i=0;i<ftrMaps.length;++i) {	clearFtrMap(i);}}	
@@ -857,7 +861,7 @@ public abstract class SOMExample extends baseDataPtVis{
 
 //this class holds functionality migrated from the DataPoint class for rendering on the map.  since this won't be always necessary, we're moving this code to different class so it can be easily ignored
 abstract class baseDataPtVis{
-	protected static SOMMapManager mapMgr;
+	public static SOMMapManager mapMgr;
 	//message object manages logging/printing to screen
 	protected static MessageObject msgObj;
 	//type of example data this is

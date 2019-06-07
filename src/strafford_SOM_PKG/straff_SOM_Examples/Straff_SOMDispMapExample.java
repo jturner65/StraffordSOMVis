@@ -3,7 +3,7 @@ package strafford_SOM_PKG.straff_SOM_Examples;
 import java.util.*;
 
 import base_SOM_Objects.som_examples.*;
-import base_SOM_Objects.som_utils.segments.SOMMapSegment;
+import base_SOM_Objects.som_segments.segments.SOMMapSegment;
 import base_UI_Objects.*;
 import base_Utils_Objects.*;
 
@@ -195,6 +195,13 @@ public class Straff_SOMDispMapExample extends Straff_SOMExample implements ISOM_
 	//they should not be used for supervision during/after training
 	@Override
 	public TreeMap<Integer,Integer> getTrainingLabels() {return null;}
+	
+	
+	/**
+	 * get CSV string representation of segment membership data
+	 */
+	@Override
+	public String getCSVSegmentMembershipData() {return "Should not query DispSOMMapExample for segment membership data.";}
 	/**
 	 * mouse-based display "example" doesn't use this currently
 	 */

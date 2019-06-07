@@ -1,4 +1,4 @@
-package base_SOM_Objects.som_utils.segments;
+package base_SOM_Objects.som_segments.segments;
 
 import java.util.TreeMap;
 
@@ -18,6 +18,17 @@ public class SOM_FtrWtSegment extends SOMMapSegment {
 		ftrIDX = _ftrIDX;
 	}
 	
+	/**
+	 * determine whether a node belongs in this segment - base it on BMU
+	 * @param ex the example to check
+	 */
+	@Override
+	public boolean doesExampleBelongInSeg(SOMExample ex) {
+		SOMMapNode mapNode = ex.getBmu();
+		if(mapNode == null) {return false;}		//if no bmu then example does not belong in any segment
+		return doesMapNodeBelongInSeg(mapNode);		
+	}
+
 	/**
 	 * determine whether a mapnode belongs in this segment getFtrWtSegment
 	 */

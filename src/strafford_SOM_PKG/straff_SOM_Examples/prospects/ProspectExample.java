@@ -6,7 +6,7 @@ import java.util.regex.Pattern;
 
 import base_SOM_Objects.*;
 import base_SOM_Objects.som_examples.*;
-import base_SOM_Objects.som_utils.segments.SOMMapSegment;
+import base_SOM_Objects.som_segments.segments.SOMMapSegment;
 import base_Utils_Objects.MsgCodes;
 import base_Utils_Objects.Tuple;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.*;
@@ -140,9 +140,6 @@ public abstract class ProspectExample extends Straff_SOMExample{
 		//occurrence structures - keyed by type, then by JP
 		JpOccurrences = new TreeMap<String, TreeMap<Integer, JP_OccurrenceData>> ();
 		eventsByDateMap = (makeEventsByData ? new TreeMap<String, TreeMap<Date, TreeMap<Integer, StraffEvntRawToTrainData>>>() : null);
-		perJPProductProbMap = new ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>>();
-		perJPGroupProductProbMap = new ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>>();
-
 		_initObjsIndiv();
 	}//initObjsData
 
@@ -221,8 +218,8 @@ public abstract class ProspectExample extends Straff_SOMExample{
 	public synchronized void setSegmentsAndProbsFromBMU() {
 		//build this node's segment membership and probabilities based on its BMU
 		//verify not null
-		perJPProductProbMap.clear();		
-		perJPGroupProductProbMap.clear();
+		perJPMapNodeProbMap.clear();		
+		perJPGroupMapNodeProbMap.clear();
 		if(isBmuNull()) {	msgObj.dispMessage("prospectExample","setSegmentsAndProbsFromBMU","Error !!! No BMU defined for this prospect example : " + OID + " | Aborting further segment calculations.",MsgCodes.warning2 ); return;	}
 		Tuple<Integer,Integer> bmuCoords = getBMUMapNodeCoord();
 		//set all jp(class)-based map node probabilities
@@ -232,7 +229,7 @@ public abstract class ProspectExample extends Straff_SOMExample{
 			addClassSegment(jp, getBMUClassSegment(jp));
 			jpClassMapNodes = new ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>();
 			jpClassMapNodes.put(bmuCoords, getBMUProbForClass(jp));
-			perJPProductProbMap.put(jp, jpClassMapNodes);			
+			perJPMapNodeProbMap.put(jp, jpClassMapNodes);			
 		}
 		//set all jpgroup(category)-based map node probabilities				
 		ConcurrentSkipListMap<Tuple<Integer,Integer>,Float> jpgCatMapNodes;		
@@ -241,10 +238,23 @@ public abstract class ProspectExample extends Straff_SOMExample{
 			addCategorySegment(jpg, getBMUCategorySegment(jpg));
 			jpgCatMapNodes = new ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>();
 			jpgCatMapNodes.put(bmuCoords, getBMUProbForCategory(jpg));
-			perJPGroupProductProbMap.put(jpg, jpgCatMapNodes);
+			perJPGroupMapNodeProbMap.put(jpg, jpgCatMapNodes);
 		}		
 	}//setAllMapNodeSegmentsAndProbs
 
+	
+	/**
+	 * get CSV string representation of segment membership data
+	 */
+	@Override
+	public String getCSVSegmentMembershipData() {
+		if((perJPMapNodeProbMap.size() == 0) || (perJPGroupMapNodeProbMap.size()==0)){ return "Example " + OID + " has no jp or jpgroup mappings.";}
+		String res = "" + OID + ",";
+		//prospect will have many jp probabilities, but only 1 bmu node mapped
+		
+		
+		return res;
+	}
 	
 	//return # of values in data map
 	protected final int getSizeOfDataMap(TreeMap<Date, TreeMap<Integer, StraffEvntRawToTrainData>> map) {
@@ -382,6 +392,9 @@ public abstract class ProspectExample extends Straff_SOMExample{
 		}
 		
 	}//buildJPListsAndSetBadExample
+	
+	//return set of jpg-jp tuples corresponding to non-product jps present in this example
+	public HashSet<Tuple<Integer,Integer>> getNonProdJpgJps(){return nonProdJpgJps;}	
 	
 	@Override
 	//called after all features of this kind of object are built HashSet<Integer> nonProdJpGrps

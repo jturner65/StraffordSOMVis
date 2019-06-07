@@ -5,7 +5,7 @@ import java.util.concurrent.Callable;
 
 import base_SOM_Objects.*;
 import base_SOM_Objects.som_examples.*;
-import base_SOM_Objects.som_utils.segments.SOMMapSegment;
+import base_SOM_Objects.som_segments.segments.SOMMapSegment;
 import base_Utils_Objects.*;
 
 //class to manage mapping of examples to bmus

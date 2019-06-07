@@ -1,10 +1,12 @@
-package base_SOM_Objects.som_utils.segments;
+package base_SOM_Objects.som_segments.segmentData;
 
 import base_SOM_Objects.som_examples.*;
+import base_SOM_Objects.som_segments.segments.SOMMapSegment;
 import base_UI_Objects.my_procApplet;
 
 /**
- * this object manages the segment mapping for a single map node - different types of mappings will have different segment data objects
+ * this object manages the segment handling for a single map node for a single segment. 
+ * Different types of mappings will have different segment data objects.
  * This is mainly a struct to hold the data and an interface to render the segment images
  * @author john
  *

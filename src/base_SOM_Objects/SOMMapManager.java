@@ -7,9 +7,11 @@ import java.util.concurrent.*;
 
 import base_SOM_Objects.som_examples.*;
 import base_SOM_Objects.som_fileIO.*;
+import base_SOM_Objects.som_segments.segments.SOMMapSegment;
+import base_SOM_Objects.som_segments.segments.SOM_FtrWtSegment;
+import base_SOM_Objects.som_segments.segments.SOM_UMatrixSegment;
 import base_SOM_Objects.som_ui.*;
 import base_SOM_Objects.som_utils.*;
-import base_SOM_Objects.som_utils.segments.*;
 import base_UI_Objects.*;
 import base_Utils_Objects.*;
 
@@ -51,14 +53,15 @@ public abstract class SOMMapManager {
 	// categories are collections of similar classes
 	//Map of classes to segment
 	protected TreeMap<Integer, SOMMapSegment> Class_Segments;
-	//map of categories to segment
-	protected TreeMap<Integer, SOMMapSegment> Category_Segments;
 	//map with key being class and with value being collection of map nodes with that class present in mapped examples
 	protected TreeMap<Integer,Collection<SOMMapNode>> MapNodesWithMappedClasses;
-	//map with key being category and with value being collection of map nodes with that category present in mapped examples
-	protected TreeMap<Integer,Collection<SOMMapNode>> MapNodesWithMappedCategories;
 	//probabilities for each class for each map node
 	protected ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>> MapNodeClassProbs;
+
+	//map of categories to segment
+	protected TreeMap<Integer, SOMMapSegment> Category_Segments;
+	//map with key being category and with value being collection of map nodes with that category present in mapped examples
+	protected TreeMap<Integer,Collection<SOMMapNode>> MapNodesWithMappedCategories;
 	//probabilities for each category for each map node
 	protected ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>> MapNodeCategoryProbs;
 	
@@ -1251,8 +1254,7 @@ public abstract class SOMMapManager {
 	 * @param pa
 	 * @param classLabel - label corresponding to class to be displayed
 	 */
-	public abstract void drawClassSegments(my_procApplet pa, int classLabel);
-	
+	public abstract void drawClassSegments(my_procApplet pa, int classLabel);	
 	public final void drawAllClassSegments(my_procApplet pa) {	for(Integer key : Class_Segments.keySet()) {	drawClassSegments(pa,key);}	}
 
 	/**

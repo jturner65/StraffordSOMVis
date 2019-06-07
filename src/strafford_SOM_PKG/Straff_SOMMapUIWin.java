@@ -20,22 +20,26 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 		tpExCalcedIDX					= numSOMBasePrivFlags + 1,			//whether true propsect examples have been loaded and ftrs have been calculated or not
 		trainExCalcedIDX				= numSOMBasePrivFlags + 2,			//whether training data examples have been loaded and ftrs have been calculated or not - these are per-order training examples
 		
-		mapDrawPrdctNodesIDX 			= numSOMBasePrivFlags + 3,
-		mapDrawCurProdZoneIDX	 		= numSOMBasePrivFlags + 4,			//show currently selected prod jps' products and influence zones
-		//display/interaction
-		mapDrawTruePspctIDX				= numSOMBasePrivFlags + 5,			//draw true prospect examples on map		
-		mapDrawCustAnalysisVisIDX		= numSOMBasePrivFlags + 6,			//whether or not to draw feature calc analysis graphs for customer examples
-		mapDrawTPAnalysisVisIDX			= numSOMBasePrivFlags + 7,			//whether or not to draw feature calc analysis graphs for true prospect examples
-		mapDrawTrainDataAnalysisVisIDX	= numSOMBasePrivFlags + 8,			//whether or not to draw feature calc analysis graphs for training data examples (this will be relevant when training data is individual per-order-derived
-						
-		mapDrawCalcFtrOrAllVisIDX		= numSOMBasePrivFlags + 9,			//whether to draw calc obj for ftr-related jps, or all jps present		
+		mapDrawPrdctFtrBMUsIDX 			= numSOMBasePrivFlags + 3,			//draw product bmu as calculated by ftrs
+		mapDrawCurProdFtrBMUZoneIDX	 	= numSOMBasePrivFlags + 4,			//show currently selected prod jps' products and influence zones, as calculated by ftrs
+		//non-product segments
+		mapDrawNonProdJPSegIDX			= numSOMBasePrivFlags + 5,			//draw segment defined by the non-product jps present in the training examples mapped to SOM 
+		mapDrawNonProdJPGroupSegIDX		= numSOMBasePrivFlags + 6,			//draw segment defined by the non-product jp groups present in the training examples mapped to SOM 
 		
-		showSelJPIDX					= numSOMBasePrivFlags + 10, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
+		//display/interaction
+		mapDrawTruePspctIDX				= numSOMBasePrivFlags + 7,			//draw true prospect examples on map		
+		mapDrawCustAnalysisVisIDX		= numSOMBasePrivFlags + 8,			//whether or not to draw feature calc analysis graphs for customer examples
+		mapDrawTPAnalysisVisIDX			= numSOMBasePrivFlags + 9,			//whether or not to draw feature calc analysis graphs for true prospect examples
+		mapDrawTrainDataAnalysisVisIDX	= numSOMBasePrivFlags + 10,			//whether or not to draw feature calc analysis graphs for training data examples (this will be relevant when training data is individual per-order-derived
+						
+		mapDrawCalcFtrOrAllVisIDX		= numSOMBasePrivFlags + 11,			//whether to draw calc obj for ftr-related jps, or all jps present		
+		
+		showSelJPIDX					= numSOMBasePrivFlags + 12, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
 		//train/test data managemen
-		procTruProspectsIDX				= numSOMBasePrivFlags + 11,			//this will process true prospects, and load them if they haven't been loaded
-		saveProdMapsOfPrspctsIDX		= numSOMBasePrivFlags + 12;			//this will save all the product data for the currently selected prod JP
+		procTruProspectsIDX				= numSOMBasePrivFlags + 13,			//this will process true prospects, and load them if they haven't been loaded
+		saveProdMapsOfPrspctsIDX		= numSOMBasePrivFlags + 14;			//this will save all the product data for the currently selected prod JP
 
-	public static final int numPrivFlags = numSOMBasePrivFlags + 13;
+	public static final int numPrivFlags = numSOMBasePrivFlags + 15;
 	
 	//SOM map list options
 	public String[] 
@@ -108,8 +112,13 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 	 * 			the 3rd element is integer flag idx 
 	 */
 	protected final void initAllSOMPrivBtns_Indiv(ArrayList<Object[]> tmpBtnNamesArray) {
-		tmpBtnNamesArray.add(new Object[] {"Hide Products","Show Products", mapDrawPrdctNodesIDX});          
-		tmpBtnNamesArray.add(new Object[] {"Hide Cur Prod Zone", "Show Cur Prod Zone", mapDrawCurProdZoneIDX});		 
+		tmpBtnNamesArray.add(new Object[] {"Hide Products (ftr BMUs)","Show Products(ftr BMUs)", mapDrawPrdctFtrBMUsIDX});          
+		tmpBtnNamesArray.add(new Object[] {"Hide Cur Prod Zone (by ftrs)", "Show Cur Prod Zone (by ftrs)", mapDrawCurProdFtrBMUZoneIDX});	
+
+		tmpBtnNamesArray.add(new Object[] {"Hide Non-Product JPs","Show Non-Product JPs", mapDrawNonProdJPSegIDX});          
+		tmpBtnNamesArray.add(new Object[] {"Hide Non-Prod JP Groups", "Show Non-Prod JP Groups", mapDrawNonProdJPGroupSegIDX});	
+		
+		
 		tmpBtnNamesArray.add(new Object[] {"Show Calc Plot on Ftr JPs", "Show Calc Plot on All JPs", mapDrawCalcFtrOrAllVisIDX});     
 		tmpBtnNamesArray.add(new Object[] {"Hide Training Data Calc Plot", "Show Training Data Calc Plot", mapDrawTrainDataAnalysisVisIDX});
 		tmpBtnNamesArray.add(new Object[] {"Hide Cust Prspct Calc Plot", "Show Cust Prspct Calc Plot", mapDrawCustAnalysisVisIDX});     
@@ -193,7 +202,13 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 			case mapDrawCalcFtrOrAllVisIDX : {
 				curCalcAnalysisJPTypeIDX = (val ? StraffWeightCalc.bndAra_ProdJPsIDX : StraffWeightCalc.bndAra_AllJPsIDX);		
 				setAnalysisDimWidth();
-				break;}
+				break;}			
+			
+			case mapDrawNonProdJPSegIDX			: {//draw segments defined by non-product jps owned by training examples that mapped to each bmu
+				break;}		
+			case mapDrawNonProdJPGroupSegIDX	: {//draw segments defined by non-product jp groups owned by training examples that mapped to each bmu
+				break;}		
+			
 			case mapDrawCustAnalysisVisIDX	: {//whether or not to draw feature calc analysis graphs  
 				if (val) {//if setting to true then aggregate data
 					setPrivFlags(mapDrawTPAnalysisVisIDX, false);
@@ -436,25 +451,36 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 		//not drawing any analysis currently
 		boolean notDrawAnalysis = !(getPrivFlags(mapDrawCustAnalysisVisIDX) || getPrivFlags(mapDrawTPAnalysisVisIDX));
 		if (curImgNum > -1) {
-			if(getPrivFlags(mapDrawPrdctNodesIDX)){		((Straff_SOMMapManager) mapMgr).drawProductNodes(pa, curMapImgIDX, true);}
+			if(getPrivFlags(mapDrawPrdctFtrBMUsIDX)){		((Straff_SOMMapManager) mapMgr).drawProductNodes(pa, curMapImgIDX, true);}
 			if(getPrivFlags(mapDrawWtMapNodesIDX)){		mapMgr.drawNodesWithWt(pa, mapNodeWtDispThresh, curMapImgIDX);} 
 			//display ftr-wt, class and category images, if enabled
 			drawSegmentsFtrWeightDisp(curMapImgIDX);
 			drawClassCatDisp(((Straff_SOMMapManager) mapMgr).getFtrJpByIdx(curMapImgIDX), ((Straff_SOMMapManager) mapMgr).getFtrJpGroupByIdx((int)guiObjs[uiFtrJPGToDispIDX].getVal()));
-			
+			drawNonProdSegs();
 		} else {//draw all products				
-			if(getPrivFlags(mapDrawPrdctNodesIDX)){		((Straff_SOMMapManager) mapMgr).drawAllProductNodes(pa);}
+			if(getPrivFlags(mapDrawPrdctFtrBMUsIDX)){		((Straff_SOMMapManager) mapMgr).drawAllProductNodes(pa);}
 		}
 		if (notDrawAnalysis && (mseOvrData != null)){	drawMseOverData();}//draw mouse-over info if not showing calc analysis				
 		
-		if (getPrivFlags( mapDrawCurProdZoneIDX)){		((Straff_SOMMapManager) mapMgr).drawProductRegion(pa,curProdToShowIDX,prodZoneDistThresh);}
+		if (getPrivFlags( mapDrawCurProdFtrBMUZoneIDX)){		((Straff_SOMMapManager) mapMgr).drawProductRegion(pa,curProdToShowIDX,prodZoneDistThresh);}
 	}//drawMapRectangleIndiv
+	
+	
+	private void drawNonProdSegs() {
+		//TODO this needs to be mapped to UI value
+		int curClassValue = 0;
+//		if(getPrivFlags(mapDrawNonProdJPSegIDX)) {	 			((Straff_SOMMapManager) mapMgr).drawNonProdJpSegments(pa,curClassValue);	}		
+//		if(getPrivFlags(mapDrawNonProdJPGroupSegIDX)) { 		((Straff_SOMMapManager) mapMgr).drawNonProdJPGroupSegments(pa,curClassValue);	}	
+	}
 	
 	@Override
 	/**
 	 * Instancing class-specific segments to render during UMatrix display
 	 */
-	protected void drawSegmentsUMatrixDispIndiv() {	}
+	protected void drawSegmentsUMatrixDispIndiv() {
+		if(getPrivFlags(mapDrawNonProdJPSegIDX)) {	 			((Straff_SOMMapManager) mapMgr).drawAllNonProdJpSegments(pa);}
+		if(getPrivFlags(mapDrawNonProdJPGroupSegIDX)) { 		((Straff_SOMMapManager) mapMgr).drawAllNonProdJPGroupSegments(pa);}
+	}
 	
 	
 	@Override

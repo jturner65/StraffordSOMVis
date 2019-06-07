@@ -6,8 +6,8 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import base_SOM_Objects.som_examples.ExDataType;
 import base_SOM_Objects.som_examples.SOMExample;
 import base_SOM_Objects.som_examples.SOMMapNode;
-import base_SOM_Objects.som_utils.segments.SOMMapSegment;
-import base_SOM_Objects.som_utils.segments.SOM_MapNodeSegmentData;
+import base_SOM_Objects.som_segments.segmentData.SOM_MapNodeSegmentData;
+import base_SOM_Objects.som_segments.segments.SOMMapSegment;
 import base_UI_Objects.my_procApplet;
 import base_Utils_Objects.MsgCodes;
 import base_Utils_Objects.Tuple;
@@ -66,6 +66,7 @@ public class ProductExample extends Straff_SOMExample{
 		prodClr[3]=255;
 		allMapNodesDists = new TreeMap[numFtrCompVals];
 		for (Integer i=0; i<numFtrCompVals;++i) {			allMapNodesDists[i] = new TreeMap<Double,ArrayList<SOMMapNode>>();		}
+		
 	}	
 	
 	//Only used for products since products extend over non-exclusive zones of the map
@@ -76,7 +77,7 @@ public class ProductExample extends Straff_SOMExample{
 	
 	/**
 	 * set this example's segment membership and probabilities from the mapped bmu - class/category label-driven examples won't use this function
-	 * products use class and category membership and prob of all map nodes - represented on map by segment (collection of map nodes), not bmu
+	 * products use class and category membership and prob of all map nodes, and not BMU - represented on map by segment (collection of map nodes), not bmu
 	 */
 	public void setSegmentsAndProbsFromBMU() {};
 	
@@ -87,28 +88,40 @@ public class ProductExample extends Straff_SOMExample{
 	 */
 	public synchronized void setSegmentsAndProbsFromAllMapNodes(TreeMap<Integer, SOMMapSegment> Class_Segments, TreeMap<Integer, SOMMapSegment> Category_Segments) {
 		//set all jp(class)-based map node probabilities
-		perJPProductProbMap.clear();		
+		perJPMapNodeProbMap.clear();		
 		ConcurrentSkipListMap<Tuple<Integer,Integer>,Float> jpClassMapNodes, tmpJpMapNodes;
 		for(Integer jp : allProdJPs) {
 			jpClassMapNodes = ((Straff_SOMMapManager)mapMgr).getMapNodeJPProbsForJP(jp);
 			tmpJpMapNodes = new ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>();
 			for(Tuple<Integer,Integer> key : jpClassMapNodes.keySet()) {				tmpJpMapNodes.put(key, jpClassMapNodes.get(key));			}
-			perJPProductProbMap.put(jp, tmpJpMapNodes);
+			perJPMapNodeProbMap.put(jp, tmpJpMapNodes);
 			addClassSegment(jp, Class_Segments.get(jp));
 		}
 		//set all jpgroup(category)-based map node probabilities
-		perJPGroupProductProbMap.clear();
+		perJPGroupMapNodeProbMap.clear();
 		ConcurrentSkipListMap<Tuple<Integer,Integer>,Float> jpgClassMapNodes, tmpJpgMapNodes;		
 		for(Integer jpg : allProdJPGroups) {
 			jpgClassMapNodes = ((Straff_SOMMapManager)mapMgr).getMapNodeJPGroupProbsForJPGroup(jpg);
 			tmpJpgMapNodes = new ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>();
 			for(Tuple<Integer,Integer> key : jpgClassMapNodes.keySet()) {				tmpJpgMapNodes.put(key, jpgClassMapNodes.get(key));			}
-			perJPGroupProductProbMap.put(jpg, tmpJpgMapNodes);
+			perJPGroupMapNodeProbMap.put(jpg, tmpJpgMapNodes);
 			addCategorySegment(jpg, Category_Segments.get(jpg));
 		}		
 	}//setAllMapNodeSegmentsAndProbs
-		
 	
+	/**
+	 * get CSV string representation of segment membership data
+	 */
+	@Override
+	public String getCSVSegmentMembershipData() {
+		if((perJPMapNodeProbMap.size() == 0) || (perJPGroupMapNodeProbMap.size()==0)){ return "Example " + OID + " has no jp or jpgroup mappings.";}
+		String res = "" + OID + ",";
+		//product will have 1 or 2 jps, and many nodes mapped
+		
+		
+		return res;
+	}
+
 	//call this before any data loading that will over-write the existing product examples is performed
 	public static void initAllStaticProdData() {
 		ordrWtAraPerSize = new float[100];	//100 is arbitrary but much more than expected # of jps per product. dont expect a product to have anywhere near this many jps
@@ -132,7 +145,11 @@ public class ProductExample extends Straff_SOMExample{
 	@Override
 	public void finalizeBuildBeforeFtrCalc() {		
 		allProdJPs = trainPrdctData.getAllJpsInData();
-		for(Integer jp : allProdJPs) {	allProdJPGroups.add(jpJpgMon.getFtrJpGroupFromJp(jp));}
+		for(Integer jp : allProdJPs) {	
+			allProdJPGroups.add(jpJpgMon.getFtrJpGroupFromJp(jp));
+			//if(50==jp) { msgObj.dispInfoMessage("ProductExample","finalizeBuildBeforeFtrCalc", "Product "+OID+" has jp 50 and " +allProdJPs.size() +" jps total.");}
+			//if(allProdJPs.size() > 2) {msgObj.dispInfoMessage("ProductExample","finalizeBuildBeforeFtrCalc", "Product "+OID+" has >2 product jp : " +allProdJPs.size() +" jps total.");}
+		}
 	}
 	@Override
 	public HashSet<Tuple<Integer, Integer>> getSetOfAllJpgJpData() {

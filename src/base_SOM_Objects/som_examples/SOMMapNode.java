@@ -3,7 +3,15 @@ package base_SOM_Objects.som_examples;
 import java.util.*;
 
 import base_SOM_Objects.*;
-import base_SOM_Objects.som_utils.segments.*;
+import base_SOM_Objects.som_segments.SOM_CategorySegMgr;
+import base_SOM_Objects.som_segments.SOM_ClassSegMgr;
+import base_SOM_Objects.som_segments.SOM_SegmentManager;
+import base_SOM_Objects.som_segments.segmentData.SOM_MapNodeSegmentData;
+import base_SOM_Objects.som_segments.segments.SOMMapSegment;
+import base_SOM_Objects.som_segments.segments.SOM_CategorySegment;
+import base_SOM_Objects.som_segments.segments.SOM_ClassSegment;
+import base_SOM_Objects.som_segments.segments.SOM_FtrWtSegment;
+import base_SOM_Objects.som_segments.segments.SOM_UMatrixSegment;
 import base_UI_Objects.*;
 import base_Utils_Objects.*;
 
@@ -30,29 +38,19 @@ public abstract class SOMMapNode extends SOMExample{
 	//actual L2 distance to each neighbor comparing features
 	//first dim is type of distance, 2nd dim is x (col) loc, 3rd dim is y (row) loc
 	public double[][][] neighborSqDistVals;
-	
+	//non-zero ftr idxs in this node.
 	private Integer[] nonZeroIDXs;
 	
 	//segment membership manager for UMatrix-based segments
-	private SOM_MapNodeSegmentData uMatrixSegData;
-	
+	private SOM_MapNodeSegmentData uMatrixSegData;	
 	//segment membership manager of ftr-index-based segments - will have 1 per ftr with non-zero wt
 	//keyed by non-zero ftr index
-	private TreeMap<Integer, SOM_MapNodeSegmentData> ftrWtSegData;
+	private TreeMap<Integer, SOM_MapNodeSegmentData> ftrWtSegData;	
+	//this manages the segment functionality for the class segments
+	private SOM_SegmentManager classSegManager;	
+	//this manages the segment functionality for the category segments, which are collections of similar classes in a hierarchy
+	private SOM_SegmentManager categorySegManager;
 	
-	//this holds classes and count of all training examples with this class mapped to this node
-	protected TreeMap<Integer, Integer> mappedClassCounts;
-	//this holds category as key, value is classes in that category and counts mapped to the node of that class(subtree)
-	protected TreeMap<Integer, TreeMap<Integer, Integer>> mappedCategoryCounts;
-	//segment membership manager of class-index-based segments - will have 1 per class present and 1 per category
-	//keyed by class index
-	protected TreeMap<Integer, SOM_MapNodeSegmentData> class_SegData;	//segment membership manager of class mapping - key is class
-	private TreeMap<Integer, Float> class_SegDataRatio;			//this is the ratio of # of a particular class to the total # of classes mapped to this map node - these should of course sum to 1
-	private Float ttlNumMappedClassInstances;							//total # of training example classes mapped to this map node - float to make sure non-int division when consumed
-	//keyed by category index
-	protected TreeMap<Integer, SOM_MapNodeSegmentData> category_SegData;	//category is a collection of similar classes
-	private TreeMap<Integer, Float> category_SegDataRatio;			//this is the ratio of # of a particular category to the total # of categories mapped to this map node - these should of course sum to 1
-	private Float ttlNumMappedCategoryInstances;							//total # of training example categories mapped to this map node
 	//this node has examples of a particular type
 	public boolean[] hasExamples;
 	//node color to display for type of data
@@ -96,11 +94,6 @@ public abstract class SOMMapNode extends SOMExample{
 	}//setFtrsFromFloatAra
 	
 	public final Integer[] getNonZeroIDXs() {return nonZeroIDXs;}
-	
-	//return map of classes mapped to counts present
-	public final TreeMap<Integer, Integer> getMappedClassCounts() {	return mappedClassCounts;	}
-	//return map of categories to classes within category and counts of each class
-	public final TreeMap<Integer, TreeMap<Integer, Integer>> getMappedCategoryCounts(){	return mappedCategoryCounts;}
 
 	//called at end of base class construction
 	private void initMapNode(Tuple<Integer,Integer> _mapNode){
@@ -123,13 +116,10 @@ public abstract class SOMMapNode extends SOMExample{
 			ftrWtSegData.put(idx, new SOM_MapNodeSegmentData(this, this.OID+"_FtrWtData_IDX_"+idx, "Feature Weight For Ftr IDX :"+idx));
 		}
 		//build structure that holds counts of classes mapped to this node
-		mappedClassCounts = new TreeMap<Integer, Integer>();
+		classSegManager = new SOM_ClassSegMgr(this);
+		
 		//build structure that holds counts of categories mapped to this node (category is a collection of similar classes)
-		mappedCategoryCounts = new TreeMap<Integer, TreeMap<Integer, Integer>>();
-		class_SegData = new TreeMap<Integer, SOM_MapNodeSegmentData>();
-		class_SegDataRatio = new TreeMap<Integer, Float>();
-		category_SegData = new TreeMap<Integer, SOM_MapNodeSegmentData>();	
-		category_SegDataRatio = new TreeMap<Integer, Float>();
+		categorySegManager = new SOM_CategorySegMgr(this);
 
 		//instancing class-specific functionality
 		_initDataFtrMappings();
@@ -146,107 +136,37 @@ public abstract class SOMMapNode extends SOMExample{
 	///////////////////
 	// class-based segment data
 	
-	public final void clearClassSeg() {	
-		class_SegDataRatio.clear();
-		ttlNumMappedClassInstances = 0.0f;
-		//aggregate total count of all classes seen by this node
-		if(mappedClassCounts.size()!=class_SegData.size()) {
-			mapMgr.getMsgObj().dispInfoMessage("SOMMapNode", "clearClassSeg", "Error : mappedClassCounts.size() : " + mappedClassCounts.size() + " is not equal to class_SegData.size() : " + class_SegData.size());
-		}
-		for(Integer count : mappedClassCounts.values()) {ttlNumMappedClassInstances += count;}
-		for(Integer cls : class_SegData.keySet()) {
-			class_SegData.get(cls).clearSeg();			//clear each class's segment manager
-			class_SegDataRatio.put(cls, mappedClassCounts.get(cls)/ttlNumMappedClassInstances);
-		}	
-//		if((compLoc.x==this.mapNodeCoord.x) && (compLoc.y==this.mapNodeCoord.y)) {mapMgr.getMsgObj().dispInfoMessage("SOMMapNode", "clearClassSeg","47,8 Info :  mappedClassCounts.size() : " + mappedClassCounts.size() + " | class_SegData.size() : " + class_SegData.size()+ " | class_SegDataRatio.size() : " + class_SegDataRatio.size());}
-		
-	}//clearClassSeg()
-	public final void setClassSeg(Integer _cls, SOM_ClassSegment _clsSeg) {		
-		SOM_MapNodeSegmentData segData = class_SegData.get(_cls);
-		if(segData==null) {		System.out.println("Null segData for map node : " + OID +" | class : " + _cls);	}
-		segData.setSeg(_clsSeg);
-	}		//should always exist - if doesn't is bug, so no checking to expose bug
-	
-	public final SOMMapSegment getClassSegment(Integer _cls) {
-		SOM_MapNodeSegmentData clsMgrAtIdx = class_SegData.get(_cls);
-		if(null==clsMgrAtIdx) {return null;}			//does not have class 
-		return clsMgrAtIdx.getSegment();
-	}
-	public final int getClassSegClrAsInt(Integer _cls) {
-		SOM_MapNodeSegmentData clsMgrAtIdx = class_SegData.get(_cls);
-		if(null==clsMgrAtIdx) {return 0;}			//does not have class 
-		return clsMgrAtIdx.getSegClrAsInt();
-	}	
-	
+	public final void clearClassSeg() {	 										classSegManager.clearAllSegData();}//clearClassSeg()
+	public final void setClassSeg(Integer _cls, SOM_ClassSegment _clsSeg) {		classSegManager.setSeg(_cls, _clsSeg);}	
+	public final SOMMapSegment getClassSegment(Integer _cls) {					return classSegManager.getSegment(_cls);	}	
+	public final int getClassSegClrAsInt(Integer _cls) {						return classSegManager.getSegClrAsInt(_cls);}		
 	//for passed -class (not idx)- give this node's probability
-	public final float getClassProb(Integer _cls) {
-		Float prob = class_SegDataRatio.get(_cls);
-		if(null==prob) {return 0.0f;}
-		return prob;
-	}
-	public final Set<Integer> getClassSegIDs(){	return class_SegData.keySet();}
-	/**
-	 * return class segment ratios (probabilities of each class) mapped to this map node
-	 * @return
-	 */
-	public final TreeMap<Integer, Float> getClass_SegDataRatio(){return class_SegDataRatio;}
-	public final Float getTtlNumMappedClassInstances() { return ttlNumMappedClassInstances;}
+	public final float getClassProb(Integer _cls) {								return classSegManager.getSegProb(_cls);}
+	public final Set<Integer> getClassSegIDs(){									return classSegManager.getSegIDs();}	
+	public final TreeMap<Integer, Float> getClass_SegDataRatio(){				return classSegManager.getSegDataRatio();}
+	public final Float getTtlNumMappedClassInstances() { 						return classSegManager.getTtlNumMappedInstances();}
+	//return map of classes mapped to counts present
+	@SuppressWarnings("unchecked")
+	public final TreeMap<Integer, Float> getMappedClassCounts() {				return classSegManager.getMappedCounts();	}
+	protected SOM_SegmentManager getClassSegManager() {							return classSegManager;}
 	
 	///////////////////
 	// category order-based segment data
 	
-	public final void clearCategorySeg() {
-		category_SegDataRatio.clear();
-		if(mappedCategoryCounts.size()!=category_SegData.size()) {
-			mapMgr.getMsgObj().dispInfoMessage("SOMMapNode", "clearCategorySeg", "Error : mappedCategoryCounts.size() : " + mappedCategoryCounts.size() + " is not equal to category_SegData.size() : " + category_SegData.size());
-		}
-		ttlNumMappedCategoryInstances = 0.0f;		//should be the same as ttlNumMappedClassInstances - measures same # of orders)
-		Float ttlPerCategoryCount = 0.0f;
-		TreeMap<Integer, Float> ttlPerCategoryCountsMap = new TreeMap<Integer, Float>();
-		for(Integer category : mappedCategoryCounts.keySet()) {
-			TreeMap<Integer, Integer> classCountsPresent = mappedCategoryCounts.get(category);
-			ttlPerCategoryCount = 0.0f;			
-			for(Integer count : classCountsPresent.values()) {//aggregate counts of all classes seen for this category
-				ttlPerCategoryCount += count;
-				ttlNumMappedCategoryInstances += count;	
-			}
-			ttlPerCategoryCountsMap.put(category, ttlPerCategoryCount);//set total count per category
-		}
-		
-		//compute weighting for each category - proportion of this category's # of classes against total count of classes across all categories
-		for(Integer category : category_SegData.keySet()) {
-			category_SegData.get(category).clearSeg();	
-			category_SegDataRatio.put(category, ttlPerCategoryCountsMap.get(category)/ttlNumMappedCategoryInstances);
-		}	
-	}//clearCategorySeg
-	public final void setCategorySeg(Integer cat, SOM_CategorySegment _catSeg) {
-		category_SegData.get(cat).setSeg(_catSeg);
-	}		//should always exist - if doesn't is bug, so no checking to expose bug
-	
-	public final SOMMapSegment getCategorySegment(Integer category) {
-		SOM_MapNodeSegmentData categoryMgrAtIdx = category_SegData.get(category);
-		if(null==categoryMgrAtIdx) {return null;}			//does not have weight at this feature index
-		return categoryMgrAtIdx.getSegment();
-	}
-	public final int getCategorySegClrAsInt(Integer category) {
-		SOM_MapNodeSegmentData categoryMgrAtIdx = category_SegData.get(category);
-		if(null==categoryMgrAtIdx) {return 0;}			//does not have weight at this feature index	
-		return categoryMgrAtIdx.getSegClrAsInt();
-	}	
-		
+	public final void clearCategorySeg() {												categorySegManager.clearAllSegData();	}
+	public final void setCategorySeg(Integer _cat, SOM_CategorySegment _catSeg) {		categorySegManager.setSeg(_cat, _catSeg);}	
+	public final SOMMapSegment getCategorySegment(Integer _cat) {						return categorySegManager.getSegment(_cat);}
+	public final int getCategorySegClrAsInt(Integer _cat) {								return categorySegManager.getSegClrAsInt(_cat);}		
 	//for passed -Category label (not cat idx)- give this node's probability
-	public final float getCategoryProb(Integer category) {
-		Float prob = category_SegDataRatio.get(category);
-		if(null==prob) {return 0.0f;}
-		return prob;
-	}
-	public final Set<Integer> getCategorySegIDs(){	return category_SegData.keySet();}
-	/**
-	 * return category segment ratios (probabilities of each category) mapped to this map node
-	 * @return
-	 */	
-	public final TreeMap<Integer, Float> getCategory_SegDataRatio(){return category_SegDataRatio;}
-	public final Float getTtlNumMappedCategoryInstances() { return ttlNumMappedCategoryInstances;}
+	public final float getCategoryProb(Integer _cat) {                       			return categorySegManager.getSegProb(_cat);}            
+	public final Set<Integer> getCategorySegIDs(){		                      			return categorySegManager.getSegIDs();}	             
+	public final TreeMap<Integer, Float> getCategory_SegDataRatio(){          			return categorySegManager.getSegDataRatio();}           
+	public final Float getTtlNumMappedCategoryInstances() {                   			return categorySegManager.getTtlNumMappedInstances();} 	
+	//return map of categories to classes within category and counts of each class
+	@SuppressWarnings("unchecked")
+	public final TreeMap<Integer, TreeMap<Integer, Float>> getMappedCategoryCounts(){	return categorySegManager.getMappedCounts();}
+	protected SOM_SegmentManager getCategorySegManager() {								return categorySegManager;}
+
 
 	///////////////////
 	// ftr-wt based segment data
@@ -428,15 +348,20 @@ public abstract class SOMMapNode extends SOMExample{
 	//get class probability from bmu for passed class
 	//treat this example's probability for a particular class as the probability of its BMU for that class (# examples of that class divided by total # of class seen at that node)
 	//override these base class functions to be aliases for map node functions
+	@Override
 	public final float getBMUProbForClass(Integer cls) {	return getClassProb(cls);}
-	
+	@Override
 	public final float getBMUProbForCategory(Integer category) {	return getCategoryProb(category);	}
 	//assumes bmu exists and is not null
+	@Override
 	public final Set<Integer> getBMUClassSegIDs(){			return getClassSegIDs();}
+	@Override
 	public final Set<Integer> getBMUCategorySegIDs(){			return getCategorySegIDs();}
+	@Override
 	public final SOMMapSegment getBMUClassSegment(int cls) {	return getClassSegment(cls);}
-	public final SOMMapSegment getBMUCategorySegment(int cat) {	return getCategorySegment(cat);}
-	
+	@Override
+	public final SOMMapSegment getBMUCategorySegment(int cat) {	return getCategorySegment(cat);}	
+	@Override
 	public final Tuple<Integer,Integer> getBMUMapNodeCoord(){	return mapNodeCoord;}
 
 	
@@ -473,24 +398,11 @@ public abstract class SOMMapNode extends SOMExample{
 		ftrWtMgrAtIdx.drawMe(p,(int) (255*wt));
 	}//drawMeFtrWtSegClr
 	
-	
 	//draw class pop segment contribution 
-	public void drawMeClassClr(my_procApplet p, Integer cls) {
-		SOM_MapNodeSegmentData classMgrAtIdx = class_SegData.get(cls);
-		if(null==classMgrAtIdx) {return;}			//does not have class members at stated class
-		float prob = class_SegDataRatio.get(cls);
-		if(0.0f==prob) {return;}
-		classMgrAtIdx.drawMe(p,(int) (235*prob)+20);
-	}//drawMeFtrWtSegClr
+	public final void drawMeClassClr(my_procApplet p, Integer cls) {classSegManager.drawMeSegClr(p,  cls);	}//drawMeFtrWtSegClr
 	
 	//draw category segment contribution - collection of classes
-	public void drawMeCategorySegClr(my_procApplet p, Integer category) {
-		SOM_MapNodeSegmentData categoryMgrAtIdx = category_SegData.get(category);
-		if(null==categoryMgrAtIdx) {return;}			//does not have category members at stated category
-		float prob = category_SegDataRatio.get(category);
-		if(0.0f==prob) {return;}
-		categoryMgrAtIdx.drawMe(p,(int) (235*prob)+20);
-	}//drawMeFtrWtSegClr
+	public final void drawMeCategorySegClr(my_procApplet p, Integer category) { categorySegManager.drawMeSegClr(p, category);}//drawMeFtrWtSegClr
 	
 	//draw a box around this node of uMatD color
 	public void drawMeUMatDist(my_procApplet p){drawMeClrRect(p,uMatClr, 255);}
@@ -514,6 +426,12 @@ public abstract class SOMMapNode extends SOMExample{
 	public String getPreProcDescrForCSV() {	return "Should not save SOMMapNode to intermediate CSV";}
 	@Override
 	public String getRawDescColNamesForCSV() {return "Do not save SOMMapNode to intermediate CSV";}
+	/**
+	 * get CSV string representation of segment membership data - map nodes don't use this since they are not currently saved
+	 */
+	@Override
+	public String getCSVSegmentMembershipData() {return "Should not query SOMMapNode for segment membership data.";}
+
 	//map nodes do not use finalize
 	@Override
 	public void finalizeBuildBeforeFtrCalc() {	}
@@ -610,7 +528,7 @@ class SOMMapNodeBMUExamples{
 		visLabel = new String[] {""+node.OID+" : ", ""+numMappedEx};
 		dispClrs = hasExamples ? node.nodeClrs : node.altClrs;
 		if(!hasExamples && (dataType==ExDataType.Training)) {
-			node.mapMgr.getMsgObj().dispInfoMessage("SOMMapNodeBMUExamples", "finalize", "Finalize for " +dataType.getName() + " nonex map node in SOMMapNodeBMUExamples with "+numMappedEx+" copied ex | dispClrs : ["+dispClrs[0]+","+dispClrs[1]+","+dispClrs[2]+"] | node addr : " + node.mapNodeCoord +" | copied node addr : "+copyNode.mapNodeCoord+" | dist to copy node : " + sqDistToCopyNode+".");
+			node.mapMgr.getMsgObj().dispInfoMessage("SOMMapNodeBMUExamples", "finalize", "Finalize for " +dataType.getName() + " non-example map node in SOMMapNodeBMUExamples with "+numMappedEx+" copied ex | dispClrs : ["+dispClrs[0]+","+dispClrs[1]+","+dispClrs[2]+"] | node addr : " + node.mapNodeCoord +" | copied node addr : "+copyNode.mapNodeCoord+" | dist to copy node : " + sqDistToCopyNode+".");
 		}
 	}
 	//whether this map node is a copy of another or not

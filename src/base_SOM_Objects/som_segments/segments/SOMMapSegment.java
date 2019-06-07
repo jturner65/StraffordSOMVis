@@ -1,4 +1,4 @@
-package base_SOM_Objects.som_utils.segments;
+package base_SOM_Objects.som_segments.segments;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -34,23 +34,20 @@ public abstract class SOMMapSegment {
 	}//ctor
 	
 	//called internally by instancing class
-	protected void addMapNode(SOMMapNode _node) {	MapNodes.put(_node.mapNodeCoord, _node);}	
+	protected final void addMapNode(SOMMapNode _node) {	MapNodes.put(_node.mapNodeCoord, _node);}	
 	public final Collection<SOMMapNode> getAllMapNodes(){return MapNodes.values();}
 	
-	public void clearMapNodes() {MapNodes.clear();}
+	public final void clearMapNodes() {MapNodes.clear();}
 	
-	public int[] getSegClr() {return segClr;}
-	public int getSegClrAsInt() {return segClrAsInt;}
+	public final int[] getSegClr() {return segClr;}
+	public final int getSegClrAsInt() {return segClrAsInt;}
 	
 	/**
 	 * determine whether a node belongs in this segment - base it on BMU
 	 * @param ex the example to check
 	 */
-	public boolean doesExampleBelongInSeg(SOMExample ex) {
-		SOMMapNode mapNode = ex.getBmu();
-		if(mapNode == null) {return false;}		//if no bmu then example does not belong in any segment
-		return doesMapNodeBelongInSeg(mapNode);		
-	}
+	public abstract boolean doesExampleBelongInSeg(SOMExample ex);
+	
 	/**
 	 * determine whether a mapnode belongs in this segment
 	 * @param ex map node to check

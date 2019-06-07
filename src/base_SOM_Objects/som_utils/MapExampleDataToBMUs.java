@@ -20,8 +20,9 @@ public class MapExampleDataToBMUs extends MapDataToBMUs{
 	private void mapExample(int i, BiFunction<TreeMap<Integer, Float>, TreeMap<Integer, Float>, Double> _distFunc) {
 		exs[i].findBMUFromFtrNodes(MapNodesByFtr,_distFunc, curMapFtrType);
 		incrProgress(i);
+		//example has probabilities for specific jps and jpgroups based on BMU
 		exs[i].setSegmentsAndProbsFromBMU();
-	}
+	}//mapExample
 	
 	
 	@Override

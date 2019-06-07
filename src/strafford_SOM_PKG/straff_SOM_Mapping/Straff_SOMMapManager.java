@@ -7,14 +7,14 @@ import java.util.function.BiFunction;
 import base_SOM_Objects.*;
 import base_SOM_Objects.som_examples.*;
 import base_SOM_Objects.som_fileIO.*;
+import base_SOM_Objects.som_segments.segments.SOMMapSegment;
+import base_SOM_Objects.som_segments.segments.SOM_CategorySegment;
+import base_SOM_Objects.som_segments.segments.SOM_ClassSegment;
+import base_SOM_Objects.som_segments.segments.SOM_FtrWtSegment;
+import base_SOM_Objects.som_segments.segments.SOM_UMatrixSegment;
 import base_SOM_Objects.som_ui.SOMUIToMapCom;
 import base_SOM_Objects.som_utils.MapExFtrCalcs_Runner;
 import base_SOM_Objects.som_utils.SOMProjConfigData;
-import base_SOM_Objects.som_utils.segments.SOMMapSegment;
-import base_SOM_Objects.som_utils.segments.SOM_CategorySegment;
-import base_SOM_Objects.som_utils.segments.SOM_ClassSegment;
-import base_SOM_Objects.som_utils.segments.SOM_FtrWtSegment;
-import base_SOM_Objects.som_utils.segments.SOM_UMatrixSegment;
 import base_UI_Objects.*;
 import base_Utils_Objects.*;
 import strafford_SOM_PKG.Straff_SOMMapUIWin;
@@ -29,13 +29,14 @@ import strafford_SOM_PKG.straff_SOM_Examples.products.ProductExample;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.*;
 
 import strafford_SOM_PKG.straff_SOM_Mapping.exampleMappers.*;
+import strafford_SOM_PKG.straff_SOM_Mapping.outputMappers.Straff_ProdMappingOutputBuilder_FtrsAndBMUs;
 import strafford_SOM_PKG.straff_Utils.Straff_SOMProjConfig;
 
 
 //this class holds the data describing a SOM and the data used to both build and query the som
 public class Straff_SOMMapManager extends SOMMapManager {	
 	//structure to map specified products to the SOM and find prospects with varying levels of confidence
-	private Straff_ProdMapOutputBuilder prodOutputMapper;	
+	private Straff_ProdMappingOutputBuilder_FtrsAndBMUs prodOutputMapper;	
 	//manage all jps and jpgs seen in project
 	public MonitorJpJpgrp jpJpgrpMon;	
 	//calc object to be used to derive feature vector for each prospect
@@ -69,10 +70,21 @@ public class Straff_SOMMapManager extends SOMMapManager {
 	//total # of jps in all data, including source events
 	private int numTtlJps;	
 	
-//	public static final int 
-//			jps_FtrIDX = 0,		//idx in delta structs (diffs, mins) for jps used for training ftrs (non virtual jps)
-//			jps_AllIDX = 1;		//idx in delta structs for all jps
-//	public static final int numFtrTypes = 2;
+	//Map of non prod jps to training data membership segment
+	protected TreeMap<Integer, SOMMapSegment> nonProdJP_Segments;
+	//map with key being non prod jps and with value being collection of map nodes with that non prod jps present in mapped examples
+	protected TreeMap<Integer,Collection<SOMMapNode>> MapNodesWithMappedNonProdJPs;
+	//probabilities for each non prod jps for each map node
+	protected ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>> MapNodeNonProdJPsProbs;
+	
+	//map of non prod jp groups to training data membership segment
+	protected TreeMap<Integer, SOMMapSegment> nonProdJpGroup_Segments;
+	//map with key being non-product jpgroup and with value being collection of map nodes with that non-product jpgroup present in mapped examples
+	protected TreeMap<Integer,Collection<SOMMapNode>> MapNodesWithMappedNonProdJpGroup;
+	//probabilities for each non-product jpgroup for each map node
+	protected ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>> MapNodeNonProdJpGroupProbs;
+	
+	
 	
 	//private int[] priv_stFlags;						//state flags - bits in array holding relevant process info
 	public static final int	
@@ -444,6 +456,17 @@ public class Straff_SOMMapManager extends SOMMapManager {
 	protected void initMapNodesPriv() {
 		//map of jpgroup idx and all map nodes that have non-zero presence in features(jps) that belong to that jpgroup
 		MapNodesByJPGroupIDX = new TreeMap<Integer, HashSet<SOMMapNode>>();
+		
+		//Map of non prod jps to training data membership segment
+		nonProdJP_Segments = new TreeMap<Integer, SOMMapSegment>();
+		MapNodesWithMappedNonProdJPs = new TreeMap<Integer, Collection<SOMMapNode>>();
+		MapNodeNonProdJPsProbs = new ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>>();
+
+		//map of non prod jp groups to training data membership segment
+		nonProdJpGroup_Segments = new TreeMap<Integer, SOMMapSegment>();
+		MapNodesWithMappedNonProdJpGroup = new TreeMap<Integer, Collection<SOMMapNode>>();
+		MapNodeNonProdJpGroupProbs = new ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>>();
+		
 	}//initMapNodesPriv
 	
 	@Override
@@ -454,6 +477,10 @@ public class Straff_SOMMapManager extends SOMMapManager {
 		buildClassSegmentsOnMap();
 		//build jpgroup segments from mapped training examples
 		buildCategorySegmentsOnMap();
+//		//build segments for non-prod jps 
+//		buildNonProdSegmentsOnMap();
+//		//build segments for non-prod jp groups
+//		buildNonProdJpGroupSegmentsOnMap();
 		
 		//map products to bmus
 		setProductBMUs();
@@ -487,12 +514,13 @@ public class Straff_SOMMapManager extends SOMMapManager {
 			}
 			Collection<SOMMapNode> mapNodesForJp = jpSeg.getAllMapNodes();
 			MapNodesWithMappedClasses.put(jp, mapNodesForJp);
+			//getMsgObj().dispMessage("Straff_SOMMapManager","buildClassSegmentsOnMap","JP : " + jp + " has " + mapNodesForJp.size()+ " map nodes in its segment.", MsgCodes.info5);			
 			tmpMapOfNodeProbs = new ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>();
 			for(SOMMapNode mapNode : mapNodesForJp) {		tmpMapOfNodeProbs.put(mapNode.mapNodeCoord, mapNode.getClassProb(jp));}
 			MapNodeClassProbs.put(jp, tmpMapOfNodeProbs);
 		}
 		
-		getMsgObj().dispMessage("Straff_SOMMapManager","buildClassSegmentsOnMap","Finished building Order JP-Segment-based cluster map", MsgCodes.info5);			
+		getMsgObj().dispMessage("Straff_SOMMapManager","buildClassSegmentsOnMap","Finished building Order JP-Segment-based cluster map : " + MapNodesWithMappedClasses.size()+" jps have map nodes mapped to them.", MsgCodes.info5);			
 	}//buildFtrWtSegmentsOnMap	
 	public ConcurrentSkipListMap<Tuple<Integer,Integer>, Float> getMapNodeJPProbsForJP(Integer jp){return MapNodeClassProbs.get(jp);}
 
@@ -520,6 +548,7 @@ public class Straff_SOMMapManager extends SOMMapManager {
 			}	
 			Collection<SOMMapNode> mapNodesForJpg = jpgSeg.getAllMapNodes();
 			MapNodesWithMappedCategories.put(jpg, mapNodesForJpg);
+			//getMsgObj().dispMessage("Straff_SOMMapManager","buildCategorySegmentsOnMap","JPgroup : " + jpg + " has " + mapNodesForJpg.size()+ " map nodes in its segment.", MsgCodes.info5);
 			tmpMapOfNodeProbs = new ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>();
 			for(SOMMapNode mapNode : mapNodesForJpg) {	tmpMapOfNodeProbs.put(mapNode.mapNodeCoord, mapNode.getCategoryProb(jpg));	}
 			MapNodeCategoryProbs.put(jpg, tmpMapOfNodeProbs);
@@ -528,6 +557,82 @@ public class Straff_SOMMapManager extends SOMMapManager {
 		getMsgObj().dispMessage("Straff_SOMMapManager","buildCategorySegmentsOnMap","Finished building Order JP Group-Segment-based cluster map", MsgCodes.info5);			
 	}//buildFtrWtSegmentsOnMap
 	public ConcurrentSkipListMap<Tuple<Integer,Integer>, Float> getMapNodeJPGroupProbsForJPGroup(Integer jpg){return MapNodeCategoryProbs.get(jpg);}	
+	
+	
+	protected final void buildNonProdSegmentsOnMap() {	
+		if ((MapNodes == null) || (MapNodes.size() == 0)) {return;}
+		getMsgObj().dispMessage("Straff_SOMMapManager","buildNonProdSegmentsOnMap","Started building Non-product JP-Segment-based cluster map", MsgCodes.info5);	
+		//clear existing segments 
+		for (SOMMapNode ex : MapNodes.values()) {ex.clearClassSeg();}
+		nonProdJP_Segments = new TreeMap<Integer, SOMMapSegment>();
+		MapNodesWithMappedNonProdJPs = new TreeMap<Integer, Collection<SOMMapNode>>();
+		MapNodeNonProdJPsProbs = new ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>>();
+		ConcurrentSkipListMap<Tuple<Integer,Integer>, Float> tmpMapOfNodeProbs = new ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>();
+		SOM_ClassSegment jpSeg;
+		//must be NON PROD Jps
+		Integer[] allNonProdJPs = jpJpgrpMon.getNonProductJpByIDXAra();
+		if(allNonProdJPs.length == 0) {
+			getMsgObj().dispMessage("Straff_SOMMapManager","buildNonProdJpGroupSegmentsOnMap","Non Product Jp List is currently not being built in jpJpgrpMon.getNonProductJpByIDXAra(), so no segments are being built.", MsgCodes.info5);	
+			return;
+		}		
+		//check every map node for every jp to see if it has class membership
+		for(int npjpIdx = 0; npjpIdx<allNonProdJPs.length;++npjpIdx) {
+			Integer npjp = allNonProdJPs[npjpIdx];
+			//build 1 segment per jp idx
+			jpSeg = new SOM_ClassSegment(this, npjp);
+			nonProdJP_Segments.put(npjp,jpSeg);
+			for(SOMMapNode ex : MapNodes.values()) {
+				if(jpSeg.doesMapNodeBelongInSeg(ex)) {					jpSeg.addMapNodeToSegment(ex, MapNodes);		}//this does dfs to find neighbors who share feature value 	
+			}
+			Collection<SOMMapNode> mapNodesForJp = jpSeg.getAllMapNodes();
+			MapNodesWithMappedNonProdJPs.put(npjp, mapNodesForJp);
+			//getMsgObj().dispMessage("Straff_SOMMapManager","buildClassSegmentsOnMap","JP : " + jp + " has " + mapNodesForJp.size()+ " map nodes in its segment.", MsgCodes.info5);			
+			tmpMapOfNodeProbs = new ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>();
+			for(SOMMapNode mapNode : mapNodesForJp) {		tmpMapOfNodeProbs.put(mapNode.mapNodeCoord, ((Straff_SOMMapNode)mapNode).getNonProdJPProb(npjp));}
+			MapNodeNonProdJPsProbs.put(npjp, tmpMapOfNodeProbs);
+		}
+		getMsgObj().dispMessage("Straff_SOMMapManager","buildNonProdSegmentsOnMap","Finished building Non-product JP-Segment-based cluster map : " + MapNodesWithMappedClasses.size()+" jps have map nodes mapped to them.", MsgCodes.info5);			
+	}//buildFtrWtSegmentsOnMap	
+	public ConcurrentSkipListMap<Tuple<Integer,Integer>, Float> getMapNodeNonProdJpProbsForJP(Integer jp){return MapNodeNonProdJPsProbs.get(jp);}
+	
+	//build segments for non-product jp groups 
+	protected final void buildNonProdJpGroupSegmentsOnMap() {		
+		if ((MapNodes == null) || (MapNodes.size() == 0)) {return;}
+		getMsgObj().dispMessage("Straff_SOMMapManager","buildNonProdJpGroupSegmentsOnMap","Started building Non-product JP Group-Segment-based cluster map", MsgCodes.info5);	
+		//clear existing segments 
+		for (SOMMapNode ex : MapNodes.values()) {ex.clearCategorySeg();}
+		nonProdJpGroup_Segments = new TreeMap<Integer, SOMMapSegment>();
+		MapNodesWithMappedNonProdJpGroup = new TreeMap<Integer, Collection<SOMMapNode>>();
+		MapNodeNonProdJpGroupProbs = new ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>>();
+		ConcurrentSkipListMap<Tuple<Integer,Integer>, Float> tmpMapOfNodeProbs = new ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>();
+		SOM_CategorySegment jpgSeg;
+		
+		//THIS MUST BE NONProduct JP Groups
+		Integer[] allNonProdJpGroups = jpJpgrpMon.getNonProductJpGroupByIDXAra();
+		if(allNonProdJpGroups.length == 0) {
+			getMsgObj().dispMessage("Straff_SOMMapManager","buildNonProdJpGroupSegmentsOnMap","Non Product Jp Group List is currently not being built in jpJpgrpMon.getNonProductJpGroupByIDXAra(), so no segments are being built.", MsgCodes.info5);	
+			return;
+		}
+		
+		for(int npJpgIdx = 0; npJpgIdx<allNonProdJpGroups.length;++npJpgIdx) {
+			Integer npjpg = allNonProdJpGroups[npJpgIdx];
+			//build 1 segment per jpg idx
+			jpgSeg = new SOM_CategorySegment(this, npjpg);
+			nonProdJpGroup_Segments.put(npjpg,jpgSeg);
+			for(SOMMapNode ex : MapNodes.values()) {
+				if(jpgSeg.doesMapNodeBelongInSeg(ex)) {					jpgSeg.addMapNodeToSegment(ex, MapNodes);		}//this does dfs to find neighbors who share feature value 	
+			}	
+			Collection<SOMMapNode> mapNodesForJpg = jpgSeg.getAllMapNodes();
+			MapNodesWithMappedNonProdJpGroup.put(npjpg, mapNodesForJpg);
+			//getMsgObj().dispMessage("Straff_SOMMapManager","buildNonProdJpGroupSegmentsOnMap","Non Product JPgroup : " + jpg + " has " + mapNodesForJpg.size()+ " map nodes in its segment.", MsgCodes.info5);
+			tmpMapOfNodeProbs = new ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>();
+			for(SOMMapNode mapNode : mapNodesForJpg) {	tmpMapOfNodeProbs.put(mapNode.mapNodeCoord,((Straff_SOMMapNode)mapNode).getNonProdJpGroupProb(npjpg));	}
+			MapNodeNonProdJpGroupProbs.put(npjpg, tmpMapOfNodeProbs);
+		}
+
+		getMsgObj().dispMessage("Straff_SOMMapManager","buildNonProdJpGroupSegmentsOnMap","Finished building Non-product JP Group-Segment-based cluster map", MsgCodes.info5);			
+	}//buildFtrWtSegmentsOnMap
+	public ConcurrentSkipListMap<Tuple<Integer,Integer>, Float> getMapNodeNonProdJPGroupProbsForJPGroup(Integer jpg){return MapNodeNonProdJpGroupProbs.get(jpg);}	
 	
 	@Override
 	//once map is built, find bmus on map for each product (target that training examples should map to)
@@ -607,7 +712,7 @@ public class Straff_SOMMapManager extends SOMMapManager {
 		//get file name of product mapper configuration file
 		String prodMapFileName = ((Straff_SOMProjConfig)projConfigData).getFullProdOutMapperInfoFileName();
 		//builds the output mapper and loads the product IDs to map from config file
-		prodOutputMapper = new Straff_ProdMapOutputBuilder(this, prodMapFileName,th_exec, getProdDistType(), prodZoneDistThresh);		
+		prodOutputMapper = new Straff_ProdMappingOutputBuilder_FtrsAndBMUs(this, prodMapFileName,th_exec, getProdDistType(), prodZoneDistThresh);		
 	}//buildProdMapper
 	
 	@Override
@@ -839,8 +944,49 @@ public class Straff_SOMMapManager extends SOMMapManager {
 	/////////////////////////////////////////
 	//drawing and graphics methods - these must check if win and/or pa exist, or else except win or pa as passed arguments, to manage when this code is executed without UI
 	
-	//TODO add array to this map manager holding map nodes keyed by jp and jpgroup and value being list of nodes with those jps/jpgs present
+	//TODO add array to this map manager holding map nodes keyed by jp and jpgroup and value being list of nodes with those jps/jpgs present	
+	/**
+	 * draw boxes around each node representing class-based segments that node 
+	 * belongs to, with color strength proportional to probablity and 
+	 * different colors for each segment
+	 * pass class -label- not class index
+	 * @param pa
+	 * @param classLabel - label corresponding to class to be displayed
+	 */
+	public void drawNonProdJpSegments(my_procApplet pa, int nonProdJpLabel) {
+		pa.pushMatrix();pa.pushStyle();
+		//Integer jpg = jpJpgrpMon.getFtrJpGroupByIdx(curJPGroupIdx);
+		Collection<SOMMapNode> mapNodes = MapNodesWithMappedNonProdJPs.get(nonProdJpLabel);
+		if(null==mapNodes) {return;}
+		for (SOMMapNode node : mapNodes) {		((Straff_SOMMapNode)node).drawMeNonProdJPSegClr(pa, nonProdJpLabel);}				
+		pa.popStyle();pa.popMatrix();
+	}
+	public final void drawAllNonProdJpSegments(my_procApplet pa) {	for(Integer key : nonProdJP_Segments.keySet()) {	drawNonProdJpSegments(pa,key);}	}
+
+	/**
+	 * draw filled boxes around each node representing non-product-jpgroup-based segments 
+	 * that node belongs to, with color strength proportional to probablity 
+	 * and different colors for each segment
+	 * pass class -label- not class index
+	 * @param pa
+	 * @param classLabel - label corresponding to class to be displayed
+	 */
 	
+//	nonProdJP_Segments = new TreeMap<Integer, SOMMapSegment>();
+//	MapNodesWithMappedNonProdJPs = new TreeMap<Integer, Collection<SOMMapNode>>();
+//	MapNodeNonProdJPsProbs = new ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>>();
+//	nonProdJpGroup_Segments = new TreeMap<Integer, SOMMapSegment>();
+//	MapNodesWithMappedNonProdJpGroup = new TreeMap<Integer, Collection<SOMMapNode>>();
+//	MapNodeNonProdJpGroupProbs = new ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>>();
+
+	public final void drawNonProdJPGroupSegments(my_procApplet pa, int npJpGroupLabel) {
+		pa.pushMatrix();pa.pushStyle();
+		Collection<SOMMapNode> mapNodes = MapNodesWithMappedNonProdJpGroup.get(npJpGroupLabel);
+		if(null==mapNodes) {return;}
+		for (SOMMapNode node : mapNodes) {		((Straff_SOMMapNode)node).drawMeNonProdJpGroupSegClr(pa, npJpGroupLabel);}				
+		pa.popStyle();pa.popMatrix();
+	}
+	public final void drawAllNonProdJPGroupSegments(my_procApplet pa) {	for(Integer key : nonProdJpGroup_Segments.keySet()) {	drawNonProdJPGroupSegments(pa,key);}	} 
 	
 	/**
 	 * draw boxes around each node representing class-based segments that node 
@@ -854,9 +1000,9 @@ public class Straff_SOMMapManager extends SOMMapManager {
 	public final void drawClassSegments(my_procApplet pa, int curJP) {
 		pa.pushMatrix();pa.pushStyle();
 		//Integer jp = jpJpgrpMon.getFtrJpByIdx(curJPIdx);
-		Collection<SOMMapNode> mapNodes = MapNodesWithMappedClasses.get(curJP);
-		if(null==mapNodes) {return;}
-		for (SOMMapNode node : mapNodes) {		node.drawMeClassClr(pa, curJP);}
+		Collection<SOMMapNode> mapNodesWithClasses = MapNodesWithMappedClasses.get(curJP);
+		if(null==mapNodesWithClasses) {		return;}
+		for (SOMMapNode node : mapNodesWithClasses) {		node.drawMeClassClr(pa, curJP);}
 		
 		pa.popStyle();pa.popMatrix();
 	}//drawFtrWtSegments	
@@ -876,8 +1022,7 @@ public class Straff_SOMMapManager extends SOMMapManager {
 		//Integer jpg = jpJpgrpMon.getFtrJpGroupByIdx(curJPGroupIdx);
 		Collection<SOMMapNode> mapNodes = MapNodesWithMappedCategories.get(curJPGroup);
 		if(null==mapNodes) {return;}
-		for (SOMMapNode node : mapNodes) {		node.drawMeCategorySegClr(pa, curJPGroup);}
-				
+		for (SOMMapNode node : mapNodes) {		node.drawMeCategorySegClr(pa, curJPGroup);}				
 		pa.popStyle();pa.popMatrix();
 	}//drawAllOrderJPGroupSegments
 	

@@ -6,8 +6,8 @@ import java.util.TreeMap;
 
 import base_SOM_Objects.*;
 import base_SOM_Objects.som_examples.*;
+import base_SOM_Objects.som_segments.segments.SOMMapSegment;
 import base_SOM_Objects.som_utils.*;
-import base_SOM_Objects.som_utils.segments.SOMMapSegment;
 import base_Utils_Objects.MsgCodes;
 import strafford_SOM_PKG.straff_SOM_Examples.products.ProductExample;
 
