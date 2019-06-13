@@ -8,7 +8,15 @@ import java.util.concurrent.Future;
 import base_SOM_Objects.*;
 import base_SOM_Objects.som_examples.*;
 import base_UI_Objects.*;
+import base_UI_Objects.drawnObjs.myDrawnSmplTraj;
+import base_UI_Objects.windowUI.myDispWindow;
+import base_UI_Objects.windowUI.myGUIObj;
 import base_Utils_Objects.*;
+import base_Utils_Objects.io.MessageObject;
+import base_Utils_Objects.io.MsgCodes;
+import base_Utils_Objects.vectorObjs.Tuple;
+import base_Utils_Objects.vectorObjs.myPoint;
+import base_Utils_Objects.vectorObjs.myPointf;
 import processing.core.PImage;
 
 /**
@@ -18,7 +26,7 @@ import processing.core.PImage;
  */
 public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapDat{
 	//map manager that is instanced 
-	public SOMMapManager mapMgr;
+	public SOM_MapManager mapMgr;
 	//interface to facilitate keeping UI and the SOM MapData object synched w/respect to map data values
 	public SOMUIToMapCom mapUIAPI;
 	//msgObj responsible for displaying messages to console and printing to log file
@@ -53,9 +61,11 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 		showSelRegionIDX			= 18,			//highlight a specific region of the map, either all nodes above a certain threshold for a chosen ftr
 		//train/test data managemen
 		somTrainDataLoadedIDX		= 19,			//whether data used to build map has been loaded yet
-		saveLocClrImgIDX			= 20;			//
+		saveLocClrImgIDX			= 20,			//
+		//save segment mappings
+		saveAllSegmentMapsIDX		= 21;			//this will save all the segment mappings that have been defined
 	
-	public static final int numSOMBasePrivFlags = 21;
+	public static final int numSOMBasePrivFlags = 22;
 	//instancing class will determine numPrivFlags based on how many more flags are added
 	
 	//SOM map list options
@@ -66,9 +76,9 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 		uiMapNHoodList = new String[] {"gaussian","bubble"},
 		uiMapRadClList = new String[] {"linear","exponential"},
 		uiMapLrnClList = new String[] {"linear","exponential"},
-		uiMapDrawExToBmuTypeList = SOMMapManager.getNodeBMUMapTypes(),
-		uiMapTestFtrTypeList = SOMMapManager.uiMapTrainFtrTypeList,//new String[] {"Unmodified","Standardized (0->1 per ftr)","Normalized (vector mag==1)"};
-		uiMapTrainFtrTypeList = SOMMapManager.uiMapTrainFtrTypeList;//new String[] {"Unmodified","Standardized (0->1 per ftr)","Normalized (vector mag==1)"};
+		uiMapDrawExToBmuTypeList = SOM_MapManager.getNodeBMUMapTypes(),
+		uiMapTestFtrTypeList = SOM_MapManager.uiMapTrainFtrTypeList,//new String[] {"Unmodified","Standardized (0->1 per ftr)","Normalized (vector mag==1)"};
+		uiMapTrainFtrTypeList = SOM_MapManager.uiMapTrainFtrTypeList;//new String[] {"Unmodified","Standardized (0->1 per ftr)","Normalized (vector mag==1)"};
 
 	
 	//	//GUI Objects	
@@ -210,7 +220,7 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 		initMeIndiv();
 	}//initMe()	
 	
-	protected abstract SOMMapManager buildMapMgr() ;
+	protected abstract SOM_MapManager buildMapMgr() ;
 	protected abstract void initMeIndiv();	
 	
 	@Override
@@ -235,8 +245,12 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 
 		String[] classBtnTFLabels = getClassBtnTFLabels();
 		if((null != classBtnTFLabels) && (classBtnTFLabels.length == 2)) {tmpBtnNamesArray.add(new Object[]{classBtnTFLabels[0],classBtnTFLabels[1],mapDrawClassSegmentsIDX});}
+		
 		String[] catBtnTFLabels = getCategoryBtnTFLabels();
 		if((null != catBtnTFLabels) && (catBtnTFLabels.length == 2)) {tmpBtnNamesArray.add(new Object[]{catBtnTFLabels[0],catBtnTFLabels[1],mapDrawCategorySegmentsIDX});}		
+		
+		String[] saveSegmentTFLabels = getSegmentSaveBtnTFLabels();
+		if((null != classBtnTFLabels) && (classBtnTFLabels.length == 2)) {tmpBtnNamesArray.add(new Object[]{saveSegmentTFLabels[0],saveSegmentTFLabels[1],saveAllSegmentMapsIDX});}		
 		
 		//add instancing-class specific buttons
 		initAllSOMPrivBtns_Indiv(tmpBtnNamesArray);
@@ -286,6 +300,11 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 	 */
 	protected abstract String[] getCategoryBtnTFLabels();
 
+	/**
+	 * This will return instance class-based true and false labels for save segment data.  if empty then no segment saving possible
+	 * @return array holding true(idx0) and false(idx1) labels for buttons to control saving of segment data
+	 */
+	protected abstract String[] getSegmentSaveBtnTFLabels();
 	
 	//initialize structure to hold modifiable menu regions
 	@Override
@@ -332,8 +351,8 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 			20.0,	//uiMapRadStIDX	 	
 			1.0,	//uiMapRadEndIDX
 			0,		//uiNodeWtDispThreshIDX 
-			SOMMapManager.getNodeInFtrWtSegThresh(),	//uiMapNodeWtDispThreshIDX
-			SOMMapManager.getNodeInUMatrixSegThresh(),	//uiNodeInSegThreshIDX//threshold of u-matrix weight for nodes to belong to same segment
+			SOM_MapManager.getNodeInFtrWtSegThresh(),	//uiMapNodeWtDispThreshIDX
+			SOM_MapManager.getNodeInUMatrixSegThresh(),	//uiNodeInSegThreshIDX//threshold of u-matrix weight for nodes to belong to same segment
 			0,		//uiMseRegionSensIDX
 		};								//starting value
 		String[] _baseGuiObjNames = new String[]{
@@ -501,7 +520,14 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 				if(val) {mapMgr.buildFtrWtSegmentsOnMap();}
 				break;}
 			case mapDrawClassSegmentsIDX		:{			break;}			
-			case mapDrawCategorySegmentsIDX	:{			break;}			
+			case mapDrawCategorySegmentsIDX	:{			break;}		
+			
+			case saveAllSegmentMapsIDX : {
+				if(val) {
+					mapMgr.saveAllSegment_BMUReports();
+					setPrivFlags(saveAllSegmentMapsIDX, false);
+				}
+				break;}			
 			case mapDrawNodeLblIDX : {//whether or not to show labels of nodes being displayed				
 				break;}
 			case mapDrawUMatrixIDX :{//whether to show the UMatrix (distance between nodes) representation of the map - overrides per-ftr display
@@ -734,10 +760,10 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 			case uiTrainDatPartIDX : {break;}
 			case uiNodeWtDispThreshIDX : {
 				mapNodeWtDispThresh = (float)(this.guiObjs[uiNodeWtDispThreshIDX].getVal());
-				SOMMapManager.setNodeInFtrWtSegThresh(mapNodeWtDispThresh);				
+				SOM_MapManager.setNodeInFtrWtSegThresh(mapNodeWtDispThresh);				
 				break;}
 			case uiNodeInSegThreshIDX :{		//used to determine threshold of value for setting membership in a segment/cluster
-				SOMMapManager.setNodeInUMatrixSegThresh((float)(this.guiObjs[uiNodeInSegThreshIDX].getVal()));
+				SOM_MapManager.setNodeInUMatrixSegThresh((float)(this.guiObjs[uiNodeInSegThreshIDX].getVal()));
 				mapMgr.buildUMatrixSegmentsOnMap();
 				break;}
 			case uiMapNodeBMUTypeToDispIDX : {//type of examples being mapped to each map node to display
@@ -805,7 +831,6 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 			if(getPrivFlags(mapDrawTrainDatIDX)){			mapMgr.drawTrainData(pa);}	
 			if(getPrivFlags(mapDrawTestDatIDX)) {			mapMgr.drawTestData(pa);}
 			//draw nodes by population
-			//if(getPrivFlags(mapDrawPopMapNodesIDX)) {	if(drawLbl) {mapMgr.drawExMapNodes(pa, mapNodeDispType);} else {mapMgr.drawExMapNodesNoLbl(pa, mapNodeDispType);}}
 			if(getPrivFlags(mapDrawPopMapNodesIDX)) {	if(drawLbl) {mapMgr.drawPopMapNodes(pa, mapNodeDispType);} else {mapMgr.drawPopMapNodesNoLbl(pa, mapNodeDispType);}}
 			
 			if(curImgNum == -1) {			drawSegmentsUMatrixDisp();}

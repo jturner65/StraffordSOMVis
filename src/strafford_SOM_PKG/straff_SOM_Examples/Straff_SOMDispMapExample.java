@@ -3,10 +3,11 @@ package strafford_SOM_PKG.straff_SOM_Examples;
 import java.util.*;
 
 import base_SOM_Objects.som_examples.*;
-import base_SOM_Objects.som_segments.segments.SOMMapSegment;
+import base_SOM_Objects.som_segments.segments.SOM_MappedSegment;
 import base_UI_Objects.*;
 import base_Utils_Objects.*;
-
+import base_Utils_Objects.vectorObjs.Tuple;
+import base_Utils_Objects.vectorObjs.myPointf;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 
 //this class is for a simple object to just represent a mouse-over on the visualization of the map

@@ -15,7 +15,7 @@ import strafford_SOM_PKG.straff_RawDataHandling.raw_data.TcTagData;
  * @author john
  *
  */
-public class TcTagRawToTrainData extends StraffRawToTrainData{
+public class TcTagRawToTrainData extends Straff_RawToTrainData{
 	public TcTagRawToTrainData(TcTagData ev) {
 		super("TcTaggings->Product");
 		addEventDataFromEventObj(ev);

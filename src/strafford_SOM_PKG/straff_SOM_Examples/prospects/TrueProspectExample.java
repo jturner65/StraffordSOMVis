@@ -2,9 +2,9 @@ package strafford_SOM_PKG.straff_SOM_Examples.prospects;
 
 import java.util.*;
 
-import base_SOM_Objects.SOMMapManager;
+import base_SOM_Objects.SOM_MapManager;
 import base_SOM_Objects.som_examples.*;
-import strafford_SOM_PKG.straff_Features.featureCalc.StraffWeightCalc;
+import strafford_SOM_PKG.straff_Features.featureCalc.Straff_WeightCalc;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.*;
 import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.events.StraffEvntRawToTrainData;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
@@ -31,7 +31,7 @@ public class TrueProspectExample extends ProspectExample{
 	public TrueProspectExample(Straff_SOMMapManager _map,ProspectData _prspctData) {	super(_map,ExDataType.Validation,_prspctData);	}//prospectData ctor
 	
 	//build this object based on csv string - rebuild data from csv string columns 4+
-	public TrueProspectExample(SOMMapManager _map,String _OID, String _csvDataStr) {
+	public TrueProspectExample(SOM_MapManager _map,String _OID, String _csvDataStr) {
 		super(_map,ExDataType.Validation,_OID,_csvDataStr);	
 		String[] dataAra = _csvDataStr.split(",");
 		//idx 0 : OID; idx 1 : date

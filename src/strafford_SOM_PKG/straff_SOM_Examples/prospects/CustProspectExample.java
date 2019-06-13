@@ -2,14 +2,13 @@ package strafford_SOM_PKG.straff_SOM_Examples.prospects;
 
 import java.util.*;
 
-import base_SOM_Objects.SOMMapManager;
+import base_SOM_Objects.SOM_MapManager;
 import base_SOM_Objects.som_examples.ExDataType;
-import base_Utils_Objects.MsgCodes;
-import base_Utils_Objects.Tuple;
-
+import base_Utils_Objects.io.MsgCodes;
+import base_Utils_Objects.vectorObjs.Tuple;
 import strafford_SOM_PKG.straff_RawDataHandling.*;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.*;
-import strafford_SOM_PKG.straff_SOM_Examples.EvtDataType;
+import strafford_SOM_PKG.straff_SOM_Examples.Straff_EvtDataType;
 import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.events.StraffEvntRawToTrainData;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 
@@ -45,10 +44,10 @@ public class CustProspectExample extends ProspectExample{
 
 	
 	//build this object based on prospectData object from raw data
-	public CustProspectExample(SOMMapManager _map,ProspectData _prspctData) {	super(_map,ExDataType.Training, _prspctData);}//prospectData ctor
+	public CustProspectExample(SOM_MapManager _map,ProspectData _prspctData) {	super(_map,ExDataType.Training, _prspctData);}//prospectData ctor
 	
 	//build this object based on csv string - rebuild data from csv string columns 4+
-	public CustProspectExample(SOMMapManager _map,String _OID, String _csvDataStr) {
+	public CustProspectExample(SOM_MapManager _map,String _OID, String _csvDataStr) {
 		super(_map,ExDataType.Training, _OID,_csvDataStr);	
 		String[] dataAra = _csvDataStr.split(",");
 		//idx 0 : OID; idx 1 : date
@@ -61,7 +60,7 @@ public class CustProspectExample extends ProspectExample{
 	}//csv string ctor
 	
 	//using this ctor for Cust_OneOrderTrainingExample building.
-	public CustProspectExample(SOMMapManager _map,String _OID) {		super(_map,ExDataType.Training,_OID, "");	}//super ctor from Cust_OneOrderTrainingExample ctor
+	public CustProspectExample(SOM_MapManager _map,String _OID) {		super(_map,ExDataType.Training,_OID, "");	}//super ctor from Cust_OneOrderTrainingExample ctor
 	
 	public CustProspectExample(CustProspectExample ex) {		super(ex);		}//copy ctor - if ex is this type then don't have to rebuild JpOccurrences and eventsByDateMap;		
 	
@@ -80,11 +79,11 @@ public class CustProspectExample extends ProspectExample{
 	//add raw event data to this customer prospect
 	public void addEventObj(BaseRawData obj, int type) {
 		switch(type) {
-		case StraffSOMRawDataLdrCnvrtr.prspctIDX 	: 	{msgObj.dispMessage("custProspectExample","addObj","ERROR attempting to add prospect raw data as event data. Ignored", MsgCodes.error2);return;}
-		case StraffSOMRawDataLdrCnvrtr.orderEvntIDX : 	{		addDataToTrainMap((OrderEvent)obj,eventsByDateMap.get(jpOccTypeKeys[0]), EvtDataType.Order); 		return;}
-		case StraffSOMRawDataLdrCnvrtr.optEvntIDX 	: 	{		addDataToTrainMap((OptEvent)obj,eventsByDateMap.get(jpOccTypeKeys[1]), EvtDataType.Opt); 		return;}
-		case StraffSOMRawDataLdrCnvrtr.linkEvntIDX 	: 	{		addDataToTrainMap((LinkEvent)obj,eventsByDateMap.get(jpOccTypeKeys[2]), EvtDataType.Link); 		return;}
-		case StraffSOMRawDataLdrCnvrtr.srcEvntIDX 	: 	{		addDataToTrainMap((SourceEvent)obj,eventsByDateMap.get(jpOccTypeKeys[3]), EvtDataType.Source); 		return;}
+		case Straff_SOMRawDataLdrCnvrtr.prspctIDX 	: 	{msgObj.dispMessage("custProspectExample","addObj","ERROR attempting to add prospect raw data as event data. Ignored", MsgCodes.error2);return;}
+		case Straff_SOMRawDataLdrCnvrtr.orderEvntIDX : 	{		addDataToTrainMap((OrderEvent)obj,eventsByDateMap.get(jpOccTypeKeys[0]), Straff_EvtDataType.Order); 		return;}
+		case Straff_SOMRawDataLdrCnvrtr.optEvntIDX 	: 	{		addDataToTrainMap((OptEvent)obj,eventsByDateMap.get(jpOccTypeKeys[1]), Straff_EvtDataType.Opt); 		return;}
+		case Straff_SOMRawDataLdrCnvrtr.linkEvntIDX 	: 	{		addDataToTrainMap((LinkEvent)obj,eventsByDateMap.get(jpOccTypeKeys[2]), Straff_EvtDataType.Link); 		return;}
+		case Straff_SOMRawDataLdrCnvrtr.srcEvntIDX 	: 	{		addDataToTrainMap((SourceEvent)obj,eventsByDateMap.get(jpOccTypeKeys[3]), Straff_EvtDataType.Source); 		return;}
 		default :{msgObj.dispMessage("custProspectExample","addObj","ERROR attempting to add unknown raw data type : " + type + " as event data. Ignored", MsgCodes.error2);return;}
 		}		
 	}//addObj

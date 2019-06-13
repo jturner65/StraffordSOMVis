@@ -3,7 +3,7 @@ package strafford_SOM_PKG.straff_SOM_Examples.prospects;
 import java.util.*;
 import java.util.Map.Entry;
 
-import base_Utils_Objects.Tuple;
+import base_Utils_Objects.vectorObjs.Tuple;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.BaseRawData;
 
 /**

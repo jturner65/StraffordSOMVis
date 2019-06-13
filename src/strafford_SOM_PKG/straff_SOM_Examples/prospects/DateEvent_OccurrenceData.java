@@ -2,7 +2,7 @@ package strafford_SOM_PKG.straff_SOM_Examples.prospects;
 
 import java.util.*;
 
-import base_Utils_Objects.Tuple;
+import base_Utils_Objects.vectorObjs.Tuple;
 
 /**
  * this class is a simple struct to hold a single date's occurrences of a single event type

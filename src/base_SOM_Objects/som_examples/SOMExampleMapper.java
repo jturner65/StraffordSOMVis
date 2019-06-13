@@ -3,9 +3,12 @@ package base_SOM_Objects.som_examples;
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListMap;
 
-import base_SOM_Objects.SOMMapManager;
+import base_SOM_Objects.SOM_MapManager;
 import base_SOM_Objects.som_utils.SOMProjConfigData;
 import base_Utils_Objects.*;
+import base_Utils_Objects.io.FileIOManager;
+import base_Utils_Objects.io.MessageObject;
+import base_Utils_Objects.io.MsgCodes;
 
 /**
  * this class will manage data handling for all examples of a particular type. 
@@ -14,7 +17,7 @@ import base_Utils_Objects.*;
  */
 public abstract class SOMExampleMapper {
 		//owning map manager
-	public static SOMMapManager mapMgr;
+	public static SOM_MapManager mapMgr;
 		//message object for logging and to display to screen
 	protected MessageObject msgObj;
 		//fileIO manager
@@ -49,7 +52,7 @@ public abstract class SOMExampleMapper {
 		//# of actual examples used by SOM of this type
 	protected int numSOMExamples;
 
-	public SOMExampleMapper(SOMMapManager _mapMgr, String _exName, String _longExampleName, boolean _shouldValidate) {
+	public SOMExampleMapper(SOM_MapManager _mapMgr, String _exName, String _longExampleName, boolean _shouldValidate) {
 		mapMgr = _mapMgr;
 		projConfigData = mapMgr.projConfigData;
 		exampleName = _exName;
@@ -265,6 +268,7 @@ public abstract class SOMExampleMapper {
 		int flIDX = idx/32, mask = 1<<(idx%32);
 		stFlags[flIDX] = (val ?  stFlags[flIDX] | mask : stFlags[flIDX] & ~mask);
 		switch (idx) {//special actions for each flag
+			case shouldValidateIDX		: {break;}	
 			case dataIsPreProccedIDX 	: {break;}	
 			case dataIsLoadedIDX 		: {break;}	
 			case dataFtrsPreparedIDX 	: {break;}	

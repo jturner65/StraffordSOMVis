@@ -6,9 +6,9 @@ import java.util.regex.Pattern;
 
 import base_SOM_Objects.*;
 import base_SOM_Objects.som_examples.*;
-import base_SOM_Objects.som_segments.segments.SOMMapSegment;
-import base_Utils_Objects.MsgCodes;
-import base_Utils_Objects.Tuple;
+import base_SOM_Objects.som_segments.segments.SOM_MappedSegment;
+import base_Utils_Objects.io.MsgCodes;
+import base_Utils_Objects.vectorObjs.Tuple;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.*;
 import strafford_SOM_PKG.straff_SOM_Examples.*;
 import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.events.*;
@@ -51,7 +51,7 @@ public abstract class ProspectExample extends Straff_SOMExample{
 	public static int[] _numOptAllOccs = new int[] {0,0,0};
 
 	//build this object based on prospectData object from raw data
-	public ProspectExample(SOMMapManager _map, ExDataType _type, ProspectData _prspctData) {
+	public ProspectExample(SOM_MapManager _map, ExDataType _type, ProspectData _prspctData) {
 		super(_map,_type,_prspctData.OID);	
 		initProspectEx(true);
 		prs_LUDate = _prspctData.getDate();
@@ -59,7 +59,7 @@ public abstract class ProspectExample extends Straff_SOMExample{
 	}//prospectData ctor
 	
 	//build this object based on csv string - rebuild data from csv string columns 4+
-	public ProspectExample(SOMMapManager _map, ExDataType _type, String _OID, String _csvDataStr) {
+	public ProspectExample(SOM_MapManager _map, ExDataType _type, String _OID, String _csvDataStr) {
 		super(_map,_type,_OID);		
 		initProspectEx(false);
 		jpOccNotBuiltYet = false;		//is built directly from saved data
@@ -88,7 +88,7 @@ public abstract class ProspectExample extends Straff_SOMExample{
 	// event processing 
 	///////////////
 	//eventtype : Order(0),Opt(1), Link(2), Source(3);
-	protected StraffEvntRawToTrainData buildNewTrainDataFromEv(EventRawData _evntObj, EvtDataType eventtype) {
+	protected StraffEvntRawToTrainData buildNewTrainDataFromEv(EventRawData _evntObj, Straff_EvtDataType eventtype) {
 		switch (eventtype) {
 		case Order 	: {		return new OrderEventRawToTrainData((OrderEvent) _evntObj);	}//order event object
 		case Opt 	: {		return new OptEventRawToTrainData((OptEvent) _evntObj);}//opt event  object
@@ -99,7 +99,7 @@ public abstract class ProspectExample extends Straff_SOMExample{
 	}//buildNewTrainData
 	
 	//eventtype : 0 : order, 1 : opt, 2 : link
-	protected StraffEvntRawToTrainData buildNewTrainDataFromStr(Integer _evIDStr, String _evTypeStr, String _evDateStr, String _evntStr, EvtDataType eventtype) {
+	protected StraffEvntRawToTrainData buildNewTrainDataFromStr(Integer _evIDStr, String _evTypeStr, String _evDateStr, String _evntStr, Straff_EvtDataType eventtype) {
 		switch (eventtype) {
 		case Order 	: { 	return new OrderEventRawToTrainData(_evIDStr, _evTypeStr, _evDateStr, _evntStr);	}//order event object
 		case Opt 	: {		return new OptEventRawToTrainData(_evIDStr, _evTypeStr, _evDateStr, _evntStr);}//opt event  object
@@ -115,7 +115,7 @@ public abstract class ProspectExample extends Straff_SOMExample{
 	 * @param map : date-keyed map to add object to
 	 * @param type : int type of object
 	 */
-	protected void addDataToTrainMap(EventRawData _optObj, TreeMap<Date, TreeMap<Integer, StraffEvntRawToTrainData>> map, EvtDataType type){		
+	protected void addDataToTrainMap(EventRawData _optObj, TreeMap<Date, TreeMap<Integer, StraffEvntRawToTrainData>> map, Straff_EvtDataType type){		
 		Date addDate = _optObj.getDate();
 		Integer eid = _optObj.getEventID();	//identical events may occur - multiple same event ids on same date, even with same jpg/jp data.  should all be recorded
 		//get date's specific submap

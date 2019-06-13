@@ -2,7 +2,7 @@ package strafford_SOM_PKG.straff_SOM_Mapping.exampleMappers;
 
 import java.util.concurrent.ExecutorService;
 
-import base_SOM_Objects.SOMMapManager;
+import base_SOM_Objects.SOM_MapManager;
 import base_SOM_Objects.som_examples.SOMExampleMapper;
 import strafford_SOM_PKG.straff_Features.MonitorJpJpgrp;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
@@ -17,7 +17,7 @@ public abstract class Straff_SOMExampleMapper extends SOMExampleMapper  {
 	//ref to mt executor
 	protected ExecutorService th_exec;
 
-	public Straff_SOMExampleMapper(SOMMapManager _mapMgr, String _exName, String _longExampleName, boolean _shouldValidate) {
+	public Straff_SOMExampleMapper(SOM_MapManager _mapMgr, String _exName, String _longExampleName, boolean _shouldValidate) {
 		super(_mapMgr,  _exName, _longExampleName, _shouldValidate);
 		jpJpgrpMon = ((Straff_SOMMapManager)mapMgr).jpJpgrpMon;
 		th_exec = mapMgr.getTh_Exec();

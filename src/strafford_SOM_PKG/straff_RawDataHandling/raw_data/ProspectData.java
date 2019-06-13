@@ -5,6 +5,8 @@ import java.util.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import base_Utils_Objects.*;
+import base_Utils_Objects.io.MessageObject;
+import base_Utils_Objects.io.MsgCodes;
 
 public class ProspectData extends BaseRawData {
     //these should all be lowercase - these are exact key substrings we wish to match, to keep and use to build training data - all the rest of json data is being tossed

@@ -6,9 +6,12 @@ import java.util.*;
 import base_SOM_Objects.*;
 import base_SOM_Objects.som_ui.*;
 import base_UI_Objects.*;
-import base_Utils_Objects.*;
+import base_UI_Objects.windowUI.BaseBarMenu;
+import base_Utils_Objects.io.MsgCodes;
+import base_Utils_Objects.vectorObjs.myPoint;
+import base_Utils_Objects.vectorObjs.myVector;
 import processing.core.PImage;
-import strafford_SOM_PKG.straff_Features.featureCalc.StraffWeightCalc;
+import strafford_SOM_PKG.straff_Features.featureCalc.Straff_WeightCalc;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 
 //window that accepts trajectory editing
@@ -39,6 +42,7 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 		procTruProspectsIDX				= numSOMBasePrivFlags + 13,			//this will process true prospects, and load them if they haven't been loaded
 		saveProdMapsOfPrspctsIDX		= numSOMBasePrivFlags + 14;			//this will save all the product data for the currently selected prod JP
 
+
 	public static final int numPrivFlags = numSOMBasePrivFlags + 15;
 	
 	//SOM map list options
@@ -57,8 +61,8 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 	public final int numGUIObjs = numSOMBaseGUIObjs + 5;
 	
 	//types of data that can be used for calc analysis 
-	private int curCalcAnalysisSrcDataTypeIDX = StraffWeightCalc.bndAra_AllJPsIDX;
-	private int curCalcAnalysisJPTypeIDX = StraffWeightCalc.bndAra_AllJPsIDX;
+	private int curCalcAnalysisSrcDataTypeIDX = Straff_WeightCalc.bndAra_AllJPsIDX;
+	private int curCalcAnalysisJPTypeIDX = Straff_WeightCalc.bndAra_AllJPsIDX;
 	
 	//raw data source : 0 == csv, 1 == sql
 	private int rawDataSource;
@@ -132,12 +136,22 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 	 * Instance class determines the true and false labels the class buttons use - if empty then no classes used
 	 * @return array holding true(idx0) and false(idx1) labels for buttons to control display of class-based segment
 	 */
+	@Override
 	protected final String[] getClassBtnTFLabels() {	return new String[] {"Hide Order-Based JP Segments  ","Show Order-Based JP Segments  "};}
 	/**
 	 * Instance class determines the true and false labels the category buttons use - if empty then no categories used
 	 * @return array holding true(idx0) and false(idx1) labels for buttons to control display of category-based segment
 	 */
+	@Override
 	protected final String[] getCategoryBtnTFLabels() {	return new String[] {"Hide Order-Based JPGroup Segments", "Show Order-Based JPGroup Segments"};}	
+	
+	/**
+	 * This will return instance class-based true and false labels for save segment data.  if empty then no segment saving possible
+	 * @return array holding true(idx0) and false(idx1) labels for buttons to control saving of segment data
+	 */
+	@Override
+	protected final String[] getSegmentSaveBtnTFLabels() {return new String[] {"Saving Class, Category and Feature weight segment BMUs", "Save Class, Category and Feature weight segment BMUs" };}
+
 
 	@Override
 	protected void initMeIndiv() {
@@ -160,7 +174,7 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 	
 	@Override
 	//SOM_mapDims is built by base class initMe
-	protected SOMMapManager buildMapMgr() {
+	protected SOM_MapManager buildMapMgr() {
 		//SOM_mapDims : start x and y and dimensions of full map visualization as function of visible window size;
 		//including strings for default directories specific to current project setup and Strafford
 		TreeMap<String, Object> _argsMap = new TreeMap<String,Object>();
@@ -200,7 +214,7 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 			case mapDrawTruePspctIDX	: {//draw true prospect examples
 				break;}		
 			case mapDrawCalcFtrOrAllVisIDX : {
-				curCalcAnalysisJPTypeIDX = (val ? StraffWeightCalc.bndAra_ProdJPsIDX : StraffWeightCalc.bndAra_AllJPsIDX);		
+				curCalcAnalysisJPTypeIDX = (val ? Straff_WeightCalc.bndAra_ProdJPsIDX : Straff_WeightCalc.bndAra_AllJPsIDX);		
 				setAnalysisDimWidth();
 				break;}			
 			
@@ -214,7 +228,7 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 					setPrivFlags(mapDrawTPAnalysisVisIDX, false);
 					setPrivFlags(mapDrawTrainDataAnalysisVisIDX, false);
 					
-					curCalcAnalysisSrcDataTypeIDX= StraffWeightCalc.custCalcObjIDX;
+					curCalcAnalysisSrcDataTypeIDX= Straff_WeightCalc.custCalcObjIDX;
 					((Straff_SOMMapManager) mapMgr).processCalcAnalysis(curCalcAnalysisSrcDataTypeIDX);	
 					setAnalysisDimWidth();
 				} else {
@@ -226,7 +240,7 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 					setPrivFlags(mapDrawCustAnalysisVisIDX, false);
 					setPrivFlags(mapDrawTrainDataAnalysisVisIDX, false);
 					
-					curCalcAnalysisSrcDataTypeIDX= StraffWeightCalc.tpCalcObjIDX;
+					curCalcAnalysisSrcDataTypeIDX= Straff_WeightCalc.tpCalcObjIDX;
 					((Straff_SOMMapManager) mapMgr).processCalcAnalysis(curCalcAnalysisSrcDataTypeIDX);	
 					setAnalysisDimWidth();
 				} else {
@@ -239,7 +253,7 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 					setPrivFlags(mapDrawCustAnalysisVisIDX, false);
 					setPrivFlags(mapDrawTPAnalysisVisIDX, false);
 					
-					curCalcAnalysisSrcDataTypeIDX= StraffWeightCalc.trainCalcObjIDX;
+					curCalcAnalysisSrcDataTypeIDX= Straff_WeightCalc.trainCalcObjIDX;
 					((Straff_SOMMapManager) mapMgr).processCalcAnalysis(curCalcAnalysisSrcDataTypeIDX);	
 					setAnalysisDimWidth();
 				}else {
@@ -438,9 +452,9 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 	@Override
 	//set flags that should be set on each frame - these are set at beginning of frame draw
 	protected void drawSetDispFlags() {
-		setPrivFlags(custExCalcedIDX, ((Straff_SOMMapManager) mapMgr).isFtrCalcDone(StraffWeightCalc.custCalcObjIDX));
-		setPrivFlags(tpExCalcedIDX, ((Straff_SOMMapManager) mapMgr).isFtrCalcDone(StraffWeightCalc.tpCalcObjIDX));	
-		setPrivFlags(trainExCalcedIDX,((Straff_SOMMapManager) mapMgr).isFtrCalcDone(StraffWeightCalc.trainCalcObjIDX));	
+		setPrivFlags(custExCalcedIDX, ((Straff_SOMMapManager) mapMgr).isFtrCalcDone(Straff_WeightCalc.custCalcObjIDX));
+		setPrivFlags(tpExCalcedIDX, ((Straff_SOMMapManager) mapMgr).isFtrCalcDone(Straff_WeightCalc.tpCalcObjIDX));	
+		setPrivFlags(trainExCalcedIDX,((Straff_SOMMapManager) mapMgr).isFtrCalcDone(Straff_WeightCalc.trainCalcObjIDX));	
 		//checking flag to execute if true
 		if(getPrivFlags(procTruProspectsIDX)){	((Straff_SOMMapManager) mapMgr).buildAndSaveTrueProspectReport();setPrivFlags(procTruProspectsIDX,false);	}			
 	}
@@ -467,10 +481,9 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 	
 	
 	private void drawNonProdSegs() {
-		//TODO this needs to be mapped to UI value
-		int curClassValue = 0;
-//		if(getPrivFlags(mapDrawNonProdJPSegIDX)) {	 			((Straff_SOMMapManager) mapMgr).drawNonProdJpSegments(pa,curClassValue);	}		
-//		if(getPrivFlags(mapDrawNonProdJPGroupSegIDX)) { 		((Straff_SOMMapManager) mapMgr).drawNonProdJPGroupSegments(pa,curClassValue);	}	
+		//TODO this needs to be mapped to UI values
+		if(getPrivFlags(mapDrawNonProdJPSegIDX)) {	 			((Straff_SOMMapManager) mapMgr).drawNonProdJpSegments(pa,curAllJPToShowIDX);	}		
+		if(getPrivFlags(mapDrawNonProdJPGroupSegIDX)) { 		((Straff_SOMMapManager) mapMgr).drawNonProdJPGroupSegments(pa,curAllJPToShowIDX);	}	
 	}
 	
 	@Override
@@ -498,14 +511,14 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 			//int curJPIdx = ( ? curMapImgIDX : curAllJPToShowIDX);
 			pa.pushMatrix();pa.pushStyle();	
 			pa.translate(calcAnalysisLocs[0],SOM_mapLoc[1]*calcScale + 10,0.0f);			
-			if(curCalcAnalysisJPTypeIDX == StraffWeightCalc.bndAra_AllJPsIDX) {		//choose between displaying calc analysis of training feature jps or all jps
+			if(curCalcAnalysisJPTypeIDX == Straff_WeightCalc.bndAra_AllJPsIDX) {		//choose between displaying calc analysis of training feature jps or all jps
 				((Straff_SOMMapManager) mapMgr).drawAnalysisOneJp_All(pa,analysisHt, analysisPerJPWidth,curAllJPToShowIDX, curCalcAnalysisSrcDataTypeIDX);	
 				pa.popStyle();pa.popMatrix();			
 				pa.pushMatrix();pa.pushStyle();
 				pa.translate(rectDim[0]+5,calcAnalysisLocs[1],0.0f);					
 				((Straff_SOMMapManager) mapMgr).drawAnalysisAllJps(pa, analysisHt, analysisAllJPBarWidth, curAllJPToShowIDX, curCalcAnalysisSrcDataTypeIDX);
 				
-			} else if(curCalcAnalysisJPTypeIDX == StraffWeightCalc.bndAra_ProdJPsIDX)  {		
+			} else if(curCalcAnalysisJPTypeIDX == Straff_WeightCalc.bndAra_ProdJPsIDX)  {		
 				((Straff_SOMMapManager) mapMgr).drawAnalysisOneJp_Ftr(pa,analysisHt, analysisPerJPWidth,curMapImgIDX, curCalcAnalysisSrcDataTypeIDX);	
 				pa.popStyle();pa.popMatrix();			
 				pa.pushMatrix();pa.pushStyle();

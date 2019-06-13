@@ -4,10 +4,10 @@ package strafford_SOM_PKG.straff_SOM_Mapping.exampleMappers;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentSkipListMap;
 
-import base_SOM_Objects.SOMMapManager;
+import base_SOM_Objects.SOM_MapManager;
 import base_SOM_Objects.som_examples.SOMExample;
-import base_Utils_Objects.MsgCodes;
-import strafford_SOM_PKG.straff_Features.featureCalc.StraffWeightCalc;
+import base_Utils_Objects.io.MsgCodes;
+import strafford_SOM_PKG.straff_Features.featureCalc.Straff_WeightCalc;
 import strafford_SOM_PKG.straff_SOM_Mapping.*;
 
 /**
@@ -17,7 +17,7 @@ import strafford_SOM_PKG.straff_SOM_Mapping.*;
 
 public abstract class Straff_SOMProspectMapper extends Straff_SOMExampleMapper {
 	private final int preProcDatPartSz;
-	public Straff_SOMProspectMapper(SOMMapManager _mapMgr, String _exName, String _longExampleName, boolean _shouldValidate) {
+	public Straff_SOMProspectMapper(SOM_MapManager _mapMgr, String _exName, String _longExampleName, boolean _shouldValidate) {
 		super(_mapMgr,  _exName, _longExampleName, _shouldValidate);		
 		preProcDatPartSz = ((Straff_SOMMapManager)mapMgr).preProcDatPartSz;
 	}
@@ -101,6 +101,7 @@ public abstract class Straff_SOMProspectMapper extends Straff_SOMExampleMapper {
 			return true;
 		} else {msgObj.dispMessage("Straff_SOMExampleMapper","saveAllExampleMapData","No "+exampleName+" example data to save. Aborting", MsgCodes.error2); return false;}
 	}//saveAllPreProccedMapData
+
 	
 	protected final void dbg_dispFtrVecMinMaxs(ConcurrentSkipListMap<Integer, Float> minMap, ConcurrentSkipListMap<Integer, Float> maxMap, String callClass) {	
 		msgObj.dispInfoMessage(callClass,"dbg_dispFtrVecMinMaxs","JP,Min Value,Max Value.");

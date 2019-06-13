@@ -7,7 +7,7 @@ import java.util.TreeMap;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.BaseRawData;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.EventRawData;
 import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.JpgJpDataRecord;
-import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.StraffRawToTrainData;
+import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.Straff_RawToTrainData;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.JP_OccurrenceData;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.ProspectExample;
 
@@ -17,7 +17,7 @@ import strafford_SOM_PKG.straff_SOM_Examples.prospects.ProspectExample;
  * @author john
  *
  */
-public abstract class StraffEvntRawToTrainData extends StraffRawToTrainData{
+public abstract class StraffEvntRawToTrainData extends Straff_RawToTrainData{
 	//every unique eventID seems to occur only on 1 date
 	protected Integer eventID;	
 	protected Date eventDate;

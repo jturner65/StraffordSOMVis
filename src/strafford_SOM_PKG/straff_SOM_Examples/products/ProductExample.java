@@ -7,10 +7,10 @@ import base_SOM_Objects.som_examples.ExDataType;
 import base_SOM_Objects.som_examples.SOMExample;
 import base_SOM_Objects.som_examples.SOMMapNode;
 import base_SOM_Objects.som_segments.segmentData.SOM_MapNodeSegmentData;
-import base_SOM_Objects.som_segments.segments.SOMMapSegment;
+import base_SOM_Objects.som_segments.segments.SOM_MappedSegment;
 import base_UI_Objects.my_procApplet;
-import base_Utils_Objects.MsgCodes;
-import base_Utils_Objects.Tuple;
+import base_Utils_Objects.io.MsgCodes;
+import base_Utils_Objects.vectorObjs.Tuple;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.TcTagData;
 import strafford_SOM_PKG.straff_SOM_Examples.Straff_SOMExample;
 import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.TcTagRawToTrainData;
@@ -86,7 +86,7 @@ public class ProductExample extends Straff_SOMExample{
 	 * @param Class_Segments
 	 * @param Category_Segments
 	 */
-	public synchronized void setSegmentsAndProbsFromAllMapNodes(TreeMap<Integer, SOMMapSegment> Class_Segments, TreeMap<Integer, SOMMapSegment> Category_Segments) {
+	public synchronized void setSegmentsAndProbsFromAllMapNodes(TreeMap<Integer, SOM_MappedSegment> Class_Segments, TreeMap<Integer, SOM_MappedSegment> Category_Segments) {
 		//set all jp(class)-based map node probabilities
 		perJPMapNodeProbMap.clear();		
 		ConcurrentSkipListMap<Tuple<Integer,Integer>,Float> jpClassMapNodes, tmpJpMapNodes;

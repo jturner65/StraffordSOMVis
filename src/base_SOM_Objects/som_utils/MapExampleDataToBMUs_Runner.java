@@ -7,11 +7,11 @@ import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-import base_SOM_Objects.SOMMapManager;
+import base_SOM_Objects.SOM_MapManager;
 import base_SOM_Objects.som_examples.*;
-import base_Utils_Objects.MessageObject;
-import base_Utils_Objects.MsgCodes;
-import base_Utils_Objects.Tuple;
+import base_Utils_Objects.io.MessageObject;
+import base_Utils_Objects.io.MsgCodes;
+import base_Utils_Objects.vectorObjs.Tuple;
 
 /**
  * this will build a runnable to perform mapping in its own thread, to find bmus for passed examples
@@ -19,7 +19,7 @@ import base_Utils_Objects.Tuple;
  *
  */
 public class MapExampleDataToBMUs_Runner implements Runnable {
-	SOMMapManager mapMgr;
+	SOM_MapManager mapMgr;
 	MessageObject msgObj;
 	boolean canMultiThread;
 	String dataTypName;
@@ -42,7 +42,7 @@ public class MapExampleDataToBMUs_Runner implements Runnable {
 	List<Future<Boolean>> ExMapperFtrs = new ArrayList<Future<Boolean>>();
 	List<MapExampleDataToBMUs> ExMappers = new ArrayList<MapExampleDataToBMUs>();
 		
-	public MapExampleDataToBMUs_Runner(SOMMapManager _mapMgr, ExecutorService _th_exec, SOMExample[] _exData, String _dataTypName, ExDataType _dataType, int _readyToSaveIDX) {
+	public MapExampleDataToBMUs_Runner(SOM_MapManager _mapMgr, ExecutorService _th_exec, SOMExample[] _exData, String _dataTypName, ExDataType _dataType, int _readyToSaveIDX) {
 		mapMgr = _mapMgr; 
 		msgObj = mapMgr.getMsgObj();
 		MapNodes = mapMgr.getMapNodes();
@@ -124,7 +124,7 @@ public class MapExampleDataToBMUs_Runner implements Runnable {
 		//go through every test example, if any, and attach prod to bmu - needs to be done synchronously because don't want to concurrently modify bmus from 2 different test examples		
 		msgObj.dispMessage("MapTestDataToBMUs_Runner","run","Finished finding bmus for all " +exData.length + " "+dataTypName+" data. Start adding "+dataTypName+" data to appropriate bmu's list.", MsgCodes.info1);
 		//below must be done when -all- dataType examples are done
-		mapMgr._completeBMUProcessing(exData, dataType);
+		mapMgr._completeBMUProcessing(exData, dataType, canMultiThread);
 		msgObj.dispMessage("MapTestDataToBMUs_Runner","run","Finished Mapping "+dataTypName+" data to best matching units.", MsgCodes.info5);		
 
 		//Set some flag here stating that saving/further processing results is now available

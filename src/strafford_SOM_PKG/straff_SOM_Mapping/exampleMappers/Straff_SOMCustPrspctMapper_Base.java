@@ -4,10 +4,10 @@ import java.util.*;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.Future;
 
-import base_SOM_Objects.SOMMapManager;
+import base_SOM_Objects.SOM_MapManager;
 import base_SOM_Objects.som_examples.SOMExample;
 import base_SOM_Objects.som_fileIO.SOMExCSVDataLoader;
-import strafford_SOM_PKG.straff_Features.featureCalc.StraffWeightCalc;
+import strafford_SOM_PKG.straff_Features.featureCalc.Straff_WeightCalc;
 import strafford_SOM_PKG.straff_ProcDataHandling.data_loaders.CustCSVDataLoader;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.CustProspectExample;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
@@ -18,7 +18,7 @@ import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
  */
 public abstract class Straff_SOMCustPrspctMapper_Base extends Straff_SOMProspectMapper {
 
-	public Straff_SOMCustPrspctMapper_Base(SOMMapManager _mapMgr, String _exName, String _longExampleName, boolean _shouldValidate) {		super(_mapMgr, _exName, _longExampleName, _shouldValidate);	}//ctor
+	public Straff_SOMCustPrspctMapper_Base(SOM_MapManager _mapMgr, String _exName, String _longExampleName, boolean _shouldValidate) {		super(_mapMgr, _exName, _longExampleName, _shouldValidate);	}//ctor
 	
 	private final void dispAllNumOrderCounts() {
 		msgObj.dispInfoMessage("Straff_SOMCustPrspctMapper","buildStraffFtrVec_Priv->dispAllNumOrderCounts","# of customers with particular order count : ");
@@ -33,7 +33,7 @@ public abstract class Straff_SOMCustPrspctMapper_Base extends Straff_SOMProspect
 		// the # of customers considered "bad" after features were built
 		msgObj.dispInfoMessage("Straff_SOMCustPrspctMapper","buildStraffFtrVec_Priv->dispAllNumOrderCounts","\tTotal # Of Customers considered 'bad' after features were built : " + CustProspectExample.NumBadExamplesAfterFtrsBuilt + " responsible for " + CustProspectExample.NumBadExampleOrdersAfterFtrsBuilt+" orders.  These examples shouldn't be used to train.");
 
-		dbg_dispFtrVecMinMaxs(StraffWeightCalc.mapOfTrainCompFtrVecMins, StraffWeightCalc.mapOfTrainCompFtrVecMaxs, "Straff_SOMCustPrspctMapper");
+		dbg_dispFtrVecMinMaxs(Straff_WeightCalc.mapOfTrainCompFtrVecMins, Straff_WeightCalc.mapOfTrainCompFtrVecMaxs, "Straff_SOMCustPrspctMapper");
 	}//dispAllNumOrderCounts
 	
 	@Override
@@ -58,8 +58,8 @@ public abstract class Straff_SOMCustPrspctMapper_Base extends Straff_SOMProspect
 		CustProspectExample.ttlOrderCount.clear();
 		CustProspectExample.ttlBadOrderCount.clear();
 
-		((Straff_SOMMapManager)mapMgr).ftrCalcObj.resetCalcObjs(StraffWeightCalc.custCalcObjIDX);	
-		((Straff_SOMMapManager)mapMgr).ftrCalcObj.resetCalcObjs(StraffWeightCalc.trainCalcObjIDX);	//also reset training data calc for order-based training data
+		((Straff_SOMMapManager)mapMgr).ftrCalcObj.resetCalcObjs(Straff_WeightCalc.custCalcObjIDX);	
+		((Straff_SOMMapManager)mapMgr).ftrCalcObj.resetCalcObjs(Straff_WeightCalc.trainCalcObjIDX);	//also reset training data calc for order-based training data
 		
 		//call to buildFeatureVector for all examples
 		mapMgr._ftrVecBuild(exampleMap.values(),0,exampleName);	
@@ -81,8 +81,8 @@ public abstract class Straff_SOMCustPrspctMapper_Base extends Straff_SOMProspect
 		//call to _ftrVecBuild() with _typeOfProc==1 calls postFtrVecBuild for all examples of specified type - strafford data doesn't currently use this functionality so we can comment this call
 		//mapMgr._ftrVecBuild(exs, 1, exType);	
 		//set calc/calc analysis state as finished
-		((Straff_SOMMapManager)mapMgr).ftrCalcObj.finishFtrCalcs(StraffWeightCalc.custCalcObjIDX);	
-		((Straff_SOMMapManager)mapMgr).ftrCalcObj.finishFtrCalcs(StraffWeightCalc.trainCalcObjIDX);	
+		((Straff_SOMMapManager)mapMgr).ftrCalcObj.finishFtrCalcs(Straff_WeightCalc.custCalcObjIDX);	
+		((Straff_SOMMapManager)mapMgr).ftrCalcObj.finishFtrCalcs(Straff_WeightCalc.trainCalcObjIDX);	
 	}//buildFtrVec_Priv()
 	
 	/**

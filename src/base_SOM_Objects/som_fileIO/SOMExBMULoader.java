@@ -6,21 +6,30 @@ import java.util.concurrent.Callable;
 
 import base_SOM_Objects.som_examples.SOMExample;
 import base_SOM_Objects.som_examples.SOMMapNode;
-import base_Utils_Objects.MsgCodes;
-import base_Utils_Objects.MessageObject;
+import base_Utils_Objects.io.MessageObject;
+import base_Utils_Objects.io.MsgCodes;
 
- 
-//load best matching units for each provided training example - 
-//this is only called when loading bmus with training data
+
+/**
+ * This class will map the BMUs as determined by SOM training code (loaded form bmu file) to each training example
+ * @author john
+ *
+ */
 public class SOMExBMULoader implements Callable<Boolean>{
 	//object that manages message displays on screen
 	private MessageObject msgObj;
-
+	//thread index
 	int thdIDX;
+	//whether or not we are using chi sq distance (normalized by variance per ftr)
 	boolean useChiSqDist;
+	//what kind of features used to train map (umodded, normalized, std'ized)
 	int ftrTypeUsedToTrain;
-	int typeOfEx;	//should always be training
+	//should always be training, not necessary
+	int typeOfEx;	
+	//map of map nodes to arrays of examples that consider these map nodes their bmus - loaded in from file written by SOM training code
+	//any particular map node will only exist in one map, so no map nodes will be concurrently modified by this structure
 	HashMap<SOMMapNode, ArrayList<SOMExample>> bmusToExmpl;
+	
 	public SOMExBMULoader(MessageObject _msgObj, int _ftrTypeUsedToTrain, boolean _useChiSqDist, int _typeOfEx, HashMap<SOMMapNode, ArrayList<SOMExample>> _bmusToExmpl, int _thdIDX) {
 		msgObj = _msgObj;
 		ftrTypeUsedToTrain = _ftrTypeUsedToTrain;

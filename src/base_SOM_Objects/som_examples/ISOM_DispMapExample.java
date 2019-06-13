@@ -1,7 +1,7 @@
 package base_SOM_Objects.som_examples;
 
 import base_UI_Objects.my_procApplet;
-import base_Utils_Objects.myPointf;
+import base_Utils_Objects.vectorObjs.myPointf;
 
 /**
  * This interface is a contract for the required functionality to be implemented by a map-driven display example

@@ -3,12 +3,14 @@ package base_SOM_Objects.som_utils;
 import java.util.*;
 import java.util.concurrent.*;
 
-import base_SOM_Objects.SOMMapManager;
+import base_SOM_Objects.SOM_MapManager;
 import base_SOM_Objects.som_examples.SOMExample;
 import base_Utils_Objects.*;
+import base_Utils_Objects.io.MessageObject;
+import base_Utils_Objects.io.MsgCodes;
 
 public class MapExFtrCalcs_Runner implements Runnable {
-	SOMMapManager mapMgr;
+	SOM_MapManager mapMgr;
 	boolean canMultiThread;
 	String dataTypName;
 	SOMExample[] exData;
@@ -25,7 +27,7 @@ public class MapExFtrCalcs_Runner implements Runnable {
 	List<Future<Boolean>> testCalcMapperFtrs = new ArrayList<Future<Boolean>>();
 	List<MapFtrCalc> testCalcMappers = new ArrayList<MapFtrCalc>();
 
-	public MapExFtrCalcs_Runner(SOMMapManager _mapMgr, ExecutorService _th_exec, SOMExample[] _exData, String _dataTypName, int _typeOfProc) {
+	public MapExFtrCalcs_Runner(SOM_MapManager _mapMgr, ExecutorService _th_exec, SOMExample[] _exData, String _dataTypName, int _typeOfProc) {
 		mapMgr = _mapMgr; 
 		numUsableThreads = mapMgr.getNumUsableThreads()-1;
 		canMultiThread = mapMgr.isMTCapable();
@@ -77,7 +79,7 @@ class MapFtrCalc implements Callable<Boolean>{
 	protected SOMExample[] exs;
 	
 	
-	public MapFtrCalc(SOMMapManager _mapMgr, int _stExIDX, int _endExIDX, SOMExample[] _exs, int _thdIDX, String _datatype, String _calcType,int _typeOfCalc) {
+	public MapFtrCalc(SOM_MapManager _mapMgr, int _stExIDX, int _endExIDX, SOMExample[] _exs, int _thdIDX, String _datatype, String _calcType,int _typeOfCalc) {
 		msgObj = _mapMgr.buildMsgObj();//make a new one for every thread
 		exs=_exs;
 		stIdx = _stExIDX;

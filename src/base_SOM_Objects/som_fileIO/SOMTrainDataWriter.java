@@ -5,10 +5,13 @@ import java.util.concurrent.Callable;
 import base_SOM_Objects.*;
 import base_SOM_Objects.som_examples.*;
 import base_Utils_Objects.*;
+import base_Utils_Objects.io.FileIOManager;
+import base_Utils_Objects.io.MessageObject;
+import base_Utils_Objects.io.MsgCodes;
 
 //save all training/testing data to appropriate format for SOM
 public class SOMTrainDataWriter implements Callable<Boolean>{
-	private SOMMapManager mapMgr;	
+	private SOM_MapManager mapMgr;	
 	private MessageObject msgObj;
 	private int dataFrmt, numFtrs,numSmpls;
 	private SOMExample[] exAra;
@@ -16,7 +19,7 @@ public class SOMTrainDataWriter implements Callable<Boolean>{
 	//manage IO in this object
 	private FileIOManager fileIO;
 	
-	public SOMTrainDataWriter(SOMMapManager _mapData, int _dataFrmt, int _numTrainFtrs, String _fileName, String _savFileFrmt, SOMExample[] _exAra) {
+	public SOMTrainDataWriter(SOM_MapManager _mapData, int _dataFrmt, int _numTrainFtrs, String _fileName, String _savFileFrmt, SOMExample[] _exAra) {
 		mapMgr = _mapData; msgObj = mapMgr.buildMsgObj();
 		dataFrmt = _dataFrmt;		//either unmodified, standardized or normalized -> 0,1,2
 		exAra = _exAra;

@@ -3,15 +3,15 @@ package strafford_SOM_PKG.straff_Utils;
 import java.io.File;
 import java.util.TreeMap;
 
-import base_SOM_Objects.SOMMapManager;
+import base_SOM_Objects.SOM_MapManager;
 import base_SOM_Objects.som_utils.SOMProjConfigData;
-import base_Utils_Objects.MsgCodes;
+import base_Utils_Objects.io.MsgCodes;
 
 public class Straff_SOMProjConfig extends SOMProjConfigData {
 	//type of event membership that defines a prospect as a customer and as a true prospect (generally will be cust has order event, prospect doesnt)
 	protected int custTruePrsTypeEvents;
 
-	public Straff_SOMProjConfig(SOMMapManager _mapMgr, TreeMap<String, Object> _argsMap) {super(_mapMgr, _argsMap);}
+	public Straff_SOMProjConfig(SOM_MapManager _mapMgr, TreeMap<String, Object> _argsMap) {super(_mapMgr, _argsMap);}
 
 	//get location for raw data files
 	//baseDirName : directory/file type name
@@ -23,7 +23,7 @@ public class Straff_SOMProjConfig extends SOMProjConfigData {
 			dataLocStrData = SOM_QualifiedDataDir + subDirLocs.get("SOM_SourceCSV") + baseDirName + File.separator + baseFName+".csv";
 		} else {//SQL connection configuration needs to be determined/designed
 			dataLocStrData = SOM_QualifiedDataDir + subDirLocs.get("SOM_SQLProc") + "sqlConnData_"+baseDirName+".csv";
-			msgObj.dispMessage("SOMProjConfigData","getLoadRawDataStrs","Need to construct appropriate sql connection info and put in text config file : " + dataLocStrData, MsgCodes.warning2);
+			msgObj.dispMessage("Straff_SOMProjConfig","getRawDataLoadInfo","Need to construct appropriate sql connection info and put in text config file : " + dataLocStrData, MsgCodes.warning2);
 		}
 		return dataLocStrData;
 	}//getRawDataLoadInfo
@@ -57,11 +57,27 @@ public class Straff_SOMProjConfig extends SOMProjConfigData {
 	public String[] buildMappedExDataCSVFNames_Load(String subDir, String _desSuffix) {	return buildCSVFileNamesAra(subDir, _desSuffix,"SOM_MappedExData");}	
 	
 	//return subdirectory to use to write results for product with passed OID
+	//THIS IS THE OLD VERSION AND WILL BE DEPRECATED
 	public String getPerProdOutSubDirName(String fullBaseDir,  String OID) {return getDirNameAndBuild(fullBaseDir, OID+File.separator, true);}
 	public String getFullProdOutMapperBaseDir(String sfx) {
 		String [] tmpNow = getDateTimeString(false, "_");
 		return getDirNameAndBuild(subDirLocs.get("SOM_ProdSuggest") + "PerProdMaps_"+sfx+"_"+ tmpNow[1] + "_data_" +dateTimeStrAra[0]+File.separator, true);
 	}
+	
+	@Override
+	protected String getSegmentFileNamePrefix_Indiv(String segType) {
+		switch(segType.toLowerCase()) {
+			case "nonprod_jps"  		: { return _getSegmentDirNameFromDirKey("Straff_SOM_NonProdJps");}
+			case "nonprod_jpgroups" 	: { return _getSegmentDirNameFromDirKey("Straff_SOM_NonProdJpGroups");}
+			default : {
+				msgObj.dispMessage("Straff_SOMProjConfig","getSegmentFileNamePrefix_Indiv","Unknown Segment Type " +segType.toLowerCase() +" so unable to build appropriate file name prefix.  Aborting.", MsgCodes.warning2);
+				return "";
+			}
+		}
+	}//getSegmentFileName_Indiv
+	
+
+	
 		
 	//these file names are specified above but may be modified/set via a config file in future
 	public String getFullCalcInfoFileName(){ return SOM_QualifiedConfigDir + subDirLocs.get("StraffCalcEqWtFiles") + File.separator + configFileNames.get("calcWtFileName");}

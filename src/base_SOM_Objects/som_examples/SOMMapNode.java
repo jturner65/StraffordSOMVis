@@ -3,17 +3,19 @@ package base_SOM_Objects.som_examples;
 import java.util.*;
 
 import base_SOM_Objects.*;
-import base_SOM_Objects.som_segments.SOM_CategorySegMgr;
-import base_SOM_Objects.som_segments.SOM_ClassSegMgr;
-import base_SOM_Objects.som_segments.SOM_SegmentManager;
+import base_SOM_Objects.som_segments.SOM_MapNodeCategorySegMgr;
+import base_SOM_Objects.som_segments.SOM_MapNodeClassSegMgr;
+import base_SOM_Objects.som_segments.SOM_MapNodeSegMgr;
 import base_SOM_Objects.som_segments.segmentData.SOM_MapNodeSegmentData;
-import base_SOM_Objects.som_segments.segments.SOMMapSegment;
+import base_SOM_Objects.som_segments.segments.SOM_MappedSegment;
 import base_SOM_Objects.som_segments.segments.SOM_CategorySegment;
 import base_SOM_Objects.som_segments.segments.SOM_ClassSegment;
 import base_SOM_Objects.som_segments.segments.SOM_FtrWtSegment;
 import base_SOM_Objects.som_segments.segments.SOM_UMatrixSegment;
 import base_UI_Objects.*;
 import base_Utils_Objects.*;
+import base_Utils_Objects.io.MsgCodes;
+import base_Utils_Objects.vectorObjs.Tuple;
 
 /**
 * objects of inheritors to this abstract class represent nodes in the SOM.  
@@ -47,24 +49,24 @@ public abstract class SOMMapNode extends SOMExample{
 	//keyed by non-zero ftr index
 	private TreeMap<Integer, SOM_MapNodeSegmentData> ftrWtSegData;	
 	//this manages the segment functionality for the class segments
-	private SOM_SegmentManager classSegManager;	
+	private SOM_MapNodeSegMgr classSegManager;	
 	//this manages the segment functionality for the category segments, which are collections of similar classes in a hierarchy
-	private SOM_SegmentManager categorySegManager;
+	private SOM_MapNodeSegMgr categorySegManager;
 	
 	//this node has examples of a particular type
-	public boolean[] hasExamples;
+	public boolean[] hasMappedExamples;
 	//node color to display for type of data
 	protected int[][] dispClrs;
 	
 	//build a map node from a float array of ftrs
-	public SOMMapNode(SOMMapManager _map, Tuple<Integer,Integer> _mapNodeLoc, float[] _ftrs) {
+	public SOMMapNode(SOM_MapManager _map, Tuple<Integer,Integer> _mapNodeLoc, float[] _ftrs) {
 		super(_map, ExDataType.MapNode,"Node_"+_mapNodeLoc.x+"_"+_mapNodeLoc.y);
 		if(_ftrs.length != 0){	setFtrsFromFloatAra(_ftrs);	}
 		initMapNode( _mapNodeLoc);		
 	}
 	
 	//build a map node from a string array of features
-	public SOMMapNode(SOMMapManager _map,Tuple<Integer,Integer> _mapNodeLoc, String[] _strftrs) {
+	public SOMMapNode(SOM_MapManager _map,Tuple<Integer,Integer> _mapNodeLoc, String[] _strftrs) {
 		super(_map, ExDataType.MapNode, "Node_"+_mapNodeLoc.x+"_"+_mapNodeLoc.y);
 		if(_strftrs.length != 0){	
 			float[] _tmpFtrs = new float[_strftrs.length];		
@@ -97,9 +99,9 @@ public abstract class SOMMapNode extends SOMExample{
 
 	//called at end of base class construction
 	private void initMapNode(Tuple<Integer,Integer> _mapNode){
-		hasExamples = new boolean[ExDataType.getNumVals()];
-		dispClrs = new int[hasExamples.length][];
-		for(int i=0;i<hasExamples.length;++i) {		hasExamples[i]=false;		dispClrs[i]=nodeClrs;	}
+		hasMappedExamples = new boolean[ExDataType.getNumVals()];
+		dispClrs = new int[hasMappedExamples.length][];
+		for(int i=0;i<hasMappedExamples.length;++i) {		hasMappedExamples[i]=false;		dispClrs[i]=nodeClrs;	}
 		mapNodeCoord = _mapNode;		
 		mapLoc = mapMgr.buildScaledLoc(mapNodeCoord);
 		dispBoxDims = mapMgr.buildUMatBoxCrnr(mapNodeCoord);		//box around map node
@@ -116,11 +118,9 @@ public abstract class SOMMapNode extends SOMExample{
 			ftrWtSegData.put(idx, new SOM_MapNodeSegmentData(this, this.OID+"_FtrWtData_IDX_"+idx, "Feature Weight For Ftr IDX :"+idx));
 		}
 		//build structure that holds counts of classes mapped to this node
-		classSegManager = new SOM_ClassSegMgr(this);
-		
+		classSegManager = new SOM_MapNodeClassSegMgr(this);		
 		//build structure that holds counts of categories mapped to this node (category is a collection of similar classes)
-		categorySegManager = new SOM_CategorySegMgr(this);
-
+		categorySegManager = new SOM_MapNodeCategorySegMgr(this);
 		//instancing class-specific functionality
 		_initDataFtrMappings();
 	}//initMapNode
@@ -129,16 +129,14 @@ public abstract class SOMMapNode extends SOMExample{
 	 * this will map feature values to some representation of the underlying feature 
 	 * description - this is specific to underlying data and is called from base class initMapNode
 	 */
-	protected abstract void _initDataFtrMappings();
-	
-	//private final Tuple<Integer,Integer> compLoc = new Tuple<Integer,Integer>(47,8);
+	protected abstract void _initDataFtrMappings();	
 	
 	///////////////////
 	// class-based segment data
 	
 	public final void clearClassSeg() {	 										classSegManager.clearAllSegData();}//clearClassSeg()
 	public final void setClassSeg(Integer _cls, SOM_ClassSegment _clsSeg) {		classSegManager.setSeg(_cls, _clsSeg);}	
-	public final SOMMapSegment getClassSegment(Integer _cls) {					return classSegManager.getSegment(_cls);	}	
+	public final SOM_MappedSegment getClassSegment(Integer _cls) {				return classSegManager.getSegment(_cls);	}	
 	public final int getClassSegClrAsInt(Integer _cls) {						return classSegManager.getSegClrAsInt(_cls);}		
 	//for passed -class (not idx)- give this node's probability
 	public final float getClassProb(Integer _cls) {								return classSegManager.getSegProb(_cls);}
@@ -148,14 +146,17 @@ public abstract class SOMMapNode extends SOMExample{
 	//return map of classes mapped to counts present
 	@SuppressWarnings("unchecked")
 	public final TreeMap<Integer, Float> getMappedClassCounts() {				return classSegManager.getMappedCounts();	}
-	protected SOM_SegmentManager getClassSegManager() {							return classSegManager;}
+	public final Float getMappedClassCountAtSeg(Integer segID) {				return classSegManager.getMappedCountAtSeg(segID);}
+	protected final SOM_MapNodeSegMgr getClassSegManager() {					return classSegManager;}
+	protected final String getClassSegment_CSVStr() {								return classSegManager.getSegDataDescStringForNode();}
+	protected final String getClassSegment_CSVStr_Hdr() {							return classSegManager.getSegDataDescStrForNode_Hdr();}
 	
 	///////////////////
 	// category order-based segment data
 	
 	public final void clearCategorySeg() {												categorySegManager.clearAllSegData();	}
 	public final void setCategorySeg(Integer _cat, SOM_CategorySegment _catSeg) {		categorySegManager.setSeg(_cat, _catSeg);}	
-	public final SOMMapSegment getCategorySegment(Integer _cat) {						return categorySegManager.getSegment(_cat);}
+	public final SOM_MappedSegment getCategorySegment(Integer _cat) {					return categorySegManager.getSegment(_cat);}
 	public final int getCategorySegClrAsInt(Integer _cat) {								return categorySegManager.getSegClrAsInt(_cat);}		
 	//for passed -Category label (not cat idx)- give this node's probability
 	public final float getCategoryProb(Integer _cat) {                       			return categorySegManager.getSegProb(_cat);}            
@@ -165,8 +166,10 @@ public abstract class SOMMapNode extends SOMExample{
 	//return map of categories to classes within category and counts of each class
 	@SuppressWarnings("unchecked")
 	public final TreeMap<Integer, TreeMap<Integer, Float>> getMappedCategoryCounts(){	return categorySegManager.getMappedCounts();}
-	protected SOM_SegmentManager getCategorySegManager() {								return categorySegManager;}
-
+	public final Float getMappedCategoryCountAtSeg(Integer segID) {						return categorySegManager.getMappedCountAtSeg(segID);}
+	protected final SOM_MapNodeSegMgr getCategorySegManager() {							return categorySegManager;}
+	protected final String getCategorySegment_CSVStr() {									return categorySegManager.getSegDataDescStringForNode();}
+	protected final String getCategorySegment_CSVStr_Hdr() {								return categorySegManager.getSegDataDescStrForNode_Hdr();}
 
 	///////////////////
 	// ftr-wt based segment data
@@ -174,7 +177,7 @@ public abstract class SOMMapNode extends SOMExample{
 	public final void clearFtrWtSeg() {	for(Integer idx : ftrWtSegData.keySet()) {ftrWtSegData.get(idx).clearSeg();	}	}
 	public final void setFtrWtSeg(Integer idx, SOM_FtrWtSegment _ftrWtSeg) {ftrWtSegData.get(idx).setSeg(_ftrWtSeg);}		//should always exist - if doesn't is bug, so no checking to expose bug
 	
-	public final SOMMapSegment getFtrWtSegment(Integer idx) {
+	public final SOM_MappedSegment getFtrWtSegment(Integer idx) {
 		SOM_MapNodeSegmentData ftrWtMgrAtIdx = ftrWtSegData.get(idx);
 		if(null==ftrWtMgrAtIdx) {return null;}			//does not have weight at this feature index
 		return ftrWtMgrAtIdx.getSegment();
@@ -185,6 +188,54 @@ public abstract class SOMMapNode extends SOMExample{
 		return ftrWtMgrAtIdx.getSegClrAsInt();
 	}	
 	
+	//descriptor string for ftr data
+	protected final String getFtrWtSegment_CSVStr() {//ftrMaps[normFtrMapTypeKey].get(ftrIDX)
+		TreeMap<Float, ArrayList<String>> mapNodeProbs = new TreeMap<Float, ArrayList<String>>(Collections.reverseOrder());
+		//use normalized ftr data so that the ftr vector provides probabilities
+		for(Integer segID : ftrMaps[normFtrMapTypeKey].keySet()) {
+			float prob = ftrMaps[normFtrMapTypeKey].get(segID);
+			ArrayList<String> valsAtProb = mapNodeProbs.get(prob);
+			if(null==valsAtProb) {valsAtProb = new ArrayList<String>();}
+			valsAtProb.add(""+segID);
+			mapNodeProbs.put(prob, valsAtProb);				
+		}	
+		String res = getFtrWtSegment_CSVStr_Indiv(mapNodeProbs);
+		return res;	
+	}
+
+	protected abstract String getFtrWtSegment_CSVStr_Indiv(TreeMap<Float, ArrayList<String>> mapNodeProbs);
+	protected abstract String getFtrWtSegment_CSVStr_Hdr();
+	
+	
+	/**
+	 * get per-bmu segment descriptor, with key being either "class","category", "ftrwt" or something managed by instancing class
+	 * @param segmentType "class","category", "ftrwt" or something managed by instancing class
+	 * @return descriptor of this map node's full weight profile for the passed segment
+	 */
+	public final String getSegment_CSVStr(String segmentType) {
+		switch(segmentType.toLowerCase()) {
+		case "class" 	: {	return getClassSegment_CSVStr();}
+		case "category" : {	return getCategorySegment_CSVStr();}
+		case "ftrwt"	: {	return getFtrWtSegment_CSVStr();}
+		default 		: {	return getSegment_CSVStr_Indiv(segmentType);}
+		}
+	}
+	protected abstract String getSegment_CSVStr_Indiv(String segmentType);
+	/**
+	 * get per-bmu segment descriptor, with key being either "class","category", "ftrwt" or something managed by instancing class
+	 * @param segmentType "class","category", "ftrwt" or something managed by instancing class
+	 * @return descriptor of this map node's full weight profile for the passed segment
+	 */
+	public final String getSegment_Hdr_CSVStr(String segmentType) {
+		switch(segmentType.toLowerCase()) {
+		case "class" 	: {	return getClassSegment_CSVStr_Hdr();}
+		case "category" : {	return getCategorySegment_CSVStr_Hdr();}
+		case "ftrwt"	: {	return getFtrWtSegment_CSVStr_Hdr();}
+		default 		: {	return getSegment_Hdr_CSVStr_Indiv(segmentType);}
+		}
+	}
+	protected abstract String getSegment_Hdr_CSVStr_Indiv(String segmentType);
+	
 	////////////////////
 	// u matrix segment data
 	//provides default values for colors if no segument is defined
@@ -192,7 +243,7 @@ public abstract class SOMMapNode extends SOMExample{
 	//called by segment itself
 	public final void setUMatrixSeg(SOM_UMatrixSegment _uMatrixSeg) {	uMatrixSegData.setSeg(_uMatrixSeg);	}
 
-	public final SOMMapSegment getUMatrixSegment() {return  uMatrixSegData.getSegment();}
+	public final SOM_MappedSegment getUMatrixSegment() {return  uMatrixSegData.getSegment();}
 	public final int getUMatrixSegClrAsInt() {return uMatrixSegData.getSegClrAsInt();}
 	
 	//UMatrix distance as calculated by SOM Executable
@@ -282,13 +333,17 @@ public abstract class SOMMapNode extends SOMExample{
 		return ((val <= 0.0) ? 0.0 : (val >= 1.0) ? 1.0 : val);		
 	}//_biCubicInterpFrom2DArray	
 	
+	/**
+	 * clear specific type of example aggregation structure
+	 * @param _typeIDX
+	 */
 	public void clearBMUExs(int _typeIDX) {		BMUExampleNodes[_typeIDX].init();	}//addToBMUs
 	
 	//add passed example to appropriate bmu construct depending on what type of example is passed (training, testing, product)
 	public void addTrainingExToBMUs(SOMExample ex, int _typeIDX) {
 		double sqDist = ex.get_sqDistToBMU();
 		BMUExampleNodes[_typeIDX].addExample(sqDist,ex);
-		hasExamples[_typeIDX]=true;
+		hasMappedExamples[_typeIDX]=true;
 		//add relelvant tags/classes, if any, for training examples
 		addTrainingExToBMUs_Priv(sqDist,ex);
 	}//addTrainingExToBMUs 
@@ -297,20 +352,28 @@ public abstract class SOMMapNode extends SOMExample{
 	public void addExToBMUs(SOMExample ex, int _typeIDX) {
 		double sqDist = ex.get_sqDistToBMU();
 		BMUExampleNodes[_typeIDX].addExample(sqDist,ex);
-		hasExamples[_typeIDX]=true;
+		hasMappedExamples[_typeIDX]=true;
 	}//addExToBMUs 
 	
-	//add passed map node example to appropriate bmu construct depending on what type of example is passed (training, testing, product)
-	//TODO This should perhaps be changed to map to this map node based on its neighborhood map nodes, but that would require performing this on entire map simultaneously
-	//to handle adjacent map nodes with no mappings - perhaps assign closest map node mapping, and then re-process this to handle neighborhoods
-	public void addMapNodeExToBMUs(double dist, SOMMapNode ex, int _typeIDX) {
+	//copy passed map node example to appropriate bmu construct depending on what type of example is passed (training, testing, product)
+	//will only be called one time, so no need to synchrnonize
+	public void copyMapNodeExamples(double dist, SOMMapNode ex, int _typeIDX) {
 		//int _typeIDX = ex.type.getVal();
 		//BMUExampleNodes[_typeIDX].addExample(dist,ex);		
 		BMUExampleNodes[_typeIDX].setCopyOfMapNode(dist, ex.BMUExampleNodes[_typeIDX]);
-		hasExamples[_typeIDX]=false;
+		hasMappedExamples[_typeIDX]=false;
 		//add relelvant tags, if any, for training examples - only call if being called by training examples
 		if(ExDataType.Training == ExDataType.getVal(_typeIDX)) {	addMapNodeExToBMUs_Priv(dist,ex);}
 	}//addMapNodeExToBMUs 
+	
+	//finalize all calculations for examples using this node as a bmu - this calculates quantities based on totals derived, used for visualizations
+	//will only be called 1 time per map node, so no need for synch
+	//MUST BE CALLED after adding all examples but before any visualizations will work
+	public synchronized void finalizeAllBmus(int _typeIDX) {		
+		BMUExampleNodes[_typeIDX].finalize();	
+		dispClrs[_typeIDX] = hasMappedExamples[_typeIDX] ? nodeClrs : altClrs;
+	}
+	
 	/**
 	 * manage instancing map node handlign - specifically, handle using 2ndary features as node markers (like a product tag)
 	 * these functions will both build class and category-specific data in instancing map node, if any exists
@@ -328,13 +391,7 @@ public abstract class SOMMapNode extends SOMExample{
 	//this will return the training label(s) of this example - a map node -never- is used as training
 	//they should not be used for supervision during/after training (not sure how that could even happen)
 	public TreeMap<Integer,Integer> getTrainingLabels() {return null;}
-	
-	//finalize all calculations for examples using this node as a bmu - this calculates quantities based on totals derived, used for visualizations
-	//MUST BE CALLED after adding all examples but before any visualizations will work
-	public void finalizeAllBmus(int _typeIDX) {		
-		BMUExampleNodes[_typeIDX].finalize();	
-		dispClrs[_typeIDX] = hasExamples[_typeIDX] ? nodeClrs : altClrs;
-	}
+
 	public boolean getHasMappedExamples(int _typeIDX) { return BMUExampleNodes[_typeIDX].hasMappedExamples();}
 	//get # of requested type of examples mapping to this node
 	public int getNumExamples(int _typeIDX) {	return BMUExampleNodes[_typeIDX].getNumExamples();	}		
@@ -358,9 +415,9 @@ public abstract class SOMMapNode extends SOMExample{
 	@Override
 	public final Set<Integer> getBMUCategorySegIDs(){			return getCategorySegIDs();}
 	@Override
-	public final SOMMapSegment getBMUClassSegment(int cls) {	return getClassSegment(cls);}
+	public final SOM_MappedSegment getBMUClassSegment(int cls) {	return getClassSegment(cls);}
 	@Override
-	public final SOMMapSegment getBMUCategorySegment(int cat) {	return getCategorySegment(cat);}	
+	public final SOM_MappedSegment getBMUCategorySegment(int cat) {	return getCategorySegment(cat);}	
 	@Override
 	public final Tuple<Integer,Integer> getBMUMapNodeCoord(){	return mapNodeCoord;}
 
@@ -370,13 +427,13 @@ public abstract class SOMMapNode extends SOMExample{
 	
 	public void drawMePopLbl(my_procApplet p, int _typeIDX) {		BMUExampleNodes[_typeIDX].drawMapNodeWithLabel(p);	}	
 	public void drawMePopNoLbl(my_procApplet p, int _typeIDX) {		BMUExampleNodes[_typeIDX].drawMapNodeNoLabel(p);	}	
-	public void drawMeSmallWt(my_procApplet p, int ftrIDX){
-		p.pushMatrix();p.pushStyle();
-		Float wt = this.ftrMaps[stdFtrMapTypeKey].get(ftrIDX);
-		if (wt==null) {wt=0.0f;}
-		p.show(mapLoc, 2, 2, nodeClrs, new String[] {this.OID+":",String.format("%.4f", wt)}); 
-		p.popStyle();p.popMatrix();		
-	}	
+//	public void drawMeSmallWt(my_procApplet p, int ftrIDX){
+//		p.pushMatrix();p.pushStyle();
+//		Float wt = ftrMaps[normFtrMapTypeKey].get(ftrIDX);
+//		if (wt==null) {wt=0.0f;}
+//		p.show(mapLoc, 2, 2, nodeClrs, new String[] {this.OID+":",String.format("%.4f", wt)}); 
+//		p.popStyle();p.popMatrix();		
+//	}	
 	public void drawMeSmall(my_procApplet p){
 		p.pushMatrix();p.pushStyle();
 		p.show(mapLoc, 2, 2, nodeClrs, new String[] {this.OID}); 
@@ -427,7 +484,8 @@ public abstract class SOMMapNode extends SOMExample{
 	@Override
 	public String getRawDescColNamesForCSV() {return "Do not save SOMMapNode to intermediate CSV";}
 	/**
-	 * get CSV string representation of segment membership data - map nodes don't use this since they are not currently saved
+	 * get CSV string representation of segment membership data - map nodes don't use this since they 
+	 * are not currently saved-  instead they are queried to determine specific segment membership based on segment type
 	 */
 	@Override
 	public String getCSVSegmentMembershipData() {return "Should not query SOMMapNode for segment membership data.";}
@@ -468,7 +526,7 @@ class SOMMapNodeBMUExamples{
 	private boolean hasExamples;
 	//color to show node with, based on whether it has examples or not
 	private int[] dispClrs;
-	//this is node we copied from, if this node is copied
+	//this is node we copied from, if this node is copied; otherwise it is the same as node
 	private SOMMapNode copyNode;
 	//this is the distance from copyNode that this object's owning node is
 	private double sqDistToCopyNode;
@@ -480,14 +538,16 @@ class SOMMapNodeBMUExamples{
 		init();
 		copyNode = node;
 	}//ctor
-	
+	/**
+	 * (re)initialize this structure;
+	 */
 	public void init() {
 		examplesBMU.clear();
 		numMappedEx = 0;
 		logExSize = 0;
 		nodeSphrDet = 2;
 		hasExamples = false;
-		dispClrs =  node.altClrs;
+		dispClrs = node.altClrs;
 		sqDistToCopyNode = 0.0;
 		copyNode = node;
 		visLabel = new String[] {""+node.OID+" : ", ""+numMappedEx};
@@ -509,12 +569,19 @@ class SOMMapNodeBMUExamples{
 	}
 	
 	//add passed example
-	//public void addExample(SOMExample _ex) {addExample(_ex.get_sqDistToBMU(),_ex);}
+	/**
+	 * add passed example to this map node as an example that considers this map node to be its bmu
+	 * @param sqdist the squared distance from ex to the map node
+	 * @param _ex the example treating this map node as bmu
+	 */
 	public void addExample(double sqdist, SOMExample _ex) {
-		HashSet<SOMExample> tmpList = examplesBMU.get(sqdist);
-		if(tmpList == null) {tmpList = new HashSet<SOMExample>();}
-		tmpList.add(_ex);		
-		examplesBMU.put(sqdist, tmpList);	
+		//synching on examplesBMU since owning map node might be called multiple times by different examples in a multi-threaded environment
+		synchronized(examplesBMU) {
+			HashSet<SOMExample> tmpList = examplesBMU.get(sqdist);
+			if(tmpList == null) {tmpList = new HashSet<SOMExample>();}
+			tmpList.add(_ex);		
+			examplesBMU.put(sqdist, tmpList);	
+		}
 		hasExamples = true;
 	}//addExample
 	

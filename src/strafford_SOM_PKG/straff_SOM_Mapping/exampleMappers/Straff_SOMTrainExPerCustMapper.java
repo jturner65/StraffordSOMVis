@@ -2,7 +2,7 @@ package strafford_SOM_PKG.straff_SOM_Mapping.exampleMappers;
 
 import java.util.ArrayList;
 
-import base_SOM_Objects.SOMMapManager;
+import base_SOM_Objects.SOM_MapManager;
 import base_SOM_Objects.som_examples.SOMExample;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.CustProspectExample;
 
@@ -13,7 +13,7 @@ import strafford_SOM_PKG.straff_SOM_Examples.prospects.CustProspectExample;
  */
 public class Straff_SOMTrainExPerCustMapper extends Straff_SOMCustPrspctMapper_Base {
 
-	public Straff_SOMTrainExPerCustMapper(SOMMapManager _mapMgr, String _exName, String _longExampleName,boolean _shouldValidate) {super(_mapMgr, _exName, _longExampleName, _shouldValidate);}
+	public Straff_SOMTrainExPerCustMapper(SOM_MapManager _mapMgr, String _exName, String _longExampleName,boolean _shouldValidate) {super(_mapMgr, _exName, _longExampleName, _shouldValidate);}
 	
 	@Override
 	protected final void reset_Priv() {

@@ -3,16 +3,16 @@ package base_SOM_Objects.som_utils;
 import java.util.TreeMap;
 import java.util.function.BiFunction;
 
-import base_SOM_Objects.SOMMapManager;
+import base_SOM_Objects.SOM_MapManager;
 import base_SOM_Objects.som_examples.SOMExample;
-import base_Utils_Objects.MsgCodes;
+import base_Utils_Objects.io.MsgCodes;
 
 //this class will find the bmus for the passed dataset of test or validation examples - the passed reference is to 
 //the entire dataset, each instance of this callable will process a subset of this dataset
 public class MapExampleDataToBMUs extends MapDataToBMUs{
 	protected SOMExample[] exs;
 	
-	public MapExampleDataToBMUs(SOMMapManager _mapMgr, int _stProdIDX, int _endProdIDX, SOMExample[] _exs, int _thdIDX, String _type, boolean _useChiSqDist) {
+	public MapExampleDataToBMUs(SOM_MapManager _mapMgr, int _stProdIDX, int _endProdIDX, SOMExample[] _exs, int _thdIDX, String _type, boolean _useChiSqDist) {
 		super(_mapMgr, _stProdIDX,  _endProdIDX,  _thdIDX, _type, _useChiSqDist);			
 		exs = _exs;		//make sure these are cast appropriately
 	}	

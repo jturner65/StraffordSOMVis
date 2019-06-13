@@ -9,7 +9,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import base_SOM_Objects.SOMMapManager;
+import base_SOM_Objects.SOM_MapManager;
 import base_UI_Objects.my_procApplet;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.JP_OccurrenceData;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.ProspectExample;
@@ -19,7 +19,7 @@ import strafford_SOM_PKG.straff_SOM_Examples.prospects.ProspectExample;
 //count, datetime and opt value of each occurence in opt record. this object only works on prospect examples.  
 //No other example should use this calculation object, or analysis statistics will be skewed
 public class JPWeightEquation {
-	public final StraffWeightCalc calcObj;
+	public final Straff_WeightCalc calcObj;
 	public static Date now;
 	public static final Date oldDate = new GregorianCalendar(2009, Calendar.JANUARY, 1).getTime();
 	
@@ -63,7 +63,7 @@ public class JPWeightEquation {
 
 	//public JPWeightEquation(StraffWeightCalc _calcObj, String _name, int _jp, int[] _jpIdxs, Float[] _m, Float[] _o, Float[] _d, boolean _isDefault) {
 	//_eqVals : idx 0->2 are ftr vals; idx 3->5 are comparator vals
-	public JPWeightEquation(StraffWeightCalc _calcObj, String _name, int _jp, int[] _jpIdxs, Float[][] _eqVals, boolean _isDefault) {
+	public JPWeightEquation(Straff_WeightCalc _calcObj, String _name, int _jp, int[] _jpIdxs, Float[][] _eqVals, boolean _isDefault) {
 		calcObj = _calcObj; now = calcObj.now;jp=_jp;jpIDXs=_jpIdxs; jpName=_name;
 		//for feature calculation equations
 		FtrMult = new Float[numEqs];
@@ -79,7 +79,7 @@ public class JPWeightEquation {
 		aggTrueTrainTtlWt = 0.0f;		
 		
 		isDefault = _isDefault;
-		ftrCalcStats = new CalcAnalysis[StraffWeightCalc.numExamplTypeObjs];
+		ftrCalcStats = new CalcAnalysis[Straff_WeightCalc.numExamplTypeObjs];
 		for(int i=0;i<ftrCalcStats.length;++i) {			ftrCalcStats[i] = new CalcAnalysis(this, jpIDXs);		}	
 	}//ctor	
 	
@@ -179,7 +179,7 @@ public class JPWeightEquation {
 		if (linkJpOccurrences != null) {hasData = true;		ftrCalcStats[_exampleType].setWSVal(linkCoeffIDX, aggregateJPOccs(linkJpOccurrences, linkCoeffIDX,FtrParams, dateOfOrder));	}
 			//user opts - these are handled differently - calcOptRes return of -9999 means negative opt specified for this jp alone (ignores negative opts across all jps) - should force total from eq for this jp to be ==0
 		if (optJpOccurrences != null) {	hasData = true;		ftrCalcStats[_exampleType].setWSVal(optCoeffIDX, calcOptRes(optJpOccurrences,FtrParams, dateOfOrder));}	
-		if (hasData) {calcObj.incrBnds(StraffWeightCalc.bndAra_ProdJPsIDX,_exampleType,jpIDXs[StraffWeightCalc.bndAra_ProdJPsIDX]);		}
+		if (hasData) {calcObj.incrBnds(Straff_WeightCalc.bndAra_ProdJPsIDX,_exampleType,jpIDXs[Straff_WeightCalc.bndAra_ProdJPsIDX]);		}
 		float res = ftrCalcStats[_exampleType].getFtrValFromCalcs(optCoeffIDX, optOutSntnlVal);//(calcStats.workSpace[optCoeffIDX]==optOutSntnlVal);
 		return res;
 	}//calcFtrVal
@@ -269,6 +269,8 @@ public class JPWeightEquation {
 		res += " + ("+ String.format("%.3f", FtrMult[linkCoeffIDX]) + "*[sum(NumOcc[i]/(1 + "+String.format("%.4f", FtrDecay[linkCoeffIDX])+" * DEV)) for each event i] + "+String.format("%.4f", FtrOffset[linkCoeffIDX])+")"; 		
 		//opt
 		res +=  " + ("+ String.format("%.3f", FtrMult[optCoeffIDX]) + "*OptV/(1 + "+String.format("%.4f", FtrDecay[orderCoeffIDX])+" + "+String.format("%.4f", FtrOffset[optCoeffIDX])+")"; 			
+		//source
+		res += " + ("+ String.format("%.3f", FtrMult[srcCoeffIDX]) + "*[sum(NumOcc[i]/(1 + "+String.format("%.4f", FtrDecay[srcCoeffIDX])+" * DEV)) for each event i] + "+String.format("%.4f", FtrOffset[srcCoeffIDX])+")"; 		
 		return res;
 	}//toString
 }//JPWeightEquation

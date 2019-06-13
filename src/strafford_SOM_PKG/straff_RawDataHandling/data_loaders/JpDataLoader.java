@@ -5,7 +5,7 @@ import strafford_SOM_PKG.straff_RawDataHandling.raw_data.BaseRawData;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.JpDescData;
 
 //stream jp data for descriptions
-public class JpDataLoader extends StraffordDataLoader{
+public class JpDataLoader extends Straff_RawDataLoader{
 	public JpDataLoader(boolean _isFileLoader, String _dataLocInfoStr) {super(_isFileLoader,_dataLocInfoStr);}
 	@Override
 	protected BaseRawData parseStringToObj(String[] strAra, String jsonStr, boolean hasJSON) {

@@ -4,18 +4,18 @@ import java.util.*;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.Future;
 
-import base_SOM_Objects.SOMMapManager;
+import base_SOM_Objects.SOM_MapManager;
 import base_SOM_Objects.som_examples.SOMExample;
 import base_SOM_Objects.som_fileIO.SOMExCSVDataLoader;
-import base_Utils_Objects.MsgCodes;
+import base_Utils_Objects.io.MsgCodes;
 import strafford_SOM_PKG.straff_SOM_Mapping.*;
-import strafford_SOM_PKG.straff_Features.featureCalc.StraffWeightCalc;
+import strafford_SOM_PKG.straff_Features.featureCalc.Straff_WeightCalc;
 import strafford_SOM_PKG.straff_ProcDataHandling.data_loaders.PrscpctCSVDataLoader;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.TrueProspectExample;
 
 public class Straff_SOMTruePrspctMapper extends Straff_SOMProspectMapper {
 
-	public Straff_SOMTruePrspctMapper(SOMMapManager _mapMgr, String _exName, String _longExampleName, boolean _shouldValidate) {		super(_mapMgr, _exName, _longExampleName,_shouldValidate);	}
+	public Straff_SOMTruePrspctMapper(SOM_MapManager _mapMgr, String _exName, String _longExampleName, boolean _shouldValidate) {		super(_mapMgr, _exName, _longExampleName,_shouldValidate);	}
 	
 	//specific reset functionality for these type of examples
 	@Override
@@ -37,13 +37,13 @@ public class Straff_SOMTruePrspctMapper extends Straff_SOMProspectMapper {
 	//build either true prospect feature vectors
 	protected void buildStraffFtrVec_Priv() {
 		//reset calc analysis objects before building feature vectors to enable new analytic info to be aggregateds
-		((Straff_SOMMapManager)mapMgr).ftrCalcObj.resetCalcObjs(StraffWeightCalc.tpCalcObjIDX);
+		((Straff_SOMMapManager)mapMgr).ftrCalcObj.resetCalcObjs(Straff_WeightCalc.tpCalcObjIDX);
 		//call to buildFeatureVector for all examples
 		mapMgr._ftrVecBuild(exampleMap.values(),0,exampleName);				
 		//call to _ftrVecBuild() with _typeOfProc==1 calls postFtrVecBuild for all examples of specified type - strafford data doesn't currently use this functionality so we can comment this call
 		//mapMgr._ftrVecBuild(exs, 1, exType);	
 		//set calc/calc analysis state as finished
-		((Straff_SOMMapManager)mapMgr).ftrCalcObj.finishFtrCalcs(StraffWeightCalc.tpCalcObjIDX);	
+		((Straff_SOMMapManager)mapMgr).ftrCalcObj.finishFtrCalcs(Straff_WeightCalc.tpCalcObjIDX);	
 	}//buildFtrVecs NumBadExamplesAfterFtrsBuilt
 	//instance-specific code to execute after examples have had ftrs calculated
 	
@@ -52,22 +52,22 @@ public class Straff_SOMTruePrspctMapper extends Straff_SOMProspectMapper {
 		msgObj.dispInfoMessage("Straff_SOMTruePrspctMapper","buildPostFtrVecStructs_Priv","Showing Results of mapping avg ftr vec to appropriate training examples by matching source data");
 		msgObj.dispInfoMessage("Straff_SOMTruePrspctMapper","buildPostFtrVecStructs_Priv","Size of Comp Vec,# of True Prospects with this size Comp Vec,# of actual ftr configs for this count.");
 
-		for(Integer sizeOfCompVec : StraffWeightCalc.mapOfNonProdFtrVecDims.keySet()) {
-			ConcurrentSkipListMap<Integer, Integer> mapOfFtrs = StraffWeightCalc.mapOfTPNonProdJpsPerSizeNonProdFtrVec.get(sizeOfCompVec);
+		for(Integer sizeOfCompVec : Straff_WeightCalc.mapOfNonProdFtrVecDims.keySet()) {
+			ConcurrentSkipListMap<Integer, Integer> mapOfFtrs = Straff_WeightCalc.mapOfTPNonProdJpsPerSizeNonProdFtrVec.get(sizeOfCompVec);
 			String tmp = "";
 			for(Integer jp : mapOfFtrs.keySet()) {tmp += ""+jp+","+mapOfFtrs.get(jp)+",";}
-			msgObj.dispInfoMessage("Straff_SOMTruePrspctMapper","buildPostFtrVecStructs_Priv","\t" + sizeOfCompVec + ", " + StraffWeightCalc.mapOfNonProdFtrVecDims.get(sizeOfCompVec)+ ", " +mapOfFtrs.size() + "," + tmp);
+			msgObj.dispInfoMessage("Straff_SOMTruePrspctMapper","buildPostFtrVecStructs_Priv","\t" + sizeOfCompVec + ", " + Straff_WeightCalc.mapOfNonProdFtrVecDims.get(sizeOfCompVec)+ ", " +mapOfFtrs.size() + "," + tmp);
 		}
 		
-		msgObj.dispInfoMessage("Straff_SOMTruePrspctMapper","buildPostFtrVecStructs_Priv","" + TrueProspectExample.NumTPWithNoFtrs+ " True Prospect records with no product-jp-related information - max nonprod jps seen : " +TrueProspectExample.maxNumNonProdJps+" | largest comp vector seen : " + StraffWeightCalc.numNonProdFtrVecDims+".");
+		msgObj.dispInfoMessage("Straff_SOMTruePrspctMapper","buildPostFtrVecStructs_Priv","" + TrueProspectExample.NumTPWithNoFtrs+ " True Prospect records with no product-jp-related information - max nonprod jps seen : " +TrueProspectExample.maxNumNonProdJps+" | largest comp vector seen : " + Straff_WeightCalc.numNonProdFtrVecDims+".");
 		
-		dbg_dispFtrVecMinMaxs(StraffWeightCalc.mapOfTPCompFtrVecMins, StraffWeightCalc.mapOfTPCompFtrVecMaxs, "Straff_SOMTruePrspctMapper");
+		dbg_dispFtrVecMinMaxs(Straff_WeightCalc.mapOfTPCompFtrVecMins, Straff_WeightCalc.mapOfTPCompFtrVecMaxs, "Straff_SOMTruePrspctMapper");
 
 		TrueProspectExample.NumTPWithNoFtrs = 0;
 		TrueProspectExample.maxNumNonProdJps =0;
-		StraffWeightCalc.numNonProdFtrVecDims= 0;
-		StraffWeightCalc.mapOfNonProdFtrVecDims.clear();
-		StraffWeightCalc.mapOfTPNonProdJpsPerSizeNonProdFtrVec.clear();
+		Straff_WeightCalc.numNonProdFtrVecDims= 0;
+		Straff_WeightCalc.mapOfNonProdFtrVecDims.clear();
+		Straff_WeightCalc.mapOfTPNonProdJpsPerSizeNonProdFtrVec.clear();
 	}//dispCompFtrVecRes
 	
 	/**

@@ -4,6 +4,11 @@ import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 
 import base_Utils_Objects.*;
+import base_Utils_Objects.vectorObjs.myEdge;
+import base_Utils_Objects.vectorObjs.myPoint;
+import base_Utils_Objects.vectorObjs.myPointf;
+import base_Utils_Objects.vectorObjs.myVector;
+import base_Utils_Objects.vectorObjs.myVectorf;
 import processing.core.*;
 import processing.opengl.PGL;
 import processing.opengl.PGraphics3D;

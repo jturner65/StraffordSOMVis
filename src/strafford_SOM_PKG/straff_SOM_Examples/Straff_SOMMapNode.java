@@ -4,16 +4,17 @@ import java.util.*;
 
 import base_SOM_Objects.*;
 import base_SOM_Objects.som_examples.*;
-import base_SOM_Objects.som_segments.SOM_CategorySegMgr;
-import base_SOM_Objects.som_segments.SOM_ClassSegMgr;
-import base_SOM_Objects.som_segments.SOM_SegmentManager;
+import base_SOM_Objects.som_segments.SOM_MapNodeCategorySegMgr;
+import base_SOM_Objects.som_segments.SOM_MapNodeClassSegMgr;
+import base_SOM_Objects.som_segments.SOM_MapNodeSegMgr;
 import base_SOM_Objects.som_segments.segmentData.SOM_MapNodeSegmentData;
-import base_SOM_Objects.som_segments.segments.SOMMapSegment;
+import base_SOM_Objects.som_segments.segments.SOM_MappedSegment;
 import base_SOM_Objects.som_segments.segments.SOM_CategorySegment;
 import base_SOM_Objects.som_segments.segments.SOM_ClassSegment;
 import base_SOM_Objects.som_segments.segments.SOM_FtrWtSegment;
 import base_UI_Objects.my_procApplet;
 import base_Utils_Objects.*;
+import base_Utils_Objects.vectorObjs.Tuple;
 import strafford_SOM_PKG.straff_Features.MonitorJpJpgrp;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.CustProspectExample;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.ProspectExample;
@@ -25,14 +26,14 @@ public class Straff_SOMMapNode extends SOMMapNode{
 	protected static MonitorJpJpgrp jpJpgMon;
 
 	//this manages the segment functionality for the class segments
-	protected SOM_SegmentManager nonProdJPSegManager;
+	protected SOM_MapNodeSegMgr nonProdJPSegManager;
 	
 	//this manages the segment functionality for the category segments, which are collections of similar classes in a hierarchy
-	protected SOM_SegmentManager nonProdJPGroupSegManager;	
+	protected SOM_MapNodeSegMgr nonProdJPGroupSegManager;	
 
-	public Straff_SOMMapNode(SOMMapManager _map, Tuple<Integer,Integer> _mapNode, float[] _ftrs) {		super(_map, _mapNode, _ftrs);	}//ctor w/float ftrs
+	public Straff_SOMMapNode(SOM_MapManager _map, Tuple<Integer,Integer> _mapNode, float[] _ftrs) {		super(_map, _mapNode, _ftrs);	}//ctor w/float ftrs
 	//build a map node from a string array of features
-	public Straff_SOMMapNode(SOMMapManager _map,Tuple<Integer,Integer> _mapNode, String[] _strftrs) {	super(_map, _mapNode, _strftrs);  }//ctor w/str ftrs	
+	public Straff_SOMMapNode(SOM_MapManager _map,Tuple<Integer,Integer> _mapNode, String[] _strftrs) {	super(_map, _mapNode, _strftrs);  }//ctor w/str ftrs	
 
 	@Override
 	/**
@@ -43,9 +44,9 @@ public class Straff_SOMMapNode extends SOMMapNode{
 		jpJpgMon = ((Straff_SOMMapManager)mapMgr).jpJpgrpMon;
 		
 		//build structure that holds counts of classes mapped to this node
-		nonProdJPSegManager = new SOM_ClassSegMgr(this);		
+		nonProdJPSegManager = new SOM_MapNodeClassSegMgr(this);		
 		//build structure that holds counts of categories mapped to this node (category is a collection of similar classes)
-		nonProdJPGroupSegManager = new SOM_CategorySegMgr(this);	
+		nonProdJPGroupSegManager = new SOM_MapNodeCategorySegMgr(this);	
 
 		//build essential components of feature vector
 		buildAllNonZeroFtrIDXs();
@@ -69,9 +70,11 @@ public class Straff_SOMMapNode extends SOMMapNode{
 		}		
 		//now build structure for non-prod jps and jpgroups-based segments
 		HashSet<Tuple<Integer,Integer>> nonProdJpgJps = ((ProspectExample) ex).getNonProdJpgJps();
+		//if(nonProdJpgJps.size() > 0) {System.out.println("# of nonprodjpgpjps for node : " + ex.OID+" | "+nonProdJpgJps.size());}
 		for(Tuple<Integer, Integer> npJpgJp :nonProdJpgJps) {
 			Integer npJpg = npJpgJp.x, npJp = npJpgJp.y;
-			Float newCount = nonProdJPSegManager.addSegDataFromTrainingEx(new Integer[] {npJpg}, 1.0f, "_NonProd_JPCount_JP_", "Non Prod JP present in examples :");
+			//System.out.println("\t nonprodjpgpjps jp : " +npJp+" | non prod jpgroup :  "+npJpg);
+			Float newCount = nonProdJPSegManager.addSegDataFromTrainingEx(new Integer[] {npJp}, 1.0f, "_NonProd_JPCount_JP_", "Non Prod JP present in examples :");
 			Float dummy = nonProdJPGroupSegManager.addSegDataFromTrainingEx(new Integer[] {npJpg,npJp}, newCount, "_NonProd_JPGroupCount_JPG_", "Non Prod JPGroup present in examples :");
 		}
 		
@@ -92,9 +95,9 @@ public class Straff_SOMMapNode extends SOMMapNode{
 	///////////////////
 	// non-prod-jp-based segment data
 	
-	public final void clearNonProdJPSeg() {	 										nonProdJPSegManager.clearAllSegData();}//clearClassSeg()
-	public final void setNonProdJPSeg(Integer _cls, SOM_ClassSegment _clsSeg) {		nonProdJPSegManager.setSeg(_cls, _clsSeg);}	
-	public final SOMMapSegment getNonProdJPSegment(Integer _cls) {					return nonProdJPSegManager.getSegment(_cls);	}	
+	public final void clearNonProdJPSeg() {	 										nonProdJPSegManager.clearAllSegData();}
+	public final void setNonProdJPSeg(Integer _cls, SOM_MappedSegment _clsSeg) {		nonProdJPSegManager.setSeg(_cls, _clsSeg);}	
+	public final SOM_MappedSegment getNonProdJPSegment(Integer _cls) {					return nonProdJPSegManager.getSegment(_cls);	}	
 	public final int getNonProdJPSegClrAsInt(Integer _cls) {						return nonProdJPSegManager.getSegClrAsInt(_cls);}		
 	//for passed -class (not idx)- give this node's probability
 	public final float getNonProdJPProb(Integer _cls) {								return nonProdJPSegManager.getSegProb(_cls);}
@@ -103,18 +106,18 @@ public class Straff_SOMMapNode extends SOMMapNode{
 	public final Float getTtlNumMappedNonProdJpInstances() { 						return nonProdJPSegManager.getTtlNumMappedInstances();}
 	//return map of classes mapped to counts present
 	@SuppressWarnings("unchecked")
-	public final TreeMap<Integer, Integer> getMappedNonProdJPCounts() {				return nonProdJPSegManager.getMappedCounts();	}	
+	public final TreeMap<Integer, Float> getMappedNonProdJPCounts() {				return nonProdJPSegManager.getMappedCounts();	}	
+	public final Float getMappedNonProdJPCountAtSeg(Integer segID) {						return nonProdJPSegManager.getMappedCountAtSeg(segID);}
+	protected SOM_MapNodeSegMgr getNonProdJpSegManager() {							return nonProdJPSegManager;}
+	public String getNonProdJPSegment_CSVStr() {									return nonProdJPSegManager.getSegDataDescStringForNode();}
+	protected final String getNonProdJpSegment_CSVStr_Hdr() {								return nonProdJPSegManager.getSegDataDescStrForNode_Hdr();}
 
-	
 	///////////////////
 	// non-prod-jpgroup -based segment data
 
-	///////////////////
-	// category order-based segment data
-	
 	public final void clearNonProdJpGroupSeg() {											nonProdJPGroupSegManager.clearAllSegData();	}
-	public final void setNonProdJpGroupSeg(Integer _cat, SOM_CategorySegment _catSeg) {		nonProdJPGroupSegManager.setSeg(_cat, _catSeg);}	
-	public final SOMMapSegment getNonProdJpGroupSegment(Integer _cat) {						return nonProdJPGroupSegManager.getSegment(_cat);}
+	public final void setNonProdJpGroupSeg(Integer _cat, SOM_MappedSegment _catSeg) {		nonProdJPGroupSegManager.setSeg(_cat, _catSeg);}	
+	public final SOM_MappedSegment getNonProdJpGroupSegment(Integer _cat) {						return nonProdJPGroupSegManager.getSegment(_cat);}
 	public final int getNonProdJpGroupSegClrAsInt(Integer _cat) {							return nonProdJPGroupSegManager.getSegClrAsInt(_cat);}		
 	//for passed -Category label (not cat idx)- give this node's probability	
 	public final float getNonProdJpGroupProb(Integer _cat) {                       			return nonProdJPGroupSegManager.getSegProb(_cat);}            
@@ -123,8 +126,47 @@ public class Straff_SOMMapNode extends SOMMapNode{
 	public final Float getTtlNumMappedNonProdJpGroupInstances() {                   		return nonProdJPGroupSegManager.getTtlNumMappedInstances();} 	
 	//return map of categories to classes within category and counts of each class
 	@SuppressWarnings("unchecked")
-	public final TreeMap<Integer, TreeMap<Integer, Integer>> getMappedNonProdJPGroupCounts(){	return nonProdJPGroupSegManager.getMappedCounts();}
+	public final TreeMap<Integer, TreeMap<Integer, Float>> getMappedNonProdJPGroupCounts(){	return nonProdJPGroupSegManager.getMappedCounts();}
+	public final Float getMappedNonProdJPGroupCountAtSeg(Integer segID) {						return nonProdJPGroupSegManager.getMappedCountAtSeg(segID);}
+	protected SOM_MapNodeSegMgr getNonProdJpGroupSegManager() {								return nonProdJPGroupSegManager;}
+	public String getNonProdJpGroupSegment_CSVStr() {											return nonProdJPGroupSegManager.getSegDataDescStringForNode();}
+	protected final String getNonProdJpGroupSegment_CSVStr_Hdr() {								return nonProdJPGroupSegManager.getSegDataDescStrForNode_Hdr();}
 	
+	
+	/**
+	 * get per-bmu segment descriptor, with key being either "class","category", "ftrwt" or something managed by instancing class
+	 * @param segmentType "class","category", "ftrwt" or something managed by instancing class
+	 * @return descriptor of this map node's full weight profile for the passed segment
+	 */
+	@Override
+	protected final String getSegment_CSVStr_Indiv(String segmentType) {
+		switch(segmentType.toLowerCase()) {
+		default 		: {		return "";}//unknown type of segment returns empty string
+		}
+	}
+	//descriptor string for any instance-specific segments
+	@Override
+	protected final String getSegment_Hdr_CSVStr_Indiv(String segmentType) {
+		switch(segmentType.toLowerCase()) {
+		default 		: {		return "";}//unknown type of segment returns empty string
+		}
+	}
+		
+	protected final String getFtrWtSegment_CSVStr_Indiv(TreeMap<Float, ArrayList<String>> mapNodeProbs) {//ftrMaps[normFtrMapTypeKey].get(ftrIDX)
+		String res = "" + mapNodeCoord.toCSVString()+",";
+		for (Float prob : mapNodeProbs.keySet()) {
+			ArrayList<String> valsAtProb = mapNodeProbs.get(prob);
+			String probString = ""+String.format("%1.7g", prob)+",";			
+			for(String segStr : valsAtProb) {	
+				Integer jpIDX = Integer.parseInt(segStr);
+				res +=probString + segStr + "," + jpJpgMon.getFtrJpByIdx(jpIDX)+ "," + jpJpgMon.getFtrJpStrByIdx_Short(jpIDX)+ ",";
+			}
+		}			
+		return res;	
+	}
+	
+	protected final String getFtrWtSegment_CSVStr_Hdr() {return "Map Node Loc,Probability,Ftr IDX, Prod JP, JP Name";}
+
 	
 	//////////////////////////////////////
 	// end non-prod segments	

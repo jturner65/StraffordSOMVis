@@ -2,7 +2,7 @@ package strafford_SOM_PKG.straff_RawDataHandling.raw_data;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import base_Utils_Objects.MessageObject;
+import base_Utils_Objects.io.MessageObject;
 
 //class to hold a raw record of jp group data
 public class JpgrpDescData extends JobPracticeData{

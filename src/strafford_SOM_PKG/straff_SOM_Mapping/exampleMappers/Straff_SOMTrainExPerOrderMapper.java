@@ -2,7 +2,7 @@ package strafford_SOM_PKG.straff_SOM_Mapping.exampleMappers;
 
 import java.util.ArrayList;
 
-import base_SOM_Objects.SOMMapManager;
+import base_SOM_Objects.SOM_MapManager;
 import base_SOM_Objects.som_examples.SOMExample;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.CustProspectExample;
 
@@ -17,7 +17,7 @@ public class Straff_SOMTrainExPerOrderMapper extends Straff_SOMCustPrspctMapper_
 	//this is necessary because the actual examples managed by this mapper are the individual per-order examples
 	private CustProspectExample[] custProspectExamples;
 	
-	public Straff_SOMTrainExPerOrderMapper(SOMMapManager _mapMgr, String _exName, String _longExampleName, boolean _shouldValidate) {super(_mapMgr, _exName, _longExampleName + " per Order examples.", _shouldValidate);}
+	public Straff_SOMTrainExPerOrderMapper(SOM_MapManager _mapMgr, String _exName, String _longExampleName, boolean _shouldValidate) {super(_mapMgr, _exName, _longExampleName + " per Order examples.", _shouldValidate);}
 	//specific reset functionality for these type of examples
 	@Override
 	protected final void reset_Priv() {

@@ -5,7 +5,7 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import base_Utils_Objects.MessageObject;
+import base_Utils_Objects.io.MessageObject;
 
 ////////////////////////////////
 //event-related raw data.  primary source of training data

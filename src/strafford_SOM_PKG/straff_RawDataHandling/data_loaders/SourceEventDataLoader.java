@@ -4,7 +4,7 @@ import strafford_SOM_PKG.straff_RawDataHandling.raw_data.BaseRawData;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.SourceEvent;
 
 //stream opt Events and build the objects that will then decipher their json content and build the training/testing data based on them
-public class SourceEventDataLoader extends StraffordDataLoader{
+public class SourceEventDataLoader extends Straff_RawDataLoader{
 	public SourceEventDataLoader(boolean _isFileLoader, String _dataLocInfoStr) {super(_isFileLoader,_dataLocInfoStr);}
 	@Override
 	protected BaseRawData parseStringToObj(String[] strAra, String jsonStr, boolean hasJSON) {

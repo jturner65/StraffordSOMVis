@@ -13,6 +13,8 @@ import java.util.*;
 
 import base_SOM_Objects.som_utils.SOMProjConfigData;
 import base_Utils_Objects.*;
+import base_Utils_Objects.io.MessageObject;
+import base_Utils_Objects.io.MsgCodes;
 
 public class SOM_MapDat{
 	//project config object

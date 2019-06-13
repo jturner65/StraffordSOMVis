@@ -2,7 +2,7 @@ package base_SOM_Objects.som_ui;
 
 import java.util.HashMap;
 
-import base_SOM_Objects.SOMMapManager;
+import base_SOM_Objects.SOM_MapManager;
 
 /**
  * an object of this class provides an interface to sync the current map values
@@ -14,11 +14,11 @@ import base_SOM_Objects.SOMMapManager;
  */
 public class SOMUIToMapCom {
 	//owning map manager
-	protected SOMMapManager mapMgr;	
+	protected SOM_MapManager mapMgr;	
 	//ref to owning window
 	protected ISOM_UIWinMapDat win;
 
-	public SOMUIToMapCom(SOMMapManager _mapMgr, ISOM_UIWinMapDat _win) {	
+	public SOMUIToMapCom(SOM_MapManager _mapMgr, ISOM_UIWinMapDat _win) {	
 		mapMgr = _mapMgr;win=_win;
 	}	
 	////////////////////////////////////

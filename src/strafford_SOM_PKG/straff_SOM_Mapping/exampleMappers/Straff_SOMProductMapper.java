@@ -2,10 +2,10 @@ package strafford_SOM_PKG.straff_SOM_Mapping.exampleMappers;
 
 import java.util.*;
 
-import base_SOM_Objects.SOMMapManager;
+import base_SOM_Objects.SOM_MapManager;
 import base_SOM_Objects.som_examples.SOMExample;
 import base_UI_Objects.my_procApplet;
-import base_Utils_Objects.MsgCodes;
+import base_Utils_Objects.io.MsgCodes;
 import strafford_SOM_PKG.straff_SOM_Examples.products.ProductExample;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.CustProspectExample;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
@@ -14,7 +14,7 @@ public class Straff_SOMProductMapper extends Straff_SOMExampleMapper {
 		//maps of product arrays, with key for each map being either jpg or jp
 	private TreeMap<Integer, ArrayList<ProductExample>> productsByJpg, productsByJp;
 	//products don't validate
-	public Straff_SOMProductMapper(SOMMapManager _mapMgr, String _exName, String _longExampleName) {		
+	public Straff_SOMProductMapper(SOM_MapManager _mapMgr, String _exName, String _longExampleName) {		
 		super(_mapMgr,  _exName, _longExampleName, false);
 		productsByJpg = new TreeMap<Integer, ArrayList<ProductExample>>();
 		productsByJp = new TreeMap<Integer, ArrayList<ProductExample>>();
@@ -130,8 +130,7 @@ public class Straff_SOMProductMapper extends Straff_SOMExampleMapper {
 			msgObj.dispMessage("Straff_SOMProductMapper","saveAllPreProccedMapData","Finished saving all product map data", MsgCodes.info5);
 			return true;
 		} else {msgObj.dispMessage("Straff_SOMProductMapper","saveAllPreProccedMapData","No product example data to save. Aborting", MsgCodes.error2); return false;}
-	}//saveAllPreProccedMapData
-	
+	}//saveAllPreProccedMapData	
 	
 	private static int dispProdJPDataFrame = 0, curProdJPIdx = -1, curProdTimer = 0;
 	//display the region of the map expected to be impacted by the products serving the passed jp 
@@ -179,7 +178,6 @@ public class Straff_SOMProductMapper extends Straff_SOMExampleMapper {
 		//for(ProductExample ex : productData) {ex.drawMeLinkedToBMU(pa, 5.0f,ex.OID);}		
 		pa.popStyle();pa.popMatrix();
 	}//drawProductNodes
-
 
 
 }//class Straff_SOMProductMapper

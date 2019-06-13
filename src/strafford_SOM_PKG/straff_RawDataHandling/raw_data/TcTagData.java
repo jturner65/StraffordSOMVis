@@ -5,7 +5,7 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import base_Utils_Objects.MessageObject;
+import base_Utils_Objects.io.MessageObject;
 
 // class to describe tc_taggings data - this just consists of two columns of data per record, an id and a jp list
 //note this data is not stored as json in the db

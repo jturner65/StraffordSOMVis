@@ -1,7 +1,7 @@
 package base_SOM_Objects.som_segments.segmentData;
 
 import base_SOM_Objects.som_examples.*;
-import base_SOM_Objects.som_segments.segments.SOMMapSegment;
+import base_SOM_Objects.som_segments.segments.SOM_MappedSegment;
 import base_UI_Objects.my_procApplet;
 
 /**
@@ -21,7 +21,7 @@ public class SOM_MapNodeSegmentData {
 	//type of segment this data is related to
 	public final String type;
 	//segment used by this segment data
-	protected SOMMapSegment seg; 
+	protected SOM_MappedSegment seg; 
 	//segment color
 	protected int[] segClr;
 	//segment color as integer
@@ -33,16 +33,16 @@ public class SOM_MapNodeSegmentData {
 	public void clearSeg() {		seg = null;segClr = new int[4]; segClrAsInt = 0x0;}	
 	
 	//called by segment itself
-	public void setSeg(SOMMapSegment _seg) {
+	public void setSeg(SOM_MappedSegment _seg) {
 		seg=_seg;
 		segClr = _seg.getSegClr();
 		segClrAsInt = _seg.getSegClrAsInt();	
 	}
 	
-	public SOMMapSegment getSegment() {return seg;}
+	public SOM_MappedSegment getSegment() {return seg;}
 	public int getSegClrAsInt() {return segClrAsInt;}
 	
-	//draw owning node's contribution to this segment
+	//draw owning node's contribution to this segment - alpha is built off map node's value
 	public void drawMe(my_procApplet p) {	drawMe(p,segClr[3]);}
 	public void drawMe(my_procApplet p, int _alpha) {
 		p.pushMatrix();p.pushStyle();

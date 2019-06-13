@@ -4,9 +4,9 @@ import java.util.ArrayList;
 import java.util.concurrent.Callable;
 
 import base_SOM_Objects.som_utils.SOMProjConfigData;
-import base_Utils_Objects.FileIOManager;
-import base_Utils_Objects.MessageObject;
-import base_Utils_Objects.MsgCodes;
+import base_Utils_Objects.io.FileIOManager;
+import base_Utils_Objects.io.MessageObject;
+import base_Utils_Objects.io.MsgCodes;
 import strafford_SOM_PKG.straff_SOM_Examples.products.ProductExample;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 

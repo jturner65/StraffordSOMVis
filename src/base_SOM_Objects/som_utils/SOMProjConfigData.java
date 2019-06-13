@@ -9,12 +9,15 @@ import base_SOM_Objects.som_examples.*;
 import base_SOM_Objects.som_fileIO.*;
 
 import base_Utils_Objects.*;
+import base_Utils_Objects.io.FileIOManager;
+import base_Utils_Objects.io.MessageObject;
+import base_Utils_Objects.io.MsgCodes;
 
 //structure to hold all the file names, file configurations and general program configurations required to run the SOM project
 //will manage that all file names need to be reset when any are changed
 public abstract class SOMProjConfigData {
 	//owning map manager
-	protected SOMMapManager mapMgr;
+	protected SOM_MapManager mapMgr;
 	//object to manage screen and log output
 	protected MessageObject msgObj;
 	//manage IO in this object
@@ -96,7 +99,7 @@ public abstract class SOMProjConfigData {
 	//separately from calls to setSOM_ExpFileNames because experimental parameters can change between the saving of training data and the running of the experiment
 	private String SOMOutExpSffx = "x-1_y-1_k-1";//illegal values set on purpose, needs to be set/overridden by config
 	
-	public SOMProjConfigData(SOMMapManager _mapMgr, TreeMap<String, Object> _argsMap) {
+	public SOMProjConfigData(SOM_MapManager _mapMgr, TreeMap<String, Object> _argsMap) {
 		mapMgr = _mapMgr;
 		msgObj = _mapMgr.buildMsgObj();
 		//_argsMap is map of command line/control params.  useful here for config and data dir
@@ -200,14 +203,21 @@ public abstract class SOMProjConfigData {
 		msgObj.dispMessage("SOMProjConfigData","loadProjectConfig","Finished loading project configuration.", MsgCodes.info5);
 	}//loadProjectConfig
 	
-	//load all file name/value pairs in config file into passed map; return idx of next section
+	/**
+	 * load all file name/value pairs in config file into passed map; return idx of next section
+	 * @param fileStrings array of strings from file being read
+	 * @param map destination to put key-value pairs
+	 * @param stIDX index in fileStrings array to start for this section
+	 * @param useFileDelim whether or not to add the appropriate file delimiter for OS to end of every entry
+	 * @return ending index in fileStrings of next section start (1+ this section ending)
+	 */
 	private int _loadProjConfigData(String[] fileStrings, HashMap<String,String> map, int stIDX, boolean useFileDelim) {
 		String sfx = (useFileDelim ? File.separator : "");								//line suffix to attach to entries in config file - attach file/directory delimitor if this is reading file name section of config
 		for(int i=stIDX; i<fileStrings.length;++i) {
 			String s = fileStrings[i];		
 			if(s.contains("END")) {return i+1;}											//move to next line and return, should be "begin" tag
 			if((s.contains(fileComment))|| (s.trim().length() == 0)) {continue;}		//ignore comments or empty lines
-			String[] tkns = s.trim().split(SOMMapManager.csvFileToken);					//split on csv token (comma)
+			String[] tkns = s.trim().split(SOM_MapManager.csvFileToken);					//split on csv token (comma)
 			//map has keys that describe what the values are (i.e. variable names)
 			String key = tkns[0].trim(), val= tkns[1].trim().replace("\"", "")+sfx;		
 			map.put(key,val);	
@@ -222,7 +232,7 @@ public abstract class SOMProjConfigData {
 			String s = fileStrings[stIDX];
 			if(s.contains("END")) {return stIDX+1;}//move to next line, should be "begin" tag
 			if((s.contains(fileComment)) || (s.trim().length() == 0)){++stIDX; continue;}
-			String[] tkns = s.trim().split(SOMMapManager.csvFileToken);
+			String[] tkns = s.trim().split(SOM_MapManager.csvFileToken);
 			String val = tkns[1].trim().replace("\"", "");
 			String varName = tkns[0].trim();
 			switch (varName) {
@@ -373,7 +383,7 @@ public abstract class SOMProjConfigData {
 		ArrayList<String> somFileNamesAraTmp = new ArrayList<String>();
 		for (int i=0;i<dataAra.length;++i) {
 			String str = dataAra[i];
-			String[] strToks = str.trim().split(SOMMapManager.csvFileToken);
+			String[] strToks = str.trim().split(SOM_MapManager.csvFileToken);
 			if(strToks[0].trim().contains("SOMFileNamesAra")){//read in pre-saved directory and file names
 				String[] araStrToks_1 = str.trim().split("\\[");
 				String[] araStrToks_2 = araStrToks_1[1].trim().split("\\]");
@@ -563,7 +573,7 @@ public abstract class SOMProjConfigData {
 	}
 	
 	/**
-	 * this will return the fully qualified path to the file in a sub directory in SOM_QualifiedConfigDir 
+	 * this will return the fully qualified path to the file in a sub directory in SOM_QualifiedConfigDir or SOM_QualifiedDataDir
 	 * specified in fNameKey - subDirs contains sub directories to query under SOM_QualifiedConfigDir 
 	 * 
 	 * This is intended to be consumed by the instancing class to call directories specific to the instancing application
@@ -572,11 +582,58 @@ public abstract class SOMProjConfigData {
 	 * @param subDirs array of keys of subdirectory names under SOM_QualifiedConfigDir to use to build directory
 	 * @return fully qualified path to specified config file name
 	 */
-	protected String getFullPathConfigFileName(String fNameKey, String[] subDirs) {
-		String resDir = SOM_QualifiedConfigDir;
+	protected String getFullPathConfigFileName(String fNameKey, String[] subDirs) {	return _getFullPathFN(SOM_QualifiedConfigDir,fNameKey,subDirs);}//getFullPathConfigFileName	
+	
+	protected String getFullPathDataFileName(String fNameKey, String[] subDirs) {	return _getFullPathFN(SOM_QualifiedDataDir,fNameKey,subDirs);}//getFullPathDataFileName
+	
+	private String _getFullPathFN(String _baseDir, String fNameKey, String[] subDirs) {
+		String resDir = _baseDir;
 		for(int i=0;i<subDirs.length;++i) {	resDir += subDirLocs.get(subDirs[i]) + File.separator;	}
-		return resDir + configFileNames.get(fNameKey);
-	}//getFullPathConfigFileName	
+		return resDir + configFileNames.get(fNameKey);		
+	}
+	
+	public String getClassSegmentFileNamePrefix() {	return getSegmentFileNamePrefix("class");	}
+	public String getCategorySegmentFileNamePrefix() {	return getSegmentFileNamePrefix("category");	}
+	public String getFtrWtSegmentFileNamePrefix() {	return getSegmentFileNamePrefix("ftrwt");	}
+	
+	/**
+	 * segment report file name prefix - calling code needs to add segement identifier and extension
+	 * @param segType descriptive string of type of segment
+	 * @return fully qualified file name prefix corresponding to where desired segment should be saved/located
+	 */
+	public String getSegmentFileNamePrefix(String segType) {
+		
+		String dirKey;
+		switch(segType.toLowerCase()) {
+				//in config file : 
+				//		SOM_ProposalDir, "ProposalReports"
+				//		SOM_FtrProposalSubDir, "FeatureWeightProposals"
+				//		SOM_ClassProposalSubDir,"JobPracticeProposals"
+				//		SOM_CategoryProposalSubDir,"JobPracticGroupProposals"	
+			case "ftrwt" 	: {		return _getSegmentDirNameFromDirKey("SOM_FtrProposalSubDir"); 		}
+			case "class" 	: { 	return _getSegmentDirNameFromDirKey("SOM_ClassProposalSubDir");		}
+			case "category" : { 	return _getSegmentDirNameFromDirKey("SOM_CategoryProposalSubDir");	}
+				//any instancing application-specific segment reports
+			default : {return getSegmentFileNamePrefix_Indiv(segType);}
+		}	
+	}
+	
+	protected String _getSegmentDirNameFromDirKey(String dirKey) {
+		String ProposalBaseDir = getDirNameAndBuild(subDirLocs.get("SOM_ProposalDir"), true);
+		String [] tmpNow = getDateTimeString(false, "_");
+		String ProposalNowDir = getDirNameAndBuild(ProposalBaseDir, "proposals_"+tmpNow[1] +File.separator,true);
+		String dirName = subDirLocs.get(dirKey);
+		String fileName = dirName.substring(0, dirName.length()-2);
+		return getDirNameAndBuild(ProposalNowDir, dirName, true) + fileName;		
+	}
+	
+	/**
+	 * Instancing application-specific segment file name handling
+	 * @param segType descriptive string of type of segment
+	 * @return fully qualified file name prefix corresponding to where desired segment should be saved/located
+	 */
+	protected abstract String getSegmentFileNamePrefix_Indiv(String segType);
+	
 	
 	/**
 	 * this loads prebuilt map configurations
@@ -658,7 +715,7 @@ public abstract class SOMProjConfigData {
 	//subdir assumed to have file.separator already appended (might not be necessary)
 	protected String getDirNameAndBuild(String subdir, boolean _buildDir) {return getDirNameAndBuild(SOM_QualifiedDataDir,subdir,_buildDir);} 
 	//baseDir must exist already
-	public String getDirNameAndBuild(String baseDir, String subdir, boolean _buildDir) {
+	protected String getDirNameAndBuild(String baseDir, String subdir, boolean _buildDir) {
 		String dirName = baseDir +subdir;
 		File directory = new File(dirName);
 	    if (_buildDir && (! directory.exists())){ directory.mkdir(); }

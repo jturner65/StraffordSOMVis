@@ -6,6 +6,9 @@ import java.util.concurrent.Callable;
 import base_SOM_Objects.*;
 import base_SOM_Objects.som_examples.*;
 import base_Utils_Objects.*;
+import base_Utils_Objects.io.MessageObject;
+import base_Utils_Objects.io.MsgCodes;
+import base_Utils_Objects.vectorObjs.Tuple;
 import processing.core.PImage;
 
 //this will build a single image of the map based on ftr data
@@ -17,7 +20,7 @@ public class SOMFtrMapVisImgBuilder implements Callable<Boolean>{
 	private float mapScaleVal, sclMultXPerPxl, sclMultYPerPxl;
 	private TreeMap<Tuple<Integer,Integer>, SOMMapNode> MapNodes;
 	private PImage[] mapLocClrImg;
-	public SOMFtrMapVisImgBuilder(SOMMapManager _mapMgr, PImage[] _mapLocClrImg, int[] _xVals, int[] _yVals,  float _mapScaleVal) {
+	public SOMFtrMapVisImgBuilder(SOM_MapManager _mapMgr, PImage[] _mapLocClrImg, int[] _xVals, int[] _yVals,  float _mapScaleVal) {
 		msgObj= _mapMgr.buildMsgObj();
 		MapNodes = _mapMgr.getMapNodes();
 		ftrType = _mapMgr.getCurrentTrainDataFormat();

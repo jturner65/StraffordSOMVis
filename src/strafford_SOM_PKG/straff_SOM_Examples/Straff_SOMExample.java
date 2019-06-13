@@ -6,8 +6,10 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import base_SOM_Objects.*;
 import base_SOM_Objects.som_examples.*;
 import base_SOM_Objects.som_segments.segmentData.SOM_MapNodeSegmentData;
-import base_SOM_Objects.som_segments.segments.SOMMapSegment;
+import base_SOM_Objects.som_segments.segments.SOM_MappedSegment;
 import base_Utils_Objects.*;
+import base_Utils_Objects.io.MsgCodes;
+import base_Utils_Objects.vectorObjs.Tuple;
 import strafford_SOM_PKG.straff_Features.MonitorJpJpgrp;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.*;
 import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.events.LinkEventRawToTrainData;
@@ -60,7 +62,7 @@ public abstract class Straff_SOMExample extends SOMExample{
 	//keyed by jpgroup, value is map keyed by mapnode tuple loc, value is probablity (ratio of # of orders of key jpgroup mapped to that node over # of all jpgroups mapped to that node)
 	protected ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>> perJPGroupMapNodeProbMap;
 	
-	public Straff_SOMExample(SOMMapManager _map, ExDataType _type, String _id) {
+	public Straff_SOMExample(SOM_MapManager _map, ExDataType _type, String _id) {
 		super(_map, _type, _id);
 		jpJpgMon = ((Straff_SOMMapManager) mapMgr).jpJpgrpMon;
 		allProdJPs = new HashSet<Integer> ();	

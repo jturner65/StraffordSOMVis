@@ -5,7 +5,7 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import base_Utils_Objects.MessageObject;
+import base_Utils_Objects.io.MessageObject;
 
 ///////////////////
 //job practice-related data - doesn't use much of the functionality in BaseRawData

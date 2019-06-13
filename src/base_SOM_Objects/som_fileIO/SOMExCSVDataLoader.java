@@ -6,10 +6,13 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import base_SOM_Objects.*;
 import base_SOM_Objects.som_examples.*;
 import base_Utils_Objects.*;
+import base_Utils_Objects.io.FileIOManager;
+import base_Utils_Objects.io.MessageObject;
+import base_Utils_Objects.io.MsgCodes;
 
 //this class will load the pre-procced csv data into the prospect data structure owned by the SOMMapData object
 public abstract class SOMExCSVDataLoader implements Callable<Boolean>{
-	public SOMMapManager mapMgr;
+	public SOM_MapManager mapMgr;
 	private MessageObject msgObj;
 	private String fileName, dispYesStr, dispNoStr;
 	private int thdIDX;
@@ -17,7 +20,7 @@ public abstract class SOMExCSVDataLoader implements Callable<Boolean>{
 	//ref to map to add to, either prospects or validation records
 	private ConcurrentSkipListMap<String, SOMExample> mapToAddTo;
 	protected String type;
-	public SOMExCSVDataLoader(SOMMapManager _mapMgr, int _thdIDX, String _fileName, String _yStr, String _nStr, ConcurrentSkipListMap<String, SOMExample> _mapToAddTo) {	
+	public SOMExCSVDataLoader(SOM_MapManager _mapMgr, int _thdIDX, String _fileName, String _yStr, String _nStr, ConcurrentSkipListMap<String, SOMExample> _mapToAddTo) {	
 		mapMgr=_mapMgr;
 		msgObj=mapMgr.buildMsgObj();thdIDX=_thdIDX;fileName=_fileName;dispYesStr=_yStr;dispNoStr=_nStr; 
 		mapToAddTo = _mapToAddTo;
