@@ -10,17 +10,20 @@
 #changing any of these names might render old runs of the program invalid
 #
 #	name of file holding config for calc object - do not include .txt extension!
-#no date decay
+#	no date decay
 #calcWtFileName,"WeightEqConfig"
 #
-#calc with .01 decay all event dates and weight .01 opts
+#	calc with .01 decay all event dates but source and weight .01 opts
 #calcWtFileName,"WeightEqConfig_allDecay_p01_optWt_p01"
 #
-#calc with .01 decay all event dates and weight .01 opts and .01 source weights
-calcWtFileName,"WeightEqConfig_allDecay_p01_optWt_p01_srcWt_p01"
+#	calc with .01 decay all event dates and weight .01 opts and .01 source weights
+#calcWtFileName,"WeightEqConfig_allDecay_p01_optWt_p01_srcWt_p01"
 #
-#calc with .01 decay all event dates; -0 wt on actual orders-
+#	calc with .01 decay all event dates; -0 wt on actual orders-
 #calcWtFileName,"WeightEqConfig_allDecay_p01_0wtOrdr"
+#
+#	calc with .1 wt order, decay all dates by .01
+calcWtFileName, "WeightEqConfig_allDecay_p01_p1wtOrdr"
 #
 #	file name of requested products to map to prospects
 reqProdConfigFileName,"ProductsToMap_Test.txt"

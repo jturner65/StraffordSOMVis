@@ -1,11 +1,13 @@
 package strafford_SOM_PKG.straff_Utils;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.TreeMap;
 
 import base_SOM_Objects.SOM_MapManager;
 import base_SOM_Objects.som_utils.SOMProjConfigData;
 import base_Utils_Objects.io.MsgCodes;
+import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 
 public class Straff_SOMProjConfig extends SOMProjConfigData {
 	//type of event membership that defines a prospect as a customer and as a true prospect (generally will be cust has order event, prospect doesnt)
@@ -76,8 +78,17 @@ public class Straff_SOMProjConfig extends SOMProjConfigData {
 		}
 	}//getSegmentFileName_Indiv
 	
+	/**
+	 * This will save any application-specific reporting data
+	 * @param reportData
+	 */
 
-	
+	@Override
+	protected final void saveSOM_ExecReport_Indiv(ArrayList<String> reportData) {
+		//strafford-specific data to save
+		reportData.add("Calc Object file location and name :"+ getFullCalcInfoFileName());
+		reportData.add("Calc Object Config : " + ((Straff_SOMMapManager)mapMgr).ftrCalcObj.toString());
+	}//saveSOM_ExecReport_Indiv
 		
 	//these file names are specified above but may be modified/set via a config file in future
 	public String getFullCalcInfoFileName(){ return SOM_QualifiedConfigDir + subDirLocs.get("StraffCalcEqWtFiles") + File.separator + configFileNames.get("calcWtFileName");}

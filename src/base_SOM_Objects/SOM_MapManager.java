@@ -8,6 +8,8 @@ import java.util.concurrent.*;
 import base_SOM_Objects.som_examples.*;
 import base_SOM_Objects.som_fileIO.*;
 import base_SOM_Objects.som_segments.segments.SOM_MappedSegment;
+import base_SOM_Objects.som_segments.segments.SOM_CategorySegment;
+import base_SOM_Objects.som_segments.segments.SOM_ClassSegment;
 import base_SOM_Objects.som_segments.segments.SOM_FtrWtSegment;
 import base_SOM_Objects.som_segments.segments.SOM_UMatrixSegment;
 import base_SOM_Objects.som_ui.*;
@@ -146,15 +148,18 @@ public abstract class SOM_MapManager {
 			trainDataMappedIDX			= 7,
 			prodDataMappedIDX			= 8,
 			testDataMappedIDX			= 9,
-			validateDataMappedIDX		= 10;
+			validateDataMappedIDX		= 10,
+			dispMseDataSideBarIDX		= 11;			//whether to display mouse data on side bar
 		
-	public static final int numBaseFlags = 11;	
-	//numFlags is set by instancing map manager
+	public static final int numBaseFlags = 12;	
+	//numFlags is set by instancing map manager getMseOvrLblArray()
 	
 	//threading constructions - allow map manager to own its own threading executor
 	protected ExecutorService th_exec;	//to access multithreading - instance from calling program
 	protected final int numUsableThreads;		//# of threads usable by the application
 
+	protected SOM_MseOvrDisplay mseOverExample;
+	
 	// String[] _dirs : idx 0 is config directory, as specified by cmd line; idx 1 is data directory, as specified by cmd line
 	// String[] _args : command line arguments other than directory info
 	public SOM_MapManager(SOMMapUIWin _win, float[] _dims, TreeMap<String, Object> _argsMap) {
@@ -178,6 +183,7 @@ public abstract class SOM_MapManager {
 		numUsableThreads = Runtime.getRuntime().availableProcessors() - 2;
 		//set if this is multi-threaded capable - need more than 1 outside of 2 primary threads (i.e. only perform multithreaded calculations if 4 or more threads are available on host)
 		setFlag(isMTCapableIDX, numUsableThreads>1);
+		setFlag(dispMseDataSideBarIDX, true);
 		//th_exec = Executors.newCachedThreadPool();// Executors.newFixedThreadPool(numUsableThreads);
 		if(getFlag(isMTCapableIDX)) {
 			//th_exec = Executors.newFixedThreadPool(numUsableThreads+1);//fixed is better in that it will not block on the draw - this seems really slow on the prospect mapping
@@ -192,6 +198,7 @@ public abstract class SOM_MapManager {
 		buildExampleDataMappers();
 		
 		resetTrainDataAras();
+		mseOverExample = buildMseOverExample();
 	}//ctor
 	
 	/**
@@ -203,6 +210,11 @@ public abstract class SOM_MapManager {
 	 * build instance-specific project file configuration - necessary if using project-specific config file
 	 */	
 	protected abstract SOMProjConfigData buildProjConfigData(TreeMap<String, Object> _argsMap);
+	
+	/**
+	 * build mouse-over example
+	 */
+	protected abstract SOM_MseOvrDisplay buildMseOverExample();
 	
 	/**
 	 * build an interface to manage communications between UI and SOM map dat
@@ -597,18 +609,97 @@ public abstract class SOM_MapManager {
 		msgObj.dispMessage("SOMMapManager","buildFtrWtSegmentsOnMap","Finished building feature-weight-based cluster map", MsgCodes.info5);			
 	}//buildFtrWtSegmentsOnMap
 	
-	//build class-based segments on map
-	protected abstract void buildClassSegmentsOnMap();
-	//build category-based segments on map
-	protected abstract void buildCategorySegmentsOnMap();			
+	/**
+	 * build class-based segments on map
+	 */
+	protected final void buildClassSegmentsOnMap() {	
+		if ((MapNodes == null) || (MapNodes.size() == 0)) {return;}
+		String descStr = getClassSegMappingDescrStr();
+		getMsgObj().dispMessage("SOMMapManager","buildClassSegmentsOnMap","Started building " + descStr, MsgCodes.info5);	
+		//clear existing segments 
+		for (SOMMapNode ex : MapNodes.values()) {ex.clearClassSeg();}
+		Class_Segments.clear();
+		MapNodesWithMappedClasses.clear();
+		MapNodeClassProbs.clear();		
+		ConcurrentSkipListMap<Tuple<Integer,Integer>, Float> tmpMapOfNodeProbs = new ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>();
+		SOM_ClassSegment classSeg;
+		//class labels are determined by instancing application - should be array of label values
+		Integer[] allTrainClasses = getAllClassLabels();
+		//check every map node for every class to see if it has class membership
+		for(int clsIdx = 0; clsIdx<allTrainClasses.length;++clsIdx) {		//build class segment for every class
+			Integer cls = allTrainClasses[clsIdx];
+			classSeg = new SOM_ClassSegment(this, cls);
+			Class_Segments.put(cls,classSeg);
+			for(SOMMapNode ex : MapNodes.values()) {if(classSeg.doesMapNodeBelongInSeg(ex)) {	classSeg.addMapNodeToSegment(ex, MapNodes);		}}//addMapNodeToSegment performs DFS to find neighbors who share segment membership 	
+			Collection<SOMMapNode> mapNodesForClass = classSeg.getAllMapNodes();
+			MapNodesWithMappedClasses.put(cls, mapNodesForClass);
+			//getMsgObj().dispMessage("Straff_SOMMapManager","buildClassSegmentsOnMap","Class : " + cls + " has " + mapNodesForClass.size()+ " map nodes in its segment.", MsgCodes.info5);			
+			tmpMapOfNodeProbs = new ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>();
+			for(SOMMapNode mapNode : mapNodesForClass) {		tmpMapOfNodeProbs.put(mapNode.mapNodeCoord, mapNode.getClassProb(cls));}
+			MapNodeClassProbs.put(cls, tmpMapOfNodeProbs);
+		}
+		
+		getMsgObj().dispMessage("SOMMapManager","buildClassSegmentsOnMap","Finished building "+ descStr +" : "+ MapNodesWithMappedClasses.size()+" classes have map nodes mapped to them.", MsgCodes.info5);			
+	}//buildClassSegmentsOnMap	
+
+	/**
+	 * build category-based segments on map
+	 */
+	protected final void buildCategorySegmentsOnMap() {		
+		if ((MapNodes == null) || (MapNodes.size() == 0)) {return;}
+		String descStr = getCategorySegMappingDescrStr();
+		getMsgObj().dispMessage("SOMMapManager","buildCategorySegmentsOnMap","Started building " + descStr, MsgCodes.info5);	
+		//clear existing segments 
+		for (SOMMapNode ex : MapNodes.values()) {ex.clearCategorySeg();}
+		Category_Segments.clear();
+		MapNodesWithMappedCategories.clear();
+		MapNodeCategoryProbs.clear();		
+		ConcurrentSkipListMap<Tuple<Integer,Integer>, Float> tmpMapOfNodeProbs = new ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>();
+		SOM_CategorySegment catSeg;
+		//category labels are determined by instancing application
+		Integer[] allTrainCategories = getAllCategoryLabels();		
+		
+		for(int catIdx = 0; catIdx<allTrainCategories.length;++catIdx) {		//build category segment for every category label
+			Integer cat = allTrainCategories[catIdx];
+			catSeg = new SOM_CategorySegment(this, cat);
+			Category_Segments.put(cat,catSeg);
+			for(SOMMapNode ex : MapNodes.values()) {if(catSeg.doesMapNodeBelongInSeg(ex)) {		catSeg.addMapNodeToSegment(ex, MapNodes);}}//addMapNodeToSegment performs DFS to find neighbors who share segment membership 	
+				
+			Collection<SOMMapNode> mapNodesForCat = catSeg.getAllMapNodes();
+			MapNodesWithMappedCategories.put(cat, mapNodesForCat);
+			//getMsgObj().dispMessage("SOMMapManager","buildCategorySegmentsOnMap","Category : " + cat + " has " + mapNodesForCat.size()+ " map nodes in its segment.", MsgCodes.info5);
+			tmpMapOfNodeProbs = new ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>();
+			for(SOMMapNode mapNode : mapNodesForCat) {	tmpMapOfNodeProbs.put(mapNode.mapNodeCoord, mapNode.getCategoryProb(cat));	}
+			MapNodeCategoryProbs.put(cat, tmpMapOfNodeProbs);
+		}
+		getMsgObj().dispMessage("SOMMapManager","buildCategorySegmentsOnMap","Finished building " + descStr + " : " + MapNodesWithMappedCategories.size() + " categories have map nodes mapped to them.", MsgCodes.info5);			
+	}//buildCategorySegmentsOnMap
+
 	
-	public abstract ISOM_DispMapExample buildTmpDataExampleFtrs(myPointf ptrLoc, TreeMap<Integer, Float> ftrs, float sens);
-	public abstract ISOM_DispMapExample buildTmpDataExampleDists(myPointf ptrLoc, float dist, float sens);
-	//to display class and category probabilities
-	public abstract ISOM_DispMapExample buildTmpDataExampleClassProb(myPointf ptrLoc, SOMMapNode nearestNode, float sens);
-	public abstract ISOM_DispMapExample buildTmpDataExampleCategoryProb(myPointf ptrLoc, SOMMapNode nearestNode, float sens);
-	public abstract ISOM_DispMapExample buildTmpDataExampleNodePop(myPointf ptrLoc, SOMMapNode nearestNode, float sens);
+	/**
+	 * return the class labels used for the classification of training examples to 
+	 * their bmus.  bmus then represent a probability distribution of class membership
+	 * @return
+	 */
+	protected abstract Integer[] getAllClassLabels();
+	//display message relating to class segments
+	protected abstract String getClassSegMappingDescrStr();
+	/**
+	 * return the category labels used for the classification of training examples to 
+	 * their bmus.  bmus then represent a probability distribution of category membership
+	 * @return
+	 */
+	protected abstract Integer[] getAllCategoryLabels();
+	//display message relating to category segments
+	protected abstract String getCategorySegMappingDescrStr();
 	
+	//set specific mouse-over settings
+	public SOM_MseOvrDisplay setMseDataExampleFtrs(myPointf ptrLoc, TreeMap<Integer, Float> ftrs, float sens) {mseOverExample.initMseDatFtrs(ptrLoc, ftrs, sens); return mseOverExample;}
+	public SOM_MseOvrDisplay setMseDataExampleDists(myPointf ptrLoc, float dist, float sens) {mseOverExample.initMseDatUMat( ptrLoc, dist, sens);return mseOverExample;}
+	public SOM_MseOvrDisplay setMseDataExampleClassProb(myPointf ptrLoc, SOMMapNode nearestNode, float sens) {mseOverExample.initMseDatProb( ptrLoc, nearestNode, sens, true);return mseOverExample;}
+	public SOM_MseOvrDisplay setMseDataExampleCategoryProb(myPointf ptrLoc, SOMMapNode nearestNode, float sens) {mseOverExample.initMseDatProb( ptrLoc, nearestNode, sens, false);return mseOverExample;}
+	public SOM_MseOvrDisplay setMseDataExampleNodePop(myPointf ptrLoc, SOMMapNode nearestNode, float sens) {mseOverExample.initMseDatProb( ptrLoc, nearestNode, sens, ExDataType.Training);return mseOverExample;}
+	public SOM_MseOvrDisplay setMseDataExampleNone() { mseOverExample.clearMseDat(); return mseOverExample;}
 	
 	////////////////////////////////
 	// segment reporting
@@ -619,18 +710,26 @@ public abstract class SOM_MapManager {
 	 * Save segment mappings
 	 */
 	public void saveAllSegment_BMUReports() {
-		msgObj.dispMessage("SOMMapManager","saveAllSegment_BMUReports","Start saving all segments", MsgCodes.info5);
+		if(!getSOMMapNodeDataIsLoaded()) {
+			msgObj.dispMessage("SOMMapManager","saveAllSegment_BMUReports","SOM not yet loaded/mapped, so cannot build segment report.  Aborting.", MsgCodes.info5);
+			return;
+		}
+		msgObj.dispMessage("SOMMapManager","saveAllSegment_BMUReports","Start saving all segment-to-bmu mapping data.", MsgCodes.info5);
 		saveClassSegment_BMUReport();
 		saveCategorySegment_BMUReport();
 		saveFtrWtSegment_BMUReport();
 		saveAllSegment_BMUReports_Indiv();
-		msgObj.dispMessage("SOMMapManager","saveAllSegment_BMUReports","Finished saving all segments", MsgCodes.info5);
+		msgObj.dispMessage("SOMMapManager","saveAllSegment_BMUReports","Finished saving all segment-to-bmu mapping data.", MsgCodes.info5);
 	}
 	/**
 	 * save all segment reports based on instancing-app-specific segments
 	 */
 	protected abstract void saveAllSegment_BMUReports_Indiv();
-	public void saveClassSegment_BMUReport(){		
+	public void saveClassSegment_BMUReport(){	
+		if((null==Class_Segments) || (Class_Segments.size()==0)) {
+			msgObj.dispMessage("SOMMapManager","saveClassSegment_BMUReport","Class Segments Not yet built, so cannot save report.  Aborting", MsgCodes.info5);
+			return;
+		}
 		msgObj.dispMessage("SOMMapManager","saveClassSegment_BMUReport","Start saving "+Class_Segments.size()+" class segments", MsgCodes.info5);
 		_saveSegmentReports(Class_Segments,projConfigData.getClassSegmentFileNamePrefix());
 		_saveBMU_SegmentReports(Class_Segments,"class" ,projConfigData.getClassSegmentFileNamePrefix());
@@ -638,6 +737,10 @@ public abstract class SOM_MapManager {
 		msgObj.dispMessage("SOMMapManager","saveClassSegment_BMUReport","Finished saving "+Class_Segments.size()+" class segments", MsgCodes.info5);
 	}
 	public void saveCategorySegment_BMUReport(){	
+		if((null==Category_Segments) || (Category_Segments.size()==0)) {
+			msgObj.dispMessage("SOMMapManager","saveClassSegment_BMUReport","Category Segments Not yet built, so cannot save report.  Aborting", MsgCodes.info5);
+			return;
+		}
 		msgObj.dispMessage("SOMMapManager","saveCategorySegment_BMUReport","Start saving "+Category_Segments.size()+" category segments", MsgCodes.info5);
 		_saveSegmentReports(Category_Segments,projConfigData.getCategorySegmentFileNamePrefix());
 		_saveBMU_SegmentReports(Category_Segments,"category" ,projConfigData.getCategorySegmentFileNamePrefix());
@@ -840,7 +943,6 @@ public abstract class SOM_MapManager {
 	public int getNumNodesWithNoBMUExs(ExDataType _type) {return nodesWithNoEx.get(_type).size();}
 	public HashSet<SOMMapNode> getNodesWithExOfType(ExDataType _type){return nodesWithEx.get(_type);}
 	public HashSet<SOMMapNode> getNodesWithNoExOfType(ExDataType _type){return nodesWithNoEx.get(_type);}
-
 	
 	///////////////////////////
 	// mapNodes obj
@@ -1444,19 +1546,31 @@ public abstract class SOM_MapManager {
 		yOff-=4;
 		float sbrMult = 1.2f, lbrMult = 1.5f;//offsets multiplier for barriers between contextual ui elements
 		pa.pushMatrix();pa.pushStyle();
-		drawResultBarPriv1(pa, yOff);
 		
-		drawResultBarPriv2(pa, yOff);
+		if((getFlag(dispMseDataSideBarIDX)) && mseOverExample.canDisplayMseLabel()) {
+			pa.translate(10.0f, 0.0f, 0.0f);
+			pa.showOffsetText(0,pa.gui_White,"Mouse Values : ");
+			yOff += 10.0f;
+			pa.translate(0.0f,10.0f, 0.0f);
+			mseOverExample.drawMseLbl_Info(pa, new myPointf(0,0,0));
+			float tmpOff = ((int)(mseOverExample.getMseLabelYOffset() / 50.0f) + 1 )*50;
+			yOff += tmpOff;
+			pa.translate(-10.0f, tmpOff, 0.0f);
+		}
+		pa.sphere(3.0f);
+		yOff = drawResultBarPriv1(pa, yOff);
+		
+		yOff = drawResultBarPriv2(pa, yOff);
 
-		drawResultBarPriv3(pa, yOff);
+		yOff = drawResultBarPriv3(pa, yOff);
 
 		pa.popStyle();pa.popMatrix();	
 	}//drawResultBar
 	
 	//draw app-specific sidebar data
-	protected abstract void drawResultBarPriv1(my_procApplet pa, float yOff);
-	protected abstract void drawResultBarPriv2(my_procApplet pa, float yOff);
-	protected abstract void drawResultBarPriv3(my_procApplet pa, float yOff);
+	protected abstract float drawResultBarPriv1(my_procApplet pa, float yOff);
+	protected abstract float drawResultBarPriv2(my_procApplet pa, float yOff);
+	protected abstract float drawResultBarPriv3(my_procApplet pa, float yOff);
 	
 	//invoke multi-threading call to build map imgs - called from UI window
 	public void invokeSOMFtrDispBuild(List<SOMFtrMapVisImgBuilder> mapImgBuilders) {		
@@ -1487,7 +1601,7 @@ public abstract class SOM_MapManager {
 	public void setUseChiSqDist(boolean _useChiSq) {useChiSqDist=_useChiSq;}
 	
 	//set current map ftr type, and update ui if necessary
-	public void setCurrentTrainDataFormat(int _frmt) {	curMapTrainFtrType = _frmt; }//setCurrentDataFormat
+	public void setCurrentTrainDataFormat(int _frmt) {	curMapTrainFtrType = _frmt; msgObj.dispMessage("SOMMapManager","setCurrentTrainDataFormat","curMapTrainFtrType set to : " +curMapTrainFtrType + ".", MsgCodes.warning2); }//setCurrentDataFormat
 	public int getCurrentTrainDataFormat() {	return curMapTrainFtrType;}
 	
 	public void setCurrentTestDataFormat(int _frmt) {	curMapTestFtrType = _frmt; }//setCurrentDataFormat
@@ -1585,11 +1699,10 @@ public abstract class SOM_MapManager {
 		int flIDX = idx/32, mask = 1<<(idx%32);
 		stFlags[flIDX] = (val ?  stFlags[flIDX] | mask : stFlags[flIDX] & ~mask);
 		switch (idx) {//special actions for each flag
-			case debugIDX 				: {break;}	
-			case isMTCapableIDX : {						//whether or not the host architecture can support multiple execution threads
-				break;}
-			case SOMmapNodeDataLoadedIDX		: {break;}		
-			case loaderFinishedRtnIDX 			: {break;}
+			case debugIDX 					: {break;}	
+			case isMTCapableIDX 			: {break;}					//whether or not the host architecture can support multiple execution threads
+			case SOMmapNodeDataLoadedIDX	: {break;}		
+			case loaderFinishedRtnIDX 		: {break;}
 			case denseTrainDataSavedIDX : {
 				if (val) {msgObj.dispMessage("SOMMapManager","setFlag","All "+ this.numTrainData +" Dense Training data saved to .lrn file", MsgCodes.info5);}
 				break;}				//all prospect examples saved as training data
@@ -1598,11 +1711,12 @@ public abstract class SOM_MapManager {
 				break;}				//all prospect examples saved as training data
 			case testDataSavedIDX : {
 				if (val) {msgObj.dispMessage("SOMMapManager","setFlag","All "+ this.numTestData + " saved to " + projConfigData.getSOMMapTestFileName() + " using "+(projConfigData.isUseSparseTestingData() ? "Sparse ": "Dense ") + "data format", MsgCodes.info5);}
-				break;		}	
-			case trainDataMappedIDX		: {break;}
-			case prodDataMappedIDX		: {break;}
-			case testDataMappedIDX		: {break;}
+				break;}	
+			case trainDataMappedIDX			: {break;}
+			case prodDataMappedIDX			: {break;}
+			case testDataMappedIDX			: {break;}
 			case validateDataMappedIDX		: {break;}
+			case dispMseDataSideBarIDX		: {break;}
 			
 			default : { setFlag_Indiv(idx, val);}	//any flags not covered get set here in instancing class			
 		}

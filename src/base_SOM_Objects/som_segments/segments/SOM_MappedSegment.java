@@ -72,7 +72,8 @@ public abstract class SOM_MappedSegment {
 		addMapNode(mapNodeEx);
 		//set this segment to belong to passed map node
 		setMapNodeSegment(mapNodeEx);
-		int row = 1, col = 1;//1,1 is this node for neighborhood
+		int row = 1, col = 1;//1,1 is this node within its neighborhood
+		//check neighborhood of this node to see if it belongs in this segment
 		SOMMapNode neighborEx = mapNodes.get(mapNodeEx.neighborMapCoords[row][col+1]);
 		if(doesMapNodeBelongInSeg(neighborEx)) {addMapNodeToSegment(neighborEx,mapNodes);}
 		neighborEx = mapNodes.get(mapNodeEx.neighborMapCoords[row][col-1]);

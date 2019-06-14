@@ -324,8 +324,16 @@ public abstract class SOMProjConfigData {
 		reportData.add("\n");
 		reportData.add("SOM Processing results : ");
 		for(String desc : externalVals.keySet()) {		reportData.add(desc + " : " + externalVals.get(desc));}
+		reportData.add("\n");
+		//instance specific execution report data
+		saveSOM_ExecReport_Indiv(reportData);
 		fileIO.saveStrings(fileName,reportData);	
 	}//saveSOM_ExecReport
+	/**
+	 * This will save any application-specific reporting data
+	 * @param reportData
+	 */
+	protected abstract void saveSOM_ExecReport_Indiv(ArrayList<String> reportData);
 
 	//save configuration data describing
 	private ArrayList<String> getExpConfigData(){

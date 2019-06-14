@@ -109,17 +109,20 @@ public class Straff_WeightCalc {
 		while (!foundDflt) {
 			if ((configDatList[idx].contains(SOMProjConfigData.fileComment)) || (configDatList[idx].trim() == "")) {++idx;			}
 			else {
+				msgObj.dispMessage("StraffWeightCalc","loadConfigAndSetVars", "First line after comments : " + configDatList[idx].trim(), MsgCodes.info1);
 				strVals = configDatList[idx].trim().split(",");
 				if (strVals[0].toLowerCase().contains("default")) {	foundDflt = true;} 	//first non-comment/non-space is expected to be "default"
 				else {			return null;			}								//default values must be specified first in wt file!
 			}		
 		}//while		
 		res.put("default", strVals);
-		
+		msgObj.dispMessage("StraffWeightCalc","loadConfigAndSetVars", "res.default len : " + strVals.length, MsgCodes.info1);
 		//now go through every line and build eqs for specified jps
-		for (int i=idx+1; i<configDatList.length; ++i) {		
-			if (configDatList[i].contains(SOMProjConfigData.fileComment)) {continue;			}
-			strVals = configDatList[i].trim().split(",");	
+		for (int i=idx+1; i<configDatList.length; ++i) {
+			String line = configDatList[i].trim();
+			if ((line.length()==0) || (line.contains(SOMProjConfigData.fileComment))) {continue;			}
+			strVals = line.split(",");	
+			if(strVals.length == 0) {continue;}
 			//put all values of specified jps intended to override default cals in map, keyed by jp string
 			res.put(strVals[0], strVals);
 		}
@@ -156,6 +159,7 @@ public class Straff_WeightCalc {
 	 */
 	private void _buildCustomEQs(TreeMap<String, String[]> wtConfig) {		
 		for(String key : wtConfig.keySet()) {
+			System.out.println("_buildCustomEQs::Key : " + key);
 			if(key.contains("default")){continue;}
 			String[] wtCalcStrAra = wtConfig.get(key);
 			Integer jp = Integer.parseInt(wtCalcStrAra[0]);		
@@ -494,15 +498,13 @@ public class Straff_WeightCalc {
 	@Override
 	public String toString() {
 		String res  = "";
-		for (JPWeightEquation eq : allEqs.values()) {
-			Integer numSeen = jpJpgMon.getCountProdJPSeen(eq.jp);			
-			Integer ftrIDX = eq.jpIDXs[bndAra_ProdJPsIDX], allIDX = eq.jpIDXs[bndAra_AllJPsIDX];
+		for (JPWeightEquation eq : allEqs.values()) {					
+			Integer ftrIDX = eq.jpIDXs[bndAra_ProdJPsIDX];//, allIDX = eq.jpIDXs[bndAra_AllJPsIDX];
 			if(ftrIDX != -1) {	res+= eq.toString() + " | # Ftr Calcs done : " +  bndsAra[bndAra_ProdJPsIDX].getDescForIdx(ftrIDX) + "\n";	} 
-			else {				res+= eq.toString() +"  | # Ftr Calcs done : 0 (not a feature JP)";}			
-			res+= " | # Ttl Calcs done : # of Product Occs : " +String.format("%6d", numSeen) + " == " +  bndsAra[bndAra_ProdJPsIDX].getDescForIdx(allIDX) + "\n";
+			else {				res+= eq.toString() +"  | # Ftr Calcs done : 0 (not a feature JP)\n";}			
+			//res+= " | # Ttl Calcs done : # of Product Occs : " +String.format("%6d", numSeen) + " == " +  bndsAra[bndAra_AllJPsIDX].getDescForIdx(allIDX) + "\n";
 		}
-		res += "# eqs : " + allEqs.size() + "\t|Built from file : " + fileName+ "\t| Equation Configuration : \n";
-		res += "-- DLU : Days since prospect lookup\n";
+		res += "# ftr eqs : " + ftrEqs.size() + "\t# eqs ttl : " + allEqs.size() + "\t|Eq Wts from file : " + fileName+ "\t| Equation Configuration : \n";
 		res += "-- NumOcc[i] : Number of occurrences of jp in event i on a specific date\n";
 		res += "-- DEV : Days since event i occurred\n";
 		res += "-- OptV : opt multiplier/filter value reflecting opt choice > 0 (<0 forces wt to be 0 for JP)\n\n";

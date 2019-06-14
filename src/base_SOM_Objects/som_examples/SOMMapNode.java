@@ -92,7 +92,7 @@ public abstract class SOMMapNode extends SOMExample{
 		ftrVecMag = (float) Math.sqrt(ftrVecSqMag);		
 		nonZeroIDXs = ftrMaps[ftrMapTypeKey].keySet().toArray(new Integer[0]);//	nonZeroIDXList.toArray(new Integer[0]);
 		setFlag(ftrsBuiltIDX, true);
-		//buildNormFtrData();		
+		buildNormFtrData();		
 	}//setFtrsFromFloatAra
 	
 	public final Integer[] getNonZeroIDXs() {return nonZeroIDXs;}

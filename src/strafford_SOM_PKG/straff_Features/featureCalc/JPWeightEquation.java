@@ -264,13 +264,13 @@ public class JPWeightEquation {
 		} 
 		else {	res += " (Not a Training Ftr) = ";	}
 		//order
-		res += " + ("+ String.format("%.3f", FtrMult[orderCoeffIDX]) + "*[sum(NumOcc[i]/(1 + "+String.format("%.4f", FtrDecay[orderCoeffIDX])+" * DEV)) for each event i] + "+String.format("%.4f", FtrOffset[orderCoeffIDX])+")"; 		
+		res += " ("+ String.format("%.3f", FtrMult[orderCoeffIDX]) + "*[sum(NumOcc[i]/(1 + "+String.format("%.4f", FtrDecay[orderCoeffIDX])+" * DEV)) for each event i]+"+String.format("%.4f", FtrOffset[orderCoeffIDX])+")"; 		
 		//link
-		res += " + ("+ String.format("%.3f", FtrMult[linkCoeffIDX]) + "*[sum(NumOcc[i]/(1 + "+String.format("%.4f", FtrDecay[linkCoeffIDX])+" * DEV)) for each event i] + "+String.format("%.4f", FtrOffset[linkCoeffIDX])+")"; 		
+		res += "+("+ String.format("%.3f", FtrMult[linkCoeffIDX]) + "*[sum(NumOcc[i]/(1 + "+String.format("%.4f", FtrDecay[linkCoeffIDX])+" * DEV)) for each event i]+"+String.format("%.4f", FtrOffset[linkCoeffIDX])+")"; 		
 		//opt
-		res +=  " + ("+ String.format("%.3f", FtrMult[optCoeffIDX]) + "*OptV/(1 + "+String.format("%.4f", FtrDecay[orderCoeffIDX])+" + "+String.format("%.4f", FtrOffset[optCoeffIDX])+")"; 			
-		//source
-		res += " + ("+ String.format("%.3f", FtrMult[srcCoeffIDX]) + "*[sum(NumOcc[i]/(1 + "+String.format("%.4f", FtrDecay[srcCoeffIDX])+" * DEV)) for each event i] + "+String.format("%.4f", FtrOffset[srcCoeffIDX])+")"; 		
+		res +=  "+("+ String.format("%.3f", FtrMult[optCoeffIDX]) + "*OptV/(1 + "+String.format("%.4f", FtrDecay[optCoeffIDX])+" * DEV)+"+String.format("%.4f", FtrOffset[optCoeffIDX])+")"; 			
+		//source 
+		res += "+("+ String.format("%.3f", FtrMult[srcCoeffIDX]) + "*[sum(NumOcc[i]/(1 + "+String.format("%.4f", FtrDecay[srcCoeffIDX])+" * DEV)) for each event i]+"+String.format("%.4f", FtrOffset[srcCoeffIDX])+")"; 		
 		return res;
 	}//toString
 }//JPWeightEquation

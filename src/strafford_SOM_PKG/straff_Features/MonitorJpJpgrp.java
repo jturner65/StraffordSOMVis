@@ -134,17 +134,6 @@ public class MonitorJpJpgrp {
 		setUI_MaxValsForFtrAndAllSeenJpJpg(); //to set limits of display values
 	}//loadAllData
 	
-	//debugging function to display all unique jps seen in data
-	public void dbgShowUniqueJPsSeen() {
-		msgObj.dispMessage("MonitorJpJpgrp","dbgShowUniqueJPsSeen","All Jp's seen : ", MsgCodes.info1);
-		for(String key :typeOfJpStrs) {	mapOfJPData.get(key).dbgShowUniqueJPsSeen();}
-	}//dbgShowUniqueJPsSeen
-	
-	public void dbgDispKnownJPsJPGs() {
-		msgObj.dispMessage("MonitorJpJpgrp","dbgDispKnownJPsJPGs","JPGs seen : (jp : count : ftridx) :", MsgCodes.info1);
-		for(String key :typeOfJpStrs) {	mapOfJPData.get(key).dbgDispKnownJPsJPGs();}
-	}//dbgDispKnownJPsJPGs
-	
 	//training features determined by products - only jps that have corresponding products are use to train map
 	public Integer getFtrJpByIdx(int idx) {return trainingJpJpgData.getJpByIdx(idx);}
 	public Integer getFtrJpGroupByIdx(int idx) {return trainingJpJpgData.getJpGrpByIdx(idx);}
@@ -152,40 +141,62 @@ public class MonitorJpJpgrp {
 	public Integer getFtrJpGroupFromJp(int jp) {return trainingJpJpgData.getJpgFromJp(jp);}		//expected to be null if jpgroup has no training data presence
 	public boolean checkIfFtrJpPresent(int jp) {return trainingJpJpgData.checkIfJpPresent(jp);}
 	public boolean checkIfFtrJpGrpPresent(int jpg) {return trainingJpJpgData.checkIfJpGrpPresent(jpg);}
-	//get all jps as csv, in index order
-	public String getFtrJpsAsCSV() {return trainingJpJpgData.getAllJpsAsCSV();}
-	
-	//name, jp and list idx of jp
-	public String getAllJpStrByIdx(int uiIDX) {return allJpJpgData.getJpStrByIdx(uiIDX);}
-	//name, jp and list idx of jp
-	public String getAllJpStrByIdx_Short(int uiIDX) {return allJpJpgData.getJpStrByIdx_Short(uiIDX);}
-	//name, jp and list idx of jp
-	public String getAllJpGrpStrByIdx(int uiIDX) {return allJpJpgData.getJpGrpStrByIdx(uiIDX);}
-	//name, jp and ftr idx of jp
-	public String getFtrJpStrByIdx(int uiIDX) {return trainingJpJpgData.getJpStrByIdx(uiIDX);}
-	//name, jp and ftr idx of jp
-	public String getFtrJpStrByIdx_Short(int uiIDX) {return trainingJpJpgData.getJpStrByIdx_Short(uiIDX);}
-	//name, jp and ftr idx of jp
-	public String getFtrJpGrpStrByIdx(int uiIDX) {return trainingJpJpgData.getJpGrpStrByIdx(uiIDX);}
-		
-	//name, jp and list idx of jp
-	public String getAllJpStrByJp(int jp) {return allJpJpgData.getJpStrByJp(jp);}
-	//name, jp and list idx of jp
-	public String getAllJpGrpStrByJpg(int jpg) {return allJpJpgData.getJpGrpStrByJpGrp(jpg);}
 	//name, jp and ftr idx of jp
 	public String getFtrJpStrByJp(int jp) {return trainingJpJpgData.getJpStrByJp(jp);}
 	//name, jp and ftr idx of jp
 	public String getFtrJpGrpStrByJpg(int jpg) {return trainingJpJpgData.getJpGrpStrByJpGrp(jpg);}
-		
+	//get training jps as csv, in index order
+	public String getFtrJpsAsCSV() {return trainingJpJpgData.getAllJpsAsCSV();}
+	//name, jp and ftr idx of jp
+	public String getFtrJpStrByIdx(int uiIDX) {return trainingJpJpgData.getJpStrByIdx(uiIDX);}
+	//lacks jp idx and jp id at end - just string name
+	public String getFtrJpStrByIdx_Short(int uiIDX) {return trainingJpJpgData.getJpStrByIdx_Short(uiIDX);}
+	public String getFtrJpGrpStrByIdx(int uiIDX) {return trainingJpJpgData.getJpGrpStrByIdx(uiIDX);}
+	//lacks jpg idx and jpgroup id at end, just name
+	public String getFtrJpGrpStrByIdx_Short(int uiIDX) {return trainingJpJpgData.getJpGrpStrByIdx_Short(uiIDX);}
 	public int getLenFtrJpByIdx() {		return trainingJpJpgData.getLenJpByIdx();	}//# of jps seen in training data
 	public int getLenFtrJpGrpByIdx(){	return  trainingJpJpgData.getLenJpGrpByIdx(); }//# of jpgrps seen in training data
 	
-	public Integer[] getTrainJpByIDXAra() {return trainingJpJpgData.getJpByIDXAra();}
-	public Integer[] getTrainJpgrpByIDXAra() {return trainingJpJpgData.getJpgrpByIDXAra();}
+	public Integer[] getFtrJpByIDXAra() {return trainingJpJpgData.getJpByIDXAra();}
+	public Integer[] getFtrJpgrpByIDXAra() {return trainingJpJpgData.getJpgrpByIDXAra();}
+	
+	
+	//name, jp and list idx of jp
+	public String getAllJpStrByIdx(int uiIDX) {return allJpJpgData.getJpStrByIdx(uiIDX);}
+	//lacks jp idx and jp id at end - just string name
+	public String getAllJpStrByIdx_Short(int uiIDX) {return allJpJpgData.getJpStrByIdx_Short(uiIDX);}
+	public String getAllJpGrpStrByIdx(int uiIDX) {return allJpJpgData.getJpGrpStrByIdx(uiIDX);}
+	//lacks jpg idx and jpgroup id at end, just name
+	public String getAllJpGrpStrByIdx_Short(int uiIDX) {return allJpJpgData.getJpGrpStrByIdx_Short(uiIDX);}
+	//name, jp and list idx of jp
+	public String getAllJpStrByJp(int jp) {return allJpJpgData.getJpStrByJp(jp);}
+	//name, jp and list idx of jp
+	public String getAllJpGrpStrByJpg(int jpg) {return allJpJpgData.getJpGrpStrByJpGrp(jpg);}
+	
+	public Integer[] getAllJpByIDXAra() {return allJpJpgData.getJpByIDXAra();}
+	public Integer[] getAllJpgrpByIDXAra() {return allJpJpgData.getJpgrpByIDXAra();}
+		
+	
 	//needc to return array of jps that are specifically Non product,with value being their IDX
-	public Integer[] getNonProductJpByIDXAra() {		return new Integer[] {};}
+	public Integer[] getNonProductJpByIDXAra() {		
+		TreeMap<Integer, Integer> allJpsToIDX = allJpJpgData.getJpToIDX();
+		Integer[] ftrJpsByIdx = getFtrJpByIDXAra();
+		Set<Integer> allJps = allJpsToIDX.keySet();
+		TreeSet<Integer> res = new TreeSet<Integer>();		//need to maintain order
+		for(Integer ftrjp : ftrJpsByIdx) {	allJps.remove(ftrjp);}
+		for(Integer nonProdJp : allJps) {res.add(nonProdJp);}
+		return res.toArray(new Integer[0]);
+	}
 	//non prod jp group is jp groups that non prod jps belong to - groups may have prod jp membership as well
-	public Integer[] getNonProductJpGroupByIDXAra() {	return new Integer[] {};}
+	public Integer[] getNonProductJpGroupByIDXAra() {	
+		TreeMap<Integer, Integer> allJpgsToIDX = allJpJpgData.getJpgToIDX();
+		Integer[] ftrJpgrpsByIdx = getFtrJpgrpByIDXAra();
+		Set<Integer> allJpgs = allJpgsToIDX.keySet();
+		TreeSet<Integer> res = new TreeSet<Integer>();	//need to maintain order
+		for(Integer ftrjpg : ftrJpgrpsByIdx) {	allJpgs.remove(ftrjpg);}
+		for(Integer nonProdJpg : allJpgs) {res.add(nonProdJpg);}
+		return res.toArray(new Integer[0]);
+	}
 	
 	//get set of jps for passed jpgroup in prod data
 	public TreeSet<Integer> getProdJPsforSpecifiedJpgrp(int jpg){
@@ -245,6 +256,18 @@ public class MonitorJpJpgrp {
 		if(null==numSeen) {numSeen=0;}
 		return numSeen;
 	}
+	
+	//debugging function to display all unique jps seen in data
+	public void dbgShowUniqueJPsSeen() {
+		msgObj.dispMessage("MonitorJpJpgrp","dbgShowUniqueJPsSeen","All Jp's seen : ", MsgCodes.info1);
+		for(String key :typeOfJpStrs) {	mapOfJPData.get(key).dbgShowUniqueJPsSeen();}
+	}//dbgShowUniqueJPsSeen
+	
+	public void dbgDispKnownJPsJPGs() {
+		msgObj.dispMessage("MonitorJpJpgrp","dbgDispKnownJPsJPGs","JPGs seen : (jp : count : ftridx) :", MsgCodes.info1);
+		for(String key :typeOfJpStrs) {	mapOfJPData.get(key).dbgDispKnownJPsJPGs();}
+	}//dbgDispKnownJPsJPGs
+	
 	
 	//aggregates all JP_JPG_Data structs' toString info to build single output
 	public String toString() {
@@ -584,6 +607,14 @@ abstract class JP_JPG_Data{
 		if(name==null) {name="UNK";}
 		return "" +name+ " (jp:"+ jp + ",idx:" +idx+ ")";
 	}
+	//name, jp and ftr idx of jp
+	public String getJpGrpStrByIdx_Short(int uiIDX) {
+		int idx = uiIDX % jpGrpByIdx.length, jpg=jpGrpByIdx[idx];
+		String name = jpGrpNames.get(jpg);
+		if(name==null) {name="UNK";}
+		return "" +name;
+	}	
+	
 	//name, jp and ftr idx of jp
 	public String getJpGrpStrByIdx(int uiIDX) {
 		int idx = uiIDX % jpGrpByIdx.length, jpg=jpGrpByIdx[idx];

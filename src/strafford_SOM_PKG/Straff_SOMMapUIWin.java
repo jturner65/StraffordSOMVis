@@ -84,6 +84,11 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 	private int curProdToShowIDX;
 	//which jp is currently being investigated of -all- jps
 	private int curAllJPToShowIDX;
+	
+	//which nonprod jp to show (for data which support showing non-prod jps
+	private int curNonProdJPToShowIDX;
+	//which nonprod jpg to show (for data which support showing non-prod jpgroups
+	private int curNonProdJPGroupToShowIDX;
 		
 	/////////
 	//custom debug/function ui button names -empty will do nothing
@@ -95,8 +100,7 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 	};
 
 	//used to switch button name for 1st button to reflect whether performing csv-based load of raw data or sql query
-	private String[] menuLdRawFuncBtnNames = new String[] {"CSV", "SQL"};
-	
+	private String[] menuLdRawFuncBtnNames = new String[] {"CSV", "SQL"};	
 	
 	public Straff_SOMMapUIWin(my_procApplet _p, String _n, int _flagIdx, int[] fc, int[] sc, float[] rd, float[] rdClosed, String _winTxt, boolean _canDrawTraj) {
 		super(_p, _n, _flagIdx, fc, sc, rd, rdClosed, _winTxt, _canDrawTraj);
@@ -116,13 +120,10 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 	 * 			the 3rd element is integer flag idx 
 	 */
 	protected final void initAllSOMPrivBtns_Indiv(ArrayList<Object[]> tmpBtnNamesArray) {
-		tmpBtnNamesArray.add(new Object[] {"Hide Products (ftr BMUs)","Show Products(ftr BMUs)", mapDrawPrdctFtrBMUsIDX});          
+		tmpBtnNamesArray.add(new Object[] {"Hide Non-Product Job Practices","Show Non-Product Job Practices", mapDrawNonProdJPSegIDX});          
+		tmpBtnNamesArray.add(new Object[] {"Hide Non-Product Job Practice Groups", "Show Non-Product Job Practice Groups", mapDrawNonProdJPGroupSegIDX});			
+		tmpBtnNamesArray.add(new Object[] {"Hide Products (ftr BMUs)","Show Products (ftr BMUs)", mapDrawPrdctFtrBMUsIDX});          
 		tmpBtnNamesArray.add(new Object[] {"Hide Cur Prod Zone (by ftrs)", "Show Cur Prod Zone (by ftrs)", mapDrawCurProdFtrBMUZoneIDX});	
-
-		tmpBtnNamesArray.add(new Object[] {"Hide Non-Product JPs","Show Non-Product JPs", mapDrawNonProdJPSegIDX});          
-		tmpBtnNamesArray.add(new Object[] {"Hide Non-Prod JP Groups", "Show Non-Prod JP Groups", mapDrawNonProdJPGroupSegIDX});	
-		
-		
 		tmpBtnNamesArray.add(new Object[] {"Show Calc Plot on Ftr JPs", "Show Calc Plot on All JPs", mapDrawCalcFtrOrAllVisIDX});     
 		tmpBtnNamesArray.add(new Object[] {"Hide Training Data Calc Plot", "Show Training Data Calc Plot", mapDrawTrainDataAnalysisVisIDX});
 		tmpBtnNamesArray.add(new Object[] {"Hide Cust Prspct Calc Plot", "Show Cust Prspct Calc Plot", mapDrawCustAnalysisVisIDX});     
@@ -152,14 +153,16 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 	@Override
 	protected final String[] getSegmentSaveBtnTFLabels() {return new String[] {"Saving Class, Category and Feature weight segment BMUs", "Save Class, Category and Feature weight segment BMUs" };}
 
-
 	@Override
 	protected void initMeIndiv() {
 		//based on width of map
 		analysisHt = (SOM_mapDims[1]*.45f);
 		//for single jp detail display
 		analysisPerJPWidth = (SOM_mapDims[0]*.1f);
+		//default to having calc objects display analysis on ftrs 
 		setPrivFlags(mapDrawCalcFtrOrAllVisIDX, true);
+		//default to showing right side bar menu
+		setFlags(showRightSideMenu, true);	
 		//dataFrmtToUseToTrain = (int)(this.guiObjs[uiTrainDataFrmtIDX].getVal());
 		prodZoneDistThresh = this.guiObjs[uiProdZoneDistThreshIDX].getVal();
 		rawDataSource = (int)(this.guiObjs[uiRawDataSourceIDX].getVal());
@@ -280,54 +283,36 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 			case trainExCalcedIDX 	: {		break;}
 		}		
 	}//setPrivFlagsIndiv
-		
-	@Override
-	//called by base SOM Window class, passing arrays with default values already pre-set
-	protected void setupGUIObjsArasIndiv(double [][] _baseGuiMinMaxModVals, double[] _baseGuiStVals, String[] _baseGuiObjNames, boolean [][] _baseGuiBoolVals) {
-		double [][] _tmpGuiMinMaxModVals = new double [][]{  
-			{0.0, uiRawDataSourceList.length-1, 1},			//uiRawDataSourceIDX
-			{0.0, 100, 1.0},			//uiFtrJPGToDispIDX		
-			{0.0, 260, 1.0},			//uiFtrJPToDispIDX	
-			{0.0, 260, 1.0},			//uiAllJpSeenToDispIDX	
-			{0.0, 2, .01},				//uiProdZoneDistThreshIDX	
-		};					
-		double[] _tmpGuiStVals = new double[]{	
-			0,		//uiRawDataSourceIDX
-			0,      //uiFtrJPGToDispIDX		
-			0,     	//uiFtrJPToDispIDX	
-			0,     	//uiAllJpSeenToDispIDX	
-			0.99,	//uiProdZoneDistThreshIDX
-		};								//starting value
-		String[] _tmpGuiObjNames = new String[]{
-			"Raw Data Source", 			//uiRawDataSourceIDX
-			"JPGrp Ftrs Shown",     	//uiFtrJPGToDispIDX		
-			"JP Ftr Shown", 			//uiFtrJPToDispIDX		
-			"All JP to Show",   		//uiAllJpSeenToDispIDX	
-			"Prod Max Sq Dist",			//uiProdZoneDistThreshIDX			
-		};			//name/label of component	
-					
-		//idx 0 is treat as int, idx 1 is obj has list vals, idx 2 is object gets sent to windows, 3 is object allows for lclick-up/rclick-down mod
-		boolean [][] _tmpGuiBoolVals = new boolean [][]{
-			{true, true, true},			//uiRawDataSourceIDX
-			{true, true, true},			//uiFtrJPGToDispIDX		
-			{true, true, true},			//uiFtrJPToDispIDX		
-			{true, true, true},			//uiAllJpSeenToDispIDX	
-			{false, false, true}, 		//uiProdZoneDistThreshIDX
-		};						//per-object  list of boolean flags
-		
-		setupGUIObjsArasFinal(numGUIObjs,
-				_tmpGuiMinMaxModVals,_tmpGuiStVals,_tmpGuiObjNames,_tmpGuiBoolVals,
-				_baseGuiMinMaxModVals, _baseGuiStVals, _baseGuiObjNames, _baseGuiBoolVals);
-	};
-
+	
+	/**
+	 * Instancing class-specific (application driven) UI objects should be defined
+	 * in this function.  Add an entry to tmpBtnNamesArray for each button, in the order 
+	 * they are to be displayed
+	 * @param tmpUIObjArray array list of Object arrays, where in each object array : 
+	 * 			the first element double array of min/max/mod values
+	 * 			the 2nd element is starting value
+	 * 			the 3rd elem is label for object
+	 * 			the 4th element is boolean array of {treat as int, has list values, value is sent to owning window}
+	 */
+	protected final void setupGUIObjsArasIndiv(ArrayList<Object[]> tmpUIObjArray) {	
+		//per object entry : object array of {min,max,mod},stVal,lbl,bool ara
+		double dsLen = uiRawDataSourceList.length-1;
+		tmpUIObjArray.add(new Object[] {new double[]{0.0, dsLen, 1}, 0.0, "Raw Data Source", new boolean []{true, true, true}});		//uiRawDataSourceIDX
+		tmpUIObjArray.add(new Object[] {new double[]{0.0, 100, 1.0}, 0.0, "JPGrp Ftrs Shown", new boolean []{true, true, true}});		//uiFtrJPGToDispIDX		
+		tmpUIObjArray.add(new Object[] {new double[]{0.0, 260, 1.0}, 0.0, "JP Ftr Shown", new boolean []{true, true, true}});			//uiFtrJPToDispIDX	
+		tmpUIObjArray.add(new Object[] {new double[]{0.0, 260, 1.0}, 0.0, "All JP to Show", new boolean []{true, true, true}});			//uiAllJpSeenToDispIDX	
+		tmpUIObjArray.add(new Object[] {new double[]{0.0, 2, .01}, 0.99, "Prod Max Sq Dist", new boolean []{false, false, true}});		//uiProdZoneDistThreshIDX	
+	
+	}//setupGUIObjsArasIndiv
+	
 	@Override
 	protected String getUIListValStrIndiv(int UIidx, int validx) {
 		//msgObj.dispMessage("mySOMMapUIWin","getUIListValStr","UIidx : " + UIidx + "  Val : " + validx );
 		switch(UIidx){//pa.score.staffs.size()
 			case uiRawDataSourceIDX 			: {return uiRawDataSourceList[validx % uiRawDataSourceList.length];}
-			case uiFtrJPGToDispIDX				: {return ((Straff_SOMMapManager) mapMgr).getFtrJpGrpStrByIdx(validx); 	}	
-			case uiFtrJPToDispIDX				: {return ((Straff_SOMMapManager) mapMgr).getFtrJpStrByIdx(validx); 	}	
-			case uiAllJpSeenToDispIDX			: {return ((Straff_SOMMapManager) mapMgr).getAllJpStrByIdx(validx); 		}	
+			case uiFtrJPGToDispIDX				: {return ((Straff_SOMMapManager) mapMgr).getFtrJpGrpStrByIdx(validx); }	
+			case uiFtrJPToDispIDX				: {return ((Straff_SOMMapManager) mapMgr).getFtrJpStrByIdx(validx);}	
+			case uiAllJpSeenToDispIDX			: {return ((Straff_SOMMapManager) mapMgr).getAllJpStrByIdx(validx); }	
 		}
 		return "";
 	}//getUIListValStrIndiv
