@@ -211,7 +211,10 @@ public class Straff_WeightCalc {
 	private void checkValInBnds(int bndJpType, Integer calcTypeIDX, Integer destIDX, float val) {	bndsAra[bndJpType].checkValInBnds(calcTypeIDX,destIDX, val);}
 	
 	//increment count of training examples with jp data represented by destIDX, and total calc value seen
-	public void incrBnds(int bndJpType, Integer calcTypeIDX, Integer destIDX) {bndsAra[bndJpType].incrBnds(calcTypeIDX,destIDX);}
+	public void incrBnds(int bndJpType, Integer calcTypeIDX, Integer destIDX) {
+		
+		bndsAra[bndJpType].incrBnds(calcTypeIDX,destIDX);
+	}
 
 	//read in string array of weight values, convert and put in float array
 	private Float[] getFAraFromStrAra(String[] sAra, int[] idxs) {
@@ -231,15 +234,21 @@ public class Straff_WeightCalc {
 		return optOcc;
 	}//getOptAndCheck
 		
-	public synchronized void calcTruePrspctFtrVec(ProspectExample ex, HashSet<Integer> jps,TreeMap<Integer, Float> ftrDest,TreeMap<String, TreeMap<Integer, JP_OccurrenceData>> JpOccurrences){		
-		_calcFtrDataVec(ex,jps, ftrDest, new TreeMap<Integer, JP_OccurrenceData>(), JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"),tpCalcObjIDX,JPWeightEquation.now, "calcTruePrspctFtrVec");
+	public void calcTruePrspctFtrVec(ProspectExample ex, HashSet<Integer> jps,TreeMap<Integer, Float> ftrDest,TreeMap<String, TreeMap<Integer, JP_OccurrenceData>> JpOccurrences){	
+		synchronized(ex) {
+			_calcFtrDataVec(ex,jps, ftrDest, new TreeMap<Integer, JP_OccurrenceData>(), JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"),tpCalcObjIDX,JPWeightEquation.now, "calcTruePrspctFtrVec");
+		}
 	}		
-	public synchronized void calcCustFtrDataVec(ProspectExample ex, HashSet<Integer> jps,TreeMap<Integer, Float> ftrDest,TreeMap<String, TreeMap<Integer, JP_OccurrenceData>> JpOccurrences) {
-		_calcFtrDataVec(ex,jps, ftrDest,  JpOccurrences.get("orders"), JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"),custCalcObjIDX, JPWeightEquation.now, "calcCustFtrDataVec");
+	public void calcCustFtrDataVec(ProspectExample ex, HashSet<Integer> jps,TreeMap<Integer, Float> ftrDest,TreeMap<String, TreeMap<Integer, JP_OccurrenceData>> JpOccurrences) {
+		synchronized(ex) {
+			_calcFtrDataVec(ex,jps, ftrDest,  JpOccurrences.get("orders"), JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"),custCalcObjIDX, JPWeightEquation.now, "calcCustFtrDataVec");
+		}
 	}
 	//includes order date
-	public synchronized void calcTrainingFtrDataVec(ProspectExample ex, HashSet<Integer> jps,TreeMap<Integer, Float> ftrDest, Date orderDate, TreeMap<String, TreeMap<Integer, JP_OccurrenceData>> JpOccurrences) {
-		_calcFtrDataVec(ex,jps, ftrDest,  JpOccurrences.get("orders"), JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"),trainCalcObjIDX, orderDate, "calcTrainingFtrDataVec");
+	public void calcTrainingFtrDataVec(ProspectExample ex, HashSet<Integer> jps,TreeMap<Integer, Float> ftrDest, Date orderDate, TreeMap<String, TreeMap<Integer, JP_OccurrenceData>> JpOccurrences) {
+		synchronized(ex) {
+			_calcFtrDataVec(ex,jps, ftrDest,  JpOccurrences.get("orders"), JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"),trainCalcObjIDX, orderDate, "calcTrainingFtrDataVec");
+		}
 		//dbg_calcFtrVecMinMaxs(ftrDest,mapOfTrainCompFtrVecMins,mapOfTrainCompFtrVecMaxs);
 	}//
 	
@@ -273,9 +282,7 @@ public class Straff_WeightCalc {
 	//initialize and finalize all calcs for CUSTOMER data - this builds the exemplar training data vector for each non-prod jp
 	public void initAllEqsForCustNonTrainCalc() {setFlag(custNonProdCalcCompleteIDX, false);	for(JPWeightEquation jpEq:allEqs.values()) {jpEq.initCalcCustNonProdWtVec();}}
 	public void finalizeAllEqsCustForNonTrainCalc() {for(JPWeightEquation jpEq:allEqs.values()) {jpEq.finalizeCalcCustNonProdWtVec();}setFlag(custNonProdCalcCompleteIDX, true);}
-	
-	
-	
+		
 	public static int numNonProdFtrVecDims = 0;
 	public static ConcurrentSkipListMap<Integer, Integer> mapOfNonProdFtrVecDims = new ConcurrentSkipListMap<Integer, Integer>(); 
 	//map per nonProdComVecSize of map of nonProdJP and counts present for TPs with this nonProdComVec size

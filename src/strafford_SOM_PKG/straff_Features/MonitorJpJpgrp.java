@@ -17,6 +17,7 @@ import strafford_SOM_PKG.straff_SOM_Examples.prospects.ProspectExample;
 
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 import strafford_SOM_PKG.straff_SOM_Mapping.exampleMappers.*;
+import strafford_SOM_PKG.straff_SOM_Mapping.exampleMappers.base.Straff_SOMCustPrspctMapper_Base;
 
 //this class will monitor presence and counts of jpgroups and jps
 //in training data for map

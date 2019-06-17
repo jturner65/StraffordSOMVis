@@ -273,7 +273,7 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 				break;}		//put true prospects on the SOM
 			case saveProdMapsOfPrspctsIDX : {
 				if(val) {
-					((Straff_SOMMapManager) mapMgr).saveAllExamplesToSOMMappings(prodZoneDistThresh, true, true);		
+					((Straff_SOMMapManager) mapMgr).saveAllExamplesToSOMMappings();		
 					addPrivBtnToClear(saveProdMapsOfPrspctsIDX);			
 				}				
 				break;}		//save all product to prospect mappings given currently selected product jp and dist thresh
@@ -524,7 +524,7 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 		msgObj.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Begin requested action", MsgCodes.info4);
 		int btn = curCustBtn[curCustBtnType];
 		switch(curCustBtnType) {
-		case mySideBarMenu.btnAuxFunc1Idx : {
+		case mySideBarMenu.btnAuxFunc1Idx : {//row 1 of menu side bar buttons
 			msgObj.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Click Functions 1 in "+name+" : btn : " + btn, MsgCodes.info4);
 			switch(btn){
 				case 0 : {	
@@ -546,7 +546,7 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 			}	
 			break;}//row 1 of menu side bar buttons
 	
-		case mySideBarMenu.btnAuxFunc2Idx : {
+		case mySideBarMenu.btnAuxFunc2Idx : {//row 2 of menu side bar buttons
 			msgObj.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Click Functions 2 in "+name+" : btn : " + btn, MsgCodes.info4);//{"Ld&Bld SOM Data", "Load SOM Config", "Ld & Make Map", "Ld Prebuilt Map"},	//row 2
 			//		{"Train Data","True Prspcts", "Prods", "SOM Cfg", "Func 14"},	//row 2
 
@@ -573,7 +573,7 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 					break;}	
 			}
 			break;}//row 2 of menu side bar buttons
-		case mySideBarMenu.btnAuxFunc3Idx : {
+		case mySideBarMenu.btnAuxFunc3Idx : {//row 3 of menu side bar buttons
 			msgObj.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Click Functions 3 in "+name+" : btn : " + btn, MsgCodes.info4);//{"Ld&Bld SOM Data", "Load SOM Config", "Ld & Make Map", "Ld Prebuilt Map"},	//row 2
 			switch(btn){
 				case 0 : {	
@@ -596,8 +596,8 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 					resetButtonState();
 					break;}	
 			}
-			break;}//row 2 of menu side bar buttons
-		case mySideBarMenu.btnDBGSelCmpIdx : {
+			break;}//row 3 of menu side bar buttons
+		case mySideBarMenu.btnDBGSelCmpIdx : {//row 4 of menu side bar buttons (debug)	
 			msgObj.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Click Debug in "+name+" : btn : " + btn, MsgCodes.info4);
 			//{"All->Bld Map","All Dat To Map", "Func 22", "Func 23", "Prblt Map"},	//row 3
 			switch(btn){
@@ -626,7 +626,7 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 					resetButtonState();
 					break;}
 			}				
-			break;}//row 3 of menu side bar buttons (debug)			
+			break;}//row 4 of menu side bar buttons (debug)			
 		}		
 		msgObj.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","End requested action (multithreaded actions may still be working).", MsgCodes.info4);
 	}//launchMenuBtnHndlr
@@ -640,8 +640,7 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 	}	
 	@Override
 	protected boolean hndlMouseClickIndiv(int mouseX, int mouseY, myPoint mseClckInWorld, int mseBtn) {
-		boolean mod = false;	
-		
+		boolean mod = false;			
 		if(mod) {return mod;}
 		else {return checkUIButtons(mouseX, mouseY);}
 	}

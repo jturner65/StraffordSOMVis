@@ -18,7 +18,7 @@ import base_Utils_Objects.vectorObjs.Tuple;
  * Will Process results from SOM execution
  * @author john
  */
-public class SOM_DataLoader implements Callable<Boolean> {
+public class SOM_DataLoader{
 	public SOM_MapManager mapMgr;				//the map these files will use
 	//object that manages message displays on screen
 	private MessageObject msgObj;
@@ -39,9 +39,12 @@ public class SOM_DataLoader implements Callable<Boolean> {
 		fileIO = new FileIOManager(msgObj,"SOMDataLoader");
 		projConfigData = _configData;
 	}
-
-	@Override
-	public Boolean call(){
+	
+	/**
+	 * Don't make this asynch
+	 * @return
+	 */
+	public Boolean callMe(){
 		msgObj.dispMessage("SOMDataLoader","run","Starting Trained SOM map node data loader", MsgCodes.info5);	
 			//load results from map processing - fnames needs to be modified to handle this
 		ftrTypeUsedToTrain = mapMgr.getCurrentTrainDataFormat();
@@ -268,7 +271,7 @@ public class SOM_DataLoader implements Callable<Boolean> {
 			for(int i=0;i<numThds;++i) {bmuDataLoaders.add(new SOMExBMULoader(mapMgr.buildMsgObj(),ftrTypeUsedToTrain,useChiSqDist, typeOfData, bmusToExs[i],i));	}
 			try {bmuDataBldFtrs = mapMgr.getTh_Exec().invokeAll(bmuDataLoaders);for(Future<Boolean> f: bmuDataBldFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }		
 		} else {		
-			//single threaded version of above
+			//single threaded version of above - do not use SOMExBMULoader since we have already partitioned structure holding bmus bmusToExs and may not hold only 1 hashmap
 			if (useChiSqDist) {
 				for (HashMap<SOMMapNode, ArrayList<SOMExample>> bmuToExsMap : bmusToExs) {
 					for (SOMMapNode tmpMapNode : bmuToExsMap.keySet()) {
@@ -295,5 +298,5 @@ public class SOM_DataLoader implements Callable<Boolean> {
 	}//loadSOM_BMs
 	
 	
-}//dataLoader
+}//SOM_DataLoader
 

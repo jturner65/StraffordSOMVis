@@ -19,6 +19,7 @@ import strafford_SOM_PKG.straff_SOM_Examples.prospects.CustProspectExample;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 
 import strafford_SOM_PKG.straff_SOM_Mapping.exampleMappers.*;
+import strafford_SOM_PKG.straff_SOM_Mapping.exampleMappers.base.Straff_SOMProspectMapper;
 
 /**
  * this class manages the loading of the raw data from either csv or from sql queries (TODO: SQL not implemented yet)

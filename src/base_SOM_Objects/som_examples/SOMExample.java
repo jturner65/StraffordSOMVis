@@ -247,7 +247,7 @@ public abstract class SOMExample extends baseDataPtVis{
 	
 	//this adds the passed node as this _training_ example's best matching unit on the map - this is used for -training- examples having
 	//been set as bmus by the SOM executable, hence why it uses the full distance and does not exclude zero features in this example
-	//also does not use comparison vector but actual ftrMaps/training vector
+	//also does not use comparison vector but actual ftrMaps/training vector for the above reason
 	//this also adds this data point to the map's node with a key of the distance
 	//dataVar is variance of feature weights of map nodes.  this is for chi-squared distance measurements
 	public final void setTrainingExBMU(SOMMapNode _n, int _ftrType){
@@ -258,7 +258,7 @@ public abstract class SOMExample extends baseDataPtVis{
 	
 	//this adds the passed node as this example's best matching unit on the map - this is used for -training- examples having
 	//been set as bmus by the SOM executable, hence why it uses the full distance and does not exclude zero features in this example
-	//also does not use comparison vector but actual ftrMaps/training vector
+	//also does not use comparison vector but actual ftrMaps/training vector for the above reason
 	//this also adds this data point to the map's node with a key of the distance
 	//dataVar is variance of feature weights of map nodes.  this is for chi-squared distance measurements
 	public final void setTrainingExBMU_ChiSq(SOMMapNode _n, int _ftrType){

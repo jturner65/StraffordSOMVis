@@ -59,10 +59,14 @@ public class Strafford_SOM_Mapper_Main {
 			boolean success = mapMgr.loadTrainDataMapConfigAndBuildMap(false);			
 			return;}
 		case 2 :{
-			//this will take pretrained map specified in config file, load it and then process all products, customers and prospects against map for 
-			//product list specified in config file
-			Double prodZoneDistThresh = (Double)resMap.get("prodZoneDistThresh");
-			mapMgr.loadMapProcAllData(prodZoneDistThresh);
+			/**
+			 * Use this method to map all prospects(cust and true) and products to existing map specified in project config, and save mappings
+			 * 1) load training data and products for map
+			 * 2) load map data and derive map node bmus for prospects and products, building jp and jpg segments
+			 * 3) load true prospects and map them to map via euclidean dists to map nodes to find their bmus
+			 * 4) save all mappings 
+			 */
+			mapMgr.loadAllDataAndBuildMappings();
 			
 			return;}
 		}
@@ -105,13 +109,7 @@ public class Strafford_SOM_Mapper_Main {
         	.choices(0,1)
         	.setDefault(0)
         	.help("Specify whether we are using 0: csv files as raw data source or 1 : using an sql connection (if executing process 0).  Note : sql connection not yet supported.");
-        
-        parser.addArgument("-p","--prodzonedist")
-        	.dest("prodZoneDistThresh")
-        	.type(Double.class)
-        	.setDefault(2.0)
-        	.help("Specify distance threshold for product mappings to map nodes - shouldn't be <= 0.0");
-        
+                
 		return parser;
 	}
 

@@ -3,12 +3,14 @@ package strafford_SOM_PKG.straff_SOM_Mapping.exampleMappers;
 import java.util.*;
 
 import base_SOM_Objects.SOM_MapManager;
+import base_SOM_Objects.som_examples.ExDataType;
 import base_SOM_Objects.som_examples.SOMExample;
 import base_UI_Objects.my_procApplet;
 import base_Utils_Objects.io.MsgCodes;
 import strafford_SOM_PKG.straff_SOM_Examples.products.ProductExample;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.CustProspectExample;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
+import strafford_SOM_PKG.straff_SOM_Mapping.exampleMappers.base.Straff_SOMExampleMapper;
 
 public class Straff_SOMProductMapper extends Straff_SOMExampleMapper {
 		//maps of product arrays, with key for each map being either jpg or jp
@@ -109,7 +111,7 @@ public class Straff_SOMProductMapper extends Straff_SOMExampleMapper {
 		setAllDataPreProcced();
 		msgObj.dispMessage("Straff_SOMProductMapper","loadAllProductMapData","Finished loading and preprocessing all local prospect map data and calculating features.  Number of entries in productMap : " + exampleMap.size(), MsgCodes.info5);
 	}//loadAllPreProccedMapData
-	
+
 	//save all pre-processed product data
 	@Override
 	public boolean saveAllPreProccedMapData() {
@@ -178,6 +180,8 @@ public class Straff_SOMProductMapper extends Straff_SOMExampleMapper {
 		//for(ProductExample ex : productData) {ex.drawMeLinkedToBMU(pa, 5.0f,ex.OID);}		
 		pa.popStyle();pa.popMatrix();
 	}//drawProductNodes
+
+	
 
 
 }//class Straff_SOMProductMapper

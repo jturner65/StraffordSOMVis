@@ -9,6 +9,7 @@ import base_SOM_Objects.som_examples.SOMExample;
 import base_SOM_Objects.som_fileIO.SOMExCSVDataLoader;
 import base_Utils_Objects.io.MsgCodes;
 import strafford_SOM_PKG.straff_SOM_Mapping.*;
+import strafford_SOM_PKG.straff_SOM_Mapping.exampleMappers.base.Straff_SOMProspectMapper;
 import strafford_SOM_PKG.straff_Features.featureCalc.Straff_WeightCalc;
 import strafford_SOM_PKG.straff_ProcDataHandling.data_loaders.PrscpctCSVDataLoader;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.TrueProspectExample;
@@ -39,7 +40,7 @@ public class Straff_SOMTruePrspctMapper extends Straff_SOMProspectMapper {
 		//reset calc analysis objects before building feature vectors to enable new analytic info to be aggregateds
 		((Straff_SOMMapManager)mapMgr).ftrCalcObj.resetCalcObjs(Straff_WeightCalc.tpCalcObjIDX);
 		//call to buildFeatureVector for all examples
-		mapMgr._ftrVecBuild(exampleMap.values(),0,exampleName);				
+		mapMgr._ftrVecBuild(exampleMap.values(),0,exampleName, true);				
 		//call to _ftrVecBuild() with _typeOfProc==1 calls postFtrVecBuild for all examples of specified type - strafford data doesn't currently use this functionality so we can comment this call
 		//mapMgr._ftrVecBuild(exs, 1, exType);	
 		//set calc/calc analysis state as finished
@@ -76,7 +77,7 @@ public class Straff_SOMTruePrspctMapper extends Straff_SOMProspectMapper {
 	@Override
 	protected void buildAfterAllFtrVecsBuiltStructs_Priv() {
 		//call to buildFeatureVector for all examples
-		mapMgr._ftrVecBuild(exampleMap.values(),2,exampleName);	
+		mapMgr._ftrVecBuild(exampleMap.values(),2,exampleName, true);	
 		//display results of building comparison vector for all true prospects
 		dispCompFtrVecRes();
 	}

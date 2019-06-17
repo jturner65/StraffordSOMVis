@@ -3,8 +3,10 @@ package strafford_SOM_PKG.straff_SOM_Mapping.exampleMappers;
 import java.util.ArrayList;
 
 import base_SOM_Objects.SOM_MapManager;
+import base_SOM_Objects.som_examples.ExDataType;
 import base_SOM_Objects.som_examples.SOMExample;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.CustProspectExample;
+import strafford_SOM_PKG.straff_SOM_Mapping.exampleMappers.base.Straff_SOMCustPrspctMapper_Base;
 
 /**
  * Object to manage strafford-specific example mapping for customers, treating them each individually as a single training record

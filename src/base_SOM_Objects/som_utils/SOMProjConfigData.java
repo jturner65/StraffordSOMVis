@@ -21,7 +21,7 @@ public abstract class SOMProjConfigData {
 	//object to manage screen and log output
 	protected MessageObject msgObj;
 	//manage IO in this object
-	private FileIOManager fileIO;	
+	protected FileIOManager fileIO;	
 	//ref to SOM_MapDat SOM executiond descriptor object
 	protected SOM_MapDat SOMExeDat;	
 	
@@ -301,10 +301,21 @@ public abstract class SOMProjConfigData {
 		//get array of data describing config info
 		ArrayList<String> ConfigDescAra = getExpConfigData();
 		fileIO.saveStrings(configFileName,ConfigDescAra);		
-		//get human readable report of 
+		
+		//instance-specific data to save - custom file name specified in instancing config file		
+		ArrayList<String> custSOMConfigData = buildCustSOMConfigData();
+		//if specified then save
+		if((null != custSOMConfigData) && (custSOMConfigData.size() > 0)) {
+			String custConfigSOMFileName = getSOMExpCustomConfigFileName();
+			fileIO.saveStrings(custConfigSOMFileName,custSOMConfigData);	
+		}
 		
 		msgObj.dispMessage("SOMProjConfigData","saveSOM_Exp","Finished saving project configuration data for current SOM execution.", MsgCodes.info5);
 	}//saveSOM_Exp
+	/**
+	 * Build instance-specific information regarding the SOM to save to specific file within SOM Trained Directory
+	 */
+	protected abstract ArrayList<String> buildCustSOMConfigData();	
 	
 	//this will save an easily human readable report describing a SOM training execution in the directory of the SOM data
 	//externalVals are strings of specific report results, keyed by their description
@@ -334,6 +345,30 @@ public abstract class SOMProjConfigData {
 	 * @param reportData
 	 */
 	protected abstract void saveSOM_ExecReport_Indiv(ArrayList<String> reportData);
+	
+	
+	/**
+	 * this loads prebuilt map configurations
+	 */
+	public void setSOM_UsePreBuilt() {
+		//load map values from pre-trained map using this data - IGNORES VALUES SET IN UI	
+		//build file name to load
+		String configFileName = getDirNameAndBuild(subDirLocs.get("SOM_MapProc") + preBuiltMapDir, true) + expProjConfigFileName;
+		//load project config for this SOM execution
+		loadProjConfigForSOMExe(configFileName);		
+		//load and map config
+		loadSOMMap_Config();
+		//structure holding SOM_MAP specific cmd line args and file names and such
+		SOMExeDat.updateMapDescriptorState();
+		//now load instancing-project-specific configurations from files saved when SOM was trained
+		setSOM_UsePreBuilt_Indiv();
+		//now set flag to false before we launch loader to load results from SOM and map values		
+		mapMgr.setLoaderRTN(false);			
+	}//setSOM_UsePreBuilt
+	/**
+	 * Instance-specific loading necessary for proper consumption of pre-built SOM
+	 */
+	protected abstract void setSOM_UsePreBuilt_Indiv();
 
 	//save configuration data describing
 	private ArrayList<String> getExpConfigData(){
@@ -570,6 +605,14 @@ public abstract class SOMProjConfigData {
 	public String getSOMLocClrImgForFtrFName(int ftr) {return "ftr_"+ftr+"_"+SOMFileNamesAra[fName_SOMImgPNG_IDX];}	
 	//ref to file name for map configuration setup
 	public String getSOMMapConfigFileName() {return getCurrSOMFullSubDir()+ SOMFileNamesAra[fName_SOMMapConfig_IDX];	}	
+	//ref to file name for custom instance-specific file name
+	public String getSOMExpCustomConfigFileName() {return getCurrSOMFullSubDir()+getSOMExpCustomConfigFileName_Indiv(); }
+	/**
+	 * file name of custom config used to save instance-specific implementation details/files 
+	 * @return file name of config file for custom config variables, under SOM Exec dir
+	 */
+	protected abstract String getSOMExpCustomConfigFileName_Indiv();
+	
 	//ref to file name for data and project configuration relevant for current SOM execution
 	public String getProjConfigForSOMExeFileName() {return getCurrSOMFullSubDir()+ SOMFileNamesAra[fName_EXECProjConfig_IDX];	}	
 
@@ -641,24 +684,6 @@ public abstract class SOMProjConfigData {
 	 * @return fully qualified file name prefix corresponding to where desired segment should be saved/located
 	 */
 	protected abstract String getSegmentFileNamePrefix_Indiv(String segType);
-	
-	
-	/**
-	 * this loads prebuilt map configurations
-	 */
-	public void setSOM_UsePreBuilt() {
-		//load map values from pre-trained map using this data - IGNORES VALUES SET IN UI	
-		//build file name to load
-		String configFileName = getDirNameAndBuild(subDirLocs.get("SOM_MapProc") + preBuiltMapDir, true) + expProjConfigFileName;
-		//load project config for this SOM execution
-		loadProjConfigForSOMExe(configFileName);		
-		//load and map config
-		loadSOMMap_Config();
-		//structure holding SOM_MAP specific cmd line args and file names and such
-		SOMExeDat.updateMapDescriptorState();
-		//now set flag to false before we launch loader to load results from SOM and map values
-		mapMgr.setLoaderRTN(false);			
-	}//setSOM_UsePreBuilt
 	
 	public String SOM_MapDat_ToString() {return SOMExeDat.toString();}
 	

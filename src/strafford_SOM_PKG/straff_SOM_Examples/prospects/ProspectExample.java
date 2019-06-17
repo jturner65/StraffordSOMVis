@@ -367,7 +367,7 @@ public abstract class ProspectExample extends Straff_SOMExample{
 	}//buildDataFromCSVString_jpOcc
 	
 	//build the lists of jps found in products and the other jps that have no product
-	protected final void buildJPListsAndSetBadExample() {
+	protected synchronized final void buildJPListsAndSetBadExample() {
 		HashSet<Tuple<Integer,Integer>> alljpgjps = new HashSet<Tuple<Integer,Integer>>();
 		for(TreeMap<Integer, JP_OccurrenceData> occs : JpOccurrences.values()) {
 			for (Integer jp :occs.keySet()) {

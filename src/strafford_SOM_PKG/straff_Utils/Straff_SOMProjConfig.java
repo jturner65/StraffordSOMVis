@@ -12,6 +12,8 @@ import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 public class Straff_SOMProjConfig extends SOMProjConfigData {
 	//type of event membership that defines a prospect as a customer and as a true prospect (generally will be cust has order event, prospect doesnt)
 	protected int custTruePrsTypeEvents;
+	//file name to use to save strafford-specific SOM config data
+	private final String custSOMConfigDataFileName= "Strafford_SOM_CustomMapTrainData.txt";
 
 	public Straff_SOMProjConfig(SOM_MapManager _mapMgr, TreeMap<String, Object> _argsMap) {super(_mapMgr, _argsMap);}
 
@@ -79,10 +81,56 @@ public class Straff_SOMProjConfig extends SOMProjConfigData {
 	}//getSegmentFileName_Indiv
 	
 	/**
+	 * Save instance-specific information regarding the SOM experiment 
+	 */
+	@Override
+	protected final ArrayList<String> buildCustSOMConfigData() {
+		ArrayList<String> customData = new ArrayList<String>();
+		customData.add("# This file holds Strafford-specific configuration data pertaining to the training of the SOM in this directory");
+		customData.add("# This data is here to override any default configuration data that may be loaded in from the project config file.");
+		customData.add("#");
+		customData.add("#\tThis is the name of the weight calc file used to train the SOM.  This file must be found in the subdirectory");
+		customData.add("#\t"+SOM_QualifiedConfigDir + subDirLocs.get("StraffCalcEqWtFiles"));
+		customData.add("#");
+		customData.add("calcWtFileName,"+configFileNames.get("calcWtFileName"));
+		customData.add("#");
+		return customData;	
+	}//buildCustSOMConfigData
+
+	/**
+	 * file name of custom config used to save instance-specific implementation details/files 
+	 * @return file name of config file for custom config variables, under SOM Exec dir
+	 */
+	protected final String getSOMExpCustomConfigFileName_Indiv() {	return custSOMConfigDataFileName;}
+	
+	/**
+	 * Instance-specific loading necessary for proper consumption of pre-built SOM
+	 */
+	@Override
+	protected final void setSOM_UsePreBuilt_Indiv() {
+		String custConfigSOMFileName = getSOMExpCustomConfigFileName();
+		
+		String[] fileStrings = fileIO.loadFileIntoStringAra(custConfigSOMFileName, "Custom application-specific SOM Exp Config File loaded", "Custom application-specific SOM Exp Config File Failed to load");
+		int idx = 0; boolean found = false;
+		//find start of first block of data - 
+		while (!found && (idx < fileStrings.length)){if(fileStrings[idx].contains(fileComment)){++idx; }  else {found=true;}}
+		//idx here is for first non-comment field
+		while (idx < fileStrings.length) {
+			if((fileStrings[idx].contains(fileComment)) || (fileStrings[idx].trim().length()==0)){++idx; continue;}
+			String[] tkns = fileStrings[idx].trim().split(SOM_MapManager.csvFileToken);
+			String val = tkns[1].trim().replace("\"", "");
+			String varName = tkns[0].trim();
+			switch (varName) {		
+				case "calcWtFileName" : {configFileNames.put("calcWtFileName",val);	break;}		//load the wt calc file name used to train this map
+			}//switch
+			++idx;
+		}//while
+	}//setSOM_UsePreBuilt_Indiv	
+	
+	/**
 	 * This will save any application-specific reporting data
 	 * @param reportData
 	 */
-
 	@Override
 	protected final void saveSOM_ExecReport_Indiv(ArrayList<String> reportData) {
 		//strafford-specific data to save
@@ -90,8 +138,8 @@ public class Straff_SOMProjConfig extends SOMProjConfigData {
 		reportData.add("Calc Object Config : " + ((Straff_SOMMapManager)mapMgr).ftrCalcObj.toString());
 	}//saveSOM_ExecReport_Indiv
 		
-	//these file names are specified above but may be modified/set via a config file in future
-	public String getFullCalcInfoFileName(){ return SOM_QualifiedConfigDir + subDirLocs.get("StraffCalcEqWtFiles") + File.separator + configFileNames.get("calcWtFileName");}
+	//these file names are specified via a config file 
+	public String getFullCalcInfoFileName(){ return SOM_QualifiedConfigDir + subDirLocs.get("StraffCalcEqWtFiles") + configFileNames.get("calcWtFileName");}
 	//
 	public String getFullProdOutMapperInfoFileName(){ return SOM_QualifiedConfigDir + configFileNames.get("reqProdConfigFileName");}	
 

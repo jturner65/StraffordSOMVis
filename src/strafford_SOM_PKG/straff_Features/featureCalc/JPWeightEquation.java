@@ -169,19 +169,21 @@ public class JPWeightEquation {
 	 * @param _exampleType the type of propsect example being calculated for (cust, true, training).
 	 * @return the ftr value for this eq's jp
 	 */
-	public synchronized float calcFtrVal(ProspectExample ex, JP_OccurrenceData orderJpOccurrences, JP_OccurrenceData linkJpOccurrences, JP_OccurrenceData optJpOccurrences, JP_OccurrenceData srcJpOccurrences, Date dateOfOrder, int _exampleType) {	
-		boolean hasData = false;
-			//for source data - should replace prospect calc above
-		if (srcJpOccurrences != null) {	hasData = true;		ftrCalcStats[_exampleType].setWSVal(srcCoeffIDX, aggregateJPOccsSourceEv(srcJpOccurrences, srcCoeffIDX,FtrParams, dateOfOrder));}
-			//handle order occurrences for this jp.   aggregate every order occurrence, with decay on importance based on date
-		if (orderJpOccurrences != null) {hasData = true;	ftrCalcStats[_exampleType].setWSVal(orderCoeffIDX, aggregateJPOccs(orderJpOccurrences, orderCoeffIDX,FtrParams, dateOfOrder));}
-			//for links use same mechanism as orders - handle differences through weightings - aggregate every order occurrence, with decay on importance based on date
-		if (linkJpOccurrences != null) {hasData = true;		ftrCalcStats[_exampleType].setWSVal(linkCoeffIDX, aggregateJPOccs(linkJpOccurrences, linkCoeffIDX,FtrParams, dateOfOrder));	}
-			//user opts - these are handled differently - calcOptRes return of -9999 means negative opt specified for this jp alone (ignores negative opts across all jps) - should force total from eq for this jp to be ==0
-		if (optJpOccurrences != null) {	hasData = true;		ftrCalcStats[_exampleType].setWSVal(optCoeffIDX, calcOptRes(optJpOccurrences,FtrParams, dateOfOrder));}	
-		if (hasData) {calcObj.incrBnds(Straff_WeightCalc.bndAra_ProdJPsIDX,_exampleType,jpIDXs[Straff_WeightCalc.bndAra_ProdJPsIDX]);		}
-		float res = ftrCalcStats[_exampleType].getFtrValFromCalcs(optCoeffIDX, optOutSntnlVal);//(calcStats.workSpace[optCoeffIDX]==optOutSntnlVal);
-		return res;
+	public float calcFtrVal(ProspectExample ex, JP_OccurrenceData orderJpOccurrences, JP_OccurrenceData linkJpOccurrences, JP_OccurrenceData optJpOccurrences, JP_OccurrenceData srcJpOccurrences, Date dateOfOrder, int _exampleType) {	
+		synchronized(ftrCalcStats[_exampleType]){
+			boolean hasData = false;
+				//for source data - should replace prospect calc above
+			if (srcJpOccurrences != null) {	hasData = true;		ftrCalcStats[_exampleType].setWSVal(srcCoeffIDX, aggregateJPOccsSourceEv(srcJpOccurrences, srcCoeffIDX,FtrParams, dateOfOrder));}
+				//handle order occurrences for this jp.   aggregate every order occurrence, with decay on importance based on date
+			if (orderJpOccurrences != null) {hasData = true;	ftrCalcStats[_exampleType].setWSVal(orderCoeffIDX, aggregateJPOccs(orderJpOccurrences, orderCoeffIDX,FtrParams, dateOfOrder));}
+				//for links use same mechanism as orders - handle differences through weightings - aggregate every order occurrence, with decay on importance based on date
+			if (linkJpOccurrences != null) {hasData = true;		ftrCalcStats[_exampleType].setWSVal(linkCoeffIDX, aggregateJPOccs(linkJpOccurrences, linkCoeffIDX,FtrParams, dateOfOrder));	}
+				//user opts - these are handled differently - calcOptRes return of -9999 means negative opt specified for this jp alone (ignores negative opts across all jps) - should force total from eq for this jp to be ==0
+			if (optJpOccurrences != null) {	hasData = true;		ftrCalcStats[_exampleType].setWSVal(optCoeffIDX, calcOptRes(optJpOccurrences,FtrParams, dateOfOrder));}	
+			if (hasData) {calcObj.incrBnds(Straff_WeightCalc.bndAra_ProdJPsIDX,_exampleType,jpIDXs[Straff_WeightCalc.bndAra_ProdJPsIDX]);		}
+			float res = ftrCalcStats[_exampleType].getFtrValFromCalcs(optCoeffIDX, optOutSntnlVal);//(calcStats.workSpace[optCoeffIDX]==optOutSntnlVal);
+			return res;
+		}
 	}//calcFtrVal
 	
 	//////////////////

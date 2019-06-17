@@ -1,0 +1,8 @@
+# This file holds Strafford-specific configuration data pertaining to the training of the SOM in this directory
+# This data is here to override any default configuration data that may be loaded in from the project config file.
+#
+#	This is the name of the weight calc file used to train the SOM.  This file must be found in the subdirectory
+#	D:\Eclipse Workspace\eclipse workspace\SOM_StraffordExp\StraffordProject\config\CalcWtConfigs\
+#
+calcWtFileName,WeightEqConfig_allDecay_p01_p1wtOrdr
+#

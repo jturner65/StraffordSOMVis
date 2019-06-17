@@ -112,7 +112,7 @@ public class JP_OccurrenceData{
 	}//parseStringToOccVals
 	
 	//# of this type of event for this jp across all dates
-	public int getNumberOfOccurrences() {
+	public synchronized int getNumberOfOccurrences() {
 		int numOccs = 0;
 		for(TreeMap<Integer, Integer> valsAtDate : occurrences.values()) {for(Integer count : valsAtDate.values()) {		numOccs += count;}}		
 		return numOccs;

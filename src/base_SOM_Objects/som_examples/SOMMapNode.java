@@ -273,10 +273,13 @@ public abstract class SOMMapNode extends SOMExample{
 		}		
 	}//initNeighborMap()
 	
-	//build a structure to hold the SQ L2 distance between this map node and its neighbor map nodes
-	public final void buildMapNodeNeighborSqDistVals() {//only build immediate neighborhood
+	/**
+	 * build a structure to hold the SQ L2 distance between this map node and its neighbor map nodes, ftr-wise
+	 * @param mapNodes - map of all SOM map nodes
+	 */
+	public final void buildMapNodeNeighborSqDistVals(TreeMap<Tuple<Integer,Integer>, SOMMapNode> mapNodes) {//only build immediate neighborhood
 		neighborSqDistVals = new double[ftrMapTypeKeysAra.length][][];
-		TreeMap<Tuple<Integer,Integer>, SOMMapNode> mapNodes = mapMgr.getMapNodes();
+		//TreeMap<Tuple<Integer,Integer>, SOMMapNode> mapNodes = mapMgr.getMapNodes();
 		for(int ftrIDX = 0;ftrIDX<neighborSqDistVals.length;++ftrIDX) {
 			neighborSqDistVals[ftrIDX]=new double[neighborMapCoords.length][];
 			for(int row=0;row<neighborSqDistVals[ftrIDX].length;++row) {			
@@ -288,10 +291,13 @@ public abstract class SOMMapNode extends SOMExample{
 		}
 	}//buildMapNodeNeighborSqDistVals
 	
-	//2d array of all umatrix weights and L2 Distances for neighors of this node, for bi-cubic interp
-	public final void buildMapNodeNeighborUMatrixVals() {
+	/**
+	 * 2d array of all umatrix weights and L2 Distances for neighors of this node, for bi-cubic interp
+	 * @param mapNodes - map of all SOM map nodes
+	 */
+	public final void buildMapNodeNeighborUMatrixVals(TreeMap<Tuple<Integer,Integer>, SOMMapNode> mapNodes) {
 		neighborUMatWts = new float[neighborMapCoords.length][];				
-		TreeMap<Tuple<Integer,Integer>, SOMMapNode> mapNodes = mapMgr.getMapNodes();
+		//TreeMap<Tuple<Integer,Integer>, SOMMapNode> mapNodes
 		for(int row=0;row<neighborUMatWts.length;++row) {
 			neighborUMatWts[row]=new float[neighborMapCoords[row].length];			
 			for(int col=0;col<neighborUMatWts[row].length;++col) {
@@ -341,6 +347,7 @@ public abstract class SOMMapNode extends SOMExample{
 	
 	//add passed example to appropriate bmu construct depending on what type of example is passed (training, testing, product)
 	public void addTrainingExToBMUs(SOMExample ex, int _typeIDX) {
+		//same as adding any example
 		double sqDist = ex.get_sqDistToBMU();
 		BMUExampleNodes[_typeIDX].addExample(sqDist,ex);
 		hasMappedExamples[_typeIDX]=true;

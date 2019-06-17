@@ -11,7 +11,9 @@ import base_Utils_Objects.io.MsgCodes;
 
 
 /**
- * This class will map the BMUs as determined by SOM training code (loaded form bmu file) to each training example
+ * This class will map the BMUs as determined by SOM training code (loaded form bmu file) to each 
+ * training example - these bmus were not derived through distance calculations in this application, 
+ * but from provided bmu file built during SOM training.
  * @author john
  *
  */

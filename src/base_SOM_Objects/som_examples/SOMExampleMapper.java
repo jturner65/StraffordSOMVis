@@ -24,8 +24,7 @@ public abstract class SOMExampleMapper {
 	protected FileIOManager fileIO;
 		//struct maintaining complete project configuration and information from config files - all file name data and building needs to be done by this object
 	public static SOMProjConfigData projConfigData;	
-
-		//short name of example type
+		//short name of example type - this is application-specified, and may not coincide with ExDataType 
 	public final String exampleName;
 		//descriptive name of example type
 	public final String longExampleName;
@@ -99,14 +98,14 @@ public abstract class SOMExampleMapper {
 	/**
 	 * pre-condition all examples to prepare for building feature vectors, after pre-processed examples are loaded and all data values are aggregated but before any calculations are performed
 	 */	
-	public final void finalizeAllExamples() {
-		if(!getFlag(dataIsLoadedIDX)) {
+	public final boolean finalizeAllExamples() {
+		if((!getFlag(dataIsLoadedIDX)) || (exampleMap.size() == 0)) {
 			msgObj.dispMessage("SOMExampleMapper::"+exampleName,"finalizeAllExamples","Unable to finalizeAllExamples " + exampleName+ " examples due to them not having been loaded.  Aborting.", MsgCodes.warning1);
-			return;
+			return false;
 		} else if (getFlag(dataFtrsPreparedIDX)) {
 			msgObj.dispMessage("SOMExampleMapper::"+exampleName,"finalizeAllExamples","Data has already been finalized for " + exampleName+ " examples.", MsgCodes.warning1);
-			return;			
-		}
+			return false;			
+		} 
 		msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildFtrVec","Begin finalizing all " +exampleMap.size()+ " " + exampleName+ " examples to prepare them for ftr calc.", MsgCodes.info1);
 		//finalize each example - this will aggregate all the ftrs's that are seen in src data and prepare example for calculating ftr vector
 		for (SOMExample ex : exampleMap.values()) {			ex.finalizeBuildBeforeFtrCalc();		}	
@@ -114,15 +113,16 @@ public abstract class SOMExampleMapper {
 		setFlag(dataFtrsCalcedIDX, false);
 		setFlag(dataPostFtrsBuiltIDX, false);
 		msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildFtrVec","Finished finalizing all " +exampleMap.size()+ " " + exampleName+ " examples to prepare them for ftr calc.", MsgCodes.info1);
+		return true;
 	}//finalizeAllExamples()
 
 	/**
 	 * build feature vectors for all examples this object maps
 	 */
-	public final void buildFeatureVectors() {
+	public final boolean buildFeatureVectors() {
 		if(!getFlag(dataFtrsPreparedIDX)) {
 			msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildFtrVec","Unable to build feature vectors for " + exampleName+ " examples due to them not having been finalized.  Aborting.", MsgCodes.warning1);
-			return;
+			return false;
 		}
 		msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildFtrVec","Begin building feature vectors for " +exampleMap.size()+ " " + exampleName+ " examples.", MsgCodes.info1);
 		//instance-specific feature vector building
@@ -130,7 +130,7 @@ public abstract class SOMExampleMapper {
 		setFlag(dataFtrsCalcedIDX, true);
 		setFlag(dataPostFtrsBuiltIDX, false);
 		msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildFtrVec","Finished building feature vectors for " +exampleMap.size()+ " " + exampleName+ " examples.", MsgCodes.info1);
-		
+		return true;
 	}//buildFtrVec	
 	/**
 	 * code to execute after examples have had ftrs prepared - this calculates feature vectors
@@ -140,19 +140,20 @@ public abstract class SOMExampleMapper {
 	/** 
 	 * code to execute after every example has had ftr vectors calculated - this will calculate std-ized ftrs, along with other things
 	 */
-	public final void buildAfterAllFtrVecsBuiltStructs() {
+	public final boolean buildAfterAllFtrVecsBuiltStructs() {
 		if(!getFlag(dataFtrsCalcedIDX)) {
 			msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildAfterAllFtrVecsBuiltStructs","Unable to execute Post-feature calc process for " + exampleName+ " examples due to them not having had features calculated.  Aborting.", MsgCodes.warning1);
-			return;
+			return false;
 		} else if(getFlag(dataPostFtrsBuiltIDX)){
 			msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildAfterAllFtrVecsBuiltStructs","Post-feature calc process for " + exampleName+ " examples already executed.", MsgCodes.warning1);
-			return;
+			return false;
 		}
 		msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildPostFtrVecStructs","Begin building Post-feature vector data for " +exampleMap.size()+ " " + exampleName+ " examples.", MsgCodes.info1);
 		//instance-specific feature vector building - here primarily are the standardized feature vectors built
 		buildAfterAllFtrVecsBuiltStructs_Priv();
 		setFlag(dataPostFtrsBuiltIDX, true);
-		msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildPostFtrVecStructs","Finished building Post-feature vector data for " +exampleMap.size()+ " " + exampleName+ " examples.", MsgCodes.info1);		
+		msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildPostFtrVecStructs","Finished building Post-feature vector data for " +exampleMap.size()+ " " + exampleName+ " examples.", MsgCodes.info1);
+		return true;
 	}//buildFtrVec	
 	/**
 	 * code to execute after examples have had ftrs calculated - this will calculate std features and any alternate ftr mappings if used
