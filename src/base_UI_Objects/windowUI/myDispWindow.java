@@ -484,16 +484,6 @@ public abstract class myDispWindow {
 			stClkY += yOff;
 		}
 		uiClkCoords[3] = stClkY;	
-//			} else {			//horizontal row of UI components - clickable region y is unchanged, x changes with # of objects
-//				double stClkX = uiClkCoords[0];
-//				double UICompWidth;
-//				for(int i =0; i< guiObjs.length; ++i){
-//					UICompWidth = (uiWidthMult + (guiBoolVals[i][1] ? 1 : 0)) * guiObjNames[i].length();
-//					guiObjs[i] = buildGUIObj(i,guiObjNames[i],guiStVals[i], guiMinMaxModVals[i], guiBoolVals[i], new double[]{stClkX, uiClkCoords[1], stClkX+UICompWidth , uiClkCoords[3]},off);
-//					stClkX += UICompWidth;
-//				}
-//				uiClkCoords[2] = stClkX;	
-//			}
 	}//
 	
 	protected myGUIObj buildGUIObj(int i, String guiObjName, double guiStVal, double[] guiMinMaxModVals, boolean[] guiBoolVals, double[] xyDims, double[] off){
@@ -579,34 +569,6 @@ public abstract class myDispWindow {
 		res.add("");
 		return res;
 	}//
-	
-
-//	//take loaded params and process - stIdx will be idx of this window's name - move forward 1 to start on objects
-//	protected void hndlFileLoad(String[] vals, int[] stIdx){
-//		++stIdx[0];
-//		//set values for ui sliders
-//		while(!vals[stIdx[0]].contains(name + "_custUIComps")){
-//			if(vals[stIdx[0]].trim() != ""){	setValFromFileStr(vals[stIdx[0]]);	}
-//			++stIdx[0];
-//		}
-//		++stIdx[0];		
-//		//handle window-specific UI components, if any
-//		this.hndlFileLoadIndiv(vals, stIdx);
-//	}//hndlFileLoad
-//	
-//	//accumulate array of params to save
-//	protected ArrayList<String> hndlFileSave(){
-//		ArrayList<String> res = new ArrayList<String>();
-//		res.add(name);
-//		for(int i=0;i<guiObjs.length;++i){	res.add(getStrFromUIObj(i));}		
-//		//bound for custom components
-//		res.add(name + "_custUIComps");
-//		//call indiv handler
-//		res.addAll(hndlFileSaveIndiv());
-//		//add blank space
-//		res.add("");
-//		return res;
-//	}//
 	
 	public float calcOffsetScale(double val, float sc, float off){float res =(float)val - off; res *=sc; return res+=off;}
 	public double calcDBLOffsetScale(double val, float sc, double off){double res = val - off; res *=sc; return res+=off;}

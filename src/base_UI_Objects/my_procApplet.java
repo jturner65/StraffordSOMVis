@@ -17,7 +17,7 @@ import processing.core.PApplet;
 import processing.core.PConstants;
 import processing.event.MouseEvent;
 
-public abstract class my_procApplet extends PApplet {
+public abstract class my_procApplet extends PApplet implements IRenderInterface {
 	
 	protected int glblStartSimFrameTime,			//begin of draw
 		glblLastSimFrameTime,					//begin of last draw
