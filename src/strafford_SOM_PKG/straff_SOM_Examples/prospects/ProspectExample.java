@@ -242,20 +242,7 @@ public abstract class ProspectExample extends Straff_SOMExample{
 		}		
 	}//setAllMapNodeSegmentsAndProbs
 
-	
-	/**
-	 * get CSV string representation of segment membership data
-	 */
-	@Override
-	public String getCSVSegmentMembershipData() {
-		if((perJPMapNodeProbMap.size() == 0) || (perJPGroupMapNodeProbMap.size()==0)){ return "Example " + OID + " has no jp or jpgroup mappings.";}
-		String res = "" + OID + ",";
-		//prospect will have many jp probabilities, but only 1 bmu node mapped
 		
-		
-		return res;
-	}
-	
 	//return # of values in data map
 	protected final int getSizeOfDataMap(TreeMap<Date, TreeMap<Integer, StraffEvntRawToTrainData>> map) {
 		int res = 0;

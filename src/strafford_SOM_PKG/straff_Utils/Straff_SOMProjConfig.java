@@ -69,10 +69,10 @@ public class Straff_SOMProjConfig extends SOMProjConfigData {
 	}
 	
 	@Override
-	protected String getSegmentFileNamePrefix_Indiv(String segType) {
+	protected String getSegmentFileNamePrefix_Indiv(String segType, String fNamePrefix) {
 		switch(segType.toLowerCase()) {
-			case "nonprod_jps"  		: { return _getSegmentDirNameFromDirKey("Straff_SOM_NonProdJps");}
-			case "nonprod_jpgroups" 	: { return _getSegmentDirNameFromDirKey("Straff_SOM_NonProdJpGroups");}
+			case "nonprod_jps"  		: { return _getSegmentDirNameFromDirKey("Straff_SOM_NonProdJps","");}
+			case "nonprod_jpgroups" 	: { return _getSegmentDirNameFromDirKey("Straff_SOM_NonProdJpGroups","");}
 			default : {
 				msgObj.dispMessage("Straff_SOMProjConfig","getSegmentFileNamePrefix_Indiv","Unknown Segment Type " +segType.toLowerCase() +" so unable to build appropriate file name prefix.  Aborting.", MsgCodes.warning2);
 				return "";

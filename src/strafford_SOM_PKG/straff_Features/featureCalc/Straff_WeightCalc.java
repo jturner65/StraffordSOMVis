@@ -109,7 +109,7 @@ public class Straff_WeightCalc {
 		while (!foundDflt) {
 			if ((configDatList[idx].contains(SOMProjConfigData.fileComment)) || (configDatList[idx].trim() == "")) {++idx;			}
 			else {
-				msgObj.dispMessage("StraffWeightCalc","loadConfigAndSetVars", "First line after comments : " + configDatList[idx].trim(), MsgCodes.info1);
+				msgObj.dispMessage("StraffWeightCalc","_loadWtCalcConfig", "First line after comments : " + configDatList[idx].trim(), MsgCodes.info1);
 				strVals = configDatList[idx].trim().split(",");
 				if (strVals[0].toLowerCase().contains("default")) {	foundDflt = true;} 	//first non-comment/non-space is expected to be "default"
 				else {			return null;			}								//default values must be specified first in wt file!

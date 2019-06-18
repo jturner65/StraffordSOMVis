@@ -643,47 +643,51 @@ public abstract class SOMProjConfigData {
 		return resDir + configFileNames.get(fNameKey);		
 	}
 	
-	public String getClassSegmentFileNamePrefix() {	return getSegmentFileNamePrefix("class");	}
-	public String getCategorySegmentFileNamePrefix() {	return getSegmentFileNamePrefix("category");	}
-	public String getFtrWtSegmentFileNamePrefix() {	return getSegmentFileNamePrefix("ftrwt");	}
+	public String getClassSegmentFileNamePrefix() {	return getSegmentFileNamePrefix("class","");	}
+	public String getCategorySegmentFileNamePrefix() {	return getSegmentFileNamePrefix("category","");	}
+	public String getFtrWtSegmentFileNamePrefix() {	return getSegmentFileNamePrefix("ftrwt","");	}
+	public String getExampleToBMUFileNamePrefix(String _exTypeString) {	return getSegmentFileNamePrefix("example",_exTypeString);	}
 	
 	/**
 	 * segment report file name prefix - calling code needs to add segement identifier and extension
 	 * @param segType descriptive string of type of segment
 	 * @return fully qualified file name prefix corresponding to where desired segment should be saved/located
 	 */
-	public String getSegmentFileNamePrefix(String segType) {
-		
-		String dirKey;
+	public String getSegmentFileNamePrefix(String segType, String fNamePrefix) {	
 		switch(segType.toLowerCase()) {
 				//in config file : 
 				//		SOM_ProposalDir, "ProposalReports"
 				//		SOM_FtrProposalSubDir, "FeatureWeightProposals"
 				//		SOM_ClassProposalSubDir,"JobPracticeProposals"
 				//		SOM_CategoryProposalSubDir,"JobPracticGroupProposals"	
-			case "ftrwt" 	: {		return _getSegmentDirNameFromDirKey("SOM_FtrProposalSubDir"); 		}
-			case "class" 	: { 	return _getSegmentDirNameFromDirKey("SOM_ClassProposalSubDir");		}
-			case "category" : { 	return _getSegmentDirNameFromDirKey("SOM_CategoryProposalSubDir");	}
+			case "ftrwt" 	: {		return _getSegmentDirNameFromDirKey("SOM_FtrMappingsSubDir",fNamePrefix); 		}
+			case "class" 	: { 	return _getSegmentDirNameFromDirKey("SOM_ClassMappingsSubDir",fNamePrefix);		}
+			case "category" : { 	return _getSegmentDirNameFromDirKey("SOM_CategoryMappingsSubDir",fNamePrefix);	}
+			case "example" : {		return _getSegmentDirNameFromDirKey("SOM_ExampleToBMUMappingsSubDir",fNamePrefix);	}
 				//any instancing application-specific segment reports
-			default : {return getSegmentFileNamePrefix_Indiv(segType);}
+			default : {return getSegmentFileNamePrefix_Indiv(segType,fNamePrefix);}
 		}	
-	}
+	}//getSegmentFileNamePrefix
 	
-	protected String _getSegmentDirNameFromDirKey(String dirKey) {
+	protected String _getSegmentDirNameFromDirKey(String dirKey, String fNamePrefix) {
 		String ProposalBaseDir = getDirNameAndBuild(subDirLocs.get("SOM_ProposalDir"), true);
 		String [] tmpNow = getDateTimeString(false, "_");
-		String ProposalNowDir = getDirNameAndBuild(ProposalBaseDir, "proposals_"+tmpNow[1] +File.separator,true);
+		String ProposalNowDir = getDirNameAndBuild(ProposalBaseDir, "mappings_"+tmpNow[1] +File.separator,true);
 		String dirName = subDirLocs.get(dirKey);
 		String fileName = dirName.substring(0, dirName.length()-2);
-		return getDirNameAndBuild(ProposalNowDir, dirName, true) + fileName;		
-	}
+		if(fNamePrefix.trim().length() == 0) {
+			return getDirNameAndBuild(ProposalNowDir, dirName, true) + fileName;			
+		} else {
+			return getDirNameAndBuild(ProposalNowDir, dirName, true) + fNamePrefix+"_"+fileName;
+		}
+	}//_getSegmentDirNameFromDirKey
 	
 	/**
 	 * Instancing application-specific segment file name handling
 	 * @param segType descriptive string of type of segment
 	 * @return fully qualified file name prefix corresponding to where desired segment should be saved/located
 	 */
-	protected abstract String getSegmentFileNamePrefix_Indiv(String segType);
+	protected abstract String getSegmentFileNamePrefix_Indiv(String segType, String fNamePrefix);
 	
 	public String SOM_MapDat_ToString() {return SOMExeDat.toString();}
 	

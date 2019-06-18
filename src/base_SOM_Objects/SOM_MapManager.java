@@ -14,8 +14,9 @@ import base_SOM_Objects.som_segments.segments.SOM_FtrWtSegment;
 import base_SOM_Objects.som_segments.segments.SOM_UMatrixSegment;
 import base_SOM_Objects.som_ui.*;
 import base_SOM_Objects.som_utils.*;
-import base_SOM_Objects.som_utils.runners.MapExFtrCalcs_Runner;
-import base_SOM_Objects.som_utils.runners.MapExampleDataToBMUs_Runner;
+import base_SOM_Objects.som_utils.runners.SOM_CalcExFtrs_Runner;
+import base_SOM_Objects.som_utils.runners.SOM_MapExDataToBMUs_Runner;
+import base_SOM_Objects.som_utils.runners.SOM_SaveExToBMUs_Runner;
 import base_UI_Objects.*;
 import base_Utils_Objects.*;
 import base_Utils_Objects.io.FileIOManager;
@@ -52,8 +53,7 @@ public abstract class SOM_MapManager {
 	
 	//array of map clusters based in UMatrix Distance
 	protected ArrayList<SOM_MappedSegment> UMatrix_Segments;
-	//array of map clusters based on ftr distance
-	//public ArrayList<SOM_MapSegment> FtrWtSegments;
+	//array of map clusters based on ftr distance, keyed by Ftr IDX
 	protected TreeMap<Integer, SOM_MappedSegment> FtrWt_Segments;
 	
 	//////////////////
@@ -86,7 +86,7 @@ public abstract class SOM_MapManager {
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	//data descriptions
 	//this map of mappers will manage the different kinds of raw data.  the instancing class should specify the keys and instancing members for this map
-	protected ConcurrentSkipListMap<String, SOMExampleMapper> exampleDataMappers;	
+	protected ConcurrentSkipListMap<String, SOMExampleManager> exampleDataMappers;	
 	
 	//full input data, data set to be training data and testing data (all of these examples 
 	//are potential -training- data, in that they have all features required of training data)
@@ -138,7 +138,7 @@ public abstract class SOM_MapManager {
 	protected float mapMadeWithFtrWtSegThresh = 0.0f;
 	
 	private int[] stFlags;						//state flags - bits in array holding relevant process info
-	private static final int
+	public static final int
 			debugIDX 					= 0,
 			isMTCapableIDX				= 1,
 			SOMmapNodeDataLoadedIDX		= 2,			//som map data is cleanly loaded
@@ -195,7 +195,7 @@ public abstract class SOM_MapManager {
 		}
 		
 		//data mappers - eventually will replace all example maps, and will derive all training data arrays
-		exampleDataMappers = new ConcurrentSkipListMap<String, SOMExampleMapper>();
+		exampleDataMappers = new ConcurrentSkipListMap<String, SOMExampleManager>();
 		//build mappers that will manage data read from disk in order to calculate features and build data arrays used by SOM
 		buildExampleDataMappers();
 		
@@ -306,11 +306,11 @@ public abstract class SOM_MapManager {
 		getMsgObj().dispMessage("SOMMapManager","_ftrVecBuild : " + exType + " Examples","Begin "+exs.size()+" example processing.", MsgCodes.info1);
 		boolean canMultiThread=isMTCapable() && !forceST;//if false this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
 		//if((canMultiThread) && (exs.size()>0)) {//MapExFtrCalcs_Runner.rawNumPerPartition*10)){
-		if((canMultiThread) && (exs.size()>MapExFtrCalcs_Runner.rawNumPerPartition*10)){//force all to be single threaded - something is not working with multi-threaded customer ftr calc
+		if((canMultiThread) && (exs.size()>SOM_CalcExFtrs_Runner.rawNumPerPartition*10)){//force all to be single threaded - something is not working with multi-threaded customer ftr calc
 			//MapExFtrCalcs_Runner(SOMMapManager _mapMgr, ExecutorService _th_exec, SOMExample[] _exData, String _dataTypName, ExDataType _dataType, int _typeOfProc)
 			//shuffling examples to attempt to spread out calculations more evenly - the examples that require the alt comp vector calc are expensive to calculate
 			//should not be multithread until concurrency issue pertaining to ftr calc can be determined
-			MapExFtrCalcs_Runner calcRunner = new MapExFtrCalcs_Runner(this, th_exec, shuffleTrainingData(exs.toArray(new SOMExample[0]),12345L) , exType, _typeOfProc, false);
+			SOM_CalcExFtrs_Runner calcRunner = new SOM_CalcExFtrs_Runner(this, th_exec, shuffleTrainingData(exs.toArray(new SOMExample[0]),12345L) , exType, _typeOfProc, false);
 			calcRunner.runMe();
 		} else {//called after all features of this kind of object are built - this calculates alternate compare object
 			int curIDX = 0, ttlNum = exs.size(), modAmt = ttlNum/10;
@@ -727,9 +727,10 @@ public abstract class SOM_MapManager {
 			msgObj.dispMessage("SOMMapManager","saveClassSegment_BMUReport","Class Segments Not yet built, so cannot save report.  Aborting", MsgCodes.info5);
 			return;
 		}
+		String classFileNamePrefix = projConfigData.getClassSegmentFileNamePrefix();
 		msgObj.dispMessage("SOMMapManager","saveClassSegment_BMUReport","Start saving "+Class_Segments.size()+" class segments", MsgCodes.info5);
-		_saveSegmentReports(Class_Segments,projConfigData.getClassSegmentFileNamePrefix());
-		_saveBMU_SegmentReports("class" ,projConfigData.getClassSegmentFileNamePrefix());
+		_saveSegmentReports(Class_Segments, classFileNamePrefix);
+		_saveBMU_SegmentReports("class", classFileNamePrefix);
 		
 		msgObj.dispMessage("SOMMapManager","saveClassSegment_BMUReport","Finished saving "+Class_Segments.size()+" class segments", MsgCodes.info5);
 	}
@@ -739,17 +740,20 @@ public abstract class SOM_MapManager {
 			return;
 		}
 		msgObj.dispMessage("SOMMapManager","saveCategorySegment_BMUReport","Start saving "+Category_Segments.size()+" category segments", MsgCodes.info5);
-		_saveSegmentReports(Category_Segments,projConfigData.getCategorySegmentFileNamePrefix());
-		_saveBMU_SegmentReports("category" ,projConfigData.getCategorySegmentFileNamePrefix());
+		String catFileNamePrefix = projConfigData.getCategorySegmentFileNamePrefix();
+		_saveSegmentReports(Category_Segments, catFileNamePrefix);
+		_saveBMU_SegmentReports("category", catFileNamePrefix);
 		msgObj.dispMessage("SOMMapManager","saveCategorySegment_BMUReport","Finished saving "+Category_Segments.size()+" category segments", MsgCodes.info5);
 	}
 	public void saveFtrWtSegment_BMUReport(){		
 		buildFtrWtSegmentsOnMap();
+		String ftrWtFileNamePrefix = projConfigData.getFtrWtSegmentFileNamePrefix();
 		msgObj.dispMessage("SOMMapManager","saveFtrWtSegment_BMUReport","Start saving " + FtrWt_Segments.size() + " Feature weight segments.", MsgCodes.info5);
-		_saveSegmentReports(FtrWt_Segments,projConfigData.getFtrWtSegmentFileNamePrefix());
-		_saveBMU_SegmentReports("ftrwt" ,projConfigData.getFtrWtSegmentFileNamePrefix());
+		_saveSegmentReports(FtrWt_Segments, ftrWtFileNamePrefix);
+		_saveBMU_SegmentReports("ftrwt", ftrWtFileNamePrefix);
 		msgObj.dispMessage("SOMMapManager","saveFtrWtSegment_BMUReport","Finished saving " + FtrWt_Segments.size() + " Feature weight segments.", MsgCodes.info5);    
 	}
+	
 	
 	/**
 	 * save specified segment report information - per-segment file of bmu participation and # of participating examples per bmu (if appropriate)
@@ -762,8 +766,8 @@ public abstract class SOM_MapManager {
 		String frmtStr = "%0"+numFrmt+"d";
 		ArrayList<String> csvDataToMap;
 		for(Integer segKey : _segments.keySet()) {
-			String fileName = _fileNamePrefix + "_"+ String.format(frmtStr, segKey) + ".csv";			
 			SOM_MappedSegment seg = _segments.get(segKey);
+			String fileName = _fileNamePrefix + "_"+ String.format(frmtStr, segKey) + ".csv";			
 			csvDataToMap = seg.buildBMUMembership_CSV();
 			fileIO.saveStrings(fileName, csvDataToMap);			
 		}		
@@ -784,30 +788,15 @@ public abstract class SOM_MapManager {
 	
 	/**
 	 * save example to bmu mappings for passed array of example data
-	 * @param exData
+	 * @param exData examples to save bmu mappings for
 	 * @param dataTypName
 	 */
-	protected void saveExamplesToBMUMappings(SOMExample[] exData, String dataTypName) {
+	protected void saveExamplesToBMUMappings(SOMExample[] exData, String dataTypName, int _rawNumPerParition) {
 		msgObj.dispMessage("SOMMapManager","saveExamplesToBMUMappings","Start Saving " +exData.length + " "+dataTypName+" bmu mappings to file.", MsgCodes.info5);
-		if(exData.length > 0) {//save passed example data 
-//			boolean canMultiThread=isMTCapable();//if false this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
-//			if((canMultiThread) && (exData.length>MapExFtrCalcs_Runner.rawNumPerPartition*10)){
-//
-//				//save all data in multiple threads
-//			int numData = exData.length;
-//			
-//				
-//				
-//				
-//				
-//			} else {
-				String fileName ="";
-				ArrayList<String> outStrs = new ArrayList<String>();
-				outStrs.add(exData[0].getBMU_NHoodHdr_CSV());
-				for(SOMExample ex : exData) {	outStrs.add(ex.getBMU_NHoodMbrship_CSV());}	
-				fileIO.saveStrings(fileName, outStrs);	
-//			}
-				
+		String _fileNamePrefix = projConfigData.getExampleToBMUFileNamePrefix(dataTypName);
+		if(exData.length > 0) {
+			SOM_SaveExToBMUs_Runner saveRunner = new SOM_SaveExToBMUs_Runner(this, th_exec, exData, dataTypName, false, _fileNamePrefix,_rawNumPerParition);
+			saveRunner.runMe();				
 		} else {			msgObj.dispMessage("SOMMapManager","saveExamplesToBMUMappings","No "+dataTypName+" examples so cannot save bmus. Aborting.", MsgCodes.warning5);	return;	}
 		msgObj.dispMessage("SOMMapManager","saveExamplesToBMUMappings","Finished Saving " +exData.length + " "+dataTypName+" bmu mappings to file.", MsgCodes.info5);
 	}//saveExamplesToBMUMappings
@@ -840,7 +829,7 @@ public abstract class SOM_MapManager {
 		msgObj.dispMessage("SOMMapManager","_setExamplesBMUs","Start Mapping " +exData.length + " "+dataTypName+" data to best matching units.", MsgCodes.info5);
 		if(exData.length > 0) {		
 			//launch a MapTestDataToBMUs_Runner to manage multi-threaded calc
-			MapExampleDataToBMUs_Runner rnr = new MapExampleDataToBMUs_Runner(this, th_exec, exData, dataTypName, dataType, _rdyToSaveFlagIDX, false);	
+			SOM_MapExDataToBMUs_Runner rnr = new SOM_MapExDataToBMUs_Runner(this, th_exec, exData, dataTypName, dataType, _rdyToSaveFlagIDX, false);	
 			rnr.runMe();
 		} else {			msgObj.dispMessage("SOMMapManager","_setExamplesBMUs","No "+dataTypName+" data to map to BMUs. Aborting.", MsgCodes.warning5);	return;	}
 		msgObj.dispMessage("SOMMapManager","_setExamplesBMUs","Finished Mapping " +exData.length + " "+dataTypName+" data to best matching units.", MsgCodes.info5);
@@ -848,7 +837,7 @@ public abstract class SOM_MapManager {
 	
 	//call 1 time for any particular type of data - all _exs should have their bmu's set by now
 	//this will set the bmu lists for each map node to include the mapped examples
-	public void _completeBMUProcessing(SOMExample[] _exs, ExDataType dataType, boolean isMT) {
+	public synchronized void _completeBMUProcessing(SOMExample[] _exs, ExDataType dataType, boolean isMT) {
 		msgObj.dispMessage("SOMMapManager","_completeBMUProcessing","Start completion of " +_exs.length + " "+dataType.getName()+" data bmu mappings - assign to BMU's example collection and finalize.", MsgCodes.info5);
 		int dataTypeVal = dataType.getVal();
 		for(SOMMapNode mapNode : MapNodes.values()){mapNode.clearBMUExs(dataTypeVal);addExToNodesWithNoExs(mapNode, dataType);}		//must be done synchronously always	

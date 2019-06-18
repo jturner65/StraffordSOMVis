@@ -490,12 +490,6 @@ public abstract class SOMMapNode extends SOMExample{
 	public String getPreProcDescrForCSV() {	return "Should not save SOMMapNode to intermediate CSV";}
 	@Override
 	public String getRawDescColNamesForCSV() {return "Do not save SOMMapNode to intermediate CSV";}
-	/**
-	 * get CSV string representation of segment membership data - map nodes don't use this since they 
-	 * are not currently saved-  instead they are queried to determine specific segment membership based on segment type
-	 */
-	@Override
-	public String getCSVSegmentMembershipData() {return "Should not query SOMMapNode for segment membership data.";}
 
 	//map nodes do not use finalize
 	@Override

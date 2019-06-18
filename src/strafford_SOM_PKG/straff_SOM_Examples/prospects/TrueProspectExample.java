@@ -4,7 +4,6 @@ import java.util.*;
 
 import base_SOM_Objects.SOM_MapManager;
 import base_SOM_Objects.som_examples.*;
-import strafford_SOM_PKG.straff_Features.featureCalc.Straff_WeightCalc;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.*;
 import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.events.StraffEvntRawToTrainData;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
@@ -114,13 +113,14 @@ public class TrueProspectExample extends ProspectExample{
 	public synchronized final void buildCompFtrVector(float _ratio) {
 		//ratio needs to be [0..1], is ratio of compValMaps value to ftr value
 		if((_ratio <=0) && (ftrMaps[0].size()>0)) {compFtrMaps = ftrMaps;}
+		//if no features then just use complete comValFtrDataMaps
 		else {  
-			//if no features then just use complete comValFtrDataMaps
+			calcCompValMaps();
 			if((_ratio >= 1) || (ftrMaps[0].size()==0)){
 				//call here since this will most likely need to be built for true prospects
 				if(this.nonProdJpgJps.size() > maxNumNonProdJps) {maxNumNonProdJps = this.nonProdJpgJps.size();}
 				++NumTPWithNoFtrs;
-				calcCompValMaps();compFtrMaps = compValFtrDataMaps;		//this is very slow	
+				compFtrMaps = compValFtrDataMaps;		//this is very slow	
 				//compFtrMaps = ftrMaps;
 			} else {
 				clearAllCompFtrMaps();
@@ -139,6 +139,7 @@ public class TrueProspectExample extends ProspectExample{
 				}//for map idx
 			}//if ration >= 1 else
 		}
+		if(compFtrMaps[0].size() == 0) {setIsBadExample(true);	} //if nothing to compare to, then this is a bad example
 	}//buildCompFtrVector
 	@Override
 	//standardize this feature vector - across each feature, set value to be between 0 and 1

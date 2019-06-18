@@ -72,19 +72,23 @@ SOM_ProdSuggest,"PerProdSuggestions"
 SOM_ProposalDir, "ProposalReports"
 #
 #	sub-subdir to put ftr IDX propsals
-SOM_FtrProposalSubDir, "FeatureWeightProposals"
+SOM_FtrMappingsSubDir, "FeatureWeightMappings"
 #
 #	sub-subdir to put per-class(order jps mapped to map nodes) proposals
-SOM_ClassProposalSubDir,"JobPracticeProposals"
+SOM_ClassMappingsSubDir,"JobPracticeMappings"
 #
 #	sub-subdir to put per-category(order jpgroups mapped to map nodes) proposals
-SOM_CategoryProposalSubDir,"JobPracticGroupProposals"
+SOM_CategoryMappingsSubDir,"JobPracticGroupMappings"
 #
-#	sub-subdir to put non-prod-jp segment reports
+#	sub-sub-dir to put prospect to bmu mappings
+SOM_ExampleToBMUMappingsSubDir,"ProspectToBMUMappings"
+#
+#	sub-subdir to put non-prod-jp segment reports TODO
 Straff_SOM_NonProdJps,"NonProductJPSegmentReports"
 #
-#	sub-subdir to put non-prod-jpgroup segment reports
+#	sub-subdir to put non-prod-jpgroup segment reports TODO
 Straff_SOM_NonProdJpGroups,"NonProductJPGroupSegmentReports"
+#
 #
 #END SUBDIR DEFS
 #BEGIN MISC GLOBAL VARS

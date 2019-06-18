@@ -17,9 +17,8 @@ import strafford_SOM_PKG.straff_SOM_Examples.Straff_SOMExample;
 import strafford_SOM_PKG.straff_SOM_Examples.products.ProductExample;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.CustProspectExample;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
-
-import strafford_SOM_PKG.straff_SOM_Mapping.exampleMappers.*;
-import strafford_SOM_PKG.straff_SOM_Mapping.exampleMappers.base.Straff_SOMProspectMapper;
+import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.*;
+import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.base.Straff_SOMProspectManager;
 
 /**
  * this class manages the loading of the raw data from either csv or from sql queries (TODO: SQL not implemented yet)
@@ -180,7 +179,7 @@ public class Straff_SOMRawDataLdrCnvrtr {
 	// process raw data	
 	
 	//process all events into training examples
-	private void procRawEventData(Straff_SOMProspectMapper mapper, ConcurrentSkipListMap<String, ArrayList<BaseRawData>> dataArrays, boolean saveBadRecs) {			
+	private void procRawEventData(Straff_SOMProspectManager mapper, ConcurrentSkipListMap<String, ArrayList<BaseRawData>> dataArrays, boolean saveBadRecs) {			
 		msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","procRawEventData","Start processing raw event data.", MsgCodes.info5);
 		String dataName;
 		int dataTypeIDX;
@@ -220,7 +219,7 @@ public class Straff_SOMRawDataLdrCnvrtr {
 	}//procRawEventData
 	
 	//convert raw tc taggings table data to product examples
-	private void procRawProductData(Straff_SOMProductMapper prodMapper, ArrayList<BaseRawData> tcTagRawData) {
+	private void procRawProductData(Straff_SOMProductManager prodMapper, ArrayList<BaseRawData> tcTagRawData) {
 		msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","procRawProductData","Starting to process Raw Product Data.", MsgCodes.info5);
 		for (BaseRawData tcDat : tcTagRawData) {
 			ProductExample ex = new ProductExample(mapMgr, (TcTagData)tcDat);
@@ -232,7 +231,7 @@ public class Straff_SOMRawDataLdrCnvrtr {
 	}//procRawProductData
 	
 	//this will go through all the prospects and events and build a map of prospectExample keyed by prospect OID and holding all the known data
-	public void procRawLoadedData(Straff_SOMProspectMapper prspctMapper, Straff_SOMProductMapper prodMapper) {
+	public void procRawLoadedData(Straff_SOMProspectManager prspctMapper, Straff_SOMProductManager prodMapper) {
 		msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","procRawLoadedData","Start Processing all loaded raw data", MsgCodes.info5);
 		//load all prospects from source
 		ArrayList<BaseRawData> prospects = rawDataArrays.get(straffDataDirNames[prspctIDX]);

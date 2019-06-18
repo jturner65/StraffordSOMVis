@@ -16,8 +16,8 @@ import strafford_SOM_PKG.straff_SOM_Examples.products.ProductExample;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.ProspectExample;
 
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
-import strafford_SOM_PKG.straff_SOM_Mapping.exampleMappers.*;
-import strafford_SOM_PKG.straff_SOM_Mapping.exampleMappers.base.Straff_SOMCustPrspctMapper_Base;
+import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.*;
+import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.base.Straff_SOMCustPrspctManager_Base;
 
 //this class will monitor presence and counts of jpgroups and jps
 //in training data for map
@@ -84,7 +84,7 @@ public class MonitorJpJpgrp {
 	//When acquiring new data, this must be performed after all data is loaded, but before
 	//the prospect data is finalized and actual map is built due to the data finalization 
 	//requiring a knowledge of the entire dataset to build weights appropriately
-	public void setJPDataFromExampleData(Straff_SOMCustPrspctMapper_Base customerMapper, Straff_SOMTruePrspctMapper prospectMapper, Straff_SOMProductMapper prdctMapper) {
+	public void setJPDataFromExampleData(Straff_SOMCustPrspctManager_Base customerMapper, Straff_SOMTruePrspctManager prospectMapper, Straff_SOMProductManager prdctMapper) {
 		initAllStructs();
 		msgObj.dispMessage("MonitorJpJpgrp","setJPDataFromExampleData","State after init : " + this.toString(), MsgCodes.info1);
 		

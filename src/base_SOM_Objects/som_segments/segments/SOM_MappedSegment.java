@@ -140,6 +140,6 @@ public abstract class SOM_MappedSegment {
 	 * @return
 	 */
 	protected abstract String _buildBMUMembership_CSV_Hdr();	
-	
+		
 	
 }//class SOMMapSegment

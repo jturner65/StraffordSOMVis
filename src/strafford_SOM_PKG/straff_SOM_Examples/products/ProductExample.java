@@ -109,19 +109,6 @@ public class ProductExample extends Straff_SOMExample{
 		}		
 	}//setAllMapNodeSegmentsAndProbs
 	
-	/**
-	 * get CSV string representation of segment membership data
-	 */
-	@Override
-	public String getCSVSegmentMembershipData() {
-		if((perJPMapNodeProbMap.size() == 0) || (perJPGroupMapNodeProbMap.size()==0)){ return "Example " + OID + " has no jp or jpgroup mappings.";}
-		String res = "" + OID + ",";
-		//product will have 1 or 2 jps, and many nodes mapped
-		
-		
-		return res;
-	}
-
 	//call this before any data loading that will over-write the existing product examples is performed
 	public static void initAllStaticProdData() {
 		ordrWtAraPerSize = new float[100];	//100 is arbitrary but much more than expected # of jps per product. dont expect a product to have anywhere near this many jps

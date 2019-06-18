@@ -150,10 +150,6 @@ public abstract class SOMExample extends baseDataPtVis{
 	 * set this example's segment membership and probabilities from the mapped bmu - class/category label-driven examples won't use this function
 	 */
 	public abstract void setSegmentsAndProbsFromBMU();
-	/**
-	 * get CSV string representation of segment membership data
-	 */
-	public abstract String getCSVSegmentMembershipData();
 
 	//clear instead of reinstance - if ftr maps are cleared then compFtrMaps should be cleared as well
 	protected synchronized void clearAllFtrMaps() {for (int i=0;i<ftrMaps.length;++i) {	clearFtrMap(i);}}	
@@ -853,7 +849,11 @@ public abstract class SOMExample extends baseDataPtVis{
 	public String getBMU_NHoodMbrship_CSV() {
 		String res = ""+OID+",";
 		if(null==bmu) {return res + "No Mapped BMU For this example";}
-		res += ""+String.format("%.8f", _sqDistToBMU)+","+bmu.mapNodeCoord.toCSVString()+",";
+		//res += ""+String.format("%.8f", _sqDistToBMU)+","+bmu.mapNodeCoord.toCSVString()+",";  //1st entry is bmu
+		if((mapNodeNghbrs == null) || (mapNodeNghbrs.size() == 0)){
+			mapMgr.getMsgObj().dispInfoMessage("SOMExample", "getBMU_NHoodMbrship_CSV", "Error!!!! No mapNodeNghbrs exists or is size 0 for example ID : " + OID);
+			return res;
+		}
 		for(Double _dist : mapNodeNghbrs.keySet()) {
 			String distRes = ""+String.format("%.8f", _dist)+",";
 			ArrayList<SOMMapNode> _list = mapNodeNghbrs.get(_dist);
@@ -869,7 +869,7 @@ public abstract class SOMExample extends baseDataPtVis{
 	public String getBMU_NHoodHdr_CSV() {
 		String res = "OID,Sq Dist to BMU, BMU Map Loc,";
 		//add heading for each neighbor
-		for(int i =0;i<mapNodeNghbrs.size();++i) {	res +="Sq Dist to Nbr Map Node, Neighbor Node Map Loc,";		}
+		for(int i =0;i<8;++i) {	res +="Sq Dist to Nbr Map Node, Neighbor Node Map Loc,";		}
 		return res;
 	}//getBMU_NHoodHdr_CSV()
 
