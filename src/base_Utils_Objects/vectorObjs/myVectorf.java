@@ -153,6 +153,22 @@ public class myVectorf extends myPointf{
 		
 		return res;		
 	}
+	public myVectorf rotMeAroundAxis(myVectorf u, double thet){		
+		double cThet = Math.cos(thet), sThet = Math.sin(thet), oneMC = 1-cThet,
+				ux2 = u.x*u.x, uy2 = u.y*u.y, uz2 = u.z*u.z,
+				uxy = u.x * u.y, uxz = u.x * u.z, uyz = u.y*u.z,
+				uzS = u.z*sThet, uyS = u.y*sThet, uxS = u.x*sThet,
+				uxzC1 = uxz *oneMC, uxyC1 = uxy*oneMC, uyzC1 = uyz*oneMC;
+		//build rot matrix in vector def
+		myVectorf res = new myVectorf(
+				(ux2*oneMC+cThet) * this.x + (uxyC1-uzS) 		* this.y + (uxzC1+uyS) *this.z,
+				(uxyC1+uzS) 	  * this.x + (uy2*oneMC+cThet)* this.y + (uyzC1-uxS) *this.z,
+				(uxzC1-uyS) 	  * this.x + (uyzC1+uxS)		* this.y + (uz2*oneMC + cThet) * this.z);
+		
+		return res;		
+	}
+
+	
 	/**
 	 * alternate formulation of above?
 	 * @param U

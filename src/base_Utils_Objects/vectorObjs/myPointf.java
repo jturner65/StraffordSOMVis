@@ -72,6 +72,8 @@ public class myPointf {
 	
 	public float[] asArray(){return new float[]{x,y,z};}
 	public double[] asDblArray(){return new double[]{x,y,z};}
+	public float[] asHAraPt(){return new float[]{this.x, this.y, this.z,1};}
+	public float[] asHAraVec(){return new float[]{this.x, this.y, this.z,0};}
 	
 	public void showMeSphere(IRenderInterface pa, float r) {
 		pa.pushMatrix();	pa.pushStyle();

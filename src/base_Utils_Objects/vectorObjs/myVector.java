@@ -13,6 +13,7 @@ public class myVector extends myPoint{
 	public static final myVector FORWARD = new myVector(1,0,0);
 	
 	public myVector(double _x, double _y, double _z){super(_x,_y,_z); this._mag();}         //constructor 3 args  
+	public myVector(double [] v){super(v[0],v[1],v[2]);this._mag();} 
 	public myVector(myVector p){ this(p.x, p.y, p.z); }                                                                                                           	//constructor 1 arg  
 	public myVector(myVectorf p){ this(p.x, p.y, p.z); }                                                                                                           	//constructor 1 arg  
 	public myVector(){ }//this(0,0,0);}                                                                                                                               //constructor 0 args
@@ -88,7 +89,6 @@ public class myVector extends myPoint{
 	public static double _dist(myVector q, myVector r){  return Math.sqrt(((r.x - q.x) *(r.x - q.x)) + ((r.y - q.y) *(r.y - q.y)) + ((r.z - q.z) *(r.z - q.z)));}
 	
 	public static double _dist(myVector r, double qx, double qy, double qz){  return Math.sqrt(((r.x - qx) *(r.x - qx)) + ((r.y - qy) *(r.y - qy)) + ((r.z - qz) *(r.z - qz)));}	
-	
 	
 	public static myVector _elemMult(myVector a, myVector b){return new myVector(a.x*b.x, a.y*b.y, a.z*b.z);}
 	public static myVector _elemDiv(myVector a, myVector b){return new myVector(a.x/b.x, a.y/b.y, a.z/b.z);}
@@ -172,7 +172,21 @@ public class myVector extends myPoint{
 		
 		return res;		
 	}
-	
+	public myVector rotMeAroundAxis(myVector u, double thet){		
+		double cThet = Math.cos(thet), sThet = Math.sin(thet), oneMC = 1-cThet,
+				ux2 = u.x*u.x, uy2 = u.y*u.y, uz2 = u.z*u.z,
+				uxy = u.x * u.y, uxz = u.x * u.z, uyz = u.y*u.z,
+				uzS = u.z*sThet, uyS = u.y*sThet, uxS = u.x*sThet,
+				uxzC1 = uxz *oneMC, uxyC1 = uxy*oneMC, uyzC1 = uyz*oneMC;
+		//build rot matrix in vector def
+		myVector res = new myVector(
+				(ux2*oneMC+cThet) * this.x + (uxyC1-uzS) 		* this.y + (uxzC1+uyS) *this.z,
+				(uxyC1+uzS) 	  * this.x + (uy2*oneMC+cThet)* this.y + (uyzC1-uxS) *this.z,
+				(uxzC1-uyS) 	  * this.x + (uyzC1+uxS)		* this.y + (uz2*oneMC + cThet) * this.z);
+		
+		return res;		
+	}
+
 	/**
 	 * returns if this vector is equal to passed vector
 	 * @param b vector to check

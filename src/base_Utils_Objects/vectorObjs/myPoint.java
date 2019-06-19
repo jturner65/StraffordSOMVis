@@ -27,11 +27,10 @@ public class myPoint {
 	public myPoint set(myPoint p){ this.x = p.x; this.y = p.y; this.z = p.z; return this;}                                                                   //set 1 args
 	public void set(double _x, double _y, double _z, double _sqMagn){ this.x = _x;  this.y = _y;  this.z = _z; }                                                                     //set 3 args 
 	
-	public myPoint _mult(double n){ this.x *= n; this.y *= n; this.z *= n; return this; }                                                     //_mult 3 args  
-	
 	public myPoint _avgWithMe(myPoint q) {return new myPoint((this.x+q.x)/2.0,(this.y+q.y)/2.0,(this.z+q.z)/2.0);} 
 	public static myPoint _average(myPoint p, myPoint q) {return new myPoint((p.x+q.x)/2.0,(p.y+q.y)/2.0,(p.z+q.z)/2.0);} 
 	
+	public myPoint _mult(double n){ this.x *= n; this.y *= n; this.z *= n; return this; }                                                     //_mult 3 args  
 	public static myPoint _mult(myPoint p, double n){ return new myPoint(p.x * n, p.y * n, p.z * n);}                          //1 pt, 1 double
 	public static myPoint _mult(myPoint p, myPoint q){ return new myPoint(p.x *q.x, p.y * q.y, p.z * q.z);}           //return elementwise product
 	public static void _mult(myPoint p, myPoint q, myPoint r){ myPoint result = new myPoint(p.x *q.x, p.y * q.y, p.z * q.z); r.set(result);}           //2 pt src, 1 pt dest  
@@ -70,6 +69,8 @@ public class myPoint {
 	public static double _dist(myPoint r, double qx, double qy, double qz){  return Math.sqrt(((r.x - qx) *(r.x - qx)) + ((r.y - qy) *(r.y - qy)) + ((r.z - qz) *(r.z - qz)));}	
 	
 	public double[] asArray(){return new double[]{x,y,z};}
+	public double[] asHAraPt(){return new double[]{this.x, this.y, this.z,1};}
+	public double[] asHAraVec(){return new double[]{this.x, this.y, this.z,0};}
 	public float[] asFltArray(){return new float[]{(float)x,(float)y,(float)z};}
 	
 	public void showMeSphere(IRenderInterface pa, float r) {
@@ -96,8 +97,6 @@ public class myPoint {
 		}
 		pa.popStyle();		pa.popMatrix();	
 	}//showMe
-
-
 	
 	public boolean clickIn(myPoint p, double eps) { return(_dist(p) < eps);}
 	/**
