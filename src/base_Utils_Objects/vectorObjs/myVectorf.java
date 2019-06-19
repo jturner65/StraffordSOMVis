@@ -20,15 +20,27 @@ public class myVectorf extends myPointf{
 	public myVectorf(myPointf a, myPointf b){this(b.x-a.x,b.y-a.y,b.z-a.z);}			//vector from a->b
 	public myVectorf(myPoint a, myPointf b){this(b.x-a.x,b.y-a.y,b.z-a.z);}			//vector from a->b
 	public myVectorf(myPoint a, myPoint b){this(b.x-a.x,b.y-a.y,b.z-a.z);}			//vector from a->b
-	public myVectorf(myPointf a){this(a.x,a.y,a.z);}			//vector from 0->a
-	
+	public myVectorf(myPointf a){this(a.x,a.y,a.z);}			//vector from 0->a	
 	public myVectorf(myVectorf a, float _y, myVectorf b) {super(a,_y,b);this._mag();	}//interp cnstrctr
+	/**
+	 * build unit vector copies
+	 * @param v
+	 * @return
+	 */
+	public static myVectorf _unit(myVectorf v){myVectorf u = new myVectorf(v); return u._normalize(); }
+	public static myVectorf _unit(myVectorf v, float d, myVectorf u){myVectorf r = new myVectorf(v,d,u); return r._normalize(); }
+	public static myVectorf _unit(myPointf a, myPointf b){myVectorf u = new myVectorf(a,b); return u._normalize(); }	
+	public static myVectorf _unitFromPoint(myPointf v){myVectorf u = new myVectorf(v); return u._normalize(); }
+	
 	public void clear() {super.clear();this.magn = 0; this.sqMagn=0;}
 	public void set(float _x, float _y, float _z){ super.set(_x, _y, _z); this._mag(); }                                               //set 3 args 
 	public void set(double _x, double _y, double _z){ this.set((float)_x,(float)_y,(float)_z); }                                               //set 3 args 
 	public void set(myVectorf p){ this.x = p.x; this.y = p.y; this.z = p.z;  this._mag();}                                                                   //set 1 args
 	public void set(myPointf p, myPointf q){ this.x = q.x - p.x; this.y = q.y - p.y; this.z = q.z - p.z;  this._mag();}                                                                   //set 1 args
 	public void set(float _x, float _y, float _z, float _sqMagn){ super.set(_x, _y, _z); this.sqMagn = _sqMagn; }                                                                     //set 3 args 
+
+	public myVectorf _avgWithMe(myVectorf q) {return new myVectorf((this.x+q.x)/2.0f,(this.y+q.y)/2.0f,(this.z+q.z)/2.0f);} 
+	public static myVectorf _average(myVectorf p, myVectorf q) {return new myVectorf((p.x+q.x)/2.0f,(p.y+q.y)/2.0f,(p.z+q.z)/2.0f);} 
 	
 	public myVectorf _mult(float n){ super._mult(n); this._mag(); return this; }                                                     //_mult 3 args  
 	public myVectorf _mult(double n){ super._mult((float)n); this._mag(); return this; }                                                     //_mult 3 args  
@@ -80,15 +92,43 @@ public class myVectorf extends myPointf{
 	public static myVectorf _cross(myVectorf a, myVectorf b){		return a._cross(b);}
 	public static myVectorf _cross(float ax, float ay, float az, float bx, float by, float bz){		return new myVectorf((ay*bz)-(az*by), (az*bx)-(ax*bz), (ax*by)-(ay*bx));}
 	
+	public float _dot(myVectorf b){return ((this.x * b.x) + (this.y * b.y) + (this.z * b.z));}
+	public static float _dot(myVectorf a, myVectorf b){		return a._dot(b);}
+	
 	
 	public static myVectorf _elemMult(myVectorf a, myVectorf b){return new myVectorf(a.x*b.x, a.y*b.y, a.z*b.z);}
 	public static myVectorf _elemDiv(myVectorf a, myVectorf b){return new myVectorf(a.x/b.x, a.y/b.y, a.z/b.z);}
 	
 	public static float _det3(myVectorf U, myVectorf V) {float udv = U._dot(V); return (float)(Math.sqrt(U._dot(U)*V._dot(V) - (udv*udv))); };                                // U|V det product
 	public static float _mixProd(myVectorf U, myVectorf V, myVectorf W) {return U._dot(myVectorf._cross(V,W)); };
-	public float _dot(myVectorf b){return ((this.x * b.x) + (this.y * b.y) + (this.z * b.z));}
-	public static float _dot(myVectorf a, myVectorf b){		return a._dot(b);}
-	
+	public static boolean _isCW_Vecs(myVectorf U, myVectorf V, myVectorf W) {return _mixProd(U,V,W)>0; };                                               // U * (VxW)>0  U,V,W are clockwise
+	/**
+	 * area of triangle described by 3 points 
+	 * @param A, B, C Triangle verts
+	 * @return area of proscribed triangle
+	 */
+	public static float area(myPointf A, myPointf B, myPointf C) {	myVectorf x = new myVectorf(A,B), y = new myVectorf(A,C), z = x._cross(y); 	return z.magn/2.0f; };                                               // area of triangle 
+
+	/**
+	 * returns volume of tetrahedron defined by A,B,C,D
+	 * @param A,B,C,D verts of tet
+	 * @return volume
+	 */
+	public static float _volume(myPointf A, myPointf B, myPointf C, myPointf D) {return _mixProd(new myVectorf(A,B),new myVectorf(A,C),new myVectorf(A,D))/6.0f; };                           // volume of tet 
+	/**
+	 *  returns true if tet is oriented so that A sees B, C, D clockwise
+	 * @param A,B,C,D verts of tet
+	 * @return if tet is oriented clockwise (A->B->C->D)
+	 */
+	public static boolean _isCW_Tet(myPointf A, myPointf B, myPointf C, myPointf D) {return _volume(A,B,C,D)>0; };                                     // tet is oriented so that A sees B, C, D clockwise 
+	/**
+	 * if passed vectors are parallel
+	 * @param U
+	 * @param V
+	 * @return
+	 */
+	public static boolean isParallel(myVectorf U, myVectorf V) {return U._cross(V).magn<U.magn*V.magn*0.00001; }                              // true if U and V are almost parallel
+
 	public static float _angleBetween(myVectorf v1, myVectorf v2) {
 		float 	_v1Mag = v1._mag(), 
 				_v2Mag = v2._mag(), 
@@ -113,7 +153,23 @@ public class myVectorf extends myPointf{
 		
 		return res;		
 	}
-	
+	/**
+	 * alternate formulation of above?
+	 * @param U
+	 * @param V
+	 * @return
+	 */	
+	public static float _angleBetween_Xprod(myVectorf U, myVectorf V){
+		myVectorf cross = U._cross(V);
+		double dot = U._dot(V);
+		
+		float angle = (float) Math.atan2(cross.magn,dot),
+				sign = _mixProd(U,V,new myVectorf(0,0,1));
+		if(sign<0){    angle=-angle;}	
+		return angle;
+	}
+
+
 	/**
 	 * returns if this vector is equal to passed vector
 	 * @param b vector to check

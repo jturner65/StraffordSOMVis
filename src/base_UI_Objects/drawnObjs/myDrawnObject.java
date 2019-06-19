@@ -3,8 +3,10 @@ package base_UI_Objects.drawnObjs;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import base_UI_Objects.IRenderInterface;
 import base_UI_Objects.my_procApplet;
-import base_Utils_Objects.vectorObjs.cntlPt;
+import base_Utils_Objects.MyMathUtils;
+import base_Utils_Objects.vectorObjs.myCntlPt;
 import base_Utils_Objects.vectorObjs.myPoint;
 import base_Utils_Objects.vectorObjs.myVector;
 import processing.core.PApplet;
@@ -13,7 +15,7 @@ import processing.core.PConstants;
 public abstract class myDrawnObject {
 	public static my_procApplet pa;
 
-	public int fillClr, strkClr;
+	public int[] fillClr, strkClr;
 	public float len;								//length of object
 	protected static final int numReps = 4;				//default number of repetitions of subdivid/tuck/untuck
 	
@@ -25,7 +27,7 @@ public abstract class myDrawnObject {
 	protected float[] dpts;						//array holding distance to each point from beginning
 	
 	//beautiful pts
-	public cntlPt[] cntlPts;						//control points describing object, if used	
+	public myCntlPt[] cntlPts;						//control points describing object, if used	
 	
 	protected float[] d_cntlPts;
 	protected float cntl_len;
@@ -90,7 +92,7 @@ public abstract class myDrawnObject {
 		swI_Typ = linear_int;
 		sbI_Typ = linear_int;
 		c_nAra = new myVector[0];c_tAra = new myVector[0];c_bAra = new myVector[0];
-		COM = pa.P();COV = pa.P();
+		COM = new myPoint();COV = new myPoint();
 //		flags[firstDrawn] = true;
 	}
 	
@@ -196,13 +198,13 @@ public abstract class myDrawnObject {
 	}//buildCntlFrameVecAras
 		
 	//sets required info for points array - points and dist between pts, length, etc
-	protected void setCPts(ArrayList<cntlPt> tmp){
-		cntlPts = tmp.toArray(new cntlPt[0]);
+	protected void setCPts(ArrayList<myCntlPt> tmp){
+		cntlPts = tmp.toArray(new myCntlPt[0]);
 		d_cntlPts = getPtDist(cntlPts, false);	
 		cntl_len=length(cntlPts, false);
 	}//setPts	
 	//make a new point interpolated between either 2 or 3 points in pts ara, described by # of idxs
-	public cntlPt makeNewPoint(cntlPt[] pts, int[] idxs, float s){	return _Interp(pts[idxs[0]], s, (idxs.length == 2 ? pts[idxs[1]] : _Interp(pts[idxs[1]],.5f,pts[idxs[2]], lnI_Typ)),lnI_Typ );	}
+	public myCntlPt makeNewPoint(myCntlPt[] pts, int[] idxs, float s){	return _Interp(pts[idxs[0]], s, (idxs.length == 2 ? pts[idxs[1]] : _Interp(pts[idxs[1]],.5f,pts[idxs[2]], lnI_Typ)),lnI_Typ );	}
 	/**
 	 * process all points using passed algorithm on passed array of points - not all args are used by all algs.
 	 * @param _typ type of point processing
@@ -212,8 +214,8 @@ public abstract class myDrawnObject {
 	 * @param wrap whether the point list wraps around or not
 	 * @return arraylist of processed points
 	 */	
-	public ArrayList<cntlPt> procCntlPt(int _typ, cntlPt[] pts, float val, float _len){
-		ArrayList<cntlPt> tmp = new ArrayList<cntlPt>(); // temporary array
+	public ArrayList<myCntlPt> procCntlPt(int _typ, myCntlPt[] pts, float val, float _len){
+		ArrayList<myCntlPt> tmp = new ArrayList<myCntlPt>(); // temporary array
 		switch(_typ){
 			case _subdivide	:{
 			    for(int i = 0; i < pts.length-1; ++i){tmp.add(pts[i]); for(int j=1;j<val;++j){tmp.add(makeNewPoint(pts,new int[]{i,i+1}, (j/(val))));}}
@@ -242,27 +244,31 @@ public abstract class myDrawnObject {
 	//end cntlmyPoint related
 	//normals, tangents, binormals at each point
 	public myVector[] buildNormals(myPoint[] _pts){
-		ArrayList<myVector> tmp = new ArrayList<myVector>();				
-		for(int i =0; i<_pts.length; ++i){tmp.add(pa.U(canvasNorm));	}		//make normal the canvas normal
+		ArrayList<myVector> tmp = new ArrayList<myVector>();
+		for(int i =0; i<_pts.length; ++i){tmp.add(canvasNorm._normalized());	}		//make normal the canvas normal
 		return tmp.toArray(new myVector[0]);
-	}
+	}	
+		
+
 	public myVector[] buildTangents(myPoint[] _pts, boolean close){
 		ArrayList<myVector> tmp = new ArrayList<myVector>();
-		for(int i=0; i<_pts.length-1; ++i){tmp.add(pa.U(_pts[i], _pts[i+1]));}
-		if(close){tmp.add(pa.U(_pts[_pts.length-1], _pts[0]));}
-		else {tmp.add(pa.U(_pts[_pts.length-2], _pts[_pts.length-1]));}
+		for(int i=0; i<_pts.length-1; ++i){tmp.add(myVector._unit(_pts[i], _pts[i+1]));}
+		if(close){tmp.add(myVector._unit(_pts[_pts.length-1], _pts[0]));} 
+		else {tmp.add(myVector._unit(_pts[_pts.length-2], _pts[_pts.length-1]));}
 		return tmp.toArray(new myVector[0]);
 	}	
 	public myVector[] buildBinormals(myPoint[] _pts, myVector[] n_ara, myVector[] t_ara){//build last
 		ArrayList<myVector> tmp = new ArrayList<myVector>();
-		for(int i=0; i<_pts.length; ++i){tmp.add(pa.U(pa.N(n_ara[i],t_ara[i])));}
+		for(int i=0; i<_pts.length; ++i){tmp.add((n_ara[i]._cross(t_ara[i]))._normalize());}
 		return tmp.toArray(new myVector[0]);
 	}
 
 	//find location of center of verts
-	public myPoint calcCOV(){myPoint C = pa.P();for(int i=0;i<pts.length;++i){C._add(pts[i]);}myPoint Ct = pa.P(1.0f/pts.length,C); COV=pa.P(Ct);return COV;}
+	//public myPoint calcCOV(){myPoint C = new myPoint();for(int i=0;i<pts.length;++i){C._add(pts[i]);} myPoint Ct = pa.P(1.0f/pts.length,C); COV=pa.P(Ct);return COV;}
+	public myPoint calcCOV(){myPoint C = new myPoint();for(int i=0;i<pts.length;++i){C._add(pts[i]);} myPoint Ct = myPoint._mult(C,1.0f/pts.length); COV=new myPoint(Ct);return COV;}
 	//find COV of passed verts
-	public myPoint calcCOVOfAra(myPoint[] pts){myPoint C = pa.P();for(int i=0;i<pts.length;++i){C._add(pts[i]);}myPoint Ct = pa.P(1.0f/pts.length,C); return Ct;}
+	//public myPoint calcCOVOfAra(myPoint[] pts){myPoint C = pa.P();for(int i=0;i<pts.length;++i){C._add(pts[i]);}myPoint Ct = pa.P(1.0f/pts.length,C); return Ct;}
+	public myPoint calcCOVOfAra(myPoint[] pts){myPoint C = new myPoint();for(int i=0;i<pts.length;++i){C._add(pts[i]);}myPoint Ct = myPoint._mult(C,1.0f/pts.length); return Ct;}
 
 	
 	/**
@@ -273,7 +279,7 @@ public abstract class myDrawnObject {
 	 * @return interpolated myVectortor
 	 */
 	public myVector getInterpVec(int idxA, float s, int idxB, myVector[] vAra, int interpMech){return _Interp(vAra[idxA], s, vAra[idxB], interpMech);}
-	public myVector getUInterpVec(int idxA, float s, int idxB, myVector[] vAra, int interpMech){return pa.U(_Interp(vAra[idxA], s, vAra[idxB], interpMech));}
+	public myVector getUInterpVec(int idxA, float s, int idxB, myVector[] vAra, int interpMech){return (_Interp(vAra[idxA], s, vAra[idxB], interpMech))._normalize();}
 	
 	/**
 	 * using arc length parameterisation this will return a point along the curve at a 
@@ -295,8 +301,8 @@ public abstract class myDrawnObject {
 		return pts[0];
 	}//at	
 	
-	public cntlPt at_C(float t, cntlPt[] pts){float[] _dpts = this.getPtDist(pts, false);float _len = this.length(pts, false);return at_C(t,new float[1], _len, pts, _dpts);}//put interpolant between adjacent axis points in s ara if needed
-	public cntlPt at_C(float t, float[] s, float _len, cntlPt[] pts, float[] _dpts){//call directly if wanting interpolant between adj axis points too
+	public myCntlPt at_C(float t, myCntlPt[] pts){float[] _dpts = this.getPtDist(pts, false);float _len = this.length(pts, false);return at_C(t,new float[1], _len, pts, _dpts);}//put interpolant between adjacent axis points in s ara if needed
+	public myCntlPt at_C(float t, float[] s, float _len, myCntlPt[] pts, float[] _dpts){//call directly if wanting interpolant between adj axis points too
 		if(t<0){PApplet.println("In at : t="+t+" needs to be [0,1]");return pts[0];} else if (t>1){PApplet.println("In at : t="+t+" needs to be [0,1]");return pts[pts.length-1];}
 		float dist = t * _len;
 		for(int i=0; i<_dpts.length-1; ++i){										//built off dpts so that it will get wrap for closed curve
@@ -305,7 +311,7 @@ public abstract class myDrawnObject {
 				return makeNewPoint(pts,new int[]{i,((i+1)%pts.length)}, s[0]);		//put interpolant between adjacent axis points in s ara if needed		
 			}			
 		}		
-		return new cntlPt(pa);
+		return new myCntlPt(pa);
 	}//at_C	
 	
 	/**
@@ -318,17 +324,17 @@ public abstract class myDrawnObject {
 	 */
 	protected myPoint _Interp(myPoint A, float s, myPoint B, int _typ){
 		switch (_typ){
-			case linear_int : {	return pa.L(A, s, B);}
+			case linear_int : {	return new myPoint(A, s, B);}
 			//add more cases for different interpolation		
-			default : {	return pa.L(A, s, B);}			//defaults to linear
+			default : {	return new myPoint(A, s, B);}			//defaults to linear
 		}	
 	}//_Interp
 	//same as above, but with myVectortors
 	protected myVector _Interp(myVector A, float s, myVector B, int _typ){
 		switch (_typ){
-			case linear_int : {	return pa.V(A, s, B);}
+			case linear_int : {	return new myVector(A, s, B);}
 			//add more cases for different interpolation		
-			default : {	return pa.V(A, s, B);}			//defaults to linear
+			default : {	return new myVector(A, s, B);}			//defaults to linear
 		}	
 	}//_Interp
 	//same as above but with doubles
@@ -339,19 +345,19 @@ public abstract class myDrawnObject {
 			default : {	return (1-s)*A + (s*B);}			//defaults to linear
 		}	
 	}//_Interp
-	protected cntlPt _Interp(cntlPt A, float s, cntlPt B, int _typ){
+	protected myCntlPt _Interp(myCntlPt A, float s, myCntlPt B, int _typ){
 		switch (_typ){
-			case linear_int : {	return cntlPt.L(A, s, B);}
+			case linear_int : {	return myCntlPt.L(A, s, B);}
 			//add more cases for different interpolation		
-			default : {	return cntlPt.L(A, s, B);}			//defaults to linear
+			default : {	return myCntlPt.L(A, s, B);}			//defaults to linear
 		}	
 	}//_Interp	
 
 	//draw currently selected point
 	public void drawSelPoint(int i ){
 		pa.pushMatrix();		pa.pushStyle();
-		pa.stroke(255,255,0,255);
-		if(flags[usesCntlPts]){pa.show(cntlPts[i], 3);} else {pa.show(pts[i], 3);}
+		pa.setStroke(new int[] {255,255,0},255);
+		if(flags[usesCntlPts]){cntlPts[i].showMeSphere(pa, 3.0f);} else {pts[i].showMeSphere(pa, 3.0f);}
 		pa.popStyle();		pa.popMatrix();
 	}
 	
@@ -359,14 +365,14 @@ public abstract class myDrawnObject {
 	public abstract void rebuildPolyPts();
 
 	//makes a copy of the points in order
-	public myPoint[] cpyPoints(myPoint[] pts){myPoint[] tmp = new myPoint[pts.length]; for(int i=0; i<pts.length; ++i){	tmp[i]=pa.P(pts[i]);}	return tmp;}//cpyPoints
+	public myPoint[] cpyPoints(myPoint[] pts){myPoint[] tmp = new myPoint[pts.length]; for(int i=0; i<pts.length; ++i){	tmp[i]=new myPoint(pts[i]);}	return tmp;}//cpyPoints
 	//makes a copy of the points in order
-	public cntlPt[] cpyPoints(cntlPt[] pts){cntlPt[] tmp = new cntlPt[pts.length]; for(int i=0; i<pts.length; ++i){	tmp[i]=new cntlPt(pts[i]);}	return tmp;}//cpyPoints
+	public myCntlPt[] cpyPoints(myCntlPt[] pts){myCntlPt[] tmp = new myCntlPt[pts.length]; for(int i=0; i<pts.length; ++i){	tmp[i]=new myCntlPt(pts[i]);}	return tmp;}//cpyPoints
 
 	//move points by the passed myVectortor 
 	public myPoint[] movePoints(myVector move, myPoint[] pts){for(int i =0; i<pts.length; ++i){	pts[i]._add(move);	}	return pts;}	
 	//move points by the passed myVectortor 
-	public cntlPt[] movePoints(myVector move, cntlPt[] pts){for(int i =0; i<pts.length; ++i){	pts[i]._add(move);	}	return pts;}	
+	public myCntlPt[] movePoints(myVector move, myCntlPt[] pts){for(int i =0; i<pts.length; ++i){	pts[i]._add(move);	}	return pts;}	
 	//flip the passed points and move them based on the displacement from the passed movement myVectortor
 //	public myPoint[] flipPtsAndMove(myDrawnObject _obj, myPoint[] pts, myVector move,  myVector covAxis){
 //		myPoint[] tmp = movePoints(move, cpyPoints(pts));
@@ -374,11 +380,11 @@ public abstract class myDrawnObject {
 //	}//flipPtsAndMove
 //	//flip the passed cntlpts and move them based on the displacement from the passed movement myVectortor
 //	public cntlPt[] flipPtsAndMove(myDrawnObject _obj, cntlPt[] pts, myVector move,  myVector covAxis, boolean reverse){
-//		cntlPt[] tmp = movePoints(move, (reverse ? rotPtsAroundCOV(pts, PApplet.PI, _obj.COV, pa.U(_obj.canvasNorm), covAxis) : cpyPoints(pts)));
+//		cntlPt[] tmp = movePoints(move, (reverse ? rotPtsAroundCOV(pts, PApplet.PI, _obj.COV, U(_obj.canvasNorm), covAxis) : cpyPoints(pts)));
 //		return tmp;
 //	}//flipPtsAndMove
 	//set this object's points to be passed points, for copying
-	public void setPtsToArrayList(cntlPt[] pts){ArrayList<cntlPt> tmp = new ArrayList<cntlPt>(Arrays.asList(pts));setCPts(tmp);}	
+	public void setPtsToArrayList(myCntlPt[] pts){ArrayList<myCntlPt> tmp = new ArrayList<myCntlPt>(Arrays.asList(pts));setCPts(tmp);}	
 	//set this object's points to be passed points, for copying
 	public void setPtsToArrayList(myPoint[] pts){ArrayList<myPoint> tmp = new ArrayList<myPoint>(Arrays.asList(pts));setPts(tmp);}	
 
@@ -387,21 +393,21 @@ public abstract class myDrawnObject {
 	//should make mirror image of pts
 	public myPoint[] rotPtsAroundCOV(myPoint[] pts, float angle, myPoint cov, myVector _canvasNorm, myVector _covNorm){//need to pass canvas norm since it cannot be static
 		ArrayList<myPoint> tmp = new ArrayList<myPoint>();//				res.get(sl)[i] = pa.R(old, sliceA, canvasNorm, bv, myPointOnAxis);
-		for(int i=0; i<pts.length; ++i){tmp.add(pa.R(pts[i], angle, pa.V(_canvasNorm), _covNorm, cov));}
+		for(int i=0; i<pts.length; ++i){tmp.add(pa.R(pts[i], angle, new myVector(_canvasNorm), _covNorm, cov));}
 		return tmp.toArray(new myPoint[0]);			
 	}//	
 	//rotate points around axis that is xprod of canvas norm and the lstroke cov to the rstroke cov myVector at stroke cov.
 	//should make mirror image of pts
-	public cntlPt[] rotPtsAroundCOV(cntlPt[] pts, float angle, myPoint cov, myVector _canvasNorm, myVector _covNorm){//need to pass canvas norm since it cannot be static
-		ArrayList<cntlPt> tmp = new ArrayList<cntlPt>();//				res.get(sl)[i] = pa.R(old, sliceA, canvasNorm, bv, myPointOnAxis);
-		for(int i=0; i<pts.length; ++i){tmp.add(pa.R(pts[i], angle, pa.V(_canvasNorm), _covNorm, cov));}
-		return tmp.toArray(new cntlPt[0]);			
+	public myCntlPt[] rotPtsAroundCOV(myCntlPt[] pts, float angle, myPoint cov, myVector _canvasNorm, myVector _covNorm){//need to pass canvas norm since it cannot be static
+		ArrayList<myCntlPt> tmp = new ArrayList<myCntlPt>();//				res.get(sl)[i] = pa.R(old, sliceA, canvasNorm, bv, myPointOnAxis);
+		for(int i=0; i<pts.length; ++i){tmp.add(pa.R(pts[i], angle, new myVector(_canvasNorm), _covNorm, cov));}
+		return tmp.toArray(new myCntlPt[0]);			
 	}//	
 	//finds index of point with largest projection on passed myVectortor in passed myPoint ara
 	protected int findLargestProjection(myVector v, myPoint c, myPoint[] pts){
 		double prjLen = -1, d;
 		int res = -1;
-		for(int i=0; i<pts.length; ++i){d = myVector._dot(v,pa.V(c, pts[i]));if(d > prjLen){prjLen = d;res = i;}}	
+		for(int i=0; i<pts.length; ++i){d = myVector._dot(v,new myVector(c, pts[i]));if(d > prjLen){prjLen = d;res = i;}}	
 		return res;
 	}//findLargestProjection : largest projection on passed myVectortor in passed myPoint ara		
 	
@@ -430,9 +436,9 @@ public abstract class myDrawnObject {
 	public void drawMe() {
 		pa.pushMatrix();
 		pa.pushStyle();
-		pa.setColorValFill(fillClr);
-		pa.setColorValStroke(strkClr);
-			pa.strokeWeight(1);
+		pa.setFill(fillClr,255);
+		pa.setStroke(strkClr,255);
+			pa.setStrokeWt(1.0f);
 //			if(flags[useProcCurve]){pa.show(pts);} 
 //			else {			
 				pa.curve(pts);
@@ -451,15 +457,15 @@ public abstract class myDrawnObject {
 	//should make mirror image of pts
 	public myPoint[] rotPtsAroundCOV(myPoint[] _pts, double angle, myPoint cov, myVector _canvasNorm, myVector _covNorm){//need to pass canvas norm since it cannot be static
 		ArrayList<myPoint> tmp = new ArrayList<myPoint>();//				res.get(sl)[i] = pa.R(old, sliceA, canvasNorm, bv, ptOnAxis);
-		for(int i=0; i<_pts.length; ++i){tmp.add(pa.R(_pts[i], angle, pa.V(_canvasNorm), _covNorm, cov));}
+		for(int i=0; i<_pts.length; ++i){tmp.add(pa.R(_pts[i], angle, new myVector(_canvasNorm), _covNorm, cov));}
 		return tmp.toArray(new myPoint[0]);			
 	}//	
 	//rotate points around axis that is xprod of canvas norm and the lstroke cov to the rstroke cov vec at stroke cov.
 	//should make mirror image of pts
-	public cntlPt[] rotPtsAroundCOV(cntlPt[] _pts, double angle, myPoint cov, myVector _canvasNorm, myVector _covNorm){//need to pass canvas norm since it cannot be static
-		ArrayList<cntlPt> tmp = new ArrayList<cntlPt>();//				res.get(sl)[i] = pa.R(old, sliceA, canvasNorm, bv, ptOnAxis);
-		for(int i=0; i<_pts.length; ++i){tmp.add(pa.R(_pts[i], angle, pa.V(_canvasNorm), _covNorm, cov));}
-		return tmp.toArray(new cntlPt[0]);			
+	public myCntlPt[] rotPtsAroundCOV(myCntlPt[] _pts, double angle, myPoint cov, myVector _canvasNorm, myVector _covNorm){//need to pass canvas norm since it cannot be static
+		ArrayList<myCntlPt> tmp = new ArrayList<myCntlPt>();//				res.get(sl)[i] = pa.R(old, sliceA, canvasNorm, bv, ptOnAxis);
+		for(int i=0; i<_pts.length; ++i){tmp.add(pa.R(_pts[i], angle, new myVector(_canvasNorm), _covNorm, cov));}
+		return tmp.toArray(new myCntlPt[0]);			
 	}//		
 	
 	//returns array of distances to each point from beginning - needs to retain dist from last vert to first if closed
@@ -488,7 +494,7 @@ public abstract class myDrawnObject {
 	public final float length(myPoint[] pts, boolean closed){float res = 0;for(int i =0; i<pts.length-1; ++i){res += (float)myPoint._dist(pts[i],pts[i+1]);}if(closed){res+=(float)myPoint._dist(pts[pts.length-1],pts[0]);}return res;}
 
 
-	public void drawCOV(){		if(COV == null) {return;}		pa.pushMatrix();		pa.pushStyle();	pa.stroke(255,0,255,255);		pa.show(COV,3);		pa.popStyle();		pa.popMatrix();	}
+	public void drawCOV(){		if(COV == null) {return;}		pa.pushMatrix();		pa.pushStyle();	pa.setStroke(new int[] {255,0,255},255);		COV.showMeSphere(pa, 3.0f);		pa.popStyle();		pa.popMatrix();	}
 	//drawCntlRad
 	public myPoint getPt(int i){return pts[i];}
 	
@@ -502,7 +508,7 @@ public abstract class myDrawnObject {
 
 
 class myVariStroke extends myDrawnObject {
-
+ 
 	protected final int numVerts = 200;							
 
 	public int offsetType;						//1:Q-bspline w/normal offset, 2:Q-bspline w/ball offset, 3:Q-bspline w/radial offset
@@ -522,13 +528,13 @@ class myVariStroke extends myDrawnObject {
 	public float[] d_interpPts;					//distance between interpolated points
 	public float interpLen;						//len of interp pts
 	
-	public myVariStroke(my_procApplet _pa, myVector _canvNorm, int fillClrCnst, int strkClrCnst) {
+	public myVariStroke(my_procApplet _pa, myVector _canvNorm, int[] _fillClr, int[] _strkClr) {
 		super(_pa, _canvNorm);
 		flags[isClosed] = false;	
-		fillClr = fillClrCnst;
-		strkClr= strkClrCnst;
+		fillClr = _fillClr;
+		strkClr= _strkClr;
 		flags[drawCntlRad] = true;
-	    cntlPts = new cntlPt[0];
+	    cntlPts = new myCntlPt[0];
 	    interpCntlPts = new myPoint[0];
 		_offset = new myNormOffset(_pa);
 		flags[usesCntlPts] = true;
@@ -539,10 +545,10 @@ class myVariStroke extends myDrawnObject {
 
 	//as drawing, add points to -cntlPoints-, not pts array.
 	public void addPt(myPoint p){
-		ArrayList<cntlPt> tmp = new ArrayList<cntlPt>(Arrays.asList(cntlPts));
+		ArrayList<myCntlPt> tmp = new ArrayList<myCntlPt>(Arrays.asList(cntlPts));
 		int i = tmp.size()-1;
 		if(i > 0 ){tmp.get(i).w = calcCntlWeight(p,tmp.get(i),tmp.get(i-1));}//previous point's weight 
-		cntlPt tmpPt = new cntlPt(pa, p);
+		myCntlPt tmpPt = new myCntlPt(pa, p);
 		tmp.add(tmpPt);
 		setCPts(tmp);
 	}//
@@ -586,17 +592,17 @@ class myVariStroke extends myDrawnObject {
 		cntlPtIntrps = dualFloats(cntlPtIntrps);
 		cmyPointInterps = dualFloats(cmyPointInterps);
 		
-		interpCntlPts[0] = pa.P(cntlPts[0]);			//set first point
-		drawnCntlPts[0] = pa.P(cntlPts[0]);
+		interpCntlPts[0] = new myPoint(cntlPts[0]);			//set first point
+		drawnCntlPts[0] = new myPoint(cntlPts[0]);
 		double distStToEnd = myPoint._dist(cntlPts[0], cntlPts[cntlPts.length-1]);			//distance from first to last point
 		
 		for(int i=1;i<cntlPts.length;++i){
-			interpCntlPts[i] = pa.P(interpCntlPts[i-1],pa.W(distStToEnd * cmyPointInterps[i], c_tAra[i]));		
-			drawnCntlPts[i] = pa.P(cntlPts[i]);
+			interpCntlPts[i] = new myPoint(interpCntlPts[i-1],myVector._mult( c_tAra[i],distStToEnd * cmyPointInterps[i]));		
+			drawnCntlPts[i] = new myPoint(cntlPts[i]);
 		}	
 		for(int i= cntlPts.length; i<numIntCntlPts; ++i){
-			interpCntlPts[i] = pa.P(interpCntlPts[i-1],pa.W(distStToEnd * cmyPointInterps[i], c_tAra[c_tAra.length-1]));		
-			drawnCntlPts[i] = pa.P(cntlPts[cntlPts.length-1]);
+			interpCntlPts[i] = new myPoint(interpCntlPts[i-1],myVector._mult(c_tAra[c_tAra.length-1],distStToEnd * cmyPointInterps[i]));		
+			drawnCntlPts[i] = new myPoint(cntlPts[cntlPts.length-1]);
 			
 		}
 		d_interpPts = getPtDist(interpCntlPts, false);	
@@ -659,9 +665,11 @@ class myVariStroke extends myDrawnObject {
 			float divMultVal = (idx > drawnTrajPickedIdx) ? invdistHigh:invdistLow;
 			modAmt = pa.trajDragScaleAmt* PApplet.cos((idx-drawnTrajPickedIdx) * PConstants.HALF_PI * divMultVal);//trajDragScaleAmt/abs(1 + (idx-drawnTrajPickedIdx));
 			//modAmt *= modAmt;
-			pts[idx]._add(pa.W(modAmt,dispVec));
+			pts[idx]._add(myVector._mult(dispVec,modAmt));
 		}
 	}
+
+	
 	//scale points to be a scaleAmt * current distance from line of myPoint a -> myPoint b
 	public void scalePointsAboveAxis(myPoint a, myPoint b, myVector perpVec, double scaleAmt){
 		myPoint[] pts = getDrawnPtAra(false);//, newPts = new myPoint[pts.length];\
@@ -676,12 +684,12 @@ class myVariStroke extends myDrawnObject {
 		double dist;
 		//pa.outStr2Scr("cntlPts size at scalePointsAboveAxis : " + pts.length,true);
 		for(int i =0; i<numPoints; ++i){
-			dist = pa.distToLine(pts[i], a,b);
+			dist = MyMathUtils.distToLine(pts[i], a,b);
 			//if(Double.isNaN(dist)){dist = 0;}
-			myPoint pointOnLine = pa.projectionOnLine(pts[i], a,b);
-			myVector resVec = pa.V(dist*scaleAmt,pa.U(pointOnLine,pts[i]));
+			myPoint pointOnLine = MyMathUtils.projectionOnLine(pts[i], a,b);
+			myVector resVec = myVector._mult(myVector._unit(pointOnLine,pts[i]),dist*scaleAmt);
 			//pa.outStr2Scr("cntlPts : st : dist*scale : "+ (dist*scaleAmt)+" dist : "+ (dist)+" scale : "+ (scaleAmt)+" stPoint : " + pts[i].toStrBrf() + " | linePt : " + pointOnLine.toStrBrf() + " | resVec : " +resVec.toStrBrf() ,true);
-			pts[i].set(pa.P(pointOnLine, resVec));
+			pts[i].set(new myPoint(pointOnLine, resVec));
 		}
 		//pa.outStr2Scr("cntlPts size at scalePointsAboveAxis end : " + pts.length,true);
 //		for(int i =0; i<newPts.length; ++i){
@@ -749,8 +757,7 @@ class myVariStroke extends myDrawnObject {
 	}
 
 	public myPoint at_I(float t){return at(t,new float[1], interpLen, interpCntlPts, d_interpPts);}//put interpolant between adjacent points in s ara if needed
-	public myPoint at_I(float t, float[] s){	return at(t,s, interpLen, interpCntlPts, d_interpPts);}//put interpolant between adjacent points in s ara if needed
-	
+	public myPoint at_I(float t, float[] s){	return at(t,s, interpLen, interpCntlPts, d_interpPts);}//put interpolant between adjacent points in s ara if needed	
 	
 	private void buildPtsFromCntlPts(){
 		ArrayList<myPoint> tmp =  _offset.calcOffset(cntlPts, c_bAra, c_tAra) ;
@@ -793,9 +800,9 @@ class myVariStroke extends myDrawnObject {
 	public void drawMe(boolean useDrawnVels, boolean flat){
 		pa.pushMatrix();
 		pa.pushStyle();
-			pa.setColorValFill(fillClr);
-			pa.setColorValStroke(strkClr);
-			pa.strokeWeight(1);
+			pa.setFill(fillClr,255);
+			pa.setStroke(strkClr,255);
+			pa.setStrokeWt(1.0f);
         	if(useDrawnVels){
         		int clrInt = 0;
     			for(int i = 0; i < interpCntlPts.length; ++i){
@@ -803,11 +810,12 @@ class myVariStroke extends myDrawnObject {
     	            //pa.fill(clrInt,255,(255 - clrInt),255);  
     	            //pa.stroke(clrInt,255,(255 - clrInt),255); 
     				pa.show(interpCntlPts[i],trajPtRad,-1,-1, flat);
-    				if(flags[drawCntlRad]){pa.circle(this.interpCntlPts[i], this.cntlPts[i].r,this.c_bAra[i], this.c_tAra[i],20);}
+    				if(flags[drawCntlRad]){pa.drawCircle(this.interpCntlPts[i], this.cntlPts[i].r,this.c_bAra[i], this.c_tAra[i],20);}
     			}
         	} else {			
 				for(int i = 0; i < cntlPts.length; ++i){
-					pa.show(cntlPts[i],trajPtRad,fillClr,strkClr, flat);
+					//pa.show(cntlPts[i],trajPtRad,fillClr,strkClr, flat);
+					cntlPts[i].showMe(pa,trajPtRad,fillClr,strkClr, flat);
 				}
 				if(flags[drawCntlRad]){this._offset.drawCntlPts(this.cntlPts, this.c_bAra, this.c_tAra, ptsDerived);}
         	}
@@ -835,13 +843,14 @@ class myVariStroke extends myDrawnObject {
 		myPoint end = interpCntlPts[numPoints - 1];
 
 		//edge params		
-		myVector drawnAxis = pa.V(origin, end);
-		myVector edgeAxis =  pa.V(startPt, endPt);		//angle between these two is the angle to rotate everyone
+		myVector drawnAxis = new myVector(origin, end);
+		myVector edgeAxis =  new myVector(startPt, endPt);		//angle between these two is the angle to rotate everyone
 		
 		//transformation params
-		myVector dispToStart = pa.V(origin, startPt);			//displacement myVectortor between start of drawn curve and edge 1.
+		myVector dispToStart = new myVector(origin, startPt);			//displacement myVectortor between start of drawn curve and edge 1.
 
-		double alpha =  -pa.angle(drawnAxis,edgeAxis);			//angle to rotate everyone
+		//double alpha =  -pa.angle(drawnAxis,edgeAxis);			//angle to rotate everyone - this uses atan and xprod - seems expensive
+		double alpha =  -myVector._angleBetween(drawnAxis,edgeAxis);			//angle to rotate everyone
 		double scaleRatio = edgeAxis._mag()/drawnAxis._mag();	//ratio of distance from start to finish of drawn traj to distance between edges - multiply all elements in drawn traj by this
 	
 		//displace to align with start
@@ -850,10 +859,10 @@ class myVariStroke extends myDrawnObject {
 		myVector[] dispVecAra = new myVector[numPoints];
 		dispVecAra[0] = new myVector();
 		for(int myPointItr = 1; myPointItr < numPoints ; ++myPointItr){
-			dispVecAra[myPointItr] = pa.V(destCurve[0],destCurve[myPointItr]);
+			dispVecAra[myPointItr] = new myVector(destCurve[0],destCurve[myPointItr]);
 		}			
 		if((flip) || flags[isFlipped]){
-			myVector udAxis = pa.U(drawnAxis);
+			myVector udAxis = myVector._unit(drawnAxis);
 			myVector normPt, tanPt;
 			for(int myPointItr = 1; myPointItr < numPoints ; ++myPointItr){
 				tanPt = myVector._mult(udAxis, dispVecAra[myPointItr]._dot(udAxis));			//component in udAxis dir
@@ -866,7 +875,7 @@ class myVariStroke extends myDrawnObject {
 
 		//displace every point to be scaled distance from start of curve equivalent to scale of edge distances to drawn curve
 		for(int myPointItr = 1; myPointItr < numPoints ; ++myPointItr){
-			destCurve[myPointItr].set(pa.P(destCurve[0],scaleRatio, dispVecAra[myPointItr]));//start point displaced by scaleRatio * myVectortor from start to original location of myPoint
+			destCurve[myPointItr].set(new myPoint(destCurve[0],scaleRatio, dispVecAra[myPointItr]));//start point displaced by scaleRatio * myVectortor from start to original location of myPoint
 		}
 		//rotate every point around destCurve[0] by alpha
 		for(int myPointItr = 1; myPointItr < numPoints ; ++myPointItr){
@@ -878,7 +887,7 @@ class myVariStroke extends myDrawnObject {
 		return destCurve;
 	}//
 		
-	public cntlPt[] moveCntlCurveToEndPoints(myPoint startPt,myPoint endPt, boolean flip){
+	public myCntlPt[] moveCntlCurveToEndPoints(myPoint startPt,myPoint endPt, boolean flip){
 		int numPoints = cntlPts.length;
 //		if((Double.isNaN(cntlPts[cntlPts.length-1].x)) || 
 //				(Double.isNaN(cntlPts[cntlPts.length-1].y)) ||
@@ -886,19 +895,20 @@ class myVariStroke extends myDrawnObject {
 //			//pa.outStr2Scr("NaN cntlPts size at start ",true);
 //			numPoints--;										//toss last NaN Point
 //		}
-		cntlPt[] destCurve = new cntlPt[numPoints];
+		myCntlPt[] destCurve = new myCntlPt[numPoints];
 		//pa.outStr2Scr("cntlPts size at start : " + cntlPts.length,true);
 		//pa.outStr2Scr("first and last cntlPoint : " + cntlPts[0].toStrBrf() + " | " + cntlPts[numPoints-1].toStrBrf() );
 		//drawn curve params
 		if(numPoints == 0){return destCurve;}
 		myPoint origin = cntlPts[0], end = cntlPts[numPoints - 1];
 		//edge params		
-		myVector drawnAxis = pa.V(origin, end);
-		myVector edgeAxis =  pa.V(startPt, endPt);		//angle between these two is the angle to rotate everyone
+		myVector drawnAxis = new myVector(origin, end);
+		myVector edgeAxis =  new myVector(startPt, endPt);		//angle between these two is the angle to rotate everyone
 		
 		//transformation params
-		myVector dispToStart = pa.V(origin, startPt);			//displacement myVectortor between start of drawn curve and edge 1.
-		double alpha =  -pa.angle(drawnAxis,edgeAxis);			//angle to rotate everyone
+		myVector dispToStart = new myVector(origin, startPt);			//displacement myVectortor between start of drawn curve and edge 1.
+		//double alpha =  -pa.angle(drawnAxis,edgeAxis);			//angle to rotate everyone
+		double alpha =  -myVector._angleBetween(drawnAxis,edgeAxis);			//angle to rotate everyone
 		double scaleRatio = edgeAxis._mag()/drawnAxis._mag();	//ratio of distance from start to finish of drawn traj to distance between edges - multiply all elements in drawn traj by this
 
 		//displace to align with start
@@ -907,10 +917,10 @@ class myVariStroke extends myDrawnObject {
 		myVector[] dispVecAra = new myVector[numPoints];
 		dispVecAra[0] = new myVector();
 		for(int myPointItr = 1; myPointItr < numPoints ; ++myPointItr){
-			dispVecAra[myPointItr] = pa.V(destCurve[0],destCurve[myPointItr]);
+			dispVecAra[myPointItr] = new myVector(destCurve[0],destCurve[myPointItr]);
 		}			
 		if((flip) || flags[isFlipped]){
-			myVector udAxis = pa.U(drawnAxis);
+			myVector udAxis = myVector._unit(drawnAxis);
 			myVector normPt, tanPt;
 			for(int myPointItr = 1; myPointItr < numPoints ; ++myPointItr){
 				tanPt = myVector._mult(udAxis, dispVecAra[myPointItr]._dot(udAxis));			//component in udAxis dir
@@ -923,7 +933,7 @@ class myVariStroke extends myDrawnObject {
 
 		//displace every point to be scaled distance from start of curve equivalent to scale of edge distances to drawn curve
 		for(int myPointItr = 1; myPointItr < numPoints ; ++myPointItr){
-			destCurve[myPointItr].set(pa.P(destCurve[0],scaleRatio, dispVecAra[myPointItr]));//start point displaced by scaleRatio * myVectortor from start to original location of myPoint
+			destCurve[myPointItr].set(new myPoint(destCurve[0],scaleRatio, dispVecAra[myPointItr]));//start point displaced by scaleRatio * myVectortor from start to original location of myPoint
 		}
 		//rotate every point around destCurve[0] by alpha
 		for(int myPointItr = 1; myPointItr < numPoints ; ++myPointItr){
@@ -936,7 +946,7 @@ class myVariStroke extends myDrawnObject {
 	}//
 	
 	//move points by the passed myVectortor 
-	public cntlPt[] movePoints(myVector move, cntlPt[] _pts){for(int i =0; i<_pts.length; ++i){	_pts[i]._add(move);	}	return _pts;}
+	public myCntlPt[] movePoints(myVector move, myCntlPt[] _pts){for(int i =0; i<_pts.length; ++i){	_pts[i]._add(move);	}	return _pts;}
 	
 	//calculate the weight of each point by determining the distance from its two neighbors - radius is inversely proportional to weight
 	public float calcCntlWeight(myPoint a, myPoint p, myPoint b){	return (float)(myPoint._dist(a,p) + myPoint._dist(p,b));}
@@ -987,8 +997,8 @@ abstract class myOffset {
 	 * calculate the offset points for the drawn stroke line contained in _obj
 	 * @param _obj drawn stroke to build offset myPoints from
 	 */
-	public abstract ArrayList<myPoint> calcOffset(cntlPt[] cntlPts, myVector[] nAra, myVector[] tAra);				
-	public abstract void drawCntlPts(cntlPt[] myPoints, myVector[] nAra, myVector[] tAra, boolean derived);
+	public abstract ArrayList<myPoint> calcOffset(myCntlPt[] cntlPts, myVector[] nAra, myVector[] tAra);				
+	public abstract void drawCntlPts(myCntlPt[] myPoints, myVector[] nAra, myVector[] tAra, boolean derived);
 	
 	/**
 	 * build an array of points that sweeps around c clockwise in plane of norm and tan, with starting radius c.r * norm
@@ -997,12 +1007,12 @@ abstract class myOffset {
 	 * @param tan tangent at point
 	 * @return myPoint array of sequence of points in an arc for an endcap
 	 */
-	public ArrayList<myPoint> buildCapPts (cntlPt c, myVector norm, myVector tan, float mult){
+	public ArrayList<myPoint> buildCapPts (myCntlPt c, myVector norm, myVector tan, float mult){
 		ArrayList<myPoint> tmp = new ArrayList<myPoint>();
 		float angle = PConstants.PI/(1.0f*capSize), sliceA = angle;			//10 slices
-		tmp.add(pa.P((myPoint)c, mult * -c.r, norm));
+		tmp.add(new myPoint(c, mult * -c.r, norm));
 		for(int i=1;i<capSize-1;++i){	tmp.add(pa.R(tmp.get(i-1), sliceA, norm, tan, c));}
-		tmp.add(pa.P((myPoint)c, mult * c.r, norm));
+		tmp.add(new myPoint(c, mult * c.r, norm));
 		return tmp;	
 	}//buildCapPts
 	
@@ -1022,16 +1032,16 @@ class myNormOffset extends myOffset{
 	myNormOffset(my_procApplet _pa){super(_pa); name = "Normal offset";}
 
 	@Override
-	public  ArrayList<myPoint> calcOffset(cntlPt[] cntlPts, myVector[] nAra, myVector[] tAra) {
+	public  ArrayList<myPoint> calcOffset(myCntlPt[] cntlPts, myVector[] nAra, myVector[] tAra) {
 		if(nAra.length != cntlPts.length){return  new ArrayList<myPoint>();}	
 		ArrayList<myPoint> tmp = new ArrayList<myPoint>();
 		int numCmyPointsM1 = cntlPts.length-1;		
 		//start at first point and build endcap
 		if(endCaps){tmp.addAll(buildCapPts(cntlPts[0], nAra[0], tAra[0], 1));}
-		for(int i = 0; i<cntlPts.length;++i){	tmp.add(pa.P((myPoint)cntlPts[i], cntlPts[i].r, nAra[i]));}//add cntl point + rad offset from norm
+		for(int i = 0; i<cntlPts.length;++i){	tmp.add(new myPoint(cntlPts[i], cntlPts[i].r, nAra[i]));}//add cntl point + rad offset from norm
 		//build endcap on last cntlpoint
 		if(endCaps){tmp.addAll(buildCapPts(cntlPts[numCmyPointsM1], nAra[numCmyPointsM1], tAra[numCmyPointsM1],-1));}
-		for(int i = numCmyPointsM1; i>=0;--i){	tmp.add(pa.P((myPoint)cntlPts[i], -cntlPts[i].r, nAra[i]));}//add cntl point + rad offset from norm negated, in backwards order, so all points are added properly
+		for(int i = numCmyPointsM1; i>=0;--i){	tmp.add(new myPoint(cntlPts[i], -cntlPts[i].r, nAra[i]));}//add cntl point + rad offset from norm negated, in backwards order, so all points are added properly
 		return tmp;
 	}
 	
@@ -1046,13 +1056,13 @@ class myNormOffset extends myOffset{
 //          myPoints[i].drawNorm((derived ? 0 : 1), nAra[i], tAra[i]);
 //      }
 //  }
-  public void drawCntlPts(cntlPt[] myPoints, myVector[] nAra, myVector[] tAra, boolean derived) {
+  public void drawCntlPts(myCntlPt[] myPoints, myVector[] nAra, myVector[] tAra, boolean derived) {
   	pa.pushStyle();
   	int clrInt = 0;
       for(int i = 0; i < myPoints.length; ++i){
       	clrInt = (int)(i/(1.0f * myPoints.length) * 255.0f);
-          pa.fill(clrInt,0,(255 - clrInt),255);  
-          pa.stroke(clrInt,0,(255 - clrInt),255); 
+          pa.setFill(new int[] {clrInt,0,(255 - clrInt)},255);  
+          pa.setStroke(new int[] {clrInt,0,(255 - clrInt)},255); 
           myPoints[i].drawRad(nAra[i], tAra[i]);
       }
       pa.popStyle();

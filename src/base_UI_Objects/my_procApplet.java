@@ -8,7 +8,7 @@ import java.util.concurrent.*;
 import base_UI_Objects.windowUI.BaseBarMenu;
 import base_UI_Objects.windowUI.myDispWindow;
 import base_Utils_Objects.*;
-import base_Utils_Objects.vectorObjs.cntlPt;
+import base_Utils_Objects.vectorObjs.myCntlPt;
 import base_Utils_Objects.vectorObjs.myPoint;
 import base_Utils_Objects.vectorObjs.myPointf;
 import base_Utils_Objects.vectorObjs.myVector;
@@ -49,8 +49,8 @@ public abstract class my_procApplet extends PApplet implements IRenderInterface 
 	public int[][] winFillClrs;
 	public int[][] winStrkClrs;
 	
-	public int[] winTrajFillClrs = new int []{0,0};		//set to color constants for each window
-	public int[] winTrajStrkClrs = new int []{0,0};		//set to color constants for each window
+	public int[][] winTrajFillClrs = new int [][]{{0,0},{0,0}};		//set to color constants for each window
+	public int[][] winTrajStrkClrs = new int [][]{{0,0},{0,0}};		//set to color constants for each window
 	
 
 	//specify windows that cannot be shown simultaneously here and their flags
@@ -339,8 +339,8 @@ public abstract class my_procApplet extends PApplet implements IRenderInterface 
 		winDescr = _winDescs;
 		winFillClrs = new int[numDispWins][4];
 		winStrkClrs = new int[numDispWins][4];
-		winTrajFillClrs = new int[numDispWins];		//set to color constants for each window
-		winTrajStrkClrs = new int[numDispWins];		//set to color constants for each window
+		winTrajFillClrs = new int[numDispWins][4];		//set to color constants for each window
+		winTrajStrkClrs = new int[numDispWins][4];	//set to color constants for each window
 		//display window initialization
 		dispWinFrames = new myDispWindow[numDispWins];			
 	}//initWins
@@ -363,15 +363,15 @@ public abstract class my_procApplet extends PApplet implements IRenderInterface 
 		winFillClrs[dispMenuIDX] = new int[]{255,255,255,255};
 		winStrkClrs[dispMenuIDX] = new int[]{0,0,0,255};
 		
-		winTrajFillClrs[dispMenuIDX] = gui_Black;		//set to color constants for each window
-		winTrajStrkClrs[dispMenuIDX] = gui_Black;		//set to color constants for each window		
+		winTrajFillClrs[dispMenuIDX] = new int[]{0,0,0,255};		//set to color constants for each window
+		winTrajStrkClrs[dispMenuIDX] = new int[]{0,0,0,255};		//set to color constants for each window		
 		winTitles[dispMenuIDX] = "UI Window";
 		winDescr[dispMenuIDX] = "User Controls";
 		
 	}//setIniMenuWin
 	
 	//call once for each display window before calling constructor
-	protected void setInitDispWinVals(int _winIDX, float[] _dimOpen, float[] _dimClosed, boolean[] _dispFlags, int[] _fill, int[] _strk, int _trajFill, int _trajStrk) {
+	protected void setInitDispWinVals(int _winIDX, float[] _dimOpen, float[] _dimClosed, boolean[] _dispFlags, int[] _fill, int[] _strk, int[] _trajFill, int[] _trajStrk) {
 		winRectDimOpen[_winIDX] = _dimOpen;
 		winRectDimClose[_winIDX] = _dimClosed;
 		//idxs : 0 : canDrawInWin; 1 : canShow3dbox; 2 : canMoveView; 3 : dispWinIs3d
@@ -450,7 +450,7 @@ public abstract class my_procApplet extends PApplet implements IRenderInterface 
 		updateConsoleStrs();
 	}//draw	
 	
-	protected void draw3D_solve3D(float modAmtMillis){
+	private void draw3D_solve3D(float modAmtMillis){
 		//System.out.println("drawSolve");
 		pushMatrix();pushStyle();
 		for(int i =1; i<numDispWins; ++i){
@@ -461,7 +461,7 @@ public abstract class my_procApplet extends PApplet implements IRenderInterface 
 		drawAxes(100,3, new myPoint(-c.getViewDimW()/2.0f+40,0.0f,0.0f), 200, false); 		
 	}//draw3D_solve3D
 	
-	public final void drawUI(float modAmtMillis){					
+	private final void drawUI(float modAmtMillis){					
 		//for(int i =1; i<numDispWins; ++i){if ( !(dispWinFrames[i].dispFlags[myDispWindow.is3DWin])){dispWinFrames[i].draw(sceneCtrVals[sceneIDX]);}}
 		//dispWinFrames[0].draw(sceneCtrVals[sceneIDX]);
 		for(int i =1; i<numDispWins; ++i){dispWinFrames[i].drawHeader(modAmtMillis);}
@@ -471,6 +471,15 @@ public abstract class my_procApplet extends PApplet implements IRenderInterface 
 		drawOnScreenData();				//debug and on-screen data
 	}//drawUI	
 	
+	/**
+	 * Draw Axes at ctr point
+	 * @param len length of axis
+	 * @param stW stroke weight (line thickness)
+	 * @param ctr ctr point to draw axes
+	 * @param alpha alpha value for how dark/faint axes should be
+	 * @param centered whether axis should be centered at ctr or just in positive direction at ctr
+	 */
+	@Override
 	public final void drawAxes(double len, float stW, myPoint ctr, int alpha, boolean centered){//axes using current global orientation
 		pushMatrix();pushStyle();
 			strokeWeight(stW);
@@ -481,17 +490,17 @@ public abstract class my_procApplet extends PApplet implements IRenderInterface 
 			else {		line(ctr.x,ctr.y,ctr.z,ctr.x+len,ctr.y,ctr.z);stroke(0,255,0,alpha);line(ctr.x,ctr.y,ctr.z,ctr.x,ctr.y+len,ctr.z);stroke(0,0,255,alpha);line(ctr.x,ctr.y,ctr.z,ctr.x,ctr.y,ctr.z+len);}
 		popStyle();	popMatrix();	
 	}//	drawAxes
-	public final void drawAxes(double len, float stW, myPoint ctr, myVector[] _axis, int alpha, boolean drawVerts){//RGB -> XYZ axes
+	private final void drawAxes(double len, float stW, myPoint ctr, myVector[] _axis, int alpha, boolean drawVerts){//RGB -> XYZ axes
 		pushMatrix();pushStyle();
 		if(drawVerts){
 			show(ctr,3,gui_Black,gui_Black, false);
 			for(int i=0;i<_axis.length;++i){show(myPoint._add(ctr, myVector._mult(_axis[i],len)),3,rgbClrs[i],rgbClrs[i], false);}
 		}
 		strokeWeight(stW);
-		for(int i =0; i<3;++i){	setColorValStroke(rgbClrs[i]);	showVec(ctr,len, _axis[i]);	}
+		for(int i =0; i<3;++i){	setColorValStroke(rgbClrs[i],255);	showVec(ctr,len, _axis[i]);	}
 		popStyle();	popMatrix();	
 	}//	drawAxes
-	public final void drawAxes(double len, float stW, myPoint ctr, myVector[] _axis, int[] clr, boolean drawVerts){//all axes same color
+	private final void drawAxes(double len, float stW, myPoint ctr, myVector[] _axis, int[] clr, boolean drawVerts){//all axes same color
 		pushMatrix();pushStyle();
 			if(drawVerts){
 				show(ctr,2,gui_Black,gui_Black, false);
@@ -501,16 +510,9 @@ public abstract class my_procApplet extends PApplet implements IRenderInterface 
 			for(int i =0; i<3;++i){	showVec(ctr,len, _axis[i]);	}
 		popStyle();	popMatrix();	
 	}//	drawAxes
+	private final void showVec( myPoint ctr, double len, myVector v){line(ctr.x,ctr.y,ctr.z,ctr.x+(v.x)*len,ctr.y+(v.y)*len,ctr.z+(v.z)*len);}
+
 	
-	public final void drawText(String str, double x, double y, double z, int clr){
-		int[] c = getClr(clr);
-		pushMatrix();	pushStyle();
-			fill(c[0],c[1],c[2],c[3]);
-			unSetCamOrient();
-			translate((float)x,(float)y,(float)z);
-			text(str,0,0,0);		
-		popStyle();	popMatrix();	
-	}//drawText	
 	
 	public final int addInfoStr(String str){return addInfoStr(DebugInfoAra.size(), str);}
 	public final int addInfoStr(int idx, String str){	
@@ -536,7 +538,7 @@ public abstract class my_procApplet extends PApplet implements IRenderInterface 
 		pushMatrix();	pushStyle();
 		strokeWeight(3f);
 		noFill();
-		setColorValStroke(gui_TransGray);		
+		setColorValStroke(gui_TransGray,255);		
 		box(gridDimX,gridDimY,gridDimZ);
 		popStyle();	popMatrix();
 	}		
@@ -1022,29 +1024,35 @@ public abstract class my_procApplet extends PApplet implements IRenderInterface 
 		p.set(Math.max(-hGDimX,Math.min(p.x,hGDimX)), 
 				Math.max(-hGDimY,Math.min(p.y,hGDimY)),
 				Math.max(-hGDimZ,Math.min(p.z,hGDimZ)));return p;}	
-	 
+	
+	@Override
 	public final void translate(myPoint p){translate((float)p.x,(float)p.y,(float)p.z);}
+	@Override
 	public final void translate(myPointf p){translate(p.x,p.y,p.z);}
-	public final void translate(myVector p){translate((float)p.x,(float)p.y,(float)p.z);}
+	@Override
 	public final void translate(double x, double y, double z){translate((float)x,(float)y,(float)z);}
-	public final void translate(double x, double y){translate((float)x,(float)y);}
+	//public final void translate(double x, double y){translate((float)x,(float)y);}
+	@Override
 	public final void rotate(float thet, myPoint axis){rotate(thet, (float)axis.x,(float)axis.y,(float)axis.z);}
+	@Override
+	public final void rotate(float thet, myPointf axis){rotate(thet, axis.x,axis.y,axis.z);}
+	@Override
 	public final void rotate(float thet, double x, double y, double z){rotate(thet, (float)x,(float)y,(float)z);}
 	//************************************************************************
 	//**** SPIRAL
 	//************************************************************************
 	//3d rotation - rotate P by angle a around point G and axis normal to plane IJ
 	public final myPoint R(myPoint P, double a, myVector I, myVector J, myPoint G) {
-		double x= myVector._dot(new myVector(G,P),U(I)), y=myVector._dot(new myVector(G,P),U(J)); 
+		double x= myVector._dot(new myVector(G,P),myVector._unit(I)), y=myVector._dot(new myVector(G,P),myVector._unit(J)); 
 		double c=Math.cos(a), s=Math.sin(a); 
 		double iXVal = x*c-x-y*s, jYVal= x*s+y*c-y;			
 		return myPoint._add(P,iXVal,I,jYVal,J); }; 
 		
-	public cntlPt R(cntlPt P, double a, myVector I, myVector J, myPoint G) {
-		double x= myVector._dot(new myVector(G,P),U(I)), y=myVector._dot(new myVector(G,P),U(J)); 
+	public myCntlPt R(myCntlPt P, double a, myVector I, myVector J, myPoint G) {
+		double x= myVector._dot(new myVector(G,P),myVector._unit(I)), y=myVector._dot(new myVector(G,P),myVector._unit(J)); 
 		double c=Math.cos(a), s=Math.sin(a); 
 		double iXVal = x*c-x-y*s, jYVal= x*s+y*c-y;		
-		return new cntlPt(this, P(P,iXVal,I,jYVal,J), P.r, P.w); };
+		return new myCntlPt(this, myPoint._add(P,iXVal,I,jYVal,J), P.r, P.w); };
 		
 	public final myPoint PtOnSpiral(myPoint A, myPoint B, myPoint C, double t) {
 		//center is coplanar to A and B, and coplanar to B and C, but not necessarily coplanar to A, B and C
@@ -1052,9 +1060,9 @@ public abstract class my_procApplet extends PApplet implements IRenderInterface 
 		myPoint mAB = new myPoint(A,.5f, B);
 		myPoint mBC = new myPoint(B,.5f, C);
 		myPoint mCA = new myPoint(C,.5f, A);
-		myVector mI = U(mCA,mAB);
-		myVector mTmp = myVector._cross(mI,U(mCA,mBC));
-		myVector mJ = U(mTmp._cross(mI));	//I and J are orthonormal
+		myVector mI = myVector._unit(mCA,mAB);
+		myVector mTmp = myVector._cross(mI,myVector._unit(mCA,mBC));
+		myVector mJ = myVector._unit(mTmp._cross(mI));	//I and J are orthonormal
 		double a =spiralAngle(A,B,B,C); 
 		double s =spiralScale(A,B,B,C);
 		
@@ -1066,19 +1074,19 @@ public abstract class my_procApplet extends PApplet implements IRenderInterface 
 	public double spiralScale(myPoint A, myPoint B, myPoint C, myPoint D) {return myPoint._dist(C,D)/ myPoint._dist(A,B);}
 	
 	public final myPoint R(myPoint Q, myPoint C, myPoint P, myPoint R) { // returns rotated version of Q by angle(CP,CR) parallel to plane (C,P,R)
-		myVector I0=U(C,P), I1=U(C,R), V=new myVector(C,Q); 
+		myVector I0=myVector._unit(C,P), I1=myVector._unit(C,R), V=new myVector(C,Q); 
 		double c=myPoint._dist(I0,I1), s=Math.sqrt(1.-(c*c)); 
-		if(Math.abs(s)<0.00001) return Q;
-		myVector J0=V(1./s,I1,-c/s,I0);  
-		myVector J1=V(-s,I0,c,J0);  
+		if(Math.abs(s)<0.00001) return Q;		
+		myVector J0=myVector._add(myVector._mult(I1,1./s),myVector._mult(I0,-c/s));  
+		myVector J1=myVector._add(myVector._mult(I0,-s),myVector._mult(J0,c));  
 		double x=V._dot(I0), y=V._dot(J0);  
-		return P(Q,x,M(I1,I0),y,M(J1,J0)); 
+		return myPoint._add(Q,x,myVector._sub(I1,I0),y,myVector._sub(J1,J0)); 
 	} 	
 	// spiral given 4 points, AB and CD are edges corresponding through rotation
 	public final myPoint spiralCenter(myPoint A, myPoint B, myPoint C, myPoint D) {         // new spiral center
-		myVector AB=V(A,B), CD=V(C,D), AC=V(A,C);
+		myVector AB=new myVector(A,B), CD=new myVector(C,D), AC=new myVector(A,C);
 		double m=CD.magn/AB.magn, n=CD.magn*AB.magn;		
-		myVector rotAxis = U(AB._cross(CD));		//expect ab and ac to be coplanar - this is the axis to rotate around to find f
+		myVector rotAxis = myVector._unit(AB._cross(CD));		//expect ab and ac to be coplanar - this is the axis to rotate around to find f
 		
 		myVector rAB = myVector._rotAroundAxis(AB, rotAxis, PConstants.HALF_PI);
 		double c=AB._dot(CD)/n, 
@@ -1086,66 +1094,85 @@ public abstract class my_procApplet extends PApplet implements IRenderInterface 
 		double AB2 = AB._dot(AB), a=AB._dot(AC)/AB2, b=rAB._dot(AC)/AB2;
 		double x=(a-m*( a*c+b*s)), y=(b-m*(-a*s+b*c));
 		double d=1+m*(m-2*c);  if((c!=1)&&(m!=1)) { x/=d; y/=d; };
-		return P(P(A,x,AB),y,rAB);
+		return new myPoint(new myPoint(A,x,AB),y,rAB);
 	  }
 	
 	
 	public final void cylinder(myPoint A, myPoint B, float r, int c1, int c2) {
 		myPoint P = A;
-		myVector V = V(A,B);
+		myVector V = new myVector(A,B);
 		myVector I = c.getDrawSNorm();//U(Normal(V));
-		myVector J = U(N(I,V));
+		myVector J = I._cross(V)._normalize(); 
 		float da = TWO_PI/36;
 		beginShape(QUAD_STRIP);
-			for(float a=0; a<=TWO_PI+da; a+=da) {fill(c1); gl_vertex(P(P,r*cos(a),I,r*sin(a),J,0,V)); fill(c2); gl_vertex(P(P,r*cos(a),I,r*sin(a),J,1,V));}
+			for(float a=0; a<=TWO_PI+da; a+=da) {
+				fill(c1); 
+				//gl_vertex(myPoint._add(P,r*cos(a),I,r*sin(a),J,0,V)); 
+				gl_vertex(myPoint._add(P,r*cos(a),I,r*sin(a),J)); 
+				fill(c2); 
+				gl_vertex(myPoint._add(P,r*cos(a),I,r*sin(a),J,1,V));}
 		endShape();
 	}
 	
 	//point functions
-	public final myPoint P() {return new myPoint(); };                                                                          // point (x,y,z)
-	public final myPoint P(double x, double y, double z) {return new myPoint(x,y,z); };                                            // point (x,y,z)
-	public final myPoint P(myPoint A) {return new myPoint(A.x,A.y,A.z); };                                                           // copy of point P
-	public final myPoint P(myPoint A, double s, myPoint B) {return new myPoint(A.x+s*(B.x-A.x),A.y+s*(B.y-A.y),A.z+s*(B.z-A.z)); };        // A+sAB
-	public final myPoint L(myPoint A, double s, myPoint B) {return new myPoint(A.x+s*(B.x-A.x),A.y+s*(B.y-A.y),A.z+s*(B.z-A.z)); };        // A+sAB
-	public final myPoint P(myPoint A, myPoint B) {return P((A.x+B.x)/2.0,(A.y+B.y)/2.0,(A.z+B.z)/2.0); }                             // (A+B)/2
-	public final myPoint P(myPoint A, myPoint B, myPoint C) {return new myPoint((A.x+B.x+C.x)/3.0,(A.y+B.y+C.y)/3.0,(A.z+B.z+C.z)/3.0); };     // (A+B+C)/3
-	public final myPoint P(myPoint A, myPoint B, myPoint C, myPoint D) {return P(P(A,B),P(C,D)); };                                            // (A+B+C+D)/4
-	public final myPoint P(double s, myPoint A) {return new myPoint(s*A.x,s*A.y,s*A.z); };                                            // sA
-	public final myPoint A(myPoint A, myPoint B) {return new myPoint(A.x+B.x,A.y+B.y,A.z+B.z); };                                         // A+B
-	public final myPoint P(double a, myPoint A, double b, myPoint B) {return A(P(a,A),P(b,B));}                                        // aA+bB 
-	public final myPoint P(double a, myPoint A, double b, myPoint B, double c, myPoint C) {return A(P(a,A),P(b,B,c,C));}                     // aA+bB+cC 
-	public final myPoint P(double a, myPoint A, double b, myPoint B, double c, myPoint C, double d, myPoint D){return A(P(a,A,b,B),P(c,C,d,D));}   // aA+bB+cC+dD
-	public final myPoint P(myPoint P, myVector V) {return new myPoint(P.x + V.x, P.y + V.y, P.z + V.z); }                                 // P+V
-	public final myPoint P(myPoint P, double s, myVector V) {return new myPoint(P.x+s*V.x,P.y+s*V.y,P.z+s*V.z);}                           // P+sV
-	public final myPoint P(myPoint O, double x, myVector I, double y, myVector J) {return P(O.x+x*I.x+y*J.x,O.y+x*I.y+y*J.y,O.z+x*I.z+y*J.z);}  // O+xI+yJ
-	public final myPoint P(myPoint O, double x, myVector I, double y, myVector J, double z, myVector K) {return P(O.x+x*I.x+y*J.x+z*K.x,O.y+x*I.y+y*J.y+z*K.y,O.z+x*I.z+y*J.z+z*K.z);}  // O+xI+yJ+kZ
-	void makePts(myPoint[] C) {for(int i=0; i<C.length; i++) C[i]=P();}
+//	public final myPoint P() {return new myPoint(); };                                                                          // point (x,y,z)
+//	public final myPoint P(double x, double y, double z) {return new myPoint(x,y,z); };                                            // point (x,y,z)
+//	public final myPoint P(myPoint A) {return new myPoint(A.x,A.y,A.z); };                                                           // copy of point P
+//	public final myPoint P(myPoint A, double s, myPoint B) {return new myPoint(A.x+s*(B.x-A.x),A.y+s*(B.y-A.y),A.z+s*(B.z-A.z)); };        // A+sAB
+//	public final myPoint L(myPoint A, double s, myPoint B) {return new myPoint(A.x+s*(B.x-A.x),A.y+s*(B.y-A.y),A.z+s*(B.z-A.z)); };        // A+sAB
+//	public final myPoint P(myPoint A, myPoint B) {return new myPoint((A.x+B.x)/2.0,(A.y+B.y)/2.0,(A.z+B.z)/2.0); }                             // (A+B)/2
+//	public final myPoint P(myPoint A, myPoint B, myPoint C) {return new myPoint((A.x+B.x+C.x)/3.0,(A.y+B.y+C.y)/3.0,(A.z+B.z+C.z)/3.0); };     // (A+B+C)/3
+//	public final myPoint P(myPoint A, myPoint B, myPoint C, myPoint D) {return A._avgWithMe(B)._avgWithMe(C._avgWithMe(D)); };                                            // (A+B+C+D)/4
+//	public final myPoint P(double s, myPoint A) {return new myPoint(s*A.x,s*A.y,s*A.z); };                                            // sA
+//	public final myPoint A(myPoint A, myPoint B) {return new myPoint(A.x+B.x,A.y+B.y,A.z+B.z); };                                         // A+B
+//	public final myPoint P(double a, myPoint A, double b, myPoint B) {return A(new myPoint(a*A.x,a*A.y,a*A.z),new myPoint(b*B.x,b*B.y,b*B.z));}                                        // aA+bB 
+//	public final myPoint P(double a, myPoint A, double b, myPoint B, double c, myPoint C) {return A(new myPoint(a*A.x,a*A.y,a*A.z),P(b,B,c,C));}                     // aA+bB+cC 
+//	public final myPoint P(double a, myPoint A, double b, myPoint B, double c, myPoint C, double d, myPoint D){return A(P(a,A,b,B),P(c,C,d,D));}   // aA+bB+cC+dD
+//	public final myPoint P(myPoint P, myVector V) {return new myPoint(P.x + V.x, P.y + V.y, P.z + V.z); }                                 // P+V
+//	public final myPoint P(myPoint P, double s, myVector V) {return new myPoint(P.x+s*V.x,P.y+s*V.y,P.z+s*V.z);}                           // P+sV
+//	public final myPoint P(myPoint O, double x, myVector I, double y, myVector J) {return new myPoint(O.x+x*I.x+y*J.x,O.y+x*I.y+y*J.y,O.z+x*I.z+y*J.z);}  // O+xI+yJ
+//	public final myPoint P(myPoint O, double x, myVector I, double y, myVector J, double z, myVector K) {return new myPoint(O.x+x*I.x+y*J.x+z*K.x,O.y+x*I.y+y*J.y+z*K.y,O.z+x*I.z+y*J.z+z*K.z);}  // O+xI+yJ+kZ
+//	void makePts(myPoint[] C) {for(int i=0; i<C.length; i++) C[i]=new myPoint();}
 	
 	//draw a circle - JT
-	public final void circle(myPoint P, float r, myVector I, myVector J, int n) {myPoint[] pts = new myPoint[n];pts[0] = P(P,r,U(I));float a = (2*PI)/(1.0f*n);for(int i=1;i<n;++i){pts[i] = R(pts[i-1],a,J,I,P);}pushMatrix(); pushStyle();noFill(); show(pts);popStyle();popMatrix();}; // render sphere of radius r and center P
+	/**
+	 * draw a circle centered at P with specified radius r in plane proscribed by passed axes using n number of points
+	 * @param P center
+	 * @param r radius
+	 * @param I x axis
+	 * @param J y axis
+	 * @param n # of points to use
+	 */
+	@Override
+	public final void drawCircle(myPoint P, float r, myVector I, myVector J, int n) {
+		myPoint[] pts = new myPoint[n];
+		pts[0] = new myPoint(P,r,myVector._unit(I));
+		float a = (twoPi_f)/(1.0f*n);
+		for(int i=1;i<n;++i){pts[i] = R(pts[i-1],a,J,I,P);}pushMatrix(); pushStyle();noFill(); show(pts);popStyle();popMatrix();
+	}; 
 	
 	public final void circle(myPoint p, float r){ellipse((float)p.x, (float)p.y, r, r);}
 	void circle(float x, float y, float r1, float r2){ellipse(x,y, r1, r2);}
 	
 	void noteArc(float[] dims, int[] noteClr){
 		noFill();
-		setStroke(noteClr);
+		setStroke(noteClr, noteClr[3]);
 		strokeWeight(1.5f*dims[3]);
-		arc(0,0, dims[2], dims[2], dims[0] - this.HALF_PI, dims[1] - this.HALF_PI);
+		arc(0,0, dims[2], dims[2], dims[0] - HALF_PI, dims[1] - HALF_PI);
 	}
 	//draw a ring segment from alphaSt in radians to alphaEnd in radians
 	void noteArc(myPoint ctr, float alphaSt, float alphaEnd, float rad, float thickness, int[] noteClr){
 		noFill();
-		setStroke(noteClr);
+		setStroke(noteClr,noteClr[3]);
 		strokeWeight(thickness);
-		arc((float)ctr.x, (float)ctr.y, rad, rad, alphaSt - this.HALF_PI, alphaEnd- this.HALF_PI);
+		arc((float)ctr.x, (float)ctr.y, rad, rad, alphaSt - HALF_PI, alphaEnd- HALF_PI);
 	}
 	
 	
 	void bezier(myPoint A, myPoint B, myPoint C, myPoint D) {bezier((float)A.x,(float)A.y,(float)A.z,(float)B.x,(float)B.y,(float)B.z,(float)C.x,(float)C.y,(float)C.z,(float)D.x,(float)D.y,(float)D.z);} // draws a cubic Bezier curve with control points A, B, C, D
 	void bezier(myPoint [] C) {bezier(C[0],C[1],C[2],C[3]);} // draws a cubic Bezier curve with control points A, B, C, D
-	myPoint bezierPoint(myPoint[] C, float t) {return P(bezierPoint((float)C[0].x,(float)C[1].x,(float)C[2].x,(float)C[3].x,(float)t),bezierPoint((float)C[0].y,(float)C[1].y,(float)C[2].y,(float)C[3].y,(float)t),bezierPoint((float)C[0].z,(float)C[1].z,(float)C[2].z,(float)C[3].z,(float)t)); }
-	myVector bezierTangent(myPoint[] C, float t) {return V(bezierTangent((float)C[0].x,(float)C[1].x,(float)C[2].x,(float)C[3].x,(float)t),bezierTangent((float)C[0].y,(float)C[1].y,(float)C[2].y,(float)C[3].y,(float)t),bezierTangent((float)C[0].z,(float)C[1].z,(float)C[2].z,(float)C[3].z,(float)t)); }
+	myPoint bezierPoint(myPoint[] C, float t) {return new myPoint(bezierPoint((float)C[0].x,(float)C[1].x,(float)C[2].x,(float)C[3].x,(float)t),bezierPoint((float)C[0].y,(float)C[1].y,(float)C[2].y,(float)C[3].y,(float)t),bezierPoint((float)C[0].z,(float)C[1].z,(float)C[2].z,(float)C[3].z,(float)t)); }
+	myVector bezierTangent(myPoint[] C, float t) {return new myVector(bezierTangent((float)C[0].x,(float)C[1].x,(float)C[2].x,(float)C[3].x,(float)t),bezierTangent((float)C[0].y,(float)C[1].y,(float)C[2].y,(float)C[3].y,(float)t),bezierTangent((float)C[0].z,(float)C[1].z,(float)C[2].z,(float)C[3].z,(float)t)); }
 	
 	
 	public final myPoint Mouse() {return new myPoint(mouseX, mouseY,0);}                                          			// current mouse location
@@ -1155,70 +1182,87 @@ public abstract class my_procApplet extends PApplet implements IRenderInterface 
 	public final int color(myPoint p){return color((int)p.x,(int)p.y,(int)p.z);}	
 	
 	// =====  vector functions
-	public myVector V() {return new myVector(); };                                                                          // make vector (x,y,z)
-	public myVector V(double x, double y, double z) {return new myVector(x,y,z); };                                            // make vector (x,y,z)
-	public myVector V(myVector V) {return new myVector(V.x,V.y,V.z); };                                                          // make copy of vector V
-	public myVector A(myVector A, myVector B) {return new myVector(A.x+B.x,A.y+B.y,A.z+B.z); };                                       // A+B
-	public myVector A(myVector U, float s, myVector V) {return V(U.x+s*V.x,U.y+s*V.y,U.z+s*V.z);};                               // U+sV
-	public myVector M(myVector U, myVector V) {return V(U.x-V.x,U.y-V.y,U.z-V.z);};                                              // U-V
-	public myVector M(myVector V) {return V(-V.x,-V.y,-V.z);};                                                              // -V
-	public myVector V(myVector A, myVector B) {return new myVector((A.x+B.x)/2.0,(A.y+B.y)/2.0,(A.z+B.z)/2.0); }                      // (A+B)/2
-	public myVector V(myVector A, float s, myVector B) {return new myVector(A.x+s*(B.x-A.x),A.y+s*(B.y-A.y),A.z+s*(B.z-A.z)); };      // (1-s)A+sB
-	public myVector V(myVector A, myVector B, myVector C) {return new myVector((A.x+B.x+C.x)/3.0,(A.y+B.y+C.y)/3.0,(A.z+B.z+C.z)/3.0); };  // (A+B+C)/3
-	public myVector V(myVector A, myVector B, myVector C, myVector D) {return V(V(A,B),V(C,D)); };                                         // (A+B+C+D)/4
-	public myVector V(double s, myVector A) {return new myVector(s*A.x,s*A.y,s*A.z); };                                           // sA
-	public myVector V(double a, myVector A, double b, myVector B) {return A(V(a,A),V(b,B));}                                       // aA+bB 
-	public myVector V(double a, myVector A, double b, myVector B, double c, myVector C) {return A(V(a,A,b,B),V(c,C));}                   // aA+bB+cC
-	public myVector V(myPoint P, myPoint Q) {return new myVector(P,Q);};                                          // PQ
-	public myVector N(myVector U, myVector V) {return V( U.y*V.z-U.z*V.y, U.z*V.x-U.x*V.z, U.x*V.y-U.y*V.x); };                  // UxV cross product (normal to both)
-	public myVector N(myPoint A, myPoint B, myPoint C) {return N(V(A,B),V(A,C)); };                                                   // normal to triangle (A,B,C), not normalized (proportional to area)
-	public myVector B(myVector U, myVector V) {return U(N(N(U,V),U)); }        
+	//public myVector V() {return new myVector(); };                                                                          // make vector (x,y,z)
+	//public myVector V(double x, double y, double z) {return new myVector(x,y,z); };                                            // make vector (x,y,z)
+	//public myVector V(myVector V) {return new myVector(V.x,V.y,V.z); };                                                          // make copy of vector V
+	//public myVector A(myVector A, myVector B) {return new myVector(A.x+B.x,A.y+B.y,A.z+B.z); };                                       // A+B
+	//public myVector A(myVector U, float s, myVector V) {return new myVector(U.x+s*V.x,U.y+s*V.y,U.z+s*V.z);};                               // U+sV
+	//private myVector M(myVector U, myVector V) {return new myVector(U.x-V.x,U.y-V.y,U.z-V.z);};                                              // U-V
+	//private myVector V(myVector A, myVector B) {return new myVector((A.x+B.x)/2.0,(A.y+B.y)/2.0,(A.z+B.z)/2.0); }                      // (A+B)/2
+	//public myVector V(double a, myVector A, double b, myVector B) {return myVector._add(myVector._mult(A,a),(myVector._mult(B,b)));}                                       // aA+bB 
+	//public myVector V(double a, myVector A, double b, myVector B, double c, myVector C) {return A(V(a,A,b,B),V(c,C));}                   // aA+bB+cC
+	//public myVector V(myPoint P, myPoint Q) {return new myVector(P,Q);};                                          // PQ
+	//private myVector vecCross(myVector U, myVector V) {return U._cross(V);};                  // UxV cross product (normal to both)
+	//private myVector vecCross(myPoint A, myPoint B, myPoint C) {myVector x = new myVector(A,B), y = new myVector(A,C);return x._cross(y); };          // normal to triangle (A,B,C), not normalized (proportional to area)
 	
+	//private double d(myVector U, myVector V) {return U.x*V.x+U.y*V.y+U.z*V.z; };                                            //U*V dot product
+	//private double dot(myVector U, myVector V) {return U.x*V.x+U.y*V.y+U.z*V.z; };                                            //U*V dot product
+	//private double det2(myVector U, myVector V) {return -U.y*V.x+U.x*V.y; };                                       		      // U|V det product
 	
-	public double d(myVector U, myVector V) {return U.x*V.x+U.y*V.y+U.z*V.z; };                                            //U*V dot product
-	public double dot(myVector U, myVector V) {return U.x*V.x+U.y*V.y+U.z*V.z; };                                            //U*V dot product
-	public double det2(myVector U, myVector V) {return -U.y*V.x+U.x*V.y; };                                       		// U|V det product
-	public double det3(myVector U, myVector V) {double dist = d(U,V); return Math.sqrt(d(U,U)*d(V,V) - (dist*dist)); };                                // U|V det product
-	public double m(myVector U, myVector V, myVector W) {return d(U,N(V,W)); };                                                 // (UxV)*W  mixed product, determinant - measures 6x the volume of the parallelapiped formed by myVectortors
-	public double m(myPoint E, myPoint A, myPoint B, myPoint C) {return m(V(E,A),V(E,B),V(E,C));}                                    // det (EA EB EC) is >0 when E sees (A,B,C) clockwise
-	public double n2(myVector V) {return (V.x*V.x)+(V.y*V.y)+(V.z*V.z);};                                                   // V*V    norm squared
-	public double n(myVector V) {return  Math.sqrt(n2(V));};                                                                // ||V||  norm
-	public double d(myPoint P, myPoint Q) {return  myPoint._dist(P, Q); };                            // ||AB|| distance
-	public double area(myPoint A, myPoint B, myPoint C) {return n(N(A,B,C))/2; };                                               // area of triangle 
-	public double volume(myPoint A, myPoint B, myPoint C, myPoint D) {return m(V(A,B),V(A,C),V(A,D))/6; };                           // volume of tet 
-	public boolean parallel (myVector U, myVector V) {return n(N(U,V))<n(U)*n(V)*0.00001; }                              // true if U and V are almost parallel
-	public double angle(myPoint A, myPoint B, myPoint C){return angle(V(A,B),V(A,C));}												//angle between AB and AC
-	public double angle(myPoint A, myPoint B, myPoint C, myPoint D){return angle(U(A,B),U(C,D));}							//angle between AB and CD
-	public double angle(myVector U, myVector V){double angle = Math.atan2(n(N(U,V)),d(U,V)),sign = m(U,V,V(0,0,1));if(sign<0){    angle=-angle;}	return angle;}
-	public boolean cw(myVector U, myVector V, myVector W) {return m(U,V,W)>0; };                                               // (UxV)*W>0  U,V,W are clockwise
-	public boolean cw(myPoint A, myPoint B, myPoint C, myPoint D) {return volume(A,B,C,D)>0; };                                     // tet is oriented so that A sees B, C, D clockwise 
-	public boolean projectsBetween(myPoint P, myPoint A, myPoint B) {return dot(V(A,P),V(A,B))>0 && dot(V(B,P),V(B,A))>0 ; };
-	public double distToLine(myPoint P, myPoint A, myPoint B) {double res = det3(U(A,B),V(A,P)); return Double.isNaN(res) ? 0 : res; };		//MAY RETURN NAN IF point P is on line
-	public final myPoint projectionOnLine(myPoint P, myPoint A, myPoint B) {return P(A,dot(V(A,B),V(A,P))/dot(V(A,B),V(A,B)),V(A,B));}
-	public boolean isSame(myPoint A, myPoint B) {return (A.x==B.x)&&(A.y==B.y)&&(A.z==B.z) ;}                                         // A==B
-	public boolean isSame(myPoint A, myPoint B, double e) {return ((Math.abs(A.x-B.x)<e)&&(Math.abs(A.y-B.y)<e)&&(Math.abs(A.z-B.z)<e));}                   // ||A-B||<e
+	//private double det3(myVector U, myVector V) {double dist = U._dot(V); return Math.sqrt(U._dot(U)*V._dot(V) - (dist*dist)); };                                // U|V det product
 	
-	public myVector W(double s,myVector V) {return V(s*V.x,s*V.y,s*V.z);}                                                      // sV
+//	private double mixProd(myVector U, myVector V, myVector W) {return U._dot(V._cross(W)); };                                                 // U * (VxW)  mixed product, determinant - measures 6x the volume of the parallelapiped formed by myVectortors
+	//private double mixProd(myPoint E, myPoint A, myPoint B, myPoint C) {return mixProd(new myVector(E,A),new myVector(E,B),new myVector(E,C));}                                    // det (EA EB EC) is >0 when E sees (A,B,C) clockwise
+	//private double normSqr(myVector V) {return (V.x*V.x)+(V.y*V.y)+(V.z*V.z);};                                                   // V*V    norm squared
+	//private double norm(myVector V) {return  V.magn;};                                                                // ||V||  norm
+	//private double d(myPoint P, myPoint Q) {return  myPoint._dist(P, Q); };                            // ||AB|| distance
+//	private double area(myPoint A, myPoint B, myPoint C) {	myVector x = new myVector(A,B), y = new myVector(A,C), z = x._cross(y); 	return z.magn/2.0; };                                               // area of triangle 
+//	private double volume(myPoint A, myPoint B, myPoint C, myPoint D) {return mixProd(new myVector(A,B),new myVector(A,C),new myVector(A,D))/6.0; };                           // volume of tet 
+//	private boolean isParallel(myVector U, myVector V) {return U._cross(V).magn<U.magn*V.magn*0.00001; }                              // true if U and V are almost parallel
 	
-	public myVector U(myVector v){myVector u = new myVector(v); return u._normalize(); }
-	public myVector U(myVector v, float d, myVector u){myVector r = new myVector(v,d,u); return r._normalize(); }
-	public myVector Upt(myPoint v){myVector u = new myVector(v); return u._normalize(); }
-	public myVector U(myPoint a, myPoint b){myVector u = new myVector(a,b); return u._normalize(); }
-	public myVectorf Uf(myPoint a, myPoint b){myVectorf u = new myVectorf(a,b); return u._normalize(); }
-	public myVector U(double x, double y, double z) {myVector u = new myVector(x,y,z); return u._normalize();}
+//	private double angle(myPoint A, myPoint B, myPoint C){return angle(new myVector(A,B),new myVector(A,C));}												//angle between AB and AC
+//	private double angle(myPoint A, myPoint B, myPoint C, myPoint D){return angle(U(A,B),U(C,D));}							//angle between AB and CD
+//	private double angle(myVector U, myVector V){double angle = Math.atan2(norm(U._cross(V)),U._dot(V)),sign = mixProd(U,V,new myVector(0,0,1));if(sign<0){    angle=-angle;}	return angle;}
 	
-	public myVector normToPlane(myPoint A, myPoint B, myPoint C) {return myVector._cross(new myVector(A,B),new myVector(A,C)); };   // normal to triangle (A,B,C), not normalized (proportional to area)
+//	private boolean cw(myVector U, myVector V, myVector W) {return mixProd(U,V,W)>0; };                                               // U * (VxW)>0  U,V,W are clockwise
+//	private boolean cw(myPoint A, myPoint B, myPoint C, myPoint D) {return volume(A,B,C,D)>0; };                                     // tet is oriented so that A sees B, C, D clockwise 
 	
+	//private boolean projectsBetween(myPoint P, myPoint A, myPoint B) {return dot(new myVector(A,P),new myVector(A,B))>0 && dot(new myVector(B,P),new myVector(B,A))>0 ; };
+	//private boolean projectsBetween(myPoint P, myPoint A, myPoint B) {return dot(new myVector(A,P),new myVector(A,B))>0 && dot(new myVector(B,P),new myVector(B,A))>0 ; };
+	
+//	private double distToLine(myPoint P, myPoint A, myPoint B) {double res = myVector._det3(U(A,B),new myVector(A,P)); return Double.isNaN(res) ? 0 : res; };		//MAY RETURN NAN IF point P is on line
+//	//private final myPoint projectionOnLine(myPoint P, myPoint A, myPoint B) {return new myPoint(A,dot(new myVector(A,B),new myVector(A,P))/dot(new myVector(A,B),new myVector(A,B)),new myVector(A,B));}
+//	private boolean isSame(myPoint A, myPoint B) {return (A.x==B.x)&&(A.y==B.y)&&(A.z==B.z) ;}                                         // A==B
+//	private boolean isSame(myPoint A, myPoint B, double e) {return ((Math.abs(A.x-B.x)<e)&&(Math.abs(A.y-B.y)<e)&&(Math.abs(A.z-B.z)<e));}                   // ||A-B||<e
+	
+//	private myVector W(double s,myVector V) {return new myVector(s*V.x,s*V.y,s*V.z);}                                                      // sV
+	
+	//private myVector U(myVector v){myVector u = new myVector(v); return u._normalize(); }
+//	private myVector U(myVector v, float d, myVector u){myVector r = new myVector(v,d,u); return r._normalize(); }
+//	private myVector Upt(myPoint v){myVector u = new myVector(v); return u._normalize(); }
+//	private myVector U(myPoint a, myPoint b){myVector u = new myVector(a,b); return u._normalize(); }
+//	private myVectorf Uf(myPoint a, myPoint b){myVectorf u = new myVectorf(a,b); return u._normalize(); }
+//	private myVector U(double x, double y, double z) {myVector u = new myVector(x,y,z); return u._normalize();}
+	
+//	public myVector normToPlane(myPoint A, myPoint B, myPoint C) {return myVector._cross(new myVector(A,B),new myVector(A,C)); };   // normal to triangle (A,B,C), not normalized (proportional to area)
+	
+	@Override
 	public final void gl_normal(myVector V) {normal((float)V.x,(float)V.y,(float)V.z);}                                          // changes normal for smooth shading
+	@Override
 	public final void gl_vertex(myPoint P) {vertex((float)P.x,(float)P.y,(float)P.z);}                                           // vertex for shading or drawing
+	@Override
 	public final void gl_normal(myVectorf V) {normal(V.x,V.y,V.z);}                                          // changes normal for smooth shading
+	@Override
 	public final void gl_vertex(myPointf P) {vertex(P.x,P.y,P.z);}                                           // vertex for shading or drawing
+	
+	@Override
+	public final void drawSphere(float rad) {sphere(rad);}
+	@Override
+	public final void setSphereDetail(int det) {sphereDetail(det);}
+	
+	/**
+	 * draw a 2 d ellipse 
+	 * @param a 4 element array : x,y,x rad, y rad
+	 */
+	@Override
+	public void drawEllipse(float[] a) {ellipse(a[0],a[1],a[2],a[3]);}
+	
+	
 	/////////////
 	// show functions 
-	public final void showVec( myPoint ctr, double len, myVector v){line(ctr.x,ctr.y,ctr.z,ctr.x+(v.x)*len,ctr.y+(v.y)*len,ctr.z+(v.z)*len);}
 	public final void show(myPoint P, double r,int fclr, int sclr, boolean flat) {//TODO make flat circles for points if flat
 		pushMatrix(); pushStyle(); 
-		if((fclr!= -1) && (sclr!= -1)){setColorValFill(fclr); setColorValStroke(sclr);}
+		if((fclr!= -1) && (sclr!= -1)){setColorValFill(fclr,255); setColorValStroke(sclr,255);}
 		if(!flat){
 			translate((float)P.x,(float)P.y,(float)P.z); 
 			sphereDetail(5);
@@ -1231,26 +1275,26 @@ public abstract class my_procApplet extends PApplet implements IRenderInterface 
 	
 	public final void show(myPoint P, double rad, int fclr, int sclr, int tclr, String txt) {
 		pushMatrix(); pushStyle(); 
-		if((fclr!= -1) && (sclr!= -1)){setColorValFill(fclr); setColorValStroke(sclr);}
+		if((fclr!= -1) && (sclr!= -1)){setColorValFill(fclr,255); setColorValStroke(sclr,255);}
 		sphereDetail(5);
 		translate((float)P.x,(float)P.y,(float)P.z); 
-		setColorValFill(tclr);setColorValStroke(tclr);
+		setColorValFill(tclr,255);setColorValStroke(tclr,255);
 		showOffsetText(1.2f * (float)rad,tclr, txt);
 		popStyle(); popMatrix();} // render sphere of radius r and center P)
 	
 	public final void show(myPoint P, double r, int fclr, int sclr) {
 		pushMatrix(); pushStyle(); 
-		if((fclr!= -1) && (sclr!= -1)){setColorValFill(fclr); setColorValStroke(sclr);}
+		if((fclr!= -1) && (sclr!= -1)){setColorValFill(fclr,255); setColorValStroke(sclr,255);}
 		sphereDetail(5);
 		translate((float)P.x,(float)P.y,(float)P.z); 
 		sphere((float)r); 
 		popStyle(); popMatrix();} // render sphere of radius r and center P)
 	
-	public final void show(myPoint P, double r){show(P,r, gui_Black, gui_Black, false);}
+	//public final void show(myPoint P, double r){show(P,r, gui_Black, gui_Black, false);}
 	public final void show(myPoint P, String s) {text(s, (float)P.x, (float)P.y, (float)P.z); } // prints string s in 3D at P
 	public final void show(myPoint P, String s, myVector D) {text(s, (float)(P.x+D.x), (float)(P.y+D.y), (float)(P.z+D.z));  } // prints string s in 3D at P+D
-	public final void show(myPoint P, double r, String s, myVector D){show(P,r, gui_Black, gui_Black, false);pushStyle();setColorValFill(gui_Black);show(P,s,D);popStyle();}
-	public final void show(myPoint P, double r, String s, myVector D, int clr, boolean flat){show(P,r, clr, clr, flat);pushStyle();setColorValFill(clr);show(P,s,D);popStyle();}
+	public final void show(myPoint P, double r, String s, myVector D){show(P,r, gui_Black, gui_Black, false);pushStyle();setColorValFill(gui_Black,255);show(P,s,D);popStyle();}
+	public final void show(myPoint P, double r, String s, myVector D, int clr, boolean flat){show(P,r, clr, clr, flat);pushStyle();setColorValFill(clr,255);show(P,s,D);popStyle();}
 	public final void show(myPoint[] ara) {beginShape(); for(int i=0;i<ara.length;++i){gl_vertex(ara[i]);} endShape(CLOSE);};                     
 	public final void show(myPoint[] ara, myVector norm) {beginShape();gl_normal(norm); for(int i=0;i<ara.length;++i){gl_vertex(ara[i]);} endShape(CLOSE);};   
 	public final void showVec( myPointf ctr, float len, myVectorf v){line(ctr.x,ctr.y,ctr.z,ctr.x+(v.x)*len,ctr.y+(v.y)*len,ctr.z+(v.z)*len);}
@@ -1278,7 +1322,7 @@ public abstract class my_procApplet extends PApplet implements IRenderInterface 
 		
 	public final void show(myPointf P, float r,int fclr, int sclr, boolean flat) {//TODO make flat circles for points if flat
 		pushMatrix(); pushStyle(); 
-		if((fclr!= -1) && (sclr!= -1)){setColorValFill(fclr); setColorValStroke(sclr);}
+		if((fclr!= -1) && (sclr!= -1)){setColorValFill(fclr,255); setColorValStroke(sclr,255);}
 		if(!flat){
 			translate(P.x,P.y,P.z); 
 			sphereDetail(5);
@@ -1355,7 +1399,7 @@ public abstract class my_procApplet extends PApplet implements IRenderInterface 
 				fill(255,255,255,150);
 				stroke(0,0,0,255);
 				strokeWeight(2.5f);
-				rect(rectDims);
+				drawRect(rectDims);
 				translate(rectDims[0],0,0);
 				showOffsetTextAra(1.2f * rad, clrs[2], txtAra);
 			popStyle(); popMatrix();
@@ -1394,8 +1438,8 @@ public abstract class my_procApplet extends PApplet implements IRenderInterface 
 	
 	public final void show(myPointf P, String s) {text(s, P.x, P.y, P.z); } // prints string s in 3D at P
 	public final void show(myPointf P, String s, myVectorf D) {text(s, (P.x+D.x), (P.y+D.y),(P.z+D.z));  } // prints string s in 3D at P+D
-	public final void show(myPointf P, float r, String s, myVectorf D){show(P,r, gui_Black, gui_Black, false);pushStyle();setColorValFill(gui_Black);show(P,s,D);popStyle();}
-	public final void show(myPointf P, float r, String s, myVectorf D, int clr, boolean flat){show(P,r, clr, clr, flat);pushStyle();setColorValFill(clr);show(P,s,D);popStyle();}
+	public final void show(myPointf P, float r, String s, myVectorf D){show(P,r, gui_Black, gui_Black, false);pushStyle();setColorValFill(gui_Black,255);show(P,s,D);popStyle();}
+	public final void show(myPointf P, float r, String s, myVectorf D, int clr, boolean flat){show(P,r, clr, clr, flat);pushStyle();setColorValFill(clr,255);show(P,s,D);popStyle();}
 	public final void show(myPointf[] ara) {beginShape(); for(int i=0;i<ara.length;++i){gl_vertex(ara[i]);} endShape(CLOSE);};                     
 	public final void show(myPointf[] ara, myVectorf norm) {beginShape();gl_normal(norm); for(int i=0;i<ara.length;++i){gl_vertex(ara[i]);} endShape(CLOSE);};                     
 	
@@ -1416,7 +1460,7 @@ public abstract class my_procApplet extends PApplet implements IRenderInterface 
 	}	
 	// if ray from E along V intersects sphere at C with radius r, return t when intersection occurs
 	public double intersectPt(myPoint E, myVector V, myPoint C, double r) { 
-		myVector Vce = V(C,E);
+		myVector Vce = new myVector(C,E);
 		double CEdCE = Vce._dot(Vce), VdV = V._dot(V), VdVce = V._dot(Vce), b = 2 * VdVce, c = CEdCE - (r*r),
 				radical = (b*b) - 4 *(VdV) * c;
 		if(radical < 0) return -1;
@@ -1424,10 +1468,21 @@ public abstract class my_procApplet extends PApplet implements IRenderInterface 
 		return ((t1 > 0) && (t2 > 0) ? Math.min(t1, t2) : ((t1 < 0 ) ? ((t2 < 0 ) ? -1 : t2) : t1) );
 		
 	}	
+	/**
+	 * draw a rectangle in 2D using the passed values as x,y,w,h
+	 * @param a 4 element array : x,y,w,h
+	 */
+	@Override
+	public final void drawRect(float[] a){rect(a[0],a[1],a[2],a[3]);}				//rectangle from array of floats : x, y, w, h
 	
-	public final void rect(float[] a){rect(a[0],a[1],a[2],a[3]);}				//rectangle from array of floats : x, y, w, h
-	//this will translate the passed box dimensions to keep them on the screen
-	//using p as start point and dims[2] and dims[3] as width and height
+	
+	/**
+	 * this will translate the passed box dimensions to keep them on the screen
+	 * using p as start point and rectDims[2] and rectDims[3] as width and height
+	 * @param P starting point
+	 * @param rectDims box dimensions 
+	 */
+	@Override
 	public final void transToStayOnScreen(myPointf P, float[] rectDims) {
 		float xLocSt = P.x + rectDims[0], xLocEnd = xLocSt + rectDims[2];
 		float yLocSt = P.y + rectDims[1], yLocEnd = yLocSt + rectDims[3];
@@ -1465,154 +1520,45 @@ public abstract class my_procApplet extends PApplet implements IRenderInterface 
 	}	
 	public final myPoint WrldToScreen(myPoint wPt){return new myPoint(screenX((float)wPt.x,(float)wPt.y,(float)wPt.z),screenY((float)wPt.x,(float)wPt.y,(float)wPt.z),screenZ((float)wPt.x,(float)wPt.y,(float)wPt.z));}
 	public final int[][] triColors = new int[][] {{gui_DarkMagenta,gui_DarkBlue,gui_DarkGreen,gui_DarkCyan}, {gui_LightMagenta,gui_LightBlue,gui_LightGreen,gui_TransCyan}};
-	public final void setFill(int[] clr){setFill(clr,clr[3]);}
-	public final void setStroke(int[] clr){setStroke(clr,clr[3]);}		
+	
+
+	@Override
 	public final void setFill(int[] clr, int alpha){fill(clr[0],clr[1],clr[2], alpha);}
+	@Override
 	public final void setStroke(int[] clr, int alpha){stroke(clr[0],clr[1],clr[2], alpha);}
-	public final void setColorValFill(int colorVal){ setColorValFill(colorVal,255);}
+	/**
+	 * set stroke weight
+	 */
+	@Override
+	public final void setStrokeWt(float stW) {	strokeWeight(stW);}
+
 	public final void setColorValFill(int colorVal, int alpha){
-		switch (colorVal){
-			case gui_rnd				: { fill(random(255),random(255),random(255),alpha);break;}
-			case gui_White  			: { fill(255,255,255,alpha);break; }
-			case gui_Gray   			: { fill(120,120,120,alpha); break;}
-			case gui_Yellow 			: { fill(255,255,0,alpha);break; }
-			case gui_Cyan   			: { fill(0,255,255,alpha);  break; }
-			case gui_Magenta			: { fill(255,0,255,alpha);break; }
-			case gui_Red    			: { fill(255,0,0,alpha); break; }
-			case gui_Blue				: { fill(0,0,255,alpha); break; }
-			case gui_Green				: { fill(0,255,0,alpha);  break; } 
-			case gui_DarkGray   		: { fill(80,80,80,alpha); break;}
-			case gui_DarkRed    		: { fill(120,0,0,alpha);break;}
-			case gui_DarkBlue   		: { fill(0,0,120,alpha); break;}
-			case gui_DarkGreen  		: { fill(0,120,0,alpha); break;}
-			case gui_DarkYellow 		: { fill(120,120,0,alpha); break;}
-			case gui_DarkMagenta		: { fill(120,0,120,alpha); break;}
-			case gui_DarkCyan   		: { fill(0,120,120,alpha); break;}	   
-			case gui_LightGray   		: { fill(200,200,200,alpha); break;}
-			case gui_LightRed    		: { fill(255,110,110,alpha); break;}
-			case gui_LightBlue   		: { fill(110,110,255,alpha); break;}
-			case gui_LightGreen  		: { fill(110,255,110,alpha); break;}
-			case gui_LightYellow 		: { fill(255,255,110,alpha); break;}
-			case gui_LightMagenta		: { fill(255,110,255,alpha); break;}
-			case gui_LightCyan   		: { fill(110,255,255,alpha); break;}    	
-			case gui_Black			 	: { fill(0,0,0,alpha);break;}//
-			case gui_TransBlack  	 	: { fill(0x00010100);  break;}//	have to use hex so that alpha val is not lost    	
-			case gui_FaintGray 		 	: { fill(77,77,77,alpha/3); break;}
-			case gui_FaintRed 	 	 	: { fill(110,0,0,alpha/2);  break;}
-			case gui_FaintBlue 	 	 	: { fill(0,0,110,alpha/2);  break;}
-			case gui_FaintGreen 	 	: { fill(0,110,0,alpha/2);  break;}
-			case gui_FaintYellow 	 	: { fill(110,110,0,alpha/2); break;}
-			case gui_FaintCyan  	 	: { fill(0,110,110,alpha/2); break;}
-			case gui_FaintMagenta  	 	: { fill(110,0,110,alpha/2); break;}
-			case gui_TransGray 	 	 	: { fill(120,120,120,alpha/8); break;}//
-			case gui_TransRed 	 	 	: { fill(255,0,0,alpha/2);  break;}
-			case gui_TransBlue 	 	 	: { fill(0,0,255,alpha/2);  break;}
-			case gui_TransGreen 	 	: { fill(0,255,0,alpha/2);  break;}
-			case gui_TransYellow 	 	: { fill(255,255,0,alpha/2);break;}
-			case gui_TransCyan  	 	: { fill(0,255,255,alpha/2);break;}
-			case gui_TransMagenta  	 	: { fill(255,0,255,alpha/2);break;}
-			case gui_OffWhite			: { fill(248,248,255,alpha);break; }
-			default         			: { fill(255,255,255,alpha);break;}  	    	
-		}//switch	
+		if(colorVal == gui_TransBlack) {
+			fill(0x00010100);//	have to use hex so that alpha val is not lost    
+		} else {
+			setFill(getClr(colorVal, alpha), alpha);
+		}	
 	}//setcolorValFill
-	public final void setColorValStroke(int colorVal){ setColorValStroke(colorVal, 255);}
+	
 	public final void setColorValStroke(int colorVal, int alpha){
-		switch (colorVal){
-			case gui_White  	 	    : { stroke(255,255,255,alpha); break; }
-			case gui_Gray   	 	    : { stroke(120,120,120,alpha); break;}
-			case gui_Yellow      	    : { stroke(255,255,0,alpha); break; }
-			case gui_Cyan   	 	    : { stroke(0,255,255,alpha); break; }
-			case gui_Magenta	 	    : { stroke(255,0,255,alpha);  break; }
-			case gui_Red    	 	    : { stroke(255,120,120,alpha); break; }
-			case gui_Blue		 	    : { stroke(120,120,255,alpha); break; }
-			case gui_Green		 	    : { stroke(120,255,120,alpha); break; }
-			case gui_DarkGray    	    : { stroke(80,80,80,alpha); break; }
-			case gui_DarkRed     	    : { stroke(120,0,0,alpha); break; }
-			case gui_DarkBlue    	    : { stroke(0,0,120,alpha); break; }
-			case gui_DarkGreen   	    : { stroke(0,120,0,alpha); break; }
-			case gui_DarkYellow  	    : { stroke(120,120,0,alpha); break; }
-			case gui_DarkMagenta 	    : { stroke(120,0,120,alpha); break; }
-			case gui_DarkCyan    	    : { stroke(0,120,120,alpha); break; }	   
-			case gui_LightGray   	    : { stroke(200,200,200,alpha); break;}
-			case gui_LightRed    	    : { stroke(255,110,110,alpha); break;}
-			case gui_LightBlue   	    : { stroke(110,110,255,alpha); break;}
-			case gui_LightGreen  	    : { stroke(110,255,110,alpha); break;}
-			case gui_LightYellow 	    : { stroke(255,255,110,alpha); break;}
-			case gui_LightMagenta	    : { stroke(255,110,255,alpha); break;}
-			case gui_LightCyan   		: { stroke(110,255,255,alpha); break;}		   
-			case gui_Black				: { stroke(0,0,0,alpha); break;}
-			case gui_TransBlack  		: { stroke(1,1,1,1); break;}	    	
-			case gui_FaintGray 			: { stroke(120,120,120,250); break;}
-			case gui_FaintRed 	 		: { stroke(110,0,0,alpha); break;}
-			case gui_FaintBlue 	 		: { stroke(0,0,110,alpha); break;}
-			case gui_FaintGreen 		: { stroke(0,110,0,alpha); break;}
-			case gui_FaintYellow 		: { stroke(110,110,0,alpha); break;}
-			case gui_FaintCyan  		: { stroke(0,110,110,alpha); break;}
-			case gui_FaintMagenta  		: { stroke(110,0,110,alpha); break;}
-			case gui_TransGray 	 		: { stroke(150,150,150,alpha/4); break;}
-			case gui_TransRed 	 		: { stroke(255,0,0,alpha/2); break;}
-			case gui_TransBlue 	 		: { stroke(0,0,255,alpha/2); break;}
-			case gui_TransGreen 		: { stroke(0,255,0,alpha/2); break;}
-			case gui_TransYellow 		: { stroke(255,255,0,alpha/2); break;}
-			case gui_TransCyan  		: { stroke(0,255,255,alpha/2); break;}
-			case gui_TransMagenta  		: { stroke(255,0,255,alpha/2); break;}
-			case gui_OffWhite			: { stroke(248,248,255,alpha);break; }
-			default         			: { stroke(55,55,255,alpha); break; }
-		}//switch	
+		setStroke(getClr(colorVal, alpha), alpha);		
 	}//setcolorValStroke	
 	
-	public final void setColorValFillAmb(int colorVal){ setColorValFillAmb(colorVal,255);}
 	public final void setColorValFillAmb(int colorVal, int alpha){
-		switch (colorVal){
-			case gui_rnd				: { fill(random(255),random(255),random(255),alpha); ambient(120,120,120);break;}
-			case gui_White  			: { fill(255,255,255,alpha); ambient(255,255,255); break; }
-			case gui_Gray   			: { fill(120,120,120,alpha); ambient(120,120,120); break;}
-			case gui_Yellow 			: { fill(255,255,0,alpha); ambient(255,255,0); break; }
-			case gui_Cyan   			: { fill(0,255,255,alpha); ambient(0,255,alpha); break; }
-			case gui_Magenta			: { fill(255,0,255,alpha); ambient(255,0,alpha); break; }
-			case gui_Red    			: { fill(255,0,0,alpha); ambient(255,0,0); break; }
-			case gui_Blue				: { fill(0,0,255,alpha); ambient(0,0,alpha); break; }
-			case gui_Green				: { fill(0,255,0,alpha); ambient(0,255,0); break; } 
-			case gui_DarkGray   		: { fill(80,80,80,alpha); ambient(80,80,80); break;}
-			case gui_DarkRed    		: { fill(120,0,0,alpha); ambient(120,0,0); break;}
-			case gui_DarkBlue   		: { fill(0,0,120,alpha); ambient(0,0,120); break;}
-			case gui_DarkGreen  		: { fill(0,120,0,alpha); ambient(0,120,0); break;}
-			case gui_DarkYellow 		: { fill(120,120,0,alpha); ambient(120,120,0); break;}
-			case gui_DarkMagenta		: { fill(120,0,120,alpha); ambient(120,0,120); break;}
-			case gui_DarkCyan   		: { fill(0,120,120,alpha); ambient(0,120,120); break;}		   
-			case gui_LightGray   		: { fill(200,200,200,alpha); ambient(200,200,200); break;}
-			case gui_LightRed    		: { fill(255,110,110,alpha); ambient(255,110,110); break;}
-			case gui_LightBlue   		: { fill(110,110,255,alpha); ambient(110,110,alpha); break;}
-			case gui_LightGreen  		: { fill(110,255,110,alpha); ambient(110,255,110); break;}
-			case gui_LightYellow 		: { fill(255,255,110,alpha); ambient(255,255,110); break;}
-			case gui_LightMagenta		: { fill(255,110,255,alpha); ambient(255,110,alpha); break;}
-			case gui_LightCyan   		: { fill(110,255,255,alpha); ambient(110,255,alpha); break;}	    	
-			case gui_Black			 	: { fill(0,0,0,alpha); ambient(0,0,0); break;}//
-			case gui_TransBlack  	 	: { fill(0x00010100); ambient(0,0,0); break;}//	have to use hex so that alpha val is not lost    	
-			case gui_FaintGray 		 	: { fill(77,77,77,alpha/3); ambient(77,77,77); break;}//
-			case gui_FaintRed 	 	 	: { fill(110,0,0,alpha/2); ambient(110,0,0); break;}//
-			case gui_FaintBlue 	 	 	: { fill(0,0,110,alpha/2); ambient(0,0,110); break;}//
-			case gui_FaintGreen 	 	: { fill(0,110,0,alpha/2); ambient(0,110,0); break;}//
-			case gui_FaintYellow 	 	: { fill(110,110,0,alpha/2); ambient(110,110,0); break;}//
-			case gui_FaintCyan  	 	: { fill(0,110,110,alpha/2); ambient(0,110,110); break;}//
-			case gui_FaintMagenta  	 	: { fill(110,0,110,alpha/2); ambient(110,0,110); break;}//
-			case gui_TransGray 	 	 	: { fill(120,120,120,alpha/8); ambient(120,120,120); break;}//
-			case gui_TransRed 	 	 	: { fill(255,0,0,alpha/2); ambient(255,0,0); break;}//
-			case gui_TransBlue 	 	 	: { fill(0,0,255,alpha/2); ambient(0,0,alpha); break;}//
-			case gui_TransGreen 	 	: { fill(0,255,0,alpha/2); ambient(0,255,0); break;}//
-			case gui_TransYellow 	 	: { fill(255,255,0,alpha/2); ambient(255,255,0); break;}//
-			case gui_TransCyan  	 	: { fill(0,255,255,alpha/2); ambient(0,255,alpha); break;}//
-			case gui_TransMagenta  	 	: { fill(255,0,255,alpha/2); ambient(255,0,alpha); break;}//   	
-			case gui_OffWhite			: { fill(248,248,255,alpha);ambient(248,248,255); break; }
-			default         			: { fill(255,255,255,alpha); ambient(255,255,alpha); break; }	    
-		
-		}//switch	
+		if(colorVal == gui_TransBlack) {
+			fill(0x00010100);//	have to use hex so that alpha val is not lost    
+			ambient(0,0,0);
+		} else {
+			int[] fillClr = getClr(colorVal, alpha);
+			setFill(fillClr, alpha);
+			ambient(fillClr[0],fillClr[1],fillClr[2]);
+		}		
 	}//setcolorValFill
 	
 	//returns one of 30 predefined colors as an array (to support alpha)
-	public final int[] getClr(int colorVal){		return getClr(colorVal, 255);	}//getClr
 	public final int[] getClr(int colorVal, int alpha){
 		switch (colorVal){
+			case gui_Black			         : { return new int[] {0,0,0,alpha};}
 			case gui_Gray   		         : { return new int[] {120,120,120,alpha}; }
 			case gui_White  		         : { return new int[] {255,255,255,alpha}; }
 			case gui_Yellow 		         : { return new int[] {255,255,0,alpha}; }
@@ -1635,7 +1581,6 @@ public abstract class my_procApplet extends PApplet implements IRenderInterface 
 			case gui_LightYellow 	         : { return new int[] {255,255,110,alpha};}
 			case gui_LightMagenta	         : { return new int[] {255,110,255,alpha};}
 			case gui_LightCyan   	         : { return new int[] {110,255,255,alpha};}
-			case gui_Black			         : { return new int[] {0,0,0,alpha};}
 			case gui_FaintGray 		         : { return new int[] {110,110,110,alpha};}
 			case gui_FaintRed 	 	         : { return new int[] {110,0,0,alpha};}
 			case gui_FaintBlue 	 	         : { return new int[] {0,0,110,alpha};}
@@ -1643,7 +1588,7 @@ public abstract class my_procApplet extends PApplet implements IRenderInterface 
 			case gui_FaintYellow 	         : { return new int[] {110,110,0,alpha};}
 			case gui_FaintCyan  	         : { return new int[] {0,110,110,alpha};}
 			case gui_FaintMagenta  	         : { return new int[] {110,0,110,alpha};}    	
-			case gui_TransBlack  	         : { return new int[] {1,1,1,alpha/2};}  	
+			case gui_TransBlack  	         : { return new int[] {0,0,0,alpha/2};}  	
 			case gui_TransGray  	         : { return new int[] {110,110,110,alpha/2};}
 			case gui_TransLtGray  	         : { return new int[] {180,180,180,alpha/2};}
 			case gui_TransRed  	         	 : { return new int[] {110,0,0,alpha/2};}
@@ -1663,61 +1608,13 @@ public abstract class my_procApplet extends PApplet implements IRenderInterface 
 	public final int[] getRndClr2(){return new int[]{(int)random(50,255),(int)random(25,200),(int)random(80,255),255};	}
 	public final int[] getRndClr2(int alpha){return new int[]{(int)random(50,255),(int)random(25,200),(int)random(80,255),alpha};	}
 	public final int[] getRndClr(){return getRndClr(255);	}		
-	public final Integer[] getClrMorph(int a, int b, double t){return getClrMorph(getClr(a), getClr(b), t);}    
+	public final Integer[] getClrMorph(int a, int b, double t){return getClrMorph(getClr(a,255), getClr(b,255), t);}    
 	public final Integer[] getClrMorph(int[] a, int[] b, double t){
 		if(t==0){return new Integer[]{a[0],a[1],a[2],a[3]};} else if(t==1){return new Integer[]{b[0],b[1],b[2],b[3]};}
 		return new Integer[]{(int)(((1.0f-t)*a[0])+t*b[0]),(int)(((1.0f-t)*a[1])+t*b[1]),(int)(((1.0f-t)*a[2])+t*b[2]),(int)(((1.0f-t)*a[3])+t*b[3])};
 	}
 
-	//used to generate random color
-	public static final int gui_rnd = -1;
-	//color indexes
-	public static final int gui_Black 	= 0;
-	public static final int gui_White 	= 1;	
-	public static final int gui_Gray 	= 2;
-	
-	public static final int gui_Red 	= 3;
-	public static final int gui_Blue 	= 4;
-	public static final int gui_Green 	= 5;
-	public static final int gui_Yellow 	= 6;
-	public static final int gui_Cyan 	= 7;
-	public static final int gui_Magenta = 8;
-	
-	public static final int gui_LightRed = 9;
-	public static final int gui_LightBlue = 10;
-	public static final int gui_LightGreen = 11;
-	public static final int gui_LightYellow = 12;
-	public static final int gui_LightCyan = 13;
-	public static final int gui_LightMagenta = 14;
-	public static final int gui_LightGray = 15;
-	
-	public static final int gui_DarkCyan = 16;
-	public static final int gui_DarkYellow = 17;
-	public static final int gui_DarkGreen = 18;
-	public static final int gui_DarkBlue = 19;
-	public static final int gui_DarkRed = 20;
-	public static final int gui_DarkGray = 21;
-	public static final int gui_DarkMagenta = 22;
-	
-	public static final int gui_FaintGray = 23;
-	public static final int gui_FaintRed = 24;
-	public static final int gui_FaintBlue = 25;
-	public static final int gui_FaintGreen = 26;
-	public static final int gui_FaintYellow = 27;
-	public static final int gui_FaintCyan = 28;
-	public static final int gui_FaintMagenta = 29;
-	
-	public static final int gui_TransBlack = 30;
-	public static final int gui_TransGray = 31;
-	public static final int gui_TransMagenta = 32;	
-	public static final int gui_TransLtGray = 33;
-	public static final int gui_TransRed = 34;
-	public static final int gui_TransBlue = 35;
-	public static final int gui_TransGreen = 36;
-	public static final int gui_TransYellow = 37;
-	public static final int gui_TransCyan = 38;	
-	public static final int gui_TransWhite = 39;	
-	public static final int gui_OffWhite = 40;
+
 	
 
 }//my_procApplet

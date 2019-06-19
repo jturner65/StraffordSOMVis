@@ -3,6 +3,7 @@ package base_UI_Objects.windowUI;
 import java.io.File;
 import java.util.*;
 
+import base_UI_Objects.IRenderInterface;
 import base_UI_Objects.my_procApplet;
 import base_UI_Objects.drawnObjs.myDrawnSmplTraj;
 import base_Utils_Objects.*;
@@ -18,7 +19,7 @@ public abstract class myDispWindow {
 	public int ID;	
 	public String name, winText;		
 	public int[] fillClr, strkClr, rtSideUIFillClr, rtSideUIStrkClr;
-	public int trajFillClrCnst, trajStrkClrCnst;
+	public int[] trajFillClrCnst, trajStrkClrCnst;
 	public float[] rectDim, closeBox, rectDimClosed, mseClickCrnr;	
 	//current visible screen width and height
 	public float[] curVisScrDims;
@@ -156,8 +157,8 @@ public abstract class myDispWindow {
 		ssPathBase = pa.sketchPath() +File.separatorChar +name+"_"+tmpNow + File.separatorChar;
 		initClrDims( fc, sc, rd, rdClosed);
 		winText = _winTxt;
-		trajFillClrCnst = my_procApplet.gui_Black;		//override this in the ctor of the instancing window class
-		trajStrkClrCnst = my_procApplet.gui_Black;		
+		trajFillClrCnst = new int[] {0,0,0,255};		//override this in the ctor of the instancing window class
+		trajStrkClrCnst = new int[] {0,0,0,255};		
 		msClkObj = -1;
 		msOvrObj = -1;
 	}	
@@ -610,7 +611,7 @@ public abstract class myDispWindow {
 			pa.setFill(clrAra, 255); 
 			pa.setStroke(clrAra, 255);
 		} else {
-			pa.setColorValFill(pa.gui_DarkGray); 
+			pa.setColorValFill(pa.gui_DarkGray,255); 
 			pa.noStroke();	
 		}
 		pa.sphere(5);
@@ -620,10 +621,10 @@ public abstract class myDispWindow {
 	
 	//draw a series of strings in a row
 	protected void dispBttnAtLoc(String txt, float[] loc, int[] clrAra){
-		pa.setFill(clrAra);
-		pa.setColorValStroke(my_procApplet.gui_Black);
-		pa.rect(loc);		
-		pa.setColorValFill(my_procApplet.gui_Black);
+		pa.setFill(clrAra, clrAra[3]);
+		pa.setColorValStroke(my_procApplet.gui_Black,255);
+		pa.drawRect(loc);		
+		pa.setColorValFill(my_procApplet.gui_Black,255);
 		//pa.translate(-xOff*.5f,-yOff*.5f);
 		pa.text(""+txt,loc[0] + (txt.length() * .3f),loc[1]+loc[3]*.75f);
 		//pa.translate(width, 0);
@@ -655,7 +656,7 @@ public abstract class myDispWindow {
 	//draw all boolean-based buttons for this window
 	public void drawClickableBooleans() {	
 		pa.pushMatrix();pa.pushStyle();	
-		pa.setColorValFill(pa.gui_Black);
+		pa.setColorValFill(pa.gui_Black,255);
 		if(getFlags(useRndBtnClrs)){
 			for(int i =0; i<privModFlgIdxs.length; ++i){//prlFlagRects dispBttnAtLoc(String txt, float[] loc, int[] clrAra)
 				if(getPrivFlags(privModFlgIdxs[i]) ){									dispBttnAtLoc(truePrivFlagNames[i],privFlagBtns[i],privFlagColors[i]);			}
@@ -718,14 +719,14 @@ public abstract class myDispWindow {
 	//draw box to hide window
 	protected void drawMouseBox(){
 		if( getFlags(showIDX)){
-		    pa.setColorValFill(my_procApplet.gui_LightGreen );
-			pa.rect(closeBox);
-			pa.setFill(strkClr);
+		    pa.setColorValFill(my_procApplet.gui_LightGreen ,255);
+			pa.drawRect(closeBox);
+			pa.setFill(strkClr, strkClr[3]);
 			pa.text("Close" , closeBox[0]-35, closeBox[1]+10);
 		} else {
-		    pa.setColorValFill(my_procApplet.gui_DarkRed);
-			pa.rect(closeBox);
-			pa.setFill(strkClr);
+		    pa.setColorValFill(my_procApplet.gui_DarkRed,255);
+			pa.drawRect(closeBox);
+			pa.setFill(strkClr, strkClr[3]);
 			pa.text("Open", closeBox[0]-35, closeBox[1]+10);			
 		}
 	}
@@ -734,11 +735,11 @@ public abstract class myDispWindow {
 		//pa.outStr2Scr("Hitting hint code draw small");
 		pa.hint(PConstants.DISABLE_DEPTH_TEST);
 		pa.noLights();		
-		pa.setStroke(strkClr);
-		pa.setFill(fillClr);
+		pa.setStroke(strkClr, strkClr[3]);
+		pa.setFill(fillClr, fillClr[3]);
 		//main window drawing
-		pa.rect(rectDimClosed);		
-		pa.setFill(strkClr);
+		pa.drawRect(rectDimClosed);		
+		pa.setFill(strkClr, strkClr[3]);
 		if(winText.trim() != ""){
 			pa.text(winText.split(" ")[0], rectDimClosed[0]+10, rectDimClosed[1]+25);
 		}		
@@ -754,8 +755,8 @@ public abstract class myDispWindow {
 		//pa.outStr2Scr("Hitting hint code drawHeader");
 		pa.hint(PConstants.DISABLE_DEPTH_TEST);
 		pa.noLights();		
-		pa.setStroke(strkClr);
-		pa.setFill(strkClr);
+		pa.setStroke(strkClr, strkClr[3]);
+		pa.setFill(strkClr, strkClr[3]);
 		if(winText.trim() != ""){	pa.ml_text(winText,  rectDim[0]+10,  rectDim[1]+10);}
 		if(getFlags(canDrawTraj)){	drawNotifications();	}				//if this window accepts a drawn trajectory, then allow it to be displayed
 		if(getFlags(closeable)){drawMouseBox();}
@@ -781,17 +782,17 @@ public abstract class myDispWindow {
 		drawOnScreenStuffPriv(modAmtMillis);
 		//draw right side info display if relelvant
 		if(getFlags(drawRightSideMenu)) {
-			pa.setFill(rtSideUIFillClr);//transparent black
+			pa.setFill(rtSideUIFillClr, rtSideUIFillClr[3]);//transparent black
 			if(getFlags(showRightSideMenu)) {				
-				pa.rect(UIRtSideRectBox);
+				pa.drawRect(UIRtSideRectBox);
 				//move to manage internal text display in owning window
 				pa.translate(UIRtSideRectBox[0]+5,UIRtSideRectBox[1]+yOff-4,0);
-				pa.setFill(new int[] {255,255,255,255});	
+				pa.setFill(new int[] {255,255,255},255);	
 				 //instancing class implements this function
 				drawRightSideInfoBarPriv(modAmtMillis); 
 			} else {
 				//shows narrow rectangular reminder that window is there								 
-				pa.rect(closedUIRtSideRecBox);
+				pa.drawRect(closedUIRtSideRecBox);
 			}
 		}
 		pa.popStyle();pa.popMatrix();			
@@ -803,8 +804,8 @@ public abstract class myDispWindow {
 		float animTimeMod = (modAmtMillis/1000.0f);//in seconds
 		//lastAnimTime = pa.millis();
 		pa.pushMatrix();				pa.pushStyle();			
-		pa.setFill(fillClr);
-		pa.setStroke(strkClr);
+		pa.setFill(fillClr, fillClr[3]);
+		pa.setStroke(strkClr,strkClr[3]);
 		//if(getFlags(closeable)){drawMouseBox();}
 		drawMe(animTimeMod);			//call instance class's draw
 		if(getFlags(canDrawTraj)){
@@ -838,10 +839,10 @@ public abstract class myDispWindow {
 		pa.pushMatrix();				pa.pushStyle();	
 		//pa.outStr2Scr("Hitting hint code draw2D");
 		pa.hint(PConstants.DISABLE_DEPTH_TEST);
-		pa.setStroke(strkClr);
-		pa.setFill(fillClr);
+		pa.setStroke(strkClr,strkClr[3]);
+		pa.setFill(fillClr,fillClr[3]);
 		//main window drawing
-		pa.rect(rectDim);
+		pa.drawRect(rectDim);
 		//close box drawing
 		drawMe(animTimeMod);			//call instance class's draw
 		if(getFlags(canDrawTraj)){
@@ -856,10 +857,10 @@ public abstract class myDispWindow {
 		//debug stuff
 		pa.pushMatrix();				pa.pushStyle();
 		pa.translate(rectDim[0]+20,rectDim[1]+rectDim[3]-70);
-		dispMenuTxtLat("Drawing curve", pa.getClr((getFlags(drawingTraj) ? my_procApplet.gui_Green : my_procApplet.gui_Red)), true);
+		dispMenuTxtLat("Drawing curve", pa.getClr((getFlags(drawingTraj) ? my_procApplet.gui_Green : my_procApplet.gui_Red),255), true);
 		//pa.show(new myPoint(0,0,0),4, "Drawing curve",new myVector(10,15,0),(getFlags(this.drawingTraj) ? pa.gui_Green : pa.gui_Red));
 		//pa.translate(0,-30);
-		dispMenuTxtLat("Editing curve", pa.getClr((getFlags(editingTraj) ? my_procApplet.gui_Green : my_procApplet.gui_Red)), true);
+		dispMenuTxtLat("Editing curve", pa.getClr((getFlags(editingTraj) ? my_procApplet.gui_Green : my_procApplet.gui_Red),255), true);
 		//pa.show(new myPoint(0,0,0),4, "Editing curve",new myVector(10,15,0),(getFlags(this.editingTraj) ? pa.gui_Green : pa.gui_Red));
 		pa.popStyle();pa.popMatrix();		
 	}
@@ -869,7 +870,7 @@ public abstract class myDispWindow {
 		boolean doneDrawing = true;
 		for(int i =0; i<editCrcFillClrs.length;++i){
 			if(editCrcCurRads[i] <= 0){continue;}
-			pa.setColorValFill(editCrcFillClrs[i]);
+			pa.setColorValFill(editCrcFillClrs[i],255);
 			pa.noStroke();
 			pa.circle(editCrcCtrs[i],editCrcCurRads[i]);
 			editCrcCurRads[i] -= editCrcMods[i];
@@ -994,8 +995,9 @@ public abstract class myDispWindow {
 		unSetCamOrient();
 	}//handleViewTargetChange
 	
-	protected myPoint getMsePoint(myPoint pt){return getFlags(myDispWindow.is3DWin) ? getMsePtAs3DPt((int)pt.x, (int)pt.y) : pt;}
-	protected myPoint getMsePoint(int mouseX, int mouseY){return getFlags(myDispWindow.is3DWin) ? getMsePtAs3DPt(mouseX, mouseY) : pa.P(mouseX,mouseY,0);}
+	//protected myPoint getMsePoint(myPoint pt){return getFlags(myDispWindow.is3DWin) ? getMsePtAs3DPt((int)pt.x, (int)pt.y) : pt;}
+	protected myPoint getMsePoint(myPoint pt){return getFlags(myDispWindow.is3DWin) ? getMsePtAs3DPt(pt) : pt;}		//get appropriate representation of mouse location in 3d if 3d window
+	protected myPoint getMsePoint(int mouseX, int mouseY){return getFlags(myDispWindow.is3DWin) ? getMsePtAs3DPt(new myPoint(mouseX,mouseY,0)) : new myPoint(mouseX,mouseY,0);}
 	public boolean handleMouseMove(int mouseX, int mouseY){
 		if(!getFlags(showIDX)){return false;}
 		if((getFlags(showIDX))&& (msePtInUIRect(mouseX, mouseY))){//in clickable region for UI interaction
@@ -1179,7 +1181,7 @@ public abstract class myDispWindow {
 	//setup the launch of UI-driven custom functions or debugging capabilities, which will execute next frame
 	
 	//set colors of the trajectory for this window
-	public void setTrajColors(int _tfc, int _tsc){trajFillClrCnst = _tfc;trajStrkClrCnst = _tsc;initTmpTrajStuff(getFlags(trajPointsAreFlat));}
+	public void setTrajColors(int[] _tfc, int[] _tsc){trajFillClrCnst = _tfc;trajStrkClrCnst = _tsc;initTmpTrajStuff(getFlags(trajPointsAreFlat));}
 	//get key used to access arrays in traj array
 	protected String getTrajAraKeyStr(int i){return trajNameAra[i];}
 	protected int getTrajAraIDXVal(String str){for(int i=0; i<trajNameAra.length;++i){if(trajNameAra[i].equals(str)){return i;}}return -1; }
@@ -1273,8 +1275,12 @@ public abstract class myDispWindow {
 	protected abstract void addTrajToScrIndiv(int subScrKey, String newTrajKey);
 	protected abstract void delSScrToWinIndiv(int idx);
 	protected abstract void delTrajToScrIndiv(int subScrKey, String newTrajKey);
-	
-	protected abstract myPoint getMsePtAs3DPt(int mouseX, int mouseY);	
+	/**
+	 * return appropriate 3d representation of mouse location - in 2d this will just be mseLoc x, mse Loc y, 0
+	 * @param mseLoc x and y are int values of mouse x and y location
+	 * @return
+	 */
+	protected abstract myPoint getMsePtAs3DPt(myPoint mseLoc);	
 	//set window-specific variables that are based on current visible screen dimensions
 	protected abstract void setVisScreenDimsPriv();
 	//implementing class' necessary functions - implement for each individual window
@@ -1384,20 +1390,20 @@ class myScrollBars{
 	}
 	public void drawMe(){
 		pa.pushMatrix(); pa.pushStyle();
-		pa.setColorValFill(pa.gui_LightGray);
-		pa.setColorValStroke(pa.gui_Black);
+		pa.setColorValFill(pa.gui_LightGray,255);
+		pa.setColorValStroke(pa.gui_Black,255);
 		pa.strokeWeight(1.0f);
-		pa.rect(vScrlDims);
-		pa.rect(hScrlDims);
+		pa.drawRect(vScrlDims);
+		pa.drawRect(hScrlDims);
 		for(int i =0; i<arrowDims.length;++i){
-			pa.setFill(clrs[i]);
-			pa.rect(arrowDims[i]);
+			pa.setFill(clrs[i],clrs[i][3]);
+			pa.drawRect(arrowDims[i]);
 		}
 		pa.popStyle();pa.popMatrix();
 		pa.pushMatrix(); pa.pushStyle();
 		for(int i =0; i<thmbs.length;++i){
-			pa.setFill(clrs[i + 4]);
-			pa.rect(thmbs[i]);
+			pa.setFill(clrs[i + 4],clrs[i + 4][3]);
+			pa.drawRect(thmbs[i]);
 		}
 		
 		pa.popStyle();pa.popMatrix();

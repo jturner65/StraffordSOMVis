@@ -76,7 +76,7 @@ public class Strafford_SOM_Mapper_UI_Main extends my_procApplet {
 		setInitDispWinVals(dispSOMMapIDX, _dimOpen, _dimClosed,
 				//boolean[] _dispFlags : idxs : 0 : canDrawInWin; 1 : canShow3dbox; 2 : canMoveView; 3 : dispWinIs3d
 				//int[] _fill, int[] _strk, int _trajFill, int _trajStrk)
-				new boolean[] {false,false,false,false}, new int[]{50,40,20,255},new int[]{255,255,255,255},gui_LightGray,gui_DarkGray); 		
+				new boolean[] {false,false,false,false}, new int[]{50,40,20,255},new int[]{255,255,255,255},new int[] {120,120,120,255},new int[]{50,40,20,255}); 		
 		wIdx = dispSOMMapIDX; fIdx=showSOMMapUI;
 		dispWinFrames[wIdx] = new Straff_SOMMapUIWin(this, winTitles[wIdx], fIdx, winFillClrs[wIdx], winStrkClrs[wIdx], winRectDimOpen[wIdx], winRectDimClose[wIdx], winDescr[wIdx],dispWinFlags[wIdx][dispCanDrawInWinIDX]);		
 		//specify windows that cannot be shown simultaneously here

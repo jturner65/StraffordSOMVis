@@ -476,7 +476,7 @@ public abstract class SOMMapNode extends SOMExample{
 		p.pushMatrix();p.pushStyle();
 		p.setFill(fclr, alpha);
 		p.noStroke();
-		p.rect(dispBoxDims);		
+		p.drawRect(dispBoxDims);		
 		p.popStyle();p.popMatrix();	
 	}//drawMeClrRect
 	

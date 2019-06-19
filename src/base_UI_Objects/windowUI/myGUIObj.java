@@ -1,9 +1,12 @@
 package base_UI_Objects.windowUI;
 
 import java.util.ArrayList;
+import java.util.concurrent.ThreadLocalRandom;
 
+import base_UI_Objects.IRenderInterface;
 import base_UI_Objects.my_procApplet;
 import base_Utils_Objects.vectorObjs.myVector;
+import processing.core.PApplet;
 
 //object on menu that can be modified via mouse input
 public class myGUIObj {
@@ -11,7 +14,7 @@ public class myGUIObj {
 	//static variables - put obj constructor counters here
 	private static int GUIObjID = 0;										//counter variable for gui objs
 
-	public my_procApplet p;
+	public IRenderInterface p;
 	public myDispWindow  win;			//mySideBarMenu owning window
 	public int winID;					//id in owning window
 	public myVector start, end;				//x,y coords of start corner, end corner (z==0) for clickable region
@@ -30,13 +33,15 @@ public class myGUIObj {
 			usedByWinsIDX	= 4;
 	public static final int numFlags = 5;			
 	
-	public int _cVal;
+	public int[] _cVal;
 	public double modMult,						//multiplier for mod value
 					xOff,yOff;						//Offset value
 	public float[] initDrawTrans, boxDrawTrans;
 	public int[] bxclr;
 	
-	public myGUIObj(my_procApplet _p, myDispWindow _win, int _winID, String _name, myVector _start, myVector _end, double[] _minMaxMod, double _initVal, boolean[] _flags, double[] _off) {
+	private final float[] boxDim = new float[] {-2.5f, -2.5f, 5.0f, 5.0f};
+	
+	public myGUIObj(IRenderInterface _p, myDispWindow _win, int _winID, String _name, myVector _start, myVector _end, double[] _minMaxMod, double _initVal, boolean[] _flags, double[] _off) {
 		p=_p;
 		win = _win;
 		winID = _winID;
@@ -51,8 +56,8 @@ public class myGUIObj {
 		val = _initVal;
 		initFlags();
 		for(int i =0; i<_flags.length;++i){ 	setFlags(i+2,_flags[i]);	}
-		_cVal = p.gui_Black;
-		bxclr = p.getRndClr();
+		_cVal = new int[] {0,0,0};
+		bxclr = new int[]{ThreadLocalRandom.current().nextInt(256),ThreadLocalRandom.current().nextInt(256),ThreadLocalRandom.current().nextInt(256),255};
 		
 		initDrawTrans= new float[]{(float)(start.x + xOff), (float)(start.y + yOff)};
 		boxDrawTrans = new float[]{(float)(-xOff * .5f), (float)(-yOff*.25f)};		
@@ -95,19 +100,19 @@ public class myGUIObj {
 	public boolean checkIn(float _clkx, float _clky){return (_clkx > start.x)&&(_clkx < end.x)&&(_clky > start.y)&&(_clky < end.y);}
 	public void draw(){
 		p.pushMatrix();p.pushStyle();
-			p.translate(initDrawTrans[0],initDrawTrans[1]);
-			p.setColorValFill(_cVal);
-			p.setColorValStroke(_cVal);
+			p.translate(initDrawTrans[0],initDrawTrans[1],0);
+			p.setFill(_cVal,255);
+			p.setStroke(_cVal,255);
 			p.pushMatrix();p.pushStyle();
 				p.noStroke();
-				p.fill(bxclr[0],bxclr[1],bxclr[2],bxclr[3]);
-				p.translate(boxDrawTrans[0],boxDrawTrans[1]);
-				p.box(5);
+				p.setFill(bxclr,bxclr[3]);
+				p.translate(boxDrawTrans[0],boxDrawTrans[1],0);
+				p.drawRect(boxDim);
 			p.popStyle();p.popMatrix();
-			if(!getFlags(treatAsIntIDX)){		p.text(dispText + String.format("%.5f",val), 0,0);}
+			if(!getFlags(treatAsIntIDX)){		((PApplet) p).text(dispText + String.format("%.5f",val), 0,0);}
 			else{
 				String resStr = getFlags(hasListValsIDX) ?  win.getUIListValStr(winID, (int)val) : String.format("%.0f",val);
-				p.text(dispText + resStr, 0,0);
+				((PApplet) p).text(dispText + resStr, 0,0);
 			}
 		p.popStyle();p.popMatrix();
 	}

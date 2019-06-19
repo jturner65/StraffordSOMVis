@@ -105,8 +105,8 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 	public Straff_SOMMapUIWin(my_procApplet _p, String _n, int _flagIdx, int[] fc, int[] sc, float[] rd, float[] rdClosed, String _winTxt, boolean _canDrawTraj) {
 		super(_p, _n, _flagIdx, fc, sc, rd, rdClosed, _winTxt, _canDrawTraj);
 		float stY = rectDim[1]+rectDim[3]-4*yOff,stYFlags = stY + 2*yOff;		
-		trajFillClrCnst = my_procApplet.gui_DarkCyan;	
-		trajStrkClrCnst = my_procApplet.gui_Cyan;
+		trajFillClrCnst = new int[] {0,120,120,255};
+		trajStrkClrCnst = new int[] {0,255,255,255};
 		super.initThisWin(_canDrawTraj, true, false);
 	}//ctor
 	

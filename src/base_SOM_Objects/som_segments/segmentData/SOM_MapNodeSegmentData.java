@@ -48,7 +48,7 @@ public class SOM_MapNodeSegmentData {
 		p.pushMatrix();p.pushStyle();
 		p.setFill(segClr, _alpha);
 		p.noStroke();
-		p.rect(dispBoxDims);		
+		p.drawRect(dispBoxDims);		
 		p.popStyle();p.popMatrix();	
 	}//drawMeClrRect
 	

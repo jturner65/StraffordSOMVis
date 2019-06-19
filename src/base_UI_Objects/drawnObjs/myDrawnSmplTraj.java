@@ -1,5 +1,6 @@
 package base_UI_Objects.drawnObjs;
 
+import base_UI_Objects.IRenderInterface;
 import base_UI_Objects.my_procApplet;
 import base_UI_Objects.windowUI.myDispWindow;
 import base_Utils_Objects.vectorObjs.myPoint;
@@ -28,7 +29,7 @@ public class myDrawnSmplTraj {
 		
 	//public myPoint[] pathBetweenPts;				//Array that stores all the path Points, once they are scaled
 	
-	public int fillClrCnst, strkClrCnst;
+	public int[] fillClrCnst, strkClrCnst;
 		
 	public boolean[] trajFlags;
 	public static final int 
@@ -38,7 +39,7 @@ public class myDrawnSmplTraj {
 	
 	public int ctlRad;
 	
-	public myDrawnSmplTraj(my_procApplet _p, myDispWindow _win,float _topOffy, int _fillClrCnst, int _strkClrCnst, boolean _flat, boolean _smCntl){
+	public myDrawnSmplTraj(my_procApplet _p, myDispWindow _win,float _topOffy, int[] _fillClrCnst, int[] _strkClrCnst, boolean _flat, boolean _smCntl){
 		pa = _p;
 		fillClrCnst = _fillClrCnst; 
 		strkClrCnst = _strkClrCnst;
@@ -66,11 +67,13 @@ public class myDrawnSmplTraj {
 	}
 	
 	public void calcPerpPoints(){
-		myVector dir = pa.U(myVector._rotAroundAxis(pa.V(edtCrvEndPts[0],edtCrvEndPts[1]), pa.c.getDrawSNorm()));
+		//myVector dir = pa.U(myVector._rotAroundAxis(new myVector(edtCrvEndPts[0],edtCrvEndPts[1]), pa.c.getDrawSNorm()));
+		myVector dir = (myVector._rotAroundAxis(new myVector(edtCrvEndPts[0],edtCrvEndPts[1]), pa.c.getDrawSNorm()))._normalize();
 		float mult =  .125f,
 		dist = mult * (float)myPoint._dist(edtCrvEndPts[0],edtCrvEndPts[1]);
-		edtCrvEndPts[2] = pa.P(pa.P(edtCrvEndPts[0],edtCrvEndPts[1]), dist,dir);
-		edtCrvEndPts[3] = pa.P(pa.P(edtCrvEndPts[0],edtCrvEndPts[1]),-dist,dir);
+		myPoint avgPt = edtCrvEndPts[0]._avgWithMe(edtCrvEndPts[1]);
+		edtCrvEndPts[2] = new myPoint(avgPt, dist,dir);
+		edtCrvEndPts[3] = new myPoint(avgPt,-dist,dir);
 	}
 	//scale edit points and cntl points
 	public void reCalcCntlPoints(float scale){
@@ -84,7 +87,7 @@ public class myDrawnSmplTraj {
 		edtCrvEndPts[2] = null;
 		edtCrvEndPts[3] = null;
 		calcPerpPoints();
-		drawnTraj = new myVariStroke(pa, pa.V(pa.c.getDrawSNorm()),fillClrCnst, strkClrCnst);
+		drawnTraj = new myVariStroke(pa, new myVector(pa.c.getDrawSNorm()),fillClrCnst, strkClrCnst);
 		drawnTraj.startDrawing();
 	}
 	public boolean startEditEndPoint(int idx){
@@ -141,11 +144,14 @@ public class myDrawnSmplTraj {
 			drawnTraj.remakeDrawnTraj(false);
 			rebuildDrawnTraj();	
 		} else {//scale all traj points based on modification of pts 2 or 3 - only allow them to move along the perp axis
-			myVector abRotAxis = pa.U(myVector._rotAroundAxis(pa.V(edtCrvEndPts[0],edtCrvEndPts[1]), pa.c.getDrawSNorm()));
+			
+			//myVector abRotAxis = pa.U(myVector._rotAroundAxis(new myVector(edtCrvEndPts[0],edtCrvEndPts[1]), pa.c.getDrawSNorm()));
+			myVector abRotAxis = myVector._rotAroundAxis(new myVector(edtCrvEndPts[0],edtCrvEndPts[1]), pa.c.getDrawSNorm())._normalize();
 			float dist = (float)myPoint._dist(edtCrvEndPts[2], edtCrvEndPts[3]);
 			double modAmt = diff._dot(abRotAxis);
-			if(editEndPt == 2){	edtCrvEndPts[2]._add(pa.V(modAmt,abRotAxis));edtCrvEndPts[3]._add(pa.V(-modAmt,abRotAxis));} 
-			else {				edtCrvEndPts[2]._add(pa.V(-modAmt,abRotAxis));edtCrvEndPts[3]._add(pa.V(modAmt,abRotAxis));}
+			myVector a1 = myVector._mult(abRotAxis, modAmt), a2 = myVector._mult(abRotAxis, -modAmt);
+			if(editEndPt == 2){	edtCrvEndPts[2]._add(a1);edtCrvEndPts[3]._add(a2);} 
+			else {				edtCrvEndPts[2]._add(a2);edtCrvEndPts[3]._add(a1);}
 			float dist2 = (float)myPoint._dist(edtCrvEndPts[2], edtCrvEndPts[3]);
 			//pa.outStr2Scr("modTrajCntlPts : editEndPt : " + editEndPt + " : diff : "+ diff+ " dist : " + dist+ " dist2 :" + dist2 + " rot tangent axis : " + abRotAxis + " | Scale : " + (1+dist2)/(1+dist) );
 			((myVariStroke)drawnTraj).scalePointsAboveAxis(edtCrvEndPts[0],edtCrvEndPts[1], abRotAxis, (1+dist2)/(1+dist));
@@ -157,7 +163,7 @@ public class myDrawnSmplTraj {
 	public boolean editTraj(int mouseX, int mouseY,int pmouseX, int pmouseY, myPoint mouseClickIn3D, myVector mseDragInWorld){
 		boolean mod = false;
 		if((drawnTrajPickedIdx == -1) && (editEndPt == -1) && (!win.getFlags(myDispWindow.smoothTraj))){return mod;}			//neither endpoints nor drawn points have been edited, and we're not smoothing
-		myVector diff = win.getFlags(myDispWindow.is3DWin) ? mseDragInWorld : pa.V(mouseX-pmouseX, mouseY-pmouseY,0);		
+		myVector diff = win.getFlags(myDispWindow.is3DWin) ? mseDragInWorld : new myVector(mouseX-pmouseX, mouseY-pmouseY,0);		
 		//pa.outStr2Scr("Diff in editTraj for  " + name + "  : " +diff.toStrBrf());
 		//needs to be before templateZoneY check
 		if (editEndPt != -1){//modify scale of ornament here, or modify drawn trajectory	
@@ -196,13 +202,13 @@ public class myDrawnSmplTraj {
 			drawnTraj.finalizeDrawing(true);
 			myPoint[] pts = ((myVariStroke)drawnTraj).getDrawnPtAra(false);
 			//pa.outStr2Scr("Size of pts ara after finalize (use drawn vels : " +false + " ): " + pts.length);
-			edtCrvEndPts[0] = pa.P(pts[0]);
-			edtCrvEndPts[1] = pa.P(pts[pts.length-1]);
+			edtCrvEndPts[0] = new myPoint(pts[0]);
+			edtCrvEndPts[1] = new myPoint(pts[pts.length-1]);
 			rebuildDrawnTraj();
 			//pa.outStr2Scr("In Traj : " + this.ID + " endDrawObj ");
 			win.processTrajectory(this);
 		} else {
-			drawnTraj = new myVariStroke(pa, pa.V(pa.c.getDrawSNorm()),fillClrCnst, strkClrCnst);
+			drawnTraj = new myVariStroke(pa, new myVector(pa.c.getDrawSNorm()),fillClrCnst, strkClrCnst);
 		}
 		win.setFlags(myDispWindow.drawingTraj, false);
 	}//endDrawObj
@@ -219,8 +225,8 @@ public class myDrawnSmplTraj {
 	//use animTimeMod to animate/decay showing this traj TODO 
 	public void drawMe(float animTimeMod){
 		if(drawnTraj != null){
-			pa.setColorValFill(fillClrCnst);
-			pa.setColorValStroke(strkClrCnst);
+			pa.setFill(fillClrCnst,255);
+			pa.setStroke(strkClrCnst,255);
 			for(int i =0; i< edtCrvEndPts.length; ++i){
 				win.showKeyPt(edtCrvEndPts[i],""+ (i+1),ctlRad);
 			}	

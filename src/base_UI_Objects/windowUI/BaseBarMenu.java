@@ -275,7 +275,7 @@ public abstract class BaseBarMenu extends myDispWindow{
 	private void drawSideBarBooleans(){
 		//draw main booleans and their state
 		pa.translate(10,yOff*2);
-		pa.setColorValFill(my_procApplet.gui_Black);
+		pa.setColorValFill(my_procApplet.gui_Black,255);
 		pa.text("Boolean Flags",0,yOff*.20f);
 		pa.translate(0,clkFlgsStY);
 		for(int idx =0; idx<numMainFlagsToShow; ++idx){
@@ -310,9 +310,9 @@ public abstract class BaseBarMenu extends myDispWindow{
 			pa.translate(-xOff*.5f, 0);
 			for(int col =0; col<guiBtnNames[row].length;++col){
 				halfWay = (xWidthOffset - pa.textWidth(guiBtnNames[row][col]))/2.0f;
-				pa.setColorValFill(guiBtnStFillClr[guiBtnSt[row][col]+1]);
+				pa.setColorValFill(guiBtnStFillClr[guiBtnSt[row][col]+1],255);
 				pa.rect(0,0,xWidthOffset, yOff);	
-				pa.setColorValFill(guiBtnStTxtClr[guiBtnSt[row][col]+1]);
+				pa.setColorValFill(guiBtnStTxtClr[guiBtnSt[row][col]+1],255);
 				pa.text(guiBtnNames[row][col], halfWay, yOff*.75f);
 				pa.translate(xWidthOffset, 0);
 			}
@@ -366,7 +366,7 @@ public abstract class BaseBarMenu extends myDispWindow{
 	@Override
 	protected void setVisScreenDimsPriv() {}
 	@Override
-	protected myPoint getMsePtAs3DPt(int mouseX, int mouseY){return pa.P(mouseX,mouseY,0);}
+	protected myPoint getMsePtAs3DPt(myPoint mseLoc){return new myPoint(mseLoc.x,mseLoc.y,0);}
 	@Override
 	protected void initTrajStructs() {}
 	@Override

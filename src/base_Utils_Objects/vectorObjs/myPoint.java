@@ -1,13 +1,25 @@
 package base_Utils_Objects.vectorObjs;
 
+import base_UI_Objects.IRenderInterface;
+
 public class myPoint {
 	public double x,y,z;
 	public static final myPoint ZEROPT = new myPoint(0,0,0);
 
 	public myPoint(double _x, double _y, double _z){this.x = _x; this.y = _y; this.z = _z;}         //constructor 3 args  
-	public myPoint(myPoint p){ this(p.x, p.y, p.z); }                                                                                                           	//constructor 1 arg  
+	public myPoint(myPoint p){ this(p.x, p.y, p.z); }                                                                     
+	/**
+	 * build point as displacement from point A by vector B
+	 * @param A
+	 * @param B
+	 */
 	public myPoint(myPoint A, myVector B) {this(A.x+B.x,A.y+B.y,A.z+B.z); };
-	
+	/**
+	 * Interpolate between A and B by s
+	 * @param A
+	 * @param s
+	 * @param B
+	 */
 	public myPoint(myPoint A, double s, myPoint B) {this(A.x+s*(B.x-A.x),A.y+s*(B.y-A.y),A.z+s*(B.z-A.z)); };		//builds a point somewhere in between a and b
 	public myPoint(){ this(0,0,0);}                                                                                                                               //constructor 0 args
 	public void clear() {this.x = 0; this.y = 0; this.z = 0;}	
@@ -16,29 +28,33 @@ public class myPoint {
 	public void set(double _x, double _y, double _z, double _sqMagn){ this.x = _x;  this.y = _y;  this.z = _z; }                                                                     //set 3 args 
 	
 	public myPoint _mult(double n){ this.x *= n; this.y *= n; this.z *= n; return this; }                                                     //_mult 3 args  
-	public static myPoint _mult(myPoint p, double n){ myPoint result = new myPoint(p.x * n, p.y * n, p.z * n); return result;}                          //1 pt, 1 double
-	public static myPoint _mult(myPoint p, myPoint q){ myPoint result = new myPoint(p.x *q.x, p.y * q.y, p.z * q.z); return result;}           //return elementwise product
+	
+	public myPoint _avgWithMe(myPoint q) {return new myPoint((this.x+q.x)/2.0,(this.y+q.y)/2.0,(this.z+q.z)/2.0);} 
+	public static myPoint _average(myPoint p, myPoint q) {return new myPoint((p.x+q.x)/2.0,(p.y+q.y)/2.0,(p.z+q.z)/2.0);} 
+	
+	public static myPoint _mult(myPoint p, double n){ return new myPoint(p.x * n, p.y * n, p.z * n);}                          //1 pt, 1 double
+	public static myPoint _mult(myPoint p, myPoint q){ return new myPoint(p.x *q.x, p.y * q.y, p.z * q.z);}           //return elementwise product
 	public static void _mult(myPoint p, myPoint q, myPoint r){ myPoint result = new myPoint(p.x *q.x, p.y * q.y, p.z * q.z); r.set(result);}           //2 pt src, 1 pt dest  
 
 	public void _div(double q){this.x /= q; this.y /= q; this.z /= q; }  
-	public static myPoint _div(myPoint p, double n){ if(n==0) return p; myPoint result = new myPoint(p.x / n, p.y / n, p.z / n); return result;}                          //1 pt, 1 double
+	public static myPoint _div(myPoint p, double n){ if(n==0) return p; return new myPoint(p.x / n, p.y / n, p.z / n);}                          //1 pt, 1 double
 	
 	public void _add(double _x, double _y, double _z){ this.x += _x; this.y += _y; this.z += _z;   }                                            //_add 3 args
 	public void _add(myPoint v){ this.x += v.x; this.y += v.y; this.z += v.z;   }                                                 //_add 1 arg  
-	public static myPoint _add(myPoint O, myVector I){														return new myPoint(O.x+I.x,O.y+I.y,O.z+I.z);}  
+	public static myPoint _add(myPoint O, myVector I){															return new myPoint(O.x+I.x,O.y+I.y,O.z+I.z);}  
 	public static myPoint _add(myPoint O, double a, myVector I){												return new myPoint(O.x+a*I.x,O.y+a*I.y,O.z+a*I.z);}                						//2 vec
-	public static myPoint _add(myPoint O, double a, myVector I, double b, myVector J) {						return new myPoint(O.x+a*I.x+b*J.x,O.y+a*I.y+b*J.y,O.z+a*I.z+b*J.z);}  					// O+xI+yJ
+	public static myPoint _add(myPoint O, double a, myVector I, double b, myVector J) {							return new myPoint(O.x+a*I.x+b*J.x,O.y+a*I.y+b*J.y,O.z+a*I.z+b*J.z);}  					// O+xI+yJ
 	public static myPoint _add(myPoint O, double a, myVector I, double b, myVector J, double c, myVector K) {	return new myPoint(O.x+a*I.x+b*J.x+c*K.x,O.y+b*I.y+b*J.y+c*K.y,O.z+b*I.z+b*J.z+c*K.z);} // O+xI+yJ+kZ
 	
 	public static void _add(myPoint p, myPoint q, myPoint r){ myPoint result = new myPoint(p.x + q.x, p.y + q.y, p.z + q.z); r.set(result);}       	//2 pt src, 1 pt dest  
-	public static myPoint _add(myPoint p, myPoint q){ myPoint result = new myPoint(p.x + q.x, p.y + q.y, p.z + q.z); return result;}
+	public static myPoint _add(myPoint p, myPoint q){return new myPoint(p.x + q.x, p.y + q.y, p.z + q.z); }
 	
 	public void _sub(double _x, double _y, double _z){ this.x -= _x; this.y -= _y; this.z -= _z;  }                                                                   //_sub 3 args
 	public void _sub(myPoint v){ this.x -= v.x; this.y -= v.y; this.z -= v.z;  }                                                                           //_sub 1 arg 
-	public static myPoint _sub(myPoint p, myPoint q){ myPoint result = new myPoint(p.x - q.x, p.y - q.y, p.z - q.z); return result; }
+	public static myPoint _sub(myPoint p, myPoint q){ return new myPoint(p.x - q.x, p.y - q.y, p.z - q.z);}
 	public static void _sub(myPoint p, myPoint q, myPoint r){ myPoint result = new myPoint(p.x - q.x, p.y - q.y, p.z - q.z); r.set(result);}       //2 pt src, 1 pt dest  	
 
-	public myPoint cloneMe(){myPoint retVal = new myPoint(this.x, this.y, this.z); return retVal;}  
+	public myPoint cloneMe(){return new myPoint(this.x, this.y, this.z); }  
 	
 	public double _L1Dist(myPoint q){return Math.abs((this.x - q.x)) + Math.abs((this.y - q.y)) + Math.abs((this.z - q.z)); }
 	public static double _L1Dist(myPoint q, myPoint r){ return q._L1Dist(r);}
@@ -54,8 +70,34 @@ public class myPoint {
 	public static double _dist(myPoint r, double qx, double qy, double qz){  return Math.sqrt(((r.x - qx) *(r.x - qx)) + ((r.y - qy) *(r.y - qy)) + ((r.z - qz) *(r.z - qz)));}	
 	
 	public double[] asArray(){return new double[]{x,y,z};}
-	
 	public float[] asFltArray(){return new float[]{(float)x,(float)y,(float)z};}
+	
+	public void showMeSphere(IRenderInterface pa, float r) {
+		pa.pushMatrix();	pa.pushStyle();
+		pa.setFill(new int[] {0,0,0},255);
+		pa.setStroke(new int[] {0,0,0},255);
+		pa.translate(x,y,z); 
+		pa.setSphereDetail(5);
+		pa.drawSphere(r);
+		pa.popStyle();		pa.popMatrix();	
+	}//
+	
+	public void showMe(IRenderInterface pa, double r,int[] fclr, int[] sclr, boolean flat) {//TODO make flat circles for points if flat
+		pa.pushMatrix();	pa.pushStyle();
+		pa.setFill(fclr,255); 
+		pa.setStroke(sclr,255);
+		if(!flat){
+			pa.translate(x,y,z); 
+			pa.setSphereDetail(5);
+			pa.drawSphere((float)r);
+		} else {
+			pa.translate(x,y,0); 
+			pa.drawEllipse(new float[] {0,0,(float) r,(float) r});					
+		}
+		pa.popStyle();		pa.popMatrix();	
+	}//showMe
+
+
 	
 	public boolean clickIn(myPoint p, double eps) { return(_dist(p) < eps);}
 	/**

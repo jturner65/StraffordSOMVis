@@ -21,21 +21,27 @@ public class my3DCanvas {
 	private myPoint dfCtr;											//mouse location projected onto current drawing canvas
 
 	private myEdge camEdge;												//denotes line perp to cam eye, to use for intersections for mouse selection
-	private final float canvasDim = 15000; 									//canvas dimension for "virtual" 3d		
+	private final float canvasDim = 15000,
+			canvasDimOvSqrt2 = MyMathUtils.invSqrt2_f * canvasDim; 									//canvas dimension for "virtual" 3d		
 	private myPoint[] canvas3D;											//3d plane, normal to camera eye, to be used for drawing - need to be in "view space" not in "world space", so that if camera moves they don't change
 	private myVector eyeToMse,											//eye to 2d mouse location 
 					eyeToCtr,													//vector from eye to center of cube, to be used to determine which panels of bounding box to show or hide
 					eyeTodfCtr,
 					drawSNorm;													//current normal of viewport/screen
 		
-	private int viewDimW, viewDimH, viewDimW2, viewDimH2;
+	private int viewDimW2, viewDimH2;
+	private final int viewDimW, viewDimH;
 	private float curDepth;
-	public final float TQTR_PI;
+	
+	private int[] mseFillClr;
+	
+
+	
 	public my3DCanvas(my_procApplet _p) {
 		p = _p;
 		viewDimW = p.width; viewDimH = p.height;
-		curDepth = -1;
-		TQTR_PI = PConstants.HALF_PI + PConstants.QUARTER_PI;
+		curDepth = -1;		
+		mseFillClr = new int[] {0,0,0,255};
 		initCanvas();
 	}
 	
@@ -66,8 +72,10 @@ public class my3DCanvas {
 		drawSNorm = myVector._cross(A,B)._normalize();
 		//build plane using norm - have canvas go through canvas ctr in 3d
 		myVector planeTan = myVector._cross(drawSNorm, myVector._normalize(new myVector(drawSNorm.x+10000,drawSNorm.y+10,drawSNorm.z+10)))._normalize();			//result of vector crossed with normal will be in plane described by normal
-     	myPoint lastPt = p.P(myPoint._add(p.P(), .707 * canvasDim, planeTan));
-     	planeTan = myVector._rotAroundAxis(planeTan, drawSNorm, TQTR_PI);
+     	//myPoint lastPt = p.P(myPoint._add(p.P(), .707 * canvasDim, planeTan));
+     	//myPoint lastPt = p.P(myPoint._add(new myPoint(), canvasDimOvSqrt2, planeTan));
+     	myPoint lastPt = new myPoint(new myPoint(), canvasDimOvSqrt2, planeTan);
+     	planeTan = myVector._rotAroundAxis(planeTan, drawSNorm, MyMathUtils.threeQtrPI);
 		for(int i =0;i<canvas3D.length;++i){		//build invisible canvas to draw upon
      		canvas3D[i].set(myPoint._add(lastPt, canvasDim, planeTan));
      		//planeTan = myVector._cross(planeTan, drawSNorm)._normalize();												//this effectively rotates around center point by 90 degrees -builds a square
@@ -88,7 +96,7 @@ public class my3DCanvas {
 		eyeToMse._normalize();
 		oldMseLoc.set(dfCtr);
 		dfCtr = getPlInterSect(mseLoc, eyeToMse);
-		distMsePt = p.P(dfCtr,myVector._mult(drawSNorm, -1000));
+		distMsePt = new myPoint(dfCtr,myVector._mult(drawSNorm, -1000));
 
 	}//buildCanvas()
 	
@@ -97,20 +105,15 @@ public class my3DCanvas {
 	public int getViewDimH() {return viewDimH;}
 	
 	//return a unit vector from the screen location of the mouse pointer in the world to the reticle location in the world - for ray casting onto objects the mouse is over
-	public myVector getMse2DtoMse3DinWorld(myPoint glbTrans){	return p.U(pick(p.mouseX, p.mouseY,-.00001f),getMseLoc(glbTrans) );	}
+	public myVector getMse2DtoMse3DinWorld(myPoint glbTrans){	
+		myVector res = new myVector(pick(p.mouseX, p.mouseY,-.00001f),getMseLoc(glbTrans) );		
+		return res._normalize();
+	}
 	//gets a unit vector that is up in the world relative to eye position and view direction
-	public myVector getUScrUpInWorld(){	
-		return p.U(pick(viewDimW2, viewDimH2,-.00001f),pick(viewDimW2, 0,-.00001f));
-	}	
-	public myVector getUScrRightInWorld(){
-		return p.U(pick(viewDimW2, viewDimH2,-.00001f),pick(viewDimW, viewDimH2,-.00001f));
-	}
-	public myVectorf getUScrUpInWorldf(){	
-		return p.Uf(pick(viewDimW2, viewDimH2,-.00001f),pick(viewDimW2, 0,-.00001f));
-	}	
-	public myVectorf getUScrRightInWorldf(){
-		return p.Uf(pick(viewDimW2, viewDimH2,-.00001f),pick(viewDimW, viewDimH2,-.00001f));
-	}
+	public myVector getUScrUpInWorld(){			myVector res = new myVector(pick(viewDimW2, viewDimH2,-.00001f),pick(viewDimW2, 0,-.00001f));			return res._normalize();}	
+	public myVector getUScrRightInWorld(){		myVector res = new myVector(pick(viewDimW2, viewDimH2,-.00001f),pick(viewDimW, viewDimH2,-.00001f));	return res._normalize();	}
+	public myVectorf getUScrUpInWorldf(){		myVectorf res = new myVectorf(pick(viewDimW2, viewDimH2,-.00001f),pick(viewDimW2, 0,-.00001f));			return res._normalize();}	
+	public myVectorf getUScrRightInWorldf(){	myVectorf res = new myVectorf(pick(viewDimW2, viewDimH2,-.00001f),pick(viewDimW, viewDimH2,-.00001f));	return res._normalize();}
 	
 	public void drawCanvas(){
 		p.noLights();
@@ -183,10 +186,21 @@ public class my3DCanvas {
 	}		
 	//hold depth when clicked
 	public myPoint MouseScr(float depth) {return pick(p.mouseX,p.mouseY,depth);} 	
+
+	private final void drawText(String str, float x, float y, float z){
+		p.pushMatrix();	p.pushStyle();
+			p.fill(mseFillClr[0],mseFillClr[1],mseFillClr[2],mseFillClr[3]);
+			p.unSetCamOrient();
+			p.translate(x,y,z);
+			p.text(str,0,0,0);		
+		p.popStyle();	p.popMatrix();	
+	}//drawText	
 	
+
 	public void drawMseEdge(){//draw mouse sphere and edge normal to cam eye through mouse sphere 
 		p.pushMatrix();	p.pushStyle();
 			p.strokeWeight(1f);
+			p.setStroke(new int[] {255, 0,255}, 255);
 			p.stroke(255,0,255,255);
 			//c.camEdge.set(1000, c.eyeToMse, c.dfCtr);		//build edge through mouse point normal to camera eye	
 			camEdge.set(eyeInWorld, dfCtr);		//build edge through mouse point and eye location in world	
@@ -196,12 +210,10 @@ public class my3DCanvas {
 			if(((p.curFocusWin == -1) || (p.curDispWinIs3D()))){p.drawProjOnBox(dfCtr);}
 			p.drawAxes(10000,1f, myPoint.ZEROPT, 100, true);//
 			//draw intercept with box
-			p.stroke(0,0,0,255);
-			p.show(myPoint.ZEROPT,3);
-			p.drawText(""+dfCtr+ "|fr:"+p.frameRate,4, 15, 4,0);
+			myPointf.ZEROPT.showMeSphere(p,3.0f);
+			drawText(""+dfCtr+ "|fr:"+p.frameRate,4.0f, 15.0f, 4.0f);
 			p.scale(1.5f,1.5f,1.5f);
 			//drawText(""+text_value_at_Cursor,4, -8, 4,0);getMseLoc(sceneCtrVals[sceneIDX])
-			p.popStyle();
-			p.popMatrix();		
+		p.popStyle();		p.popMatrix();		
 	}//drawMseEdge		
 }

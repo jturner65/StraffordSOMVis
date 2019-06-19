@@ -209,8 +209,8 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 		setPrivFlags(mapDrawUMatrixIDX, true);
 		setPrivFlags(mapExclProdZeroFtrIDX, true);
 
-		dpFillClr = pa.getClr(pa.gui_White);
-		dpStkClr = pa.getClr(pa.gui_Blue);	
+		dpFillClr = pa.getClr(pa.gui_White,255);
+		dpStkClr = pa.getClr(pa.gui_Blue,255);	
 		
 		mapMgr.setCurrentTrainDataFormat((int)(this.guiObjs[uiTrainDataFrmtIDX].getVal()));
 		mapMgr.setCurrentTestDataFormat((int)(this.guiObjs[uiTestDataFrmtIDX].getVal()));
@@ -719,7 +719,7 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 	
 	protected final void drawMseOverData() {
 		pa.pushMatrix();pa.pushStyle();
-			pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
+			pa.setFill(dpFillClr, dpFillClr[3]);pa.setStroke(dpStkClr,dpStkClr[3]);
 			mseOvrData.drawMeLblMap((my_procApplet)pa);
 		pa.popStyle();pa.popMatrix();		
 	}
@@ -964,7 +964,7 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 		return res;
 	}
 	@Override
-	protected myPoint getMsePtAs3DPt(int mouseX, int mouseY){return pa.P(mouseX,mouseY,0);}
+	protected myPoint getMsePtAs3DPt(myPoint mseLoc){return new myPoint(mseLoc.x,mseLoc.y,0);}
 	@Override
 	protected void snapMouseLocs(int oldMouseX, int oldMouseY, int[] newMouseLoc){}//not a snap-to window
 	@Override
