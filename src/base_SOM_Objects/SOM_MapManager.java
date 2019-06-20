@@ -151,9 +151,10 @@ public abstract class SOM_MapManager {
 			prodDataMappedIDX			= 8,
 			testDataMappedIDX			= 9,
 			validateDataMappedIDX		= 10,
-			dispMseDataSideBarIDX		= 11;			//whether to display mouse data on side bar
+			dispMseDataSideBarIDX		= 11,			//whether to display mouse data on side bar
+			dispLdPreBuitMapsIDX		= 12;
 		
-	public static final int numBaseFlags = 12;	
+	public static final int numBaseFlags = 13;	
 	//numFlags is set by instancing map manager getMseOvrLblArray()
 	
 	//threading constructions - allow map manager to own its own threading executor
@@ -185,7 +186,10 @@ public abstract class SOM_MapManager {
 		numUsableThreads = Runtime.getRuntime().availableProcessors() - 2;
 		//set if this is multi-threaded capable - need more than 1 outside of 2 primary threads (i.e. only perform multithreaded calculations if 4 or more threads are available on host)
 		setFlag(isMTCapableIDX, numUsableThreads>1);
+		//default to have mouse location display on side of screen
 		setFlag(dispMseDataSideBarIDX, true);
+		//default to have # of prebuilt map directories loaded display on side of screen
+		setFlag(dispLdPreBuitMapsIDX, true);
 		//th_exec = Executors.newCachedThreadPool();// Executors.newFixedThreadPool(numUsableThreads);
 		if(getFlag(isMTCapableIDX)) {
 			//th_exec = Executors.newFixedThreadPool(numUsableThreads+1);//fixed is better in that it will not block on the draw - this seems really slow on the prospect mapping
@@ -279,11 +283,20 @@ public abstract class SOM_MapManager {
 	
 	public String getDataDescFromCurFtrTrainType()  {return getDataDescFromInt(curMapTrainFtrType);}
 	public String getDataDescFromCurFtrTestType()  {return getDataDescFromInt(curMapTestFtrType);}
-	public String  getDataDescFromInt(int dataFrmt) {
+	public String getDataDescFromInt(int dataFrmt) {
 		switch(dataFrmt) {
 		case useUnmoddedDat : {return "Unmodified";}
 		case useScaledDat : {return "Standardized (across all examples per feature)";}
 		case useNormedDat : {return "Normalized (across all features per example)";}
+		default : {return null;}		//unknown data frmt type
+		}
+	}//getDataTypeNameFromInt
+	
+	public String getDataDescFromInt_Short(int dataFrmt) {
+		switch(dataFrmt) {
+		case useUnmoddedDat : {return "Unmodified";}
+		case useScaledDat : {return "Standardized";}
+		case useNormedDat : {return "Normalized";}
 		default : {return null;}		//unknown data frmt type
 		}
 	}//getDataTypeNameFromInt
@@ -410,20 +423,26 @@ public abstract class SOM_MapManager {
 	}//loadMapAndBMUs_Synch
 	
 	/**
-	 * Load a prebuilt map;
+	 * Load a prebuilt map - this is called only from UI version
 	 * Load preprocessed training and product data and process it (assumed to be data used to build map, if not, then map will be corrupted)
 	 * Load SOM data; partition pretrained data; map loaded training data and products to map nodes
 	 */
-	public void loadPretrainedExistingMap(boolean forceReLoad) {
+	public void loadPretrainedExistingMap(int mapID, boolean forceReLoad) {
 		//load preproc data used to train map - it is assumed this data is in default directory
-		msgObj.dispMessage("SOMMapManager","loadPretrainedExistingMap","First load pretrained map using directory specified in project config file.", MsgCodes.info1);
+		msgObj.dispMessage("SOMMapManager","loadPretrainedExistingMap","First load pretrained map # " + mapID + " using directory specified in project config file.", MsgCodes.info1);
+		//set default map id
+		projConfigData.setSOM_DefaultPreBuiltMap(mapID);
 		//for prebuilt map - load config used in prebuilt map
-		projConfigData.setSOM_UsePreBuilt();	
+		boolean dfltmapLoaded = projConfigData.setSOM_UsePreBuilt();	
+		if(!dfltmapLoaded) {
+			msgObj.dispMessage("SOMMapManager","loadPretrainedExistingMap","No Default map loaded, probably due to no default map directories specified in config file.  Aborting ", MsgCodes.info1);
+			return;
+		}
 		msgObj.dispMessage("SOMMapManager","loadPretrainedExistingMap","Next load training data used to build map - it is assumed this data is in default preproc directory.", MsgCodes.info1);
 		//load customer data into preproc  -this must be data used to build map and build data partitions - use partition size set via constants in debug
 		loadPreprocAndBuildTestTrainPartitions(projConfigData.getTrainTestPartition(),forceReLoad);
 		
-		msgObj.dispMultiLineInfoMessage("SOMMapManager","loadPretrainedExistingMap","Current projConfigData before dataLoader Call : " + projConfigData.toString());
+		msgObj.dispMultiLineInfoMessage("SOMMapManager","loadPretrainedExistingMap","Now map all training data to loaded map.");
 		//don't execute in a thread, execute synchronously so we can use results immediately upon return
 		loadMapAndBMUs();
 		msgObj.dispMessage("SOMMapManager","loadPretrainedExistingMap","Data loader finished loading map nodes and matching training data and products to BMUs." , MsgCodes.info3);
@@ -1538,22 +1557,19 @@ public abstract class SOM_MapManager {
 	
 	//get ftr name/idx/instance-specific value based to save an image of current map
 	public abstract String getSOMLocClrImgForFtrFName(int ftrIDX);
+	
+	protected int sideBarMseOvrDispOffset = 100;
+	protected float sideBarYDisp = 10.0f;
+
 	//draw right sidebar data
 	public void drawResultBar(my_procApplet pa, float yOff) {
 		yOff-=4;
 		float sbrMult = 1.2f, lbrMult = 1.5f;//offsets multiplier for barriers between contextual ui elements
 		pa.pushMatrix();pa.pushStyle();
-		
-		if((getFlag(dispMseDataSideBarIDX)) && mseOverExample.canDisplayMseLabel()) {
-			pa.translate(10.0f, 0.0f, 0.0f);
-			pa.showOffsetText(0,pa.gui_White,"Mouse Values : ");
-			yOff += 10.0f;
-			pa.translate(0.0f,10.0f, 0.0f);
-			mseOverExample.drawMseLbl_Info(pa, new myPointf(0,0,0));
-			float tmpOff = ((int)(mseOverExample.getMseLabelYOffset() / 50.0f) + 1 )*50;
-			yOff += tmpOff;
-			pa.translate(-10.0f, tmpOff, 0.0f);
-		}
+		//display preloaded maps
+		yOff=drawLoadedPreBuiltMaps(yOff);
+		//display mouse-over results in side bar
+		yOff= drawMseRes(yOff);
 		pa.sphere(3.0f);
 		yOff = drawResultBarPriv1(pa, yOff);
 		
@@ -1563,6 +1579,44 @@ public abstract class SOM_MapManager {
 
 		pa.popStyle();pa.popMatrix();	
 	}//drawResultBar
+	
+	/**
+	 * draw mouse-over results
+	 * @param yOff
+	 * @return
+	 */
+	private final float drawMseRes(float yOff) {
+		if((getFlag(dispMseDataSideBarIDX)) && mseOverExample.canDisplayMseLabel()) {
+			pa.translate(10.0f, 0.0f, 0.0f);
+			pa.showOffsetText(0,pa.gui_White,"Mouse Values : ");
+			yOff += sideBarYDisp;
+			pa.translate(0.0f,sideBarYDisp, 0.0f);
+			mseOverExample.drawMseLbl_Info(pa, new myPointf(0,0,0));
+			float tmpOff = ((int)(mseOverExample.getMseLabelYOffset() / (1.0f*sideBarMseOvrDispOffset)) + 1 )*sideBarMseOvrDispOffset;
+			yOff += tmpOff;
+			pa.translate(-10.0f, tmpOff, 0.0f);
+		}
+		return yOff;
+	}//drawMseRes
+	
+	protected final float drawLoadedPreBuiltMaps(float yOff) {
+		if(getFlag(dispLdPreBuitMapsIDX)) {	
+			String[][] loadedPreBuiltMapData = projConfigData.getPreBuiltMapInfoAra();		
+			pa.translate(0.0f, 0.0f, 0.0f);
+			float stYOff = yOff, tmpOff = sideBarMseOvrDispOffset;	
+			if(loadedPreBuiltMapData.length==0) {				
+				pa.showOffsetText(0,pa.gui_White,"No Pre-build Map Directories specified.");
+			} else {				
+				pa.showOffsetText(0,pa.gui_White,"Pre-build Map Directories specified in config : ");
+				yOff += sideBarYDisp;
+				pa.translate(10.0f, sideBarYDisp, 0.0f);
+				for(int i=0;i<loadedPreBuiltMapData.length;++i) {yOff = getPreBuiltMapInfoDetail(pa,loadedPreBuiltMapData[i], i, yOff);}
+			}		
+			pa.translate(-10.0f, 0.0f, 0.0f);
+		}
+		return yOff;
+	}//drawLoadedPreBuiltMaps
+	protected abstract float getPreBuiltMapInfoDetail(my_procApplet pa, String[] str, int i, float yOff);
 	
 	//draw app-specific sidebar data
 	protected abstract float drawResultBarPriv1(my_procApplet pa, float yOff);
@@ -1716,6 +1770,7 @@ public abstract class SOM_MapManager {
 			case testDataMappedIDX			: {break;}
 			case validateDataMappedIDX		: {break;}
 			case dispMseDataSideBarIDX		: {break;}
+			case dispLdPreBuitMapsIDX		: {break;}
 			
 			default : { setFlag_Indiv(idx, val);}	//any flags not covered get set here in instancing class			
 		}

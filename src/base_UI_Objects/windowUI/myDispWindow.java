@@ -141,7 +141,7 @@ public abstract class myDispWindow {
 	
 	//these ints hold the index of which custom functions or debug functions should be launched.  
 	//these are set when the sidebar menu is clicked and these processes are requested, and they are set to -1 when these processes are launched.  this is so the buttons can be turned on before the process starts
-	protected int[] curCustBtn = new int[] {-1,-1,-1};// curCustFunc = -1, curCustDbg = -1;
+	protected int[] curCustBtn = new int[] {-1,-1,-1,-1};// curCustFunc = -1, curCustDbg = -1;
 	protected int curCustBtnType = -1;//type/row of current button selected
 	//this is set to true when curCustXXX vals are set to != -1; this is used as a 1-frame buffer to allow the UI to turn on the source buttons of these functions
 	private boolean custClickSetThisFrame = false, custFuncDoLaunch = false;

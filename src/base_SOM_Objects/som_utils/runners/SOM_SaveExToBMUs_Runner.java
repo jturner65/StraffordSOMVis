@@ -19,7 +19,7 @@ public class SOM_SaveExToBMUs_Runner extends SOM_MapRunner {
 	protected final String fileNamePrefix;
 	
 	List<Future<Boolean>> ExSaveBMUFutures = new ArrayList<Future<Boolean>>();
-	List<SOM_ExToBMUCSVWriter> ExSaveBMUThds = new ArrayList<SOM_ExToBMUCSVWriter>();
+	List<SOM_ExToBMUs_CSVWriter> ExSaveBMUThds = new ArrayList<SOM_ExToBMUs_CSVWriter>();
 
 	public SOM_SaveExToBMUs_Runner(SOM_MapManager _mapMgr, ExecutorService _th_exec, SOMExample[] _exData, String _dataTypName, boolean _forceST, String _fileNamePrefix, int _rawNumPerPartition) {
 		super(_mapMgr, _th_exec, _exData, _dataTypName, _forceST);
@@ -33,25 +33,23 @@ public class SOM_SaveExToBMUs_Runner extends SOM_MapRunner {
 	@Override
 	protected void runMe_Indiv_MT(int numPartitions, int numPerPartition) {
 		msgObj.dispMessage("SOM_SaveExToBMUs_Runner","runMe_Indiv_MT","Starting saving example-to-bmu mappings for " +exData.length + " "+dataTypName+" examples using " +numPartitions + " partitions of length " +numPerPartition +".", MsgCodes.info1);
-		ExSaveBMUThds = new ArrayList<SOM_ExToBMUCSVWriter>();
+		ExSaveBMUThds = new ArrayList<SOM_ExToBMUs_CSVWriter>();
 		int dataSt = 0;
 		int dataEnd = numPerPartition;
 		for(int pIdx = 0; pIdx < numPartitions-1;++pIdx) {
-			ExSaveBMUThds.add(new SOM_ExToBMUCSVWriter(mapMgr, dataSt, exData.length, exData, numPartitions-1, dataTypName, fileNamePrefix));
+			ExSaveBMUThds.add(new SOM_ExToBMUs_CSVWriter(mapMgr, dataSt, exData.length, exData, numPartitions-1, dataTypName, fileNamePrefix));
 			dataSt = dataEnd;
 			dataEnd +=numPerPartition;			
 		}
-		if(dataSt < exData.length) {ExSaveBMUThds.add(new SOM_ExToBMUCSVWriter(mapMgr, dataSt, exData.length, exData, numPartitions-1, dataTypName, fileNamePrefix));}
-		
+		if(dataSt < exData.length) {ExSaveBMUThds.add(new SOM_ExToBMUs_CSVWriter(mapMgr, dataSt, exData.length, exData, numPartitions-1, dataTypName, fileNamePrefix));}	
 		ExSaveBMUFutures = new ArrayList<Future<Boolean>>();
-		try {ExSaveBMUFutures = th_exec.invokeAll(ExSaveBMUThds);for(Future<Boolean> f: ExSaveBMUFutures) { f.get(); }} catch (Exception e) { e.printStackTrace(); }		
-
+		try {ExSaveBMUFutures = th_exec.invokeAll(ExSaveBMUThds);for(Future<Boolean> f: ExSaveBMUFutures) { f.get(); }} catch (Exception e) { e.printStackTrace(); }
 		msgObj.dispMessage("SOM_SaveExToBMUs_Runner","runMe_Indiv_MT","Finished saving example-to-bmu mappings for " +exData.length + " "+dataTypName+" examples using " +numPartitions + " partitions of length " +numPerPartition +".", MsgCodes.info1);
 	}
 
 	@Override
 	protected void runMe_Indiv_ST() {
-		SOM_ExToBMUCSVWriter saver = new SOM_ExToBMUCSVWriter(mapMgr, 0, exData.length, exData, 0, dataTypName, fileNamePrefix);
+		SOM_ExToBMUs_CSVWriter saver = new SOM_ExToBMUs_CSVWriter(mapMgr, 0, exData.length, exData, 0, dataTypName, fileNamePrefix);
 		saver.call();
 	}
 
@@ -61,7 +59,7 @@ public class SOM_SaveExToBMUs_Runner extends SOM_MapRunner {
 }//SOM_SaveExToBMUs_Runner
 
 
-class SOM_ExToBMUCSVWriter implements Callable<Boolean>{
+class SOM_ExToBMUs_CSVWriter implements Callable<Boolean>{
 	protected final MessageObject msgObj;
 	protected final int stIdx, endIdx, thdIDX, progressBnd;
 	protected final FileIOManager fileIO;
@@ -74,7 +72,7 @@ class SOM_ExToBMUCSVWriter implements Callable<Boolean>{
 	//list of files to write
 	protected ArrayList<String> outStrs;
 	
-	public SOM_ExToBMUCSVWriter(SOM_MapManager _mapMgr, int _stExIDX, int _endExIDX, SOMExample[] _exs, int _thdIDX, String _datatype, String _fileNamePrfx) {
+	public SOM_ExToBMUs_CSVWriter(SOM_MapManager _mapMgr, int _stExIDX, int _endExIDX, SOMExample[] _exs, int _thdIDX, String _datatype, String _fileNamePrfx) {
 		msgObj = _mapMgr.buildMsgObj();//make a new one for every thread
 		exs=_exs;
 		stIdx = _stExIDX;

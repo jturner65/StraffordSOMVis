@@ -25,6 +25,9 @@ calcWtFileName,"WeightEqConfig_allDecay_p01_optWt_p01"
 #	calc with .1 wt order, decay all dates by .01
 #calcWtFileName, "WeightEqConfig_allDecay_p01_p1wtOrdr"
 #
+#	calc with .2 wt order, decay all dates by .01
+#calcWtFileName, "WeightEqConfig_allDecay_p01_p2wtOrdr"
+#
 #	file name of requested products to map to prospects
 reqProdConfigFileName,"ProductsToMap_Test.txt"
 #
@@ -34,20 +37,13 @@ SOMDfltConfigFileName,"SOM_MapConfig_default.txt"
 #END CONFIG FILE NAMES
 #BEGIN SUBDIR DEFS
 #changing any of these names might render old runs of the program invalid
-#these are where the program will look for specified data
+#these values are directory names where the program will look for specified data
 #	subdir to put preproc data files
 SOM_PreProc,"PreprocData"
 #
 #	subdir to use for customers and prospects to compare to map - the products must have the same format as those used to train the map
 #   if not specified or dir doesn't exist then uses "default" which should always exist under SOM_PreProc 
 #SOM_PreProcPrspctSrc,"preprocData_2019_05_06_11_15"
-#
-#	subdir to use to save csvs of mapped examples containing their segments and probs TODO not yet supported - not yet saving mapped but not proposed examples
-SOM_MappedExData,"MappedExData"
-#
-#	subdir to use for mapped examples to use to generate report
-#   if not specified or dir doesn't exist then uses "default" which should always exist under SOM_MappedExData  TODO not yet supported
-#SOM_MappedExDataSrc, "----"
 #
 #	subdir to hold source csv files
 SOM_SourceCSV,"source_csvs"
@@ -64,10 +60,10 @@ SOM_Logs,"Logs"
 #	subdir under config directory of location of weight files
 StraffCalcEqWtFiles,"CalcWtConfigs"
 #
-#	subdir to hold prospect and product suggestions - THIS IS BEING REPLACED/DEPRECATED BY NEXT ENTRIES
+#	subdir to hold prospect and product suggestions - THIS IS BEING REPLACED/DEPRECATED BY THE FOLLOWING ENTRIES
 SOM_ProdSuggest,"PerProdSuggestions"
 #
-######proposal reports locations (as of 6/7/19)
+######mapping/proposal reports locations (as of 6/7/19)
 #	subdir to hold proposals based on ftr, class, category, etc
 SOM_ProposalDir, "ProposalReports"
 #
@@ -92,17 +88,17 @@ Straff_SOM_NonProdJpGroups,"NonProductJPGroupSegmentReports"
 #
 #END SUBDIR DEFS
 #BEGIN MISC GLOBAL VARS
-#Type of event membership to define customer and true prospect
-#  0 : cust has order event, prospect does not but has source and possibly other events
-#  1 : cust has some non-source event, prospect does not have customer event but does have source event
+#	Type of event membership to define customer and true prospect
+#  		0 : cust has order event, prospect does not but has source and possibly other events
+#  		1 : cust has some non-source event, prospect does not have customer event but does have source event
 custTruePrsTypeEvents, "0"
-#Name of SOM Executable - do not include any extensions or pathing information!!
+#	Name of SOM Executable - do not include any extensions or pathing information!!
 SOMExeName_base,"straff_SOM"
 #
-#short name to be used in file names to specify this project - should only be a simple string!
+#	short name to be used in file names to specify this project - should only be a simple string!
 SOMProjName,"straff"
 #
-#whether to use dense or sparse training and testing data - should always use sparse data
+#	whether to use dense or sparse training and testing data - should always use sparse data
 useSparseTrainingData,"true"
 #
 useSparseTestingData,"true"
@@ -111,11 +107,15 @@ useSparseTestingData,"true"
 #Directory for prebuilt map : 
 #all the following use the new data as of 5/1/19
 #
-#
-#built using "WeightEqConfig_allDecay_p01_optWt_p01_srcWt_p01"; this also uses each order as a training record (multiple per customer) and gets rid of bad custs before training
+#	specify map directories containing prebuilt maps - default is first listed unless otherwise specified below
+#	add as many entries as desired, all using same prefix "preBuiltMapDir"
+#	UI currently will allow interaction with first 4
 preBuiltMapDir,"StraffSOM_2019_06_17_13_22"
+preBuiltMapDir,"StraffSOM_2019_06_18_13_06"
+preBuiltMapDir,"StraffSOM_2019_06_20_11_22"
+preBuiltMapDir,"StraffSOM_2019_06_20_11_34"
+preBuiltMapDir,"StraffSOM_2019_06_20_11_42"
 #
-#built using "WeightEqConfig_allDecay_p01_p1wtOrdr"; this also uses each order as a training record (multiple per customer) and gets rid of bad custs before training
-#preBuiltMapDir,"StraffSOM_2019_06_17_13_33"
-#
+#	default preBuiltMap index to use (of those listed above)
+dfltPreBuiltMapIDX, 0
 #END MISC GLOBAL VARS

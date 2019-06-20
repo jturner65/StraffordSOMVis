@@ -4,7 +4,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.TreeMap;
 
-import base_SOM_Objects.SOM_MapManager;
+import base_SOM_Objects.SOM_MapManager; 
 import base_SOM_Objects.som_utils.SOMProjConfigData;
 import base_Utils_Objects.io.MsgCodes;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
@@ -13,7 +13,7 @@ public class Straff_SOMProjConfig extends SOMProjConfigData {
 	//type of event membership that defines a prospect as a customer and as a true prospect (generally will be cust has order event, prospect doesnt)
 	protected int custTruePrsTypeEvents;
 	//file name to use to save strafford-specific SOM config data
-	private final String custSOMConfigDataFileName= "Strafford_SOM_CustomMapTrainData.txt";
+	private final String custStraffSOMConfigDataFileName= "Strafford_SOM_CustomMapTrainData.txt";
 
 	public Straff_SOMProjConfig(SOM_MapManager _mapMgr, TreeMap<String, Object> _argsMap) {super(_mapMgr, _argsMap);}
 
@@ -43,22 +43,53 @@ public class Straff_SOMProjConfig extends SOMProjConfigData {
 	//return int representing type of events that should be used to define a prospect as a customer (generally has a order event in history) and a true prospect (lacks orders but has sources)
 	public int getTypeOfEventsForCustAndProspect(){		return custTruePrsTypeEvents;}//
 	
+	/**
+	 * get the per-map detail date used to display information regarding prebuilt maps
+	 * 	idx0 is specified dir
+	 * 	idx1 is weight calc file used
+	 * 	idx2+ is # of training examples,  type of features used to train map
+	 */
+	@Override
+	protected String[] getPreBuiltMapInfoStr_Indiv(String _preBuiltMapDir) {
+		ArrayList<String> res = new ArrayList<String>();
+		res.add(_preBuiltMapDir);
+		String fullQualPreBuiltMapDir = getDirNameAndBuild(subDirLocs.get("SOM_MapProc") + _preBuiltMapDir, true);
+		System.out.println("getPreBuiltMapInfoStr_Indiv : " + fullQualPreBuiltMapDir);
+		String custCalcInfoFileName = fullQualPreBuiltMapDir + getSOMExpCustomConfigFileName_Indiv();
+		TreeMap<String,String> custSOMTrainInfo =  getSOMExpConfigData(custCalcInfoFileName,"Custom SOM Config Data for Strafford");
+		res.add(custSOMTrainInfo.get("calcWtFileName"));
+		
+		String SOMExecConfigFileName = fullQualPreBuiltMapDir + expProjConfigFileName;
+		TreeMap<String,String> somExecConfigMap = getSOMExpConfigData(SOMExecConfigFileName,"project config data for SOM Execution");
+		for(String s : somExecConfigMap.keySet()) {	System.out.println("key : " + s +" | value :  " + somExecConfigMap.get(s));}
+		res.add("# Training Examples : "+ String.format("%02d", Integer.parseInt(somExecConfigMap.get("expNumTrain"))));
+		res.add("Feature Type used to train : " + mapMgr.getDataDescFromInt_Short(mapMgr.getDataFrmtTypeFromName(somExecConfigMap.get("dataType"))));
+		
+		String SOMMapConfigFileName = fullQualPreBuiltMapDir + somExecConfigMap.get("SOMFileNamesAra[7]");
+		TreeMap<String,String> somMapConfigMap = getSOMExpConfigData(SOMMapConfigFileName,"project config data for SOM Execution");
+		for(String s : somMapConfigMap.keySet()) {	System.out.println("key : " + s +" | value :  " + somMapConfigMap.get(s));}
+		res.add("Rows : " +String.format("%02d", Integer.parseInt(somMapConfigMap.get("mapRows"))) + " | Cols : "+ String.format("%02d", Integer.parseInt(somMapConfigMap.get("mapCols"))));
+		return res.toArray(new String[0]);
+	}//getPreBuiltMapInfoStr_Indiv
+
+	
+	
 	//////////////////
 	// this is to manage saving and loading pre-mapped examples 
 	//TODO this needs to be implemented
 	//the premapped examples can be used for multiple products and will be valid as long as the same map is used
 	
-	//return desired subdirectory to use to get mapped custs and true prospects data TODO not yet saving these
-	public String getMappedExDataDesToMapSubDirName(boolean _forceDefault) { return getDesExCSVDataSubDir("SOM_MappedExData", "SOM_MappedExDataSrc", _forceDefault);}
-	//SOM_MappedExData - this is for saving mapped examples - builds subdirectory within proc data 
-	public String[] buildMappedExDataCSVFnames_Save(String _desSuffix) { return buildCSVFileNamesAra("mappedExData_" + getDateTimeString(false, "_")[0] + File.separator, _desSuffix,"SOM_MappedExData");}
-	/**
-	 * Build the file names for the csv files used to load mapped data - example data that has been mapped to map nodes - this returns the directory we wish to load from
-	 * @param subDir sub directory to load from
-	 * @param _desSuffix text string describing file type
-	 * @return array with 3 elements holding [destination file name, _desSuffix (being returned), rootDestDir]
-	 */	
-	public String[] buildMappedExDataCSVFNames_Load(String subDir, String _desSuffix) {	return buildCSVFileNamesAra(subDir, _desSuffix,"SOM_MappedExData");}	
+//	//return desired subdirectory to use to get mapped custs and true prospects data TODO not yet saving these
+//	public String getMappedExDataDesToMapSubDirName(boolean _forceDefault) { return getDesExCSVDataSubDir("SOM_MappedExData", "SOM_MappedExDataSrc", _forceDefault);}
+//	//SOM_MappedExData - this is for saving mapped examples - builds subdirectory within proc data 
+//	public String[] buildMappedExDataCSVFnames_Save(String _desSuffix) { return buildCSVFileNamesAra("mappedExData_" + getDateTimeString(false, "_")[0] + File.separator, _desSuffix,"SOM_MappedExData");}
+//	/**
+//	 * Build the file names for the csv files used to load mapped data - example data that has been mapped to map nodes - this returns the directory we wish to load from
+//	 * @param subDir sub directory to load from
+//	 * @param _desSuffix text string describing file type
+//	 * @return array with 3 elements holding [destination file name, _desSuffix (being returned), rootDestDir]
+//	 */	
+//	public String[] buildMappedExDataCSVFNames_Load(String subDir, String _desSuffix) {	return buildCSVFileNamesAra(subDir, _desSuffix,"SOM_MappedExData");}	
 	
 	//return subdirectory to use to write results for product with passed OID
 	//THIS IS THE OLD VERSION AND WILL BE DEPRECATED
@@ -101,15 +132,15 @@ public class Straff_SOMProjConfig extends SOMProjConfigData {
 	 * file name of custom config used to save instance-specific implementation details/files 
 	 * @return file name of config file for custom config variables, under SOM Exec dir
 	 */
-	protected final String getSOMExpCustomConfigFileName_Indiv() {	return custSOMConfigDataFileName;}
+	@Override
+	protected final String getSOMExpCustomConfigFileName_Indiv() {	return custStraffSOMConfigDataFileName;}
 	
 	/**
 	 * Instance-specific loading necessary for proper consumption of pre-built SOM
 	 */
 	@Override
 	protected final void setSOM_UsePreBuilt_Indiv() {
-		String custConfigSOMFileName = getSOMExpCustomConfigFileName();
-		
+		String custConfigSOMFileName = getSOMExpCustomConfigFileName();		
 		String[] fileStrings = fileIO.loadFileIntoStringAra(custConfigSOMFileName, "Custom application-specific SOM Exp Config File loaded", "Custom application-specific SOM Exp Config File Failed to load");
 		int idx = 0; boolean found = false;
 		//find start of first block of data - 

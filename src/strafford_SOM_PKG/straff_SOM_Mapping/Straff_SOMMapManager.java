@@ -442,9 +442,13 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 		msgObj.dispMessage("StraffSOMMapManager","loadAllDataAndBuildMappings","Start loading Default SOM Map data.", MsgCodes.info1);		
 			//current SOM map, if there is one, is now out of date, do not use
 		setSOMMapNodeDataIsLoaded(false);			
-			//load pretrained map - for prebuilt map - load config used in prebuilt map including weight equation (override calc set in config - weight eq MUST always match trained map weight eq)
-		projConfigData.setSOM_UsePreBuilt();	
-		msgObj.dispMessage("StraffSOMMapManager","loadAllDataAndBuildMappings","Finished loading Default SOM Map data. | Start loading customer, true prospect and product preproc data", MsgCodes.info1);		
+			//load default pretrained map - for prebuilt map - load config used in prebuilt map including weight equation (override calc set in config - weight eq MUST always match trained map weight eq)
+		boolean dfltmapLoaded = projConfigData.setSOM_UsePreBuilt();	
+		if(!dfltmapLoaded) {
+			msgObj.dispMessage("StraffSOMMapManager","loadAllDataAndBuildMappings","No Default map loaded, probably due to no default map directories specified in config file.  Aborting ", MsgCodes.info1);
+			return;
+		}
+		msgObj.dispMessage("StraffSOMMapManager","loadAllDataAndBuildMappings","Finished loading Default SOM Map data. | Start loading customer, true prospect and product preproc data.", MsgCodes.info1);		
 			//load customer data
 		custPrspctExMapper.loadAllPreProccedMapData(subDir);
 			//load preproc product data
@@ -1074,6 +1078,33 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	private int getProdDistType() {return (getFlag(mapExclProdZeroFtrIDX) ? ProductExample.SharedFtrsIDX : ProductExample.AllFtrsIDX);}
 		//display the region of the map expected to be impacted by the products serving the passed jp 
 	public void drawProductRegion(my_procApplet pa, int prodJpIDX, double maxDist) {	prodExMapper.drawProductRegion(pa,prodJpIDX, maxDist, getProdDistType());}//drawProductRegion
+	
+	@Override
+	protected float getPreBuiltMapInfoDetail(my_procApplet pa, String[] str, int idx, float yOff) {
+		pa.showOffsetText(0,pa.gui_White,""+String.format("%02d", idx+1)+" | "+str[0]);
+		pa.translate(10.0f,0.0f,0.0f);
+		yOff += sideBarYDisp;
+		pa.translate(0.0f, sideBarYDisp, 0.0f);
+		pa.showOffsetText(0,pa.gui_White,"Weight Calc Used for this map : ");
+		yOff += sideBarYDisp;
+		pa.translate(10.0f, sideBarYDisp, 0.0f);
+		pa.showOffsetText(0,pa.gui_White,str[1]);
+		yOff += sideBarYDisp;
+		pa.translate(-10.0f, sideBarYDisp, 0.0f);
+		pa.showOffsetText(0,pa.gui_White,"Detail : ");
+		yOff += sideBarYDisp;
+		pa.translate(10.0f, sideBarYDisp, 0.0f);
+		for(int i=2;i<str.length;++i) {
+			pa.showOffsetText(0,pa.gui_White,str[i]);		
+			yOff += sideBarYDisp;
+			pa.translate(0.0f, sideBarYDisp, 0.0f);			
+		}
+		//add another space
+		yOff += sideBarYDisp;
+		pa.translate(-10.0f, sideBarYDisp, 0.0f);
+		pa.translate(-10.0f,0.0f,0.0f);
+		return yOff;
+	}//
 	
 	//app-specific drawing routines for side bar
 	protected float drawResultBarPriv1(my_procApplet pa, float yOff){

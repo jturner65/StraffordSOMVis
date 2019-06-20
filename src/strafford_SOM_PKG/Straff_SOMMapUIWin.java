@@ -93,12 +93,13 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 	/////////
 	//custom debug/function ui button names -empty will do nothing
 	public String[][] menuBtnNames = new String[][] {	//each must have literals for every button defined in side bar menu, or ignored
-		{"Load All Raw ---", "Func 01","Recalc Features"},	//row 1
+		{"Load All Raw ---", "---","Recalc Features"},	//row 1
 		{"Train Data","True Prspcts", "Prods", "SOM Cfg"},	//row 2
-		{"Train->Bld Map","Map&All Data", "Func 22", "Prblt Map"},	//row 3
-		{"Raw","Proced","JpJpg","MapDat","Dbg 5"}	
+		{"Train->Bld Map","Map All Data", "---", "---"},	//row 3
+		{"Map 1","Map 2","Map 3","Map 4"},
+		{"Raw","Proced","JpJpg","MapDat","---"}	
 	};
-
+	private final String[] dfltPreBltMapNames = {"Map 1","Map 2","Map 3","Map 4"};
 	//used to switch button name for 1st button to reflect whether performing csv-based load of raw data or sql query
 	private String[] menuLdRawFuncBtnNames = new String[] {"CSV", "SQL"};	
 	
@@ -587,8 +588,23 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 				case 2 : {	
 					resetButtonState();
 					break;}
+				case 3 : {
+					resetButtonState();
+					break;}
+				default : {
+					msgObj.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Unknown Functions 3 btn : "+btn, MsgCodes.warning2);
+					resetButtonState();
+					break;}	
+			}
+			break;}//row 3 of menu side bar buttons
+		case mySideBarMenu.btnAuxFunc4Idx : {//row 3 of menu side bar buttons
+			msgObj.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Click Functions 3 in "+name+" : btn : " + btn, MsgCodes.info4);//{"Ld&Bld SOM Data", "Load SOM Config", "Ld & Make Map", "Ld Prebuilt Map"},	//row 2
+			switch(btn){
+				case 0 :
+				case 1 : 
+				case 2 : 
 				case 3 : {//load all training data, default map config, and build map
-					mapMgr.loadPretrainedExistingMap(true);//runs in thread, button state reset there
+					mapMgr.loadPretrainedExistingMap(btn, true);//runs in thread, button state reset there
 					resetButtonState();
 					break;}
 				default : {
@@ -661,35 +677,33 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 }//mySOMMapUIWin
 
 /**
- * class to manage buttons used by sidebar window - overrides base setup
+ * class to manage buttons used by sidebar window - overrides base setup, allows for custom config
  * @author john
  *
  */
 class mySideBarMenu extends BaseBarMenu {
 	
 	public static final int 
-		//btnShowWinIdx = 0, 				//which window to show
 		btnAuxFunc1Idx = 0,			//aux functionality 1
 		btnAuxFunc2Idx = 1,			//aux functionality 2
 		btnAuxFunc3Idx = 2,			//aux functionality 3
-		btnDBGSelCmpIdx = 3;			//debug
-		//btnFileCmdIdx = 3;				//load/save files
+		btnAuxFunc4Idx = 3,			//load prebuilt maps
+		btnDBGSelCmpIdx = 4;			//debug
 
-
-	public mySideBarMenu(my_procApplet _p, String _n, int _flagIdx, int[] fc, int[] sc, float[] rd, float[] rdClosed,
-			String _winTxt, boolean _canDrawTraj) {
+	public mySideBarMenu(my_procApplet _p, String _n, int _flagIdx, int[] fc, int[] sc, float[] rd, float[] rdClosed, String _winTxt, boolean _canDrawTraj) {
 		super(_p, _n, _flagIdx, fc, sc, rd, rdClosed, _winTxt, _canDrawTraj);
 	}
 
 	@Override
 	protected void initSideBarMenuBtns_Priv() {
-		guiBtnRowNames = new String[]{"Raw Data Conversion/Processing","Load Post Proc Data","Console Exec Testing","DEBUG"};//,"File"};
+		guiBtnRowNames = new String[]{"Raw Data Conversion/Processing","Load Post Proc Data","Console Exec Testing","Load Prebuilt Maps","DEBUG"};//,"File"};
 
 		//names for each row of buttons - idx 1 is name of row
 		guiBtnNames = new String[][]{
 			//new String[]{pa.winTitles[1], pa.winTitles[2], pa.winTitles[3], pa.winTitles[4]},							//display specific windows - multi-select/ always 
 			new String[]{"Func 1","Func 2","Func 3"},						//per-window user functions - momentary
 			new String[]{"Func 1","Func 2","Func 3","Func 4"},						//per-window user functions - momentary
+			new String[]{"Func 1","Func 2","Func 3","Func 4"},						//2nd row per-window user functions - momentary
 			new String[]{"Func 1","Func 2","Func 3","Func 4"},						//2nd row per-window user functions - momentary
 			new String[]{"Dbg 1","Dbg 2","Dbg 3","Dbg 4","Dbg 5"},						//DEBUG - momentary
 //			new String[]{"Load Txt File","Save Txt File"}							//load an existing score, save an existing score - momentary		
@@ -698,6 +712,7 @@ class mySideBarMenu extends BaseBarMenu {
 		defaultUIBtnNames = new String[][]{
 			//new String[]{pa.winTitles[1], pa.winTitles[2], pa.winTitles[3], pa.winTitles[4]},							//display specific windows - multi-select/ always 
 			new String[]{"Func 1","Func 2","Func 3"},					//per-window user functions - momentary
+			new String[]{"Func 1","Func 2","Func 3","Func 4"},			//per-window user functions - momentary
 			new String[]{"Func 1","Func 2","Func 3","Func 4"},			//per-window user functions - momentary
 			new String[]{"Func 1","Func 2","Func 3","Func 4"},			//per-window user functions - momentary
 			new String[]{"Dbg 1","Dbg 2","Dbg 3","Dbg 4","Dbg 5"},						//DEBUG - momentary
@@ -709,6 +724,7 @@ class mySideBarMenu extends BaseBarMenu {
 			new boolean[]{false,false,false},                   //functionality - momentary
 			new boolean[]{false,false,false,false},                   //functionality - momentary
 			new boolean[]{false,false,false,false},                   //functionality - momentary
+			new boolean[]{false,false,false,false},                   //functionality - momentary
 			new boolean[]{false,false,false,false,false},                   		//debug - momentary
 //			new boolean[]{true,true},			              			//load an existing score, save an existing score - momentary	
 		};		
@@ -716,6 +732,7 @@ class mySideBarMenu extends BaseBarMenu {
 		guiBtnWaitForProc = new boolean[][]{
 			//new boolean[]{false,false,false,false},         						//display specific windows - multi-select/ always on if sel
 			new boolean[]{false,false,false},                   //functionality - momentary
+			new boolean[]{false,false,false,false},                   //functionality - momentary
 			new boolean[]{false,false,false,false},                   //functionality - momentary
 			new boolean[]{false,false,false,false},                   //functionality - momentary
 			new boolean[]{false,false,false,false,false},                   		//debug - momentary
@@ -726,6 +743,7 @@ class mySideBarMenu extends BaseBarMenu {
 		guiBtnSt = new int[][]{
 			//new int[]{0,0,1,0},                    					//display specific windows - multi-select/ always on if sel
 			new int[]{0,0,0},                   					//debug - momentary
+			new int[]{0,0,0,0},                   					//debug - momentary
 			new int[]{0,0,0,0},                   					//debug - momentary
 			new int[]{0,0,0,0},                   					//debug - momentary
 			new int[]{0,0,0,0,0},                   					//debug - momentary
@@ -743,6 +761,7 @@ class mySideBarMenu extends BaseBarMenu {
 			case btnAuxFunc1Idx 		: //{pa.handleMenuBtnSelCmp(btnAuxFunc1Idx,col, val);break;}
 			case btnAuxFunc2Idx 		: //{pa.handleMenuBtnSelCmp(btnAuxFunc2Idx,col, val);break;}
 			case btnAuxFunc3Idx 		: //{pa.handleMenuBtnSelCmp(btnAuxFunc2Idx,col, val);break;}
+			case btnAuxFunc4Idx			:
 			case btnDBGSelCmpIdx  		: {pa.handleMenuBtnSelCmp(row, col, val);break;}//{pa.handleMenuBtnSelCmp(btnDBGSelCmpIdx,col, val);break;}
 //			case btnFileCmdIdx 			: {pa.handleFileCmd(btnFileCmdIdx, col, val);break;}
 		}				
@@ -751,10 +770,11 @@ class mySideBarMenu extends BaseBarMenu {
 	@Override
 	protected void launchMenuBtnHndlr() {
 		switch(curCustBtnType) {
-		case mySideBarMenu.btnAuxFunc1Idx : {break;}//row 1 of menu side bar buttons
-		case mySideBarMenu.btnAuxFunc2Idx : {break;}//row 2 of menu side bar buttons
-		case mySideBarMenu.btnAuxFunc3Idx : {break;}//row 2 of menu side bar buttons
-		case mySideBarMenu.btnDBGSelCmpIdx : {break;}//row 3 of menu side bar buttons (debug)			
+		case btnAuxFunc1Idx : {break;}//row 1 of menu side bar buttons
+		case btnAuxFunc2Idx : {break;}//row 2 of menu side bar buttons
+		case btnAuxFunc3Idx : {break;}//row 2 of menu side bar buttons
+		case btnAuxFunc4Idx : {break;}
+		case btnDBGSelCmpIdx : {break;}//row 3 of menu side bar buttons (debug)			
 		}		
 	}
 

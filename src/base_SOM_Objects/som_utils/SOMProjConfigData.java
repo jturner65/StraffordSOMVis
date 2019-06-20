@@ -67,7 +67,11 @@ public abstract class SOMProjConfigData {
 	protected HashMap<String,String> configFileNames, subDirLocs;
 	
 	//directory under SOM where prebuilt map resides that is desired to be loaded into UI - replaces dbg files - set in project config file
-	protected String preBuiltMapDir;
+	protected String[] preBuiltMapDirAra;
+	//index of default prebuilt map to use - defaults to 0
+	protected int dfltPreBuiltMapIDX = 0;
+	//array of information string arrays for each specified prebuilt map - for display
+	protected String[][] _preBuiltMapInfoAra;
 	
 	public static final String[] SOMResExtAra = new String[]{".wts", ".bm",".umx"};			//extensions for different SOM output file types
 	//idxs of different kinds of SOM output files
@@ -196,12 +200,16 @@ public abstract class SOMProjConfigData {
 		idx = _loadProjConfigData(fileStrings, subDirLocs, idx, true);//returns next idx, fills subdir variables
 		if(idx == -1) {msgObj.dispMessage("SOMProjConfigData","loadProjectConfig","Error after _loadProjConfigData with subDirLocs : idx == -1.   This means an 'END' tag is probably missing in the "+projectConfigFile+" file.", MsgCodes.error2); return;}
 		
-		// MISC GLOBAL VARS - read through individual config vars
+		// MISC GLOBAL VARS - read through individual config vars preBuiltMapDir
 		idx = _loadIndivConfigVars(fileStrings, idx); 
-		msgObj.dispMessage("SOMProjConfigData","loadProjectConfig","preBuiltMapDir set to be : " + preBuiltMapDir, MsgCodes.info3);
+		if((preBuiltMapDirAra == null)|| (preBuiltMapDirAra.length == 0)){
+			msgObj.dispMessage("SOMProjConfigData","loadProjectConfig","No default preBuilt Map directories specified in config, so none will be used.", MsgCodes.info3);
+		} else {
+			msgObj.dispMessage("SOMProjConfigData","loadProjectConfig","Default preBuiltMapDir set to be : " + preBuiltMapDirAra[dfltPreBuiltMapIDX], MsgCodes.info3);
+		}
 		if(idx == -1) {msgObj.dispMessage("SOMProjConfigData","loadProjectConfig","Error after _loadIndivConfigVars : idx == -1", MsgCodes.error2); return;}
 		msgObj.dispMessage("SOMProjConfigData","loadProjectConfig","Finished loading project configuration.", MsgCodes.info5);
-	}//loadProjectConfig
+	}//loadProjectConfig(
 	
 	/**
 	 * load all file name/value pairs in config file into passed map; return idx of next section
@@ -228,28 +236,48 @@ public abstract class SOMProjConfigData {
 	
 	private int _loadIndivConfigVars(String[] fileStrings, int stIDX) {
 		boolean endFound = false;
+		ArrayList<String> preBuiltMapDirArrayList = new ArrayList<String> ();
 		while((stIDX < fileStrings.length) && (!endFound)) {
 			String s = fileStrings[stIDX];
-			if(s.contains("END")) {return stIDX+1;}//move to next line, should be "begin" tag
+			if(s.contains("END")) {++stIDX; break;}//move to next line, should be "begin" tag
 			if((s.contains(fileComment)) || (s.trim().length() == 0)){++stIDX; continue;}
 			String[] tkns = s.trim().split(SOM_MapManager.csvFileToken);
 			String val = tkns[1].trim().replace("\"", "");
 			String varName = tkns[0].trim();
 			switch (varName) {
-				case "preBuiltMapDir" : 		{	preBuiltMapDir = val + File.separator; break;}
-				case "SOMExeName_base" : 		{	SOMExeName_base = val;		break;}
-				case "SOMProjName" : 			{	SOMProjName = val;	SOMProjNameCap = val.substring(0, 1).toUpperCase() + val.substring(1);	break;}
-				case "useSparseTrainingData" : {	useSparseTrainingData = Boolean.parseBoolean(val.toLowerCase());  break;}
-				case "useSparseTestingData" : {		useSparseTestingData = Boolean.parseBoolean(val.toLowerCase());  break;}
+				case "preBuiltMapDir" 			: {	preBuiltMapDirArrayList.add( val + File.separator); break;			}
+				case "dfltPreBuiltMapIDX" 		: {	dfltPreBuiltMapIDX = Integer.parseInt(val); break;}
+				case "SOMExeName_base" 			: {	SOMExeName_base = val;		break;}
+				case "SOMProjName" 				: {	SOMProjName = val;	SOMProjNameCap = val.substring(0, 1).toUpperCase() + val.substring(1);	break;}
+				case "useSparseTrainingData" 	: {	useSparseTrainingData = Boolean.parseBoolean(val.toLowerCase());  break;}
+				case "useSparseTestingData" 	: {	useSparseTestingData = Boolean.parseBoolean(val.toLowerCase());  break;}
 				//add more variables here in instancing class - use string rep of name in config file, followed by a comma, followed by the string value (may include 2xquotes (") around string;) then can add more cases here
-				default	 					:{_loadIndivConfigVarsPriv(varName,val);}
+				default	 						: {_loadIndivConfigVarsPriv(varName,val);}
 			}	
+			msgObj.dispMessage("SOMProjConfigData","_loadIndivConfigVars","config file line : " +stIDX + " | key : " +varName +" value specified in config : " + val, MsgCodes.info3);
 			++stIDX;
 		}
-		return -1;			
+		_preBuiltMapFinalSetup(preBuiltMapDirArrayList);
+		return stIDX;			//
 	}//_loadIndivConfigVars	
 	protected abstract void _loadIndivConfigVarsPriv(String varName, String val);
 	
+	private void _preBuiltMapFinalSetup(ArrayList<String> preBuiltMapDirArrayList) {
+		preBuiltMapDirAra = preBuiltMapDirArrayList.toArray(new String[0]);
+		if((dfltPreBuiltMapIDX >= preBuiltMapDirAra.length) || (dfltPreBuiltMapIDX < 0)) {dfltPreBuiltMapIDX = 0;}	//verify default array value is legal
+		if((preBuiltMapDirAra == null) || (preBuiltMapDirAra.length==0)) {	_preBuiltMapInfoAra = new String[0][];			return;}
+		//build information describing desired pre-built maps noted in array
+		ArrayList<String[]> resList = new ArrayList<String[]>();
+		for(String s : preBuiltMapDirAra) {		resList.add(getPreBuiltMapInfoStr_Indiv(s));}		
+		_preBuiltMapInfoAra = resList.toArray(new String[0][]);
+	}//_preBuiltMapFinalSetup
+	
+	/**
+	 * build relevant info for each specified pre-built map subdir in config file, building an array of relevant information about how the map was built
+	 * @param _mapDir
+	 * @return
+	 */
+	protected abstract String[] getPreBuiltMapInfoStr_Indiv(String _mapDir);
 	
 	/**
 	 * build file names of raw data csv files - search each specified directory and return all csv files listed
@@ -346,14 +374,29 @@ public abstract class SOMProjConfigData {
 	 */
 	protected abstract void saveSOM_ExecReport_Indiv(ArrayList<String> reportData);
 	
-	
+	/**
+	 * Set the default pre-built map to use in situations where prebuilt maps are to be consumed
+	 * @param mapID
+	 */
+	public void setSOM_DefaultPreBuiltMap(int mapID) {	dfltPreBuiltMapIDX = mapID;}
 	/**
 	 * this loads prebuilt map configurations
 	 */
-	public void setSOM_UsePreBuilt() {
+	public boolean setSOM_UsePreBuilt() {
 		//load map values from pre-trained map using this data - IGNORES VALUES SET IN UI	
 		//build file name to load
+		if((preBuiltMapDirAra == null) || (preBuiltMapDirAra.length == 0)){
+			msgObj.dispMessage("SOMProjConfigData","setSOM_UsePreBuilt","No pre-built map directories specified (preBuiltMapDirAra.length == 0).  Aborting.", MsgCodes.warning1);
+			return false;
+		}
+		if((dfltPreBuiltMapIDX >= preBuiltMapDirAra.length) || (dfltPreBuiltMapIDX<0)) {
+			msgObj.dispMessage("SOMProjConfigData","setSOM_UsePreBuilt","Invalid default pre-built map dir array index specified : " + dfltPreBuiltMapIDX +" so being forced to 0.", MsgCodes.warning1);
+			dfltPreBuiltMapIDX = 0;
+		}
+		String preBuiltMapDir = preBuiltMapDirAra[dfltPreBuiltMapIDX];
+		//attempt to build config file name holding map configuration
 		String configFileName = getDirNameAndBuild(subDirLocs.get("SOM_MapProc") + preBuiltMapDir, true) + expProjConfigFileName;
+		msgObj.dispMessage("SOMProjConfigData","setSOM_UsePreBuilt","Attempting to load pre-built map from directory : "+ configFileName , MsgCodes.info5);
 		//load project config for this SOM execution
 		loadProjConfigForSOMExe(configFileName);		
 		//load and map config
@@ -363,8 +406,16 @@ public abstract class SOMProjConfigData {
 		//now load instancing-project-specific configurations from files saved when SOM was trained
 		setSOM_UsePreBuilt_Indiv();
 		//now set flag to false before we launch loader to load results from SOM and map values		
-		mapMgr.setLoaderRTN(false);			
+		mapMgr.setLoaderRTN(false);		
+		return true;
 	}//setSOM_UsePreBuilt
+	
+	/**
+	 * for display purposes - return pre-built map data descriptions for each pre-built map specified
+	 * @return
+	 */
+	public String[][] getPreBuiltMapInfoAra() {	return _preBuiltMapInfoAra;}	
+	
 	/**
 	 * Instance-specific loading necessary for proper consumption of pre-built SOM
 	 */
@@ -426,6 +477,7 @@ public abstract class SOMProjConfigData {
 		ArrayList<String> somFileNamesAraTmp = new ArrayList<String>();
 		for (int i=0;i<dataAra.length;++i) {
 			String str = dataAra[i];
+			if(str.contains(this.fileComment)) {continue;}
 			String[] strToks = str.trim().split(SOM_MapManager.csvFileToken);
 			if(strToks[0].trim().contains("SOMFileNamesAra")){//read in pre-saved directory and file names
 				String[] araStrToks_1 = str.trim().split("\\[");
@@ -452,6 +504,23 @@ public abstract class SOMProjConfigData {
 		if(somFileNamesAraTmp.size() > 0) {		SOMFileNamesAra = somFileNamesAraTmp.toArray(new String[0]);} 
 		else {									setSOM_ExpFileNames(expNumSmpls, expNumTrain, expNumTest);}
 	}//setExpConfigData	
+	
+	/**
+	 * build a map keyed by variable name of SOM exec config file name values
+	 * @param dataAra
+	 * @return map of variable-keyed string representations of variable values in config file
+	 */	
+	protected TreeMap<String,String> getSOMExpConfigData(String configFileName,String descPrfx){
+		String[] configStrAra = fileIO.loadFileIntoStringAra(configFileName, "getSOMExpConfigData::SOMProjConfigData " + descPrfx + " File loaded", "getSOMExpConfigData::SOMProjConfigData " + descPrfx + " Failed to load");
+		TreeMap<String,String> dataRes = new TreeMap<String,String>();
+		for (int i=0;i<configStrAra.length;++i) {
+			String str = configStrAra[i];
+			if(str.contains(this.fileComment)) {continue;}
+			String[] strToks = str.trim().split(SOM_MapManager.csvFileToken);
+			dataRes.put(strToks[0].trim(), strToks[1].trim());
+		}//for each line
+		return dataRes;
+	}
 		
 	//save test/train data in multiple threads
 	public void launchTestTrainSaveThrds(ExecutorService th_exec, int curMapFtrType, int numTrainFtrs, SOMExample[] trainData, SOMExample[] testData) {
