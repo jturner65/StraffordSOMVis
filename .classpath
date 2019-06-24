@@ -28,5 +28,6 @@
 	<classpathentry kind="lib" path="libs/gluegen-rt-natives-linux-aarch64.jar"/>
 	<classpathentry kind="lib" path="libs/jogl-all-natives-linux-aarch64.jar"/>
 	<classpathentry kind="lib" path="libs/argparse4j-0.8.1-javadoc.jar"/>
+	<classpathentry kind="lib" path="libs/base_UIProjectJTools.jar" sourcepath="libs/base_UIProjectJTools.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
