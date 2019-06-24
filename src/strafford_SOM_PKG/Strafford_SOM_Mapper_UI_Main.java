@@ -41,15 +41,18 @@ public class Strafford_SOM_Mapper_UI_Main extends my_procApplet {
 	 * This will return the desired dimensions of the application, to be called in setup
 	 * @return int[] { desired application window width, desired application window height}
 	 */
+	@Override
 	protected int[] getDesiredAppDims() {return new int[] {(int)(getDisplayWidth()*.95f), (int)(getDisplayHeight()*.92f)};}
 	
 	//instance-specific setup code
+	@Override
 	protected void setup_indiv() {setBkgrnd();}	
-	/**
-	 * return the default background color set in the calling application
-	 * @return
-	 */
-	protected int[] getBackgroundClr() {return bground;};
+	
+	@Override
+	protected void setBkgrnd(){
+		background(bground[0],bground[1],bground[2],bground[3]);		
+	}//setBkgrnd
+
 	/**
 	 * determine which main flags to show at upper left of menu 
 	 */
@@ -116,25 +119,6 @@ public class Strafford_SOM_Mapper_UI_Main extends my_procApplet {
 	//////////////////////////////////////////////////////	
 	//key is key pressed
 	//keycode is actual physical key pressed == key if shift/alt/cntl not pressed.,so shift-1 gives key 33 ('!') but keycode 49 ('1')
-
-	//handle pressing keys 0-9
-	//keyVal is actual value of key (screen character as int)
-	//keyPressed is actual key pressed (shift-1 gives keyVal 33 ('!') but keyPressed 49 ('1')) 
-	//need to subtract 48 from keyVal or keyPressed to get actual number
-	/**
-	 * handle numeric keys being pressed
-	 * @param keyVal 0-9, with or without shift ((keyCode>=48) && (keyCode <=57))
-	 * @param keyCode actual code of key having been pressed
-	 */
-	@Override
-	protected void handleNumberKeyPress(int keyVal, int keyPressed) {
-		System.out.println("keyval : " + keyVal);
-		switch (keyVal){
-			case 0 : {break;}
-		
-		}	
-	}//handleNumberKeyPress
-	
 	
 	/**
 	 * handle non-numeric keys being pressed
@@ -142,7 +126,7 @@ public class Strafford_SOM_Mapper_UI_Main extends my_procApplet {
 	 * @param keyCode actual code of key having been pressed
 	 */
 	@Override
-	protected void handleNonNumberKeyPress(char keyVal, int keyCode) {
+	protected void handleKeyPress(char keyVal, int keyCode) {
 		switch (keyVal){
 			case ' ' : {toggleSimIsRunning(); break;}							//run sim
 			case 'f' : {dispWinFrames[curFocusWin].setInitCamView();break;}					//reset camera
@@ -220,6 +204,18 @@ public class Strafford_SOM_Mapper_UI_Main extends my_procApplet {
 		int flIDX = idx/32, mask = 1<<(idx%32);
 		visFlags[flIDX] = (val ?  visFlags[flIDX] | mask : visFlags[flIDX] & ~mask);
 		//doesn't perform any other ops - to prevent 
+	}
+	
+	/**
+	 * any instancing-class-specific colors - colorVal set to be higher than IRenderInterface.gui_OffWhite
+	 * @param colorVal
+	 * @param alpha
+	 * @return
+	 */
+	@Override
+	protected int[] getClr_Custom(int colorVal, int alpha) {
+		// TODO Auto-generated method stub
+		return new int[] {255,255,255,alpha};
 	}
 	
 
