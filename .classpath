@@ -3,7 +3,17 @@
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
 	<classpathentry kind="src" path="data"/>
+	<classpathentry kind="lib" path="libs/jackson-annotations-2.9.7-javadoc.jar"/>
+	<classpathentry kind="lib" path="libs/jackson-annotations-2.9.7.jar"/>
+	<classpathentry kind="lib" path="libs/jackson-core-2.9.7-javadoc.jar"/>
+	<classpathentry kind="lib" path="libs/jackson-core-2.9.7.jar"/>
+	<classpathentry kind="lib" path="libs/jackson-databind-2.9.7-javadoc.jar"/>
+	<classpathentry kind="lib" path="libs/jackson-databind-2.9.7.jar"/>
+	<classpathentry kind="lib" path="libs/argparse4j-0.8.1.jar"/>
+	<classpathentry kind="lib" path="libs/argparse4j-0.8.1-javadoc.jar"/>
+	<classpathentry kind="lib" path="libs/base_UIProjectJTools.jar" sourcepath="libs/base_UIProjectJTools.jar"/>
 	<classpathentry kind="lib" path="libs/core.jar"/>
+	<classpathentry kind="lib" path="libs/gluegen-rt-natives-linux-aarch64.jar"/>
 	<classpathentry kind="lib" path="libs/gluegen-rt-natives-linux-amd64.jar"/>
 	<classpathentry kind="lib" path="libs/gluegen-rt-natives-linux-armv6hf.jar"/>
 	<classpathentry kind="lib" path="libs/gluegen-rt-natives-linux-i586.jar"/>
@@ -11,12 +21,7 @@
 	<classpathentry kind="lib" path="libs/gluegen-rt-natives-windows-amd64.jar"/>
 	<classpathentry kind="lib" path="libs/gluegen-rt-natives-windows-i586.jar"/>
 	<classpathentry kind="lib" path="libs/gluegen-rt.jar"/>
-	<classpathentry kind="lib" path="libs/jackson-annotations-2.9.7-javadoc.jar"/>
-	<classpathentry kind="lib" path="libs/jackson-annotations-2.9.7.jar"/>
-	<classpathentry kind="lib" path="libs/jackson-core-2.9.7-javadoc.jar"/>
-	<classpathentry kind="lib" path="libs/jackson-core-2.9.7.jar"/>
-	<classpathentry kind="lib" path="libs/jackson-databind-2.9.7-javadoc.jar"/>
-	<classpathentry kind="lib" path="libs/jackson-databind-2.9.7.jar"/>
+	<classpathentry kind="lib" path="libs/jogl-all-natives-linux-aarch64.jar"/>
 	<classpathentry kind="lib" path="libs/jogl-all-natives-linux-amd64.jar"/>
 	<classpathentry kind="lib" path="libs/jogl-all-natives-linux-armv6hf.jar"/>
 	<classpathentry kind="lib" path="libs/jogl-all-natives-linux-i586.jar"/>
@@ -24,10 +29,5 @@
 	<classpathentry kind="lib" path="libs/jogl-all-natives-windows-amd64.jar"/>
 	<classpathentry kind="lib" path="libs/jogl-all-natives-windows-i586.jar"/>
 	<classpathentry kind="lib" path="libs/jogl-all.jar"/>
-	<classpathentry kind="lib" path="libs/argparse4j-0.8.1.jar"/>
-	<classpathentry kind="lib" path="libs/gluegen-rt-natives-linux-aarch64.jar"/>
-	<classpathentry kind="lib" path="libs/jogl-all-natives-linux-aarch64.jar"/>
-	<classpathentry kind="lib" path="libs/argparse4j-0.8.1-javadoc.jar"/>
-	<classpathentry kind="lib" path="libs/base_UIProjectJTools.jar" sourcepath="libs/base_UIProjectJTools.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

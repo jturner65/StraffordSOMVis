@@ -3,7 +3,6 @@ package strafford_SOM_PKG;
 
 import base_UI_Objects.*;
 import base_UI_Objects.windowUI.myDispWindow;
-import processing.core.*;
 /**
  * Testbed to visually inspect and verify results from Strafford prospect mapping to a SOM
  * 
@@ -32,16 +31,25 @@ public class Strafford_SOM_Mapper_UI_Main extends my_procApplet {
 	//////////////////////////////////////////////// code
 	
 	//needs main to run project - do not modify this code in any way
+	//appletArgs = array of single string holding  <pkgname>.<classname> of this class
 	public static void main(String[] passedArgs) {		
 		String[] appletArgs = new String[] { "strafford_SOM_PKG.Strafford_SOM_Mapper_UI_Main" };
-	    if (passedArgs != null) {PApplet.main(PApplet.concat(appletArgs, passedArgs)); } else {PApplet.main(appletArgs);		    }
+		my_procApplet.main(appletArgs, passedArgs);
 	}//main	
 	
-	public void settings(){	size((int)(displayWidth*.95f), (int)(displayHeight*.92f),P3D);	noSmooth();}	
+	/**
+	 * This will return the desired dimensions of the application, to be called in setup
+	 * @return int[] { desired application window width, desired application window height}
+	 */
+	protected int[] getDesiredAppDims() {return new int[] {(int)(getDisplayWidth()*.95f), (int)(getDisplayHeight()*.92f)};}
+	
 	//instance-specific setup code
 	protected void setup_indiv() {setBkgrnd();}	
-	@Override
-	public void setBkgrnd(){background(bground[0],bground[1],bground[2],bground[3]);}//setBkgrnd	
+	/**
+	 * return the default background color set in the calling application
+	 * @return
+	 */
+	protected int[] getBackgroundClr() {return bground;};
 	/**
 	 * determine which main flags to show at upper left of menu 
 	 */
@@ -71,7 +79,7 @@ public class Strafford_SOM_Mapper_UI_Main extends my_procApplet {
 		int wIdx = dispMenuIDX,fIdx=showUIMenu;
 		dispWinFrames[wIdx] = new mySideBarMenu(this, winTitles[wIdx], fIdx, winFillClrs[wIdx], winStrkClrs[wIdx], winRectDimOpen[wIdx], winRectDimClose[wIdx], winDescr[wIdx],dispWinFlags[wIdx][dispCanDrawInWinIDX]);	
 		//instanced window dimensions when open and closed - only showing 1 open at a time
-		float[] _dimOpen  =  new float[]{menuWidth, 0, width-menuWidth, height}, _dimClosed  =  new float[]{menuWidth, 0, hideWinWidth, height};	
+		float[] _dimOpen  =  new float[]{menuWidth, 0, getWidth()-menuWidth, getHeight()}, _dimClosed  =  new float[]{menuWidth, 0, hideWinWidth, getHeight()};	
 		//(int _winIDX, float[] _dimOpen, float[] _dimClosed, String _ttl, String _desc, 
 		setInitDispWinVals(dispSOMMapIDX, _dimOpen, _dimClosed,
 				//boolean[] _dispFlags : idxs : 0 : canDrawInWin; 1 : canShow3dbox; 2 : canMoveView; 3 : dispWinIs3d
@@ -96,51 +104,57 @@ public class Strafford_SOM_Mapper_UI_Main extends my_procApplet {
 	protected void initProgram_Indiv(){	}//initProgram	
 	@Override
 	protected void initVisProg_Indiv() {}		
+
 	@Override
-	//main draw loop
-	public void draw(){	
-		//private draw routine
-		_drawPriv();
-		surface.setTitle(prjNmLong + " : " + (int)(frameRate) + " fps|cyc curFocusWin : " + curFocusWin);
-	}//draw	
+	protected String getPrjNmLong() {return prjNmLong;}
+	@Override
+	protected String getPrjNmShrt() {return prjNmShrt;}
 	
-	//handle pressing keys 0-9
-	//keyVal is actual value of key (screen character as int)
-	//keyPressed is actual key pressed (shift-1 gives keyVal 33 ('!') but keyPressed 49 ('1')) 
-	//need to subtract 48 from keyVal or keyPressed to get actual number
-	protected void handleNumberKeyPress(int keyVal, int keyPressed) {
-		//use key if want character 
-		if (key == '0') {
-		} 
-		
-	}//handleNumberKeyPress
 	
 	//////////////////////////////////////////////////////
 	/// user interaction
 	//////////////////////////////////////////////////////	
 	//key is key pressed
 	//keycode is actual physical key pressed == key if shift/alt/cntl not pressed.,so shift-1 gives key 33 ('!') but keycode 49 ('1')
-	public void keyPressed(){
-		if(key==CODED) {
-			if(!shiftIsPressed()){setShiftPressed(keyCode  == 16);} //16 == KeyEvent.VK_SHIFT
-			if(!cntlIsPressed()){setCntlPressed(keyCode  == 17);}//17 == KeyEvent.VK_CONTROL			
-			if(!altIsPressed()){setAltPressed(keyCode  == 18);}//18 == KeyEvent.VK_ALT
-		} else {	
-			//handle pressing keys 0-9 (with or without shift,alt, cntl)
-			if ((keyCode>=48) && (keyCode <=57)) { handleNumberKeyPress(((int)key),keyCode);}
-			else {					//handle all other (non-numeric) keys
-				switch (key){
-					case ' ' : {toggleSimIsRunning(); break;}							//run sim
-					case 'f' : {dispWinFrames[curFocusWin].setInitCamView();break;}					//reset camera
-					case 'a' :
-					case 'A' : {toggleSaveAnim();break;}						//start/stop saving every frame for making into animation
-					case 's' :
-					case 'S' : {save(getScreenShotSaveName(prjNmShrt));break;}//save picture of current image			
-					default : {	}
-				}//switch	
-			}
-		}
-	}//keyPressed()
+
+	//handle pressing keys 0-9
+	//keyVal is actual value of key (screen character as int)
+	//keyPressed is actual key pressed (shift-1 gives keyVal 33 ('!') but keyPressed 49 ('1')) 
+	//need to subtract 48 from keyVal or keyPressed to get actual number
+	/**
+	 * handle numeric keys being pressed
+	 * @param keyVal 0-9, with or without shift ((keyCode>=48) && (keyCode <=57))
+	 * @param keyCode actual code of key having been pressed
+	 */
+	@Override
+	protected void handleNumberKeyPress(int keyVal, int keyPressed) {
+		System.out.println("keyval : " + keyVal);
+		switch (keyVal){
+			case 0 : {break;}
+		
+		}	
+	}//handleNumberKeyPress
+	
+	
+	/**
+	 * handle non-numeric keys being pressed
+	 * @param keyVal character of key having been pressed
+	 * @param keyCode actual code of key having been pressed
+	 */
+	@Override
+	protected void handleNonNumberKeyPress(char keyVal, int keyCode) {
+		switch (keyVal){
+			case ' ' : {toggleSimIsRunning(); break;}							//run sim
+			case 'f' : {dispWinFrames[curFocusWin].setInitCamView();break;}					//reset camera
+			case 'a' :
+			case 'A' : {toggleSaveAnim();break;}						//start/stop saving every frame for making into animation
+			case 's' :
+			case 'S' : {saveSS(prjNmShrt);break;}//save picture of current image			
+			default : {	}
+		}//switch	
+		
+		
+	}//handleNonNumberKeyPress
 
 	@Override
 	//gives multiplier based on whether shift, alt or cntl (or any combo) is pressed
