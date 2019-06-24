@@ -237,7 +237,7 @@ public class Straff_SOMRawDataLdrCnvrtr {
 		ArrayList<BaseRawData> prospects = rawDataArrays.get(straffDataDirNames[prspctIDX]);
 		for (BaseRawData prs : prospects) {
 			//prospectMap is empty here
-			SOMExample ex = new CustProspectExample(mapMgr, (ProspectData) prs);
+			SOM_Example ex = new CustProspectExample(mapMgr, (ProspectData) prs);
 			prspctMapper.addExampleToMap(ex.OID, ex);
 		}		
 		//add all events to prospects

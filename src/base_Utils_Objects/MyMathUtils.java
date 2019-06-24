@@ -16,7 +16,8 @@ public class MyMathUtils {
 		sqrt2 = Math.sqrt(2.0),
 		invSqrt2 = .5 * sqrt2,
 		sqrt3 = Math.sqrt(3.0),
-		invSqrt3 = 1.0/sqrt3;
+		invSqrt3 = 1.0/sqrt3,
+		eps = 1e-8;
 
 	public static final float 
 		halfPi_f = (float) halfPi,
@@ -25,7 +26,8 @@ public class MyMathUtils {
 		sqrt2_f = (float) sqrt2,
 		invSqrt2_f = (float) invSqrt2,
 		sqrt3_f = (float) sqrt3,
-		invSqrt3_f = (float) invSqrt3;
+		invSqrt3_f = (float) invSqrt3,
+		eps_f = (float) eps;
 
 	//shouldn't be instanced
 	private MyMathUtils() {	}

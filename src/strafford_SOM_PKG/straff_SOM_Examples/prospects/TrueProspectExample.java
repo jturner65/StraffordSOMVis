@@ -27,11 +27,11 @@ public class TrueProspectExample extends ProspectExample{
 	private static final String[] CSVSentinelLbls = new String[] {"OPT|,", "LNK|,", "SRC|," };
 	
 	//build this object based on prospectData object 
-	public TrueProspectExample(Straff_SOMMapManager _map,ProspectData _prspctData) {	super(_map,ExDataType.Validation,_prspctData);	}//prospectData ctor
+	public TrueProspectExample(Straff_SOMMapManager _map,ProspectData _prspctData) {	super(_map,SOM_ExDataType.Validation,_prspctData);	}//prospectData ctor
 	
 	//build this object based on csv string - rebuild data from csv string columns 4+
 	public TrueProspectExample(SOM_MapManager _map,String _OID, String _csvDataStr) {
-		super(_map,ExDataType.Validation,_OID,_csvDataStr);	
+		super(_map,SOM_ExDataType.Validation,_OID,_csvDataStr);	
 		String[] dataAra = _csvDataStr.split(",");
 		//idx 0 : OID; idx 1 : date
 		prs_LUDate = BaseRawData.buildDateFromString(dataAra[1]);		
@@ -49,7 +49,7 @@ public class TrueProspectExample extends ProspectExample{
 	public TrueProspectExample(ProspectExample ex) {
 		super(ex);		
 		//set this type
-		type = ExDataType.Validation;
+		type = SOM_ExDataType.Validation;
 		//provide shallow copy of jpOcc struct - only copying passed event type key values
 		JpOccurrences = ex.copyJPOccStruct(jpOccTypeKeys);		
 		//provide shallow copy of jpOcc struct - only copying passed event type key values

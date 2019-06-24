@@ -5,8 +5,8 @@ import java.util.Collections;
 import java.util.TreeMap;
 
 import base_SOM_Objects.SOM_MapManager;
-import base_SOM_Objects.som_examples.ExDataType;
-import base_SOM_Objects.som_examples.SOMMapNode;
+import base_SOM_Objects.som_examples.SOM_ExDataType;
+import base_SOM_Objects.som_examples.SOM_MapNode;
 import base_UI_Objects.my_procApplet;
 import base_Utils_Objects.vectorObjs.myPointf;
 
@@ -131,7 +131,7 @@ public abstract class SOM_MseOvrDisplay {
 	 * @param _thresh
 	 * @param useJPProbs
 	 */
-	public final void initMseDatProb(myPointf ptrLoc,  SOMMapNode nearestMapNode, float _thresh, boolean useClassProbs) {
+	public final void initMseDatProb(myPointf ptrLoc,  SOM_MapNode nearestMapNode, float _thresh, boolean useClassProbs) {
 		initAllCtor(_thresh);
 		ArrayList<String> _mseLblDat = new ArrayList<String>();
 		TreeMap<Float, ArrayList<String>> mapNodeProbs = new TreeMap<Float, ArrayList<String>>(Collections.reverseOrder());
@@ -167,7 +167,7 @@ public abstract class SOM_MseOvrDisplay {
 		finalizeMseLblDatCtor(_mseLblDat, longestLine);
 	}//ctor for nearest map node probs
 	
-	public void initMseDatProb(myPointf ptrLoc,  SOMMapNode nearestMapNode, float _thresh, ExDataType _type) {
+	public void initMseDatProb(myPointf ptrLoc,  SOM_MapNode nearestMapNode, float _thresh, SOM_ExDataType _type) {
 		initAllCtor(_thresh);
 		ArrayList<String> _mseLblDat = new ArrayList<String>();		
 		int _typeIDX = _type.getVal();
@@ -186,8 +186,8 @@ public abstract class SOM_MseOvrDisplay {
 	}
 		
 
-	protected abstract String getClassProbTitleString(SOMMapNode nearestMapNode, int ttlNumClasses);
-	protected abstract String getCategoryProbTitleString(SOMMapNode nearestMapNode, int ttlNumCategories);
+	protected abstract String getClassProbTitleString(SOM_MapNode nearestMapNode, int ttlNumClasses);
+	protected abstract String getCategoryProbTitleString(SOM_MapNode nearestMapNode, int ttlNumCategories);
 
 
 	//get mse-ovr label array

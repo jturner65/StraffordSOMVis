@@ -4,7 +4,7 @@ import java.util.*;
 import java.util.concurrent.*;
 
 import base_SOM_Objects.SOM_MapManager;
-import base_SOM_Objects.som_examples.SOMExample;
+import base_SOM_Objects.som_examples.SOM_Example;
 import base_Utils_Objects.io.MessageObject;
 import base_Utils_Objects.io.MsgCodes;
 
@@ -27,7 +27,7 @@ public class SOM_CalcExFtrs_Runner extends SOM_MapRunner{
 	//type of calc, idxed by _typeOfProc
 	protected static final String[] typeAra = new String[] {"Feature Calc","Post Indiv Feature Calc","Calcs called After All Example Ftrs built"};
 
-	public SOM_CalcExFtrs_Runner(SOM_MapManager _mapMgr, ExecutorService _th_exec, SOMExample[] _exData, String _dataTypName, int _typeOfProc, boolean _forceST) {
+	public SOM_CalcExFtrs_Runner(SOM_MapManager _mapMgr, ExecutorService _th_exec, SOM_Example[] _exData, String _dataTypName, int _typeOfProc, boolean _forceST) {
 		super( _mapMgr, _th_exec, _exData, _dataTypName,_forceST);
 		typeOfProc = _typeOfProc;
 		calcTypeStr = typeAra[typeOfProc];
@@ -86,10 +86,10 @@ class MapFtrCalc implements Callable<Boolean>{
 	protected String dataType, calcType;
 	protected static final float progAmt = .2f;
 	protected double progress = -progAmt;
-	protected SOMExample[] exs;
+	protected SOM_Example[] exs;
 	
 	
-	public MapFtrCalc(SOM_MapManager _mapMgr, int _stExIDX, int _endExIDX, SOMExample[] _exs, int _thdIDX, String _datatype, String _calcType,int _typeOfCalc) {
+	public MapFtrCalc(SOM_MapManager _mapMgr, int _stExIDX, int _endExIDX, SOM_Example[] _exs, int _thdIDX, String _datatype, String _calcType,int _typeOfCalc) {
 		msgObj = _mapMgr.buildMsgObj();//make a new one for every thread
 		exs=_exs;
 		stIdx = _stExIDX;

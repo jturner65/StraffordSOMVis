@@ -3,7 +3,7 @@ package strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers;
 import java.util.*;
 
 import base_SOM_Objects.SOM_MapManager;
-import base_SOM_Objects.som_examples.SOMExample;
+import base_SOM_Objects.som_examples.SOM_Example;
 import base_SOM_Objects.som_utils.runners.SOM_SaveExToBMUs_Runner;
 import base_UI_Objects.my_procApplet;
 import base_Utils_Objects.io.MsgCodes;
@@ -31,12 +31,12 @@ public class Straff_SOMProductManager extends Straff_SOMExampleManager {
 	
 	///no validation performed for true prospects - all are welcome
 	@Override
-	protected void validateAndAddExToArray(ArrayList<SOMExample> tmpList, SOMExample ex) {	tmpList.add(ex);}
+	protected void validateAndAddExToArray(ArrayList<SOM_Example> tmpList, SOM_Example ex) {	tmpList.add(ex);}
 	@Override
 	//add example from map to array without validation
-	protected SOMExample[] noValidateBuildExampleArray() {	return (ProductExample[])exampleMap.values().toArray(new ProductExample[0]);};	
+	protected SOM_Example[] noValidateBuildExampleArray() {	return (ProductExample[])exampleMap.values().toArray(new ProductExample[0]);};	
 	@Override
-	protected SOMExample[] castArray(ArrayList<SOMExample> tmpList) {	return (ProductExample[])(tmpList.toArray(new ProductExample[0]));}
+	protected SOM_Example[] castArray(ArrayList<SOM_Example> tmpList) {	return (ProductExample[])(tmpList.toArray(new ProductExample[0]));}
 	@Override
 	//after example array has been built, and specific funcitonality for these types of examples - nothing for products goes here
 	protected void buildExampleArrayEnd_Priv(boolean validate) {}
@@ -49,20 +49,20 @@ public class Straff_SOMProductManager extends Straff_SOMExampleManager {
 		productsByJpg.clear();
 		productsByJp.clear();		
 		msgObj.dispMessage("Straff_SOMProductMapper","buildFtrVec_Priv","Jpmon is null : "+ (null==this.jpJpgrpMon),MsgCodes.info5);
-		for (SOMExample ex : exampleMap.values()) {		ex.buildFeatureVector();  }
+		for (SOM_Example ex : exampleMap.values()) {		ex.buildFeatureVector();  }
 		//once product ftr vecs are built, add products to jp-keyed and jpg-keyed maps
-		for (SOMExample ex : exampleMap.values()) {		addProductToJPProductMaps(ex);	}
+		for (SOM_Example ex : exampleMap.values()) {		addProductToJPProductMaps(ex);	}
 		
 	}//buildFtrVec_Priv
 	/**
 	 * code to execute after examples have had ftrs calculated - this will calculate std features and any alternate ftr mappings if used
 	 */
 	@Override
-	protected void buildAfterAllFtrVecsBuiltStructs_Priv() {	for (SOMExample ex : exampleMap.values()) {	ex.buildAfterAllFtrVecsBuiltStructs();}}
+	protected void buildAfterAllFtrVecsBuiltStructs_Priv() {	for (SOM_Example ex : exampleMap.values()) {	ex.buildAfterAllFtrVecsBuiltStructs();}}
 
 	
 	//add constructed product example to maps holding products keyed by their constituent jps and jpgs
-	public void addProductToJPProductMaps(SOMExample exRaw) {
+	public void addProductToJPProductMaps(SOM_Example exRaw) {
 		//add to jp and jpg trees
 		ProductExample ex = (ProductExample)exRaw;
 		HashSet<Integer> jpgs = new HashSet<Integer>();
@@ -124,7 +124,7 @@ public class Straff_SOMProductManager extends Straff_SOMExampleManager {
 			ProductExample ex1 = (ProductExample) exampleMap.get(exampleMap.firstKey());
 			String hdrStr = ex1.getRawDescColNamesForCSV();
 			csvResTmp.add( hdrStr);	
-			for (SOMExample ex : exampleMap.values()) {			
+			for (SOM_Example ex : exampleMap.values()) {			
 				csvResTmp.add(ex.getPreProcDescrForCSV());
 			}
 			fileIO.saveStrings(saveDestFNamePrefixAra[0]+".csv", csvResTmp);		

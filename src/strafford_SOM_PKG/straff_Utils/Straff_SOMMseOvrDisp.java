@@ -19,7 +19,7 @@ public class Straff_SOMMseOvrDisp extends SOM_MseOvrDisplay{
 	}//Straff_SOMDispMapExample
 	
 	@Override
-	protected int[] setNodeColors() {return ((Straff_SOMMapManager)mapMgr).getClrFillStrkTxtAra(ExDataType.MouseOver);}
+	protected int[] setNodeColors() {return ((Straff_SOMMapManager)mapMgr).getClrFillStrkTxtAra(SOM_ExDataType.MouseOver);}
 	@Override
 	protected String getFtrDispTitleString(int count) { return "JPs :  count : "+count;}
 	
@@ -39,9 +39,9 @@ public class Straff_SOMMseOvrDisp extends SOM_MseOvrDisplay{
 	}//buildPerFtrData
 
 	@Override
-	protected String getClassProbTitleString(SOMMapNode nearestMapNode, int ttlNumClasses) { return nearestMapNode.mapNodeCoord.toString() + " Order JP Probs : ("+ttlNumClasses+" order mapped) ";}
+	protected String getClassProbTitleString(SOM_MapNode nearestMapNode, int ttlNumClasses) { return nearestMapNode.mapNodeCoord.toString() + " Order JP Probs : ("+ttlNumClasses+" order mapped) ";}
 	@Override
-	protected String getCategoryProbTitleString(SOMMapNode nearestMapNode, int ttlNumCategories) { return nearestMapNode.mapNodeCoord.toString() + " Order JPGroup Probs : ("+ttlNumCategories+" order mapped) ";}
+	protected String getCategoryProbTitleString(SOM_MapNode nearestMapNode, int ttlNumCategories) { return nearestMapNode.mapNodeCoord.toString() + " Order JPGroup Probs : ("+ttlNumCategories+" order mapped) ";}
 	
 	/**
 	 * instancing-specific initialization called for every data change for mouse object

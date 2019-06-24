@@ -5,9 +5,9 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.Future;
 
 import base_SOM_Objects.SOM_MapManager;
-import base_SOM_Objects.som_examples.ExDataType;
-import base_SOM_Objects.som_examples.SOMExample;
-import base_SOM_Objects.som_fileIO.SOMExCSVDataLoader;
+import base_SOM_Objects.som_examples.SOM_ExDataType;
+import base_SOM_Objects.som_examples.SOM_Example;
+import base_SOM_Objects.som_fileIO.SOM_ExCSVDataLoader;
 import base_SOM_Objects.som_utils.runners.SOM_MapExDataToBMUs_Runner;
 import base_SOM_Objects.som_utils.runners.SOM_SaveExToBMUs_Runner;
 import base_Utils_Objects.io.MsgCodes;
@@ -27,12 +27,12 @@ public class Straff_SOMTruePrspctManager extends Straff_SOMProspectManager {
 	
 	///need to validate true prospects - have to have -some- data to be considered useful
 	@Override
-	protected void validateAndAddExToArray(ArrayList<SOMExample> tmpList, SOMExample ex) {	if(!ex.isBadExample()) {tmpList.add(ex);}}
+	protected void validateAndAddExToArray(ArrayList<SOM_Example> tmpList, SOM_Example ex) {	if(!ex.isBadExample()) {tmpList.add(ex);}}
 	@Override
 	//add example from map to array without validation
-	protected SOMExample[] noValidateBuildExampleArray() {	return (TrueProspectExample[])(exampleMap.values().toArray(new TrueProspectExample[0]));};	
+	protected SOM_Example[] noValidateBuildExampleArray() {	return (TrueProspectExample[])(exampleMap.values().toArray(new TrueProspectExample[0]));};	
 	@Override
-	protected SOMExample[] castArray(ArrayList<SOMExample> tmpList) {	return (TrueProspectExample[])(tmpList.toArray(new TrueProspectExample[0]));}
+	protected SOM_Example[] castArray(ArrayList<SOM_Example> tmpList) {	return (TrueProspectExample[])(tmpList.toArray(new TrueProspectExample[0]));}
 	@Override
 	//after example array has been built, and specific funcitonality for these types of examples
 	protected void buildExampleArrayEnd_Priv(boolean validate) {}
@@ -89,7 +89,7 @@ public class Straff_SOMTruePrspctManager extends Straff_SOMProspectManager {
 	//manage multi-threaded loading
 	protected void buildMTLoader(String[] loadSrcFNamePrefixAra, int numPartitions) {
 		List<Future<Boolean>> preProcLoadFtrs = new ArrayList<Future<Boolean>>();
-		List<SOMExCSVDataLoader> preProcLoaders = new ArrayList<SOMExCSVDataLoader>();
+		List<SOM_ExCSVDataLoader> preProcLoaders = new ArrayList<SOM_ExCSVDataLoader>();
 		msgObj.dispMessage("Straff_SOMTruePrspctMapper::"+exampleName,"buildMTLoader","Building " +numPartitions+" " + exampleName+ " data multi-threaded loaders.", MsgCodes.info5);
 		for (int i=0; i<numPartitions;++i) {	preProcLoaders.add(new PrscpctCSVDataLoader(mapMgr, i, loadSrcFNamePrefixAra[0]+"_"+i+".csv",  exampleName+ " Data file " + i +" of " +numPartitions +" loaded",  exampleName+ " Data File " + i +" of " +numPartitions +" Failed to load", exampleMap));}
 		msgObj.dispMessage("Straff_SOMTruePrspctMapper::"+exampleName,"buildMTLoader","Launching " +numPartitions+" " + exampleName+ " data multi-threaded loaders.", MsgCodes.info5);
@@ -151,7 +151,7 @@ public class Straff_SOMTruePrspctManager extends Straff_SOMProspectManager {
 				//build array - gets rid of bad examples (have no ftr vector values at all)
 			buildExampleArray();
 				//launch a MapTestDataToBMUs_Runner to manage multi-threaded calc
-			SOM_MapExDataToBMUs_Runner mapRunner = new SOM_MapExDataToBMUs_Runner(mapMgr, th_exec, SOMexampleArray, exampleName, ExDataType.Validation,mapMgr.validateDataMappedIDX, false);	
+			SOM_MapExDataToBMUs_Runner mapRunner = new SOM_MapExDataToBMUs_Runner(mapMgr, th_exec, SOMexampleArray, exampleName, SOM_ExDataType.Validation,mapMgr.validateDataMappedIDX, false);	
 			mapRunner.runMe();
 				//build array again to remove any non-BMU-mapped examples (?)
 			//buildExampleArray();

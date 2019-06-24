@@ -21,7 +21,7 @@ import strafford_SOM_PKG.straff_SOM_Examples.prospects.ProspectExample;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 
 ////this class represents a particular node in the SOM map, with specific customizations for strafford data
-public class Straff_SOMMapNode extends SOMMapNode{
+public class Straff_SOMMapNode extends SOM_MapNode{
 	//reference to jp-jpg mapping/managing object
 	protected static MonitorJpJpgrp jpJpgMon;
 
@@ -48,16 +48,16 @@ public class Straff_SOMMapNode extends SOMMapNode{
 		//build structure that holds counts of categories mapped to this node (category is a collection of similar classes)
 		nonProdJPGroupSegManager = new SOM_MapNodeCategorySegMgr(this);	
 
-		//build essential components of feature vector
-		buildAllNonZeroFtrIDXs();
-		buildNormFtrData();//once ftr map is built can normalize easily
-		_buildFeatureVectorEnd_Priv();
+//		//build essential components of feature vector - moved to base class map node init code
+//		buildAllNonZeroFtrIDXs();
+//		buildNormFtrData();//once ftr map is built can normalize easily
+//		_buildFeatureVectorEnd_Priv();
 	}//_initDataFtrMappings
 	//nearestMapNode.mapNodeCoord.toString() + " 
 	@Override
 	//manage instancing map node handling - specifically, handle using 2ndary features as node markers (like a product tag or a class)
 	//in other words, this takes the passed example's "class" in our case all the order jps, and assigns them to this node
-	protected void addTrainingExToBMUs_Priv(double dist, SOMExample ex) {
+	protected void addTrainingExToBMUs_Priv(double dist, SOM_Example ex) {
 		TreeMap<Tuple<Integer, Integer>, Integer> trainExOrderCounts = ((CustProspectExample)ex).getOrderCountsForExample();
 		//for each jpg-jp used in training example, assign 
 		//TreeMap<Integer, Integer> jpCountsAtJpGrp, npJpCountsAtJpGrp;
@@ -83,7 +83,7 @@ public class Straff_SOMMapNode extends SOMMapNode{
 	@Override
 	//assign relevant info to this map node from neighboring map node(s) to cover for this node not having any training examples assigned
 	//only copies ex's mappings, which might not be appropriate
-	protected void addMapNodeExToBMUs_Priv(double dist, SOMMapNode ex) {//copy structure 		
+	protected void addMapNodeExToBMUs_Priv(double dist, SOM_MapNode ex) {//copy structure 		
 		getClassSegManager().copySegDataFromBMUMapNode(dist, ex.getMappedClassCounts(), "_JPCount_JP_", "JP Orders present for jp :");
 		getCategorySegManager().copySegDataFromBMUMapNode(dist, ex.getMappedCategoryCounts(),"_JPGroupCount_JPG_","JPGroup Orders present for jpg :");
 		nonProdJPSegManager.copySegDataFromBMUMapNode(dist, ((Straff_SOMMapNode) ex).getMappedNonProdJPCounts(), "_NonProd_JPCount_JP_", "Non Prod JP present in examples :");
@@ -151,7 +151,7 @@ public class Straff_SOMMapNode extends SOMMapNode{
 		default 		: {		return "";}//unknown type of segment returns empty string
 		}
 	}
-		
+	@Override	
 	protected final String getFtrWtSegment_CSVStr_Indiv(TreeMap<Float, ArrayList<String>> mapNodeProbs) {//ftrMaps[normFtrMapTypeKey].get(ftrIDX)
 		String res = "" + mapNodeCoord.toCSVString()+",";
 		for (Float prob : mapNodeProbs.keySet()) {
@@ -164,7 +164,7 @@ public class Straff_SOMMapNode extends SOMMapNode{
 		}			
 		return res;	
 	}
-	
+	@Override
 	protected final String getFtrWtSegment_CSVStr_Hdr() {return "Map Node Loc,Probability,Ftr IDX, Prod JP, JP Name";}
 
 	
@@ -179,25 +179,25 @@ public class Straff_SOMMapNode extends SOMMapNode{
 	public final void drawMeNonProdJpGroupSegClr(my_procApplet p, Integer category) { nonProdJPGroupSegManager.drawMeSegClr(p, category);}//drawMeFtrWtSegClr
 	
 	
-	@Override
-	//called by SOMDataLoader - these are standardized based on data mins and diffs seen in -map nodes- feature data, not in training data
-	public void buildStdFtrsMapFromFtrData_MapNode(float[] minsAra, float[] diffsAra) {
-		clearFtrMap(stdFtrMapTypeKey);//ftrMaps[stdFtrMapTypeKey].clear();
-		if (ftrMaps[ftrMapTypeKey].size() > 0) {
-			for(Integer destIDX : ftrMaps[ftrMapTypeKey].keySet()) {
-				Float lb = minsAra[destIDX], diff = diffsAra[destIDX];
-				float val = 0.0f;
-				if (diff==0) {//same min and max
-					if (lb > 0) {	val = 1.0f;}//only a single value same min and max-> set feature value to 1.0
-					else {val= 0.0f;}
-				} else {				val = (ftrMaps[ftrMapTypeKey].get(destIDX)-lb)/diff;				}
-				ftrMaps[stdFtrMapTypeKey].put(destIDX,val);
-			}//for each jp
-		}
-		//just set the comparator vector array == to the actual feature vector array
-		buildCompFtrVector(0.0f);
-		setFlag(stdFtrsBuiltIDX,true);
-	}//buildStdFtrsMap_MapNode
+//	@Override
+//	//called by SOMDataLoader - these are standardized based on data mins and diffs seen in -map nodes- feature data, not in training data
+//	public void buildStdFtrsMapFromFtrData_MapNode(float[] minsAra, float[] diffsAra) {
+//		clearFtrMap(stdFtrMapTypeKey);
+//		if (ftrMaps[ftrMapTypeKey].size() > 0) {
+//			for(Integer destIDX : ftrMaps[ftrMapTypeKey].keySet()) {
+//				Float lb = minsAra[destIDX], diff = diffsAra[destIDX];
+//				float val = 0.0f;
+//				if (diff==0) {//same min and max
+//					if (lb > 0) {	val = 1.0f;}//only a single value same min and max-> set feature value to 1.0
+//					else {val= 0.0f;}
+//				} else {				val = (ftrMaps[ftrMapTypeKey].get(destIDX)-lb)/diff;				}
+//				ftrMaps[stdFtrMapTypeKey].put(destIDX,val);
+//			}//for each non-zero feature
+//		}
+//		//just set the comparator vector array == to the actual feature vector array
+//		buildCompFtrVector(0.0f);
+//		setFlag(stdFtrsBuiltIDX,true);
+//	}//buildStdFtrsMap_MapNode
 	
 	//by here ftrs for this map node have been built
 	@Override
@@ -205,7 +205,8 @@ public class Straff_SOMMapNode extends SOMMapNode{
 		allNonZeroFtrIDXs = new ArrayList<Integer>();
 		for(Integer idx : ftrMaps[ftrMapTypeKey].keySet()) {		allNonZeroFtrIDXs.add(idx);	}
 	}//buildAllNonZeroFtrIDXs
-
+	
+	//called after the features and normed features of this example are built
 	@Override
 	protected void _buildFeatureVectorEnd_Priv() {}
 	@Override

@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 
-import base_SOM_Objects.som_examples.SOMExample;
-import base_SOM_Objects.som_examples.SOMMapNode;
+import base_SOM_Objects.som_examples.SOM_Example;
+import base_SOM_Objects.som_examples.SOM_MapNode;
 import base_SOM_Objects.som_utils.SOMProjConfigData;
 import base_Utils_Objects.io.FileIOManager;
 import base_Utils_Objects.io.MessageObject;
@@ -60,9 +60,9 @@ public abstract class Straff_ProdMappingOutputBuilder_Base {
 			}
 		}//for each line in config file	
 		//verify prod ids are found in loaded productMap
-		ArrayList<SOMExample> prodsToMapLst = new ArrayList<SOMExample>();
+		ArrayList<SOM_Example> prodsToMapLst = new ArrayList<SOM_Example>();
 		for (String pId : prodIDsToMapInit) {
-			SOMExample ex = mapMgr.getProductByID(pId);
+			SOM_Example ex = mapMgr.getProductByID(pId);
 			if(ex == null) {msgObj.dispMessage("Base->"+callingClassName, "loadConfigAndSetVars", "Error! Product ID : " + pId + " is not present in currently loaded product listings.  Ignoring this product.", MsgCodes.warning2);}
 			else {				prodsToMapLst.add(ex);			}
 		}				
@@ -99,13 +99,13 @@ public abstract class Straff_ProdMappingOutputBuilder_Base {
 	
 	//////////////////////////////
 	// save prospect mappings
-	public final void saveAllProspectToProdMappings(SOMExample[] prospectsToMap, String typeOfProspect) {
+	public final void saveAllProspectToProdMappings(SOM_Example[] prospectsToMap, String typeOfProspect) {
 		if(prospectsToMap.length == 0) {
 			msgObj.dispMessage("Base->"+callingClassName, "saveAllProspectToProdMappings", "No prospects of type : " + typeOfProspect + " to save mapping for.  Aborting.", MsgCodes.warning2);
 			return;
 		}
 		msgObj.dispMessage("Base->"+callingClassName, "saveAllProspectToProdMappings", "Starting Saving " + typeOfProspect + " Prospects to Product mappings to file.", MsgCodes.info5);
-		HashMap<ProductExample, HashMap<SOMMapNode, Double>> prodToMapNodes = getProdsToMapNodes();
+		HashMap<ProductExample, HashMap<SOM_MapNode, Double>> prodToMapNodes = getProdsToMapNodes();
 
 		//all mappings are known by here - perhaps load balance?
 		if(isMT) {//save multiple product mappings per thread
@@ -117,9 +117,9 @@ public abstract class Straff_ProdMappingOutputBuilder_Base {
 		
 	}//saveAllProspectToProdMappings	
 	//return mapping of products to map
-	protected abstract HashMap<ProductExample, HashMap<SOMMapNode, Double>> getProdsToMapNodes();	
-	protected abstract void saveAllSpecifiedProspectMappings_MT(SOMExample[] prospectsToMap, String typeOfProspect, HashMap<ProductExample, HashMap<SOMMapNode, Double>> prods, int numForEachThrd);
-	protected abstract void saveAllSpecifiedProspectMappings_ST(SOMExample[] prospectsToMap, String typeOfProspect, HashMap<ProductExample, HashMap<SOMMapNode, Double>> prods);
+	protected abstract HashMap<ProductExample, HashMap<SOM_MapNode, Double>> getProdsToMapNodes();	
+	protected abstract void saveAllSpecifiedProspectMappings_MT(SOM_Example[] prospectsToMap, String typeOfProspect, HashMap<ProductExample, HashMap<SOM_MapNode, Double>> prods, int numForEachThrd);
+	protected abstract void saveAllSpecifiedProspectMappings_ST(SOM_Example[] prospectsToMap, String typeOfProspect, HashMap<ProductExample, HashMap<SOM_MapNode, Double>> prods);
 
 
 }//Straff_ProdOutputBuilderBase

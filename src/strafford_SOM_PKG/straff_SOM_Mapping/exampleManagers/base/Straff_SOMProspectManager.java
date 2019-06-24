@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import base_SOM_Objects.SOM_MapManager;
-import base_SOM_Objects.som_examples.SOMExample;
+import base_SOM_Objects.som_examples.SOM_Example;
 import base_Utils_Objects.io.MsgCodes;
 import strafford_SOM_PKG.straff_SOM_Mapping.*;
 
@@ -76,12 +76,12 @@ public abstract class Straff_SOMProspectManager extends Straff_SOMExampleManager
 			String[] saveDestFNamePrefixAra = projConfigData.buildPreProccedDataCSVFNames_Save(exampleName+"MapSrcData");
 			ArrayList<String> csvResTmp = new ArrayList<String>();		
 			int counter = 0;
-			SOMExample ex1 = exampleMap.get(exampleMap.firstKey());
+			SOM_Example ex1 = exampleMap.get(exampleMap.firstKey());
 			String hdrStr = ex1.getRawDescColNamesForCSV();
 			csvResTmp.add( hdrStr);
 			int nameCounter = 0, numFiles = (1+((int)((exampleMap.size()-1)/preProcDatPartSz)));
 			msgObj.dispMessage("Straff_SOMExampleMapper","saveAllExampleMapData","Start Building "+exampleName+" String Array : " +nameCounter + " of "+numFiles+".", MsgCodes.info1);
-			for (SOMExample ex : exampleMap.values()) {			
+			for (SOM_Example ex : exampleMap.values()) {			
 				csvResTmp.add(ex.getPreProcDescrForCSV());
 				++counter;
 				if(counter % preProcDatPartSz ==0) {

@@ -17,7 +17,6 @@
 	<classpathentry kind="lib" path="libs/jackson-core-2.9.7.jar"/>
 	<classpathentry kind="lib" path="libs/jackson-databind-2.9.7-javadoc.jar"/>
 	<classpathentry kind="lib" path="libs/jackson-databind-2.9.7.jar"/>
-	<classpathentry kind="lib" path="libs/jl1.0.1.jar"/>
 	<classpathentry kind="lib" path="libs/jogl-all-natives-linux-amd64.jar"/>
 	<classpathentry kind="lib" path="libs/jogl-all-natives-linux-armv6hf.jar"/>
 	<classpathentry kind="lib" path="libs/jogl-all-natives-linux-i586.jar"/>

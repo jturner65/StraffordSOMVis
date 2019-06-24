@@ -38,7 +38,7 @@ import strafford_SOM_PKG.straff_SOM_Mapping.*;
  *
  */
 
-public abstract class Straff_SOMExample extends SOMExample{
+public abstract class Straff_SOMExample extends SOM_Example{
 	//reference to jp-jpg mapping/managing object
 	protected static MonitorJpJpgrp jpJpgMon;
 	
@@ -62,7 +62,7 @@ public abstract class Straff_SOMExample extends SOMExample{
 	//keyed by jpgroup, value is map keyed by mapnode tuple loc, value is probablity (ratio of # of orders of key jpgroup mapped to that node over # of all jpgroups mapped to that node)
 	protected ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>> perJPGroupMapNodeProbMap;
 	
-	public Straff_SOMExample(SOM_MapManager _map, ExDataType _type, String _id) {
+	public Straff_SOMExample(SOM_MapManager _map, SOM_ExDataType _type, String _id) {
 		super(_map, _type, _id);
 		jpJpgMon = ((Straff_SOMMapManager) mapMgr).jpJpgrpMon;
 		allProdJPs = new HashSet<Integer> ();	

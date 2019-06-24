@@ -22,33 +22,33 @@ public final class SOM_CategorySegment extends SOM_MappedSegment {
 	 * @param ex the example to check
 	 */
 	@Override
-	public final boolean doesExampleBelongInSeg(SOMExample ex) {
+	public final boolean doesExampleBelongInSeg(SOM_Example ex) {
 		//get type of example from ex
-		ExDataType exType = ex.getType();
+		SOM_ExDataType exType = ex.getType();
 		switch (exType) {		
 			case Training	: 
 			case Testing	: 
 			case Product	:
 			case Validation	: {
-				SOMMapNode bmu = ex.getBmu();
+				SOM_MapNode bmu = ex.getBmu();
 				if(bmu==null) {return false;}			
 				return doesMapNodeBelongInSeg(bmu);
 			}
-			case MapNode	: {		return doesMapNodeBelongInSeg((SOMMapNode) ex);}
+			case MapNode	: {		return doesMapNodeBelongInSeg((SOM_MapNode) ex);}
 			case MouseOver	: {		return false;}
 		}//switch
 		return false;
 	}
 
 	@Override
-	public final boolean doesMapNodeBelongInSeg(SOMMapNode ex) {
+	public final boolean doesMapNodeBelongInSeg(SOM_MapNode ex) {
 				//return map of jpgs to jps to counts present
 		TreeMap<Integer, TreeMap<Integer, Float>> categoryMap = ex.getMappedCategoryCounts();
 		return (ex.getCategorySegment(category)== null) && categoryMap.keySet().contains(category);
 	}
 
 	@Override
-	protected final void setMapNodeSegment(SOMMapNode mapNodeEx) {	mapNodeEx.setCategorySeg(category, this);	}
+	protected final void setMapNodeSegment(SOM_MapNode mapNodeEx) {	mapNodeEx.setCategorySeg(category, this);	}
 	
 	/**
 	 * return bmu's value for this segment
@@ -56,14 +56,14 @@ public final class SOM_CategorySegment extends SOM_MappedSegment {
 	 * @return
 	 */
 	@Override
-	protected final Float getBMUSegmentValue(SOMMapNode _bmu) {	return _bmu.getCategoryProb(category);	}
+	protected final Float getBMUSegmentValue(SOM_MapNode _bmu) {	return _bmu.getCategoryProb(category);	}
 	/**
 	 * return bmu's count of examples for this segment
 	 * @param _bmu
 	 * @return
 	 */
 	@Override
-	protected Float getBMUSegmentCount(SOMMapNode _bmu) {  return _bmu.getMappedCategoryCountAtSeg(category);}
+	protected Float getBMUSegmentCount(SOM_MapNode _bmu) {  return _bmu.getMappedCategoryCountAtSeg(category);}
 	
 
 	/**

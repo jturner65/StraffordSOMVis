@@ -3,7 +3,7 @@ package strafford_SOM_PKG.straff_SOM_Examples.prospects;
 import java.util.*;
 
 import base_SOM_Objects.SOM_MapManager;
-import base_SOM_Objects.som_examples.ExDataType;
+import base_SOM_Objects.som_examples.SOM_ExDataType;
 import base_Utils_Objects.io.MsgCodes;
 import base_Utils_Objects.vectorObjs.Tuple;
 import strafford_SOM_PKG.straff_RawDataHandling.*;
@@ -49,12 +49,12 @@ public class CustProspectExample extends ProspectExample {
 	public TreeMap<Tuple<Integer, Integer>, Integer> mostRecentOrderCounts;
 
 	// build this object based on prospectData object from raw data
-	public CustProspectExample(SOM_MapManager _map, ProspectData _prspctData) {	super(_map, ExDataType.Training, _prspctData);}// prospectData ctor
+	public CustProspectExample(SOM_MapManager _map, ProspectData _prspctData) {	super(_map, SOM_ExDataType.Training, _prspctData);}// prospectData ctor
 
 	// build this object based on csv string - rebuild data from csv string columns
 	// 4+
 	public CustProspectExample(SOM_MapManager _map, String _OID, String _csvDataStr) {
-		super(_map, ExDataType.Training, _OID, _csvDataStr);
+		super(_map, SOM_ExDataType.Training, _OID, _csvDataStr);
 		String[] dataAra = _csvDataStr.split(",");
 		// idx 0 : OID; idx 1 : date
 		prs_LUDate = BaseRawData.buildDateFromString(dataAra[1]);
@@ -66,7 +66,7 @@ public class CustProspectExample extends ProspectExample {
 	}// csv string ctor
 
 	// using this ctor for Cust_OneOrderTrainingExample building.
-	public CustProspectExample(SOM_MapManager _map, String _OID) {	super(_map, ExDataType.Training, _OID, "");}// super ctor from Cust_OneOrderTrainingExample ctor
+	public CustProspectExample(SOM_MapManager _map, String _OID) {	super(_map, SOM_ExDataType.Training, _OID, "");}// super ctor from Cust_OneOrderTrainingExample ctor
 
 	public CustProspectExample(CustProspectExample ex) {	super(ex);}// copy ctor - if ex is this type then don't have to rebuild JpOccurrences and
 		// eventsByDateMap;
@@ -331,7 +331,7 @@ public class CustProspectExample extends ProspectExample {
 
 	@Override
 	public final void setIsTrainingDataIDX_Priv() {
-		type = isTrainingData ? ExDataType.Training : ExDataType.Testing;
+		type = isTrainingData ? SOM_ExDataType.Training : SOM_ExDataType.Testing;
 		nodeClrs = mapMgr.getClrFillStrkTxtAra(type);
 	}// setIsTrainingDataIDX
 

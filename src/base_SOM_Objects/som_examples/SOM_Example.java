@@ -105,7 +105,7 @@ public abstract class SOM_Example extends baseDataPtVis{
 		OID = _id;
 		set_sqDistToBMU(0.0);
 		initFlags();	
-		initFeatureLists();
+		initAllStructs();
 		String tmp = OID + "" + type;
 		_hashCode = tmp.hashCode();
 		_initSegStructs();
@@ -126,8 +126,6 @@ public abstract class SOM_Example extends baseDataPtVis{
 		compFtrMaps = _otr.compFtrMaps;
 		ftrVecMag = _otr.ftrVecMag;
 		allNonZeroFtrIDXs = _otr.allNonZeroFtrIDXs;
-//		mapOfWtsToFtrIDXs = _otr.mapOfWtsToFtrIDXs;
-//		mapOfFtrIDXVsWtRank = _otr.mapOfFtrIDXVsWtRank;
 		mapNodeNghbrs = _otr.mapNodeNghbrs;
 		isTrainingData = _otr.isTrainingData;
 		testTrainDataIDX = _otr.testTrainDataIDX;
@@ -140,9 +138,12 @@ public abstract class SOM_Example extends baseDataPtVis{
 	}//copy ctor
 	
 	/**
-	 * call only on construction or change of # of featrues, to enable structs holding feature values to remain constructed  
+	 * call only on construction or change of # of featrues, to enable 
+	 * structs holding feature values and other pertinent information 
+	 * to remain constructed throughout life of example
 	 */
-	private void initFeatureLists() {
+	private void initAllStructs() {
+		mapNodeNghbrs = new TreeMap<Double, ArrayList<SOM_MapNode>>();
 		ftrMaps = new TreeMap[ftrMapTypeKeysAra.length];
 		for (int i=0;i<ftrMaps.length;++i) {			ftrMaps[i] = new TreeMap<Integer, Float>(); 		}
 		compFtrMaps = new TreeMap[ftrMapTypeKeysAra.length];		
@@ -213,23 +214,20 @@ public abstract class SOM_Example extends baseDataPtVis{
 		mapNodeNghbrs.put(_dist, tmpMap);		
 	}//addMapUnitToNeighbrhdMap
 	
-	//once BMU and distToBMU is set, init map and add node to neighborhood map keyed by dist
-	protected final void addBMUToNeighbrhdMap() {
-		mapNodeNghbrs = new TreeMap<Double, ArrayList<SOM_MapNode>>();
-		ArrayList<SOM_MapNode> tmpMap = new ArrayList<SOM_MapNode>();
-		tmpMap.add(getBmu());
-		mapNodeLoc.set(getBmu().mapLoc);
-		mapNodeNghbrs.put(get_sqDistToBMU(), tmpMap);		//to hold 9 neighbor nodes and their ftr distance		
-	}//addBMUToNeighbrhdMap
-	
 	//assign passed map node to be bmu
 	protected final void _setBMUAddToNeighborhood(SOM_MapNode _n, double _dist) {
 		//if (checkForErrors(_n, mapMgr.map_ftrsVar)) {return;}//if true then this is catastrophic error and should interrupt flow here
 		setBmu(_n);	
 		set_sqDistToBMU(_dist);
 		//this is updated to exact location after neighbor hood map is built
-		this.mapLoc.set(getBmu().mapLoc);		
-		addBMUToNeighbrhdMap();
+		mapLoc.set(_n.mapLoc);	
+		//once BMU and distToBMU is set, init map and add node to neighborhood map keyed by dist
+		mapNodeNghbrs.clear();
+		ArrayList<SOM_MapNode> tmpMap = new ArrayList<SOM_MapNode>();
+		tmpMap.add(_n);
+		//initialize mpNodeLoc to bmu location
+		mapNodeLoc.set(_n.mapLoc);
+		mapNodeNghbrs.put(_dist, tmpMap);		//to hold 9 neighbor nodes and their ftr distance		
 	}//_setBMUAddToNeighborhood
 	
 	//this example has no values in any feature and so has no bmu
@@ -237,7 +235,7 @@ public abstract class SOM_Example extends baseDataPtVis{
 		setBmu(null);
 		set_sqDistToBMU(Double.MAX_VALUE);
 		mapLoc.set(0,0,0);
-		mapNodeNghbrs = new TreeMap<Double, ArrayList<SOM_MapNode>>();
+		mapNodeNghbrs.clear();
 	}
 	
 	public boolean isBmuNull() {return (null==bmu);}
@@ -820,7 +818,7 @@ public abstract class SOM_Example extends baseDataPtVis{
 		String res = ""+OID+",";
 		if(null==bmu) {return res + "No Mapped BMU For this example";}
 		//res += ""+String.format("%.8f", _sqDistToBMU)+","+bmu.mapNodeCoord.toCSVString()+",";  //1st entry is bmu
-		if((mapNodeNghbrs == null) || (mapNodeNghbrs.size() == 0)){
+		if(mapNodeNghbrs.size() == 0){
 			mapMgr.getMsgObj().dispInfoMessage("SOMExample", "getBMU_NHoodMbrship_CSV", "Error!!!! No mapNodeNghbrs exists or is size 0 for example ID : " + OID);
 			return res;
 		}
@@ -861,16 +859,23 @@ public abstract class SOM_Example extends baseDataPtVis{
 
 }//SOMExample 
 
-//this class holds functionality migrated from the DataPoint class for rendering on the map.  since this won't be always necessary, we're moving this code to different class so it can be easily ignored
+/**
+ * This class holds functionality for rendering on the map.
+ * Since this functionality is fundamentally different than the 
+ * necessary functionality for feature calculation/manipulation
+ * we have it separate from the base example class
+ * @author john
+ *
+ */
 abstract class baseDataPtVis{
 	public static SOM_MapManager mapMgr;
 	//message object manages logging/printing to screen
 	protected static MessageObject msgObj;
 	//type of example data this is
 	protected SOM_ExDataType type;
-	//location in mapspace most closely matching this node - actual map location (most likely between 4 map nodes)
+	//location in mapspace most closely matching this node - actual map location (most likely between 4 map nodes), built from neighborhood
 	public myPointf mapLoc;		
-	//bmu map node location - this is same as mapLoc/ignored for map nodes
+	//bmu map node location - this is same as mapLoc(and ignored) for map nodes
 	protected myPointf mapNodeLoc;
 	//draw-based vars
 	protected float rad;
@@ -883,7 +888,7 @@ abstract class baseDataPtVis{
 	
 	public baseDataPtVis(SOM_MapManager _map, SOM_ExDataType _type) {
 		mapMgr = _map;type=_type;
-		if(msgObj==null) {msgObj=mapMgr.buildMsgObj();}
+		if(msgObj==null) {msgObj=mapMgr.buildMsgObj();}//only set 1 msg object for all examples
 		mapLoc = new myPointf();	
 		mapNodeLoc = new myPointf();
 		rad = 1.0f;

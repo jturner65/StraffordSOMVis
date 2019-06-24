@@ -2,7 +2,7 @@ package base_SOM_Objects.som_segments;
 
 import java.util.TreeMap;
 
-import base_SOM_Objects.som_examples.SOMMapNode;
+import base_SOM_Objects.som_examples.SOM_MapNode;
 import base_SOM_Objects.som_segments.segmentData.SOM_MapNodeSegmentData;
 
 public class SOM_MapNodeCategorySegMgr extends SOM_MapNodeSegMgr {
@@ -10,7 +10,7 @@ public class SOM_MapNodeCategorySegMgr extends SOM_MapNodeSegMgr {
 	//counts are floats to enable us to use weighted counts
 	protected TreeMap<Integer, TreeMap<Integer, Float>> mappedCategoryCounts;
 
-	public SOM_MapNodeCategorySegMgr(SOMMapNode _owner) {
+	public SOM_MapNodeCategorySegMgr(SOM_MapNode _owner) {
 		super(_owner);
 		//build structure that holds counts of categories mapped to this node (category is a collection of similar classes)
 		mappedCategoryCounts = new TreeMap<Integer, TreeMap<Integer, Float>>();

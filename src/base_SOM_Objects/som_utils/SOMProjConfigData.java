@@ -523,27 +523,27 @@ public abstract class SOMProjConfigData {
 	}
 		
 	//save test/train data in multiple threads
-	public void launchTestTrainSaveThrds(ExecutorService th_exec, int curMapFtrType, int numTrainFtrs, SOMExample[] trainData, SOMExample[] testData) {
+	public void launchTestTrainSaveThrds(ExecutorService th_exec, int curMapFtrType, int numTrainFtrs, SOM_Example[] trainData, SOM_Example[] testData) {
 		//set exp names
 		int numTtlEx = trainData.length + testData.length;
 		setSOM_ExpFileNames(numTtlEx, trainData.length, testData.length);
 		
 		String saveFileName = "";
 		List<Future<Boolean>> SOMDataWriteFutures = new ArrayList<Future<Boolean>>();
-		List<SOMTrainDataWriter> SOMDataWrite = new ArrayList<SOMTrainDataWriter>();
+		List<SOM_TrainDataWriter> SOMDataWrite = new ArrayList<SOM_TrainDataWriter>();
 		//call threads to instance and save different file formats
 		if (expNumTrain > 0) {//save training data
 			if (useSparseTrainingData) {
 				saveFileName = getSOMMapSVMFileName();
-				SOMDataWrite.add(new SOMTrainDataWriter(mapMgr, curMapFtrType, numTrainFtrs, saveFileName, "sparseSVMData", trainData));	
+				SOMDataWrite.add(new SOM_TrainDataWriter(mapMgr, curMapFtrType, numTrainFtrs, saveFileName, "sparseSVMData", trainData));	
 			} else {
 				saveFileName = getSOMMapLRNFileName();
-				SOMDataWrite.add(new SOMTrainDataWriter(mapMgr, curMapFtrType, numTrainFtrs, saveFileName, "denseLRNData", trainData));	
+				SOMDataWrite.add(new SOM_TrainDataWriter(mapMgr, curMapFtrType, numTrainFtrs, saveFileName, "denseLRNData", trainData));	
 			}
 		}
 		if (expNumTest > 0) {//save testing data
 			saveFileName = getSOMMapTestFileName();
-			SOMDataWrite.add(new SOMTrainDataWriter(mapMgr, curMapFtrType, numTrainFtrs, saveFileName, useSparseTestingData ? "sparseSVMData" : "denseLRNData", testData));
+			SOMDataWrite.add(new SOM_TrainDataWriter(mapMgr, curMapFtrType, numTrainFtrs, saveFileName, useSparseTestingData ? "sparseSVMData" : "denseLRNData", testData));
 		}
 		try {SOMDataWriteFutures = th_exec.invokeAll(SOMDataWrite);for(Future<Boolean> f: SOMDataWriteFutures) { f.get(); }} catch (Exception e) { e.printStackTrace(); }			
 	}//launchTestTrainSaveThrds	

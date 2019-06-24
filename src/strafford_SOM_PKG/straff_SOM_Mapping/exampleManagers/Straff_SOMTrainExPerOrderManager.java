@@ -3,8 +3,8 @@ package strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers;
 import java.util.ArrayList;
 
 import base_SOM_Objects.SOM_MapManager;
-import base_SOM_Objects.som_examples.ExDataType;
-import base_SOM_Objects.som_examples.SOMExample;
+import base_SOM_Objects.som_examples.SOM_ExDataType;
+import base_SOM_Objects.som_examples.SOM_Example;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.CustProspectExample;
 import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.base.Straff_SOMCustPrspctManager_Base;
 
@@ -29,14 +29,14 @@ public class Straff_SOMTrainExPerOrderManager extends Straff_SOMCustPrspctManage
 
 	//this treats every customer's order as an individual example
 	@Override
-	protected final void validateAndAddExToArray(ArrayList<SOMExample> tmpList, SOMExample ex) {
+	protected final void validateAndAddExToArray(ArrayList<SOM_Example> tmpList, SOM_Example ex) {
 		if(!ex.isBadExample()) {	tmpList.addAll(((CustProspectExample) ex).getSingleOrderTrainingExamples());}
 	}//validateAndAddEx
 	
 	@Override
 	//add example from map to array without validation - all per-order training examples
-	protected final SOMExample[] noValidateBuildExampleArray() {
-		ArrayList<SOMExample> tmpList = new ArrayList<SOMExample>();
+	protected final SOM_Example[] noValidateBuildExampleArray() {
+		ArrayList<SOM_Example> tmpList = new ArrayList<SOM_Example>();
 		//example map always holds individual customer prospect examples
 		for (String key : exampleMap.keySet()) {tmpList.addAll(((CustProspectExample) exampleMap.get(key)).getSingleOrderTrainingExamples());}	
 		return tmpList.toArray(new CustProspectExample[0]);
@@ -52,9 +52,9 @@ public class Straff_SOMTrainExPerOrderManager extends Straff_SOMCustPrspctManage
 	 */
 	protected final void buildExampleArrayEnd_Priv(boolean validate) {
 		if(validate) {
-			ArrayList<SOMExample> tmpList = new ArrayList<SOMExample>();
+			ArrayList<SOM_Example> tmpList = new ArrayList<SOM_Example>();
 			for (String key : exampleMap.keySet()) {
-				SOMExample ex = exampleMap.get(key);
+				SOM_Example ex = exampleMap.get(key);
 				if(!ex.isBadExample()) {tmpList.add(ex);}	
 			}			
 			custProspectExamples = tmpList.toArray(new CustProspectExample[0]);

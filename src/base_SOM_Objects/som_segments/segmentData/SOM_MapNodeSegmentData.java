@@ -13,7 +13,7 @@ import base_UI_Objects.my_procApplet;
  */
 public class SOM_MapNodeSegmentData {
 	//owning map node
-	protected SOMMapNode ownr;
+	protected SOM_MapNode ownr;
 	//dimensions of display box for the owning map node
 	protected float[] dispBoxDims;
 	//name of this segment data structure
@@ -27,7 +27,7 @@ public class SOM_MapNodeSegmentData {
 	//segment color as integer
 	protected int segClrAsInt;
 
-	public SOM_MapNodeSegmentData(SOMMapNode _ownr, String _name, String _type) {ownr=_ownr;name=_name; type=_type; dispBoxDims = ownr.getDispBoxDims();clearSeg();}//ctor
+	public SOM_MapNodeSegmentData(SOM_MapNode _ownr, String _name, String _type) {ownr=_ownr;name=_name; type=_type; dispBoxDims = ownr.getDispBoxDims();clearSeg();}//ctor
 	
 	//provides default values for colors if no segument is defined
 	public void clearSeg() {		seg = null;segClr = new int[4]; segClrAsInt = 0x0;}	

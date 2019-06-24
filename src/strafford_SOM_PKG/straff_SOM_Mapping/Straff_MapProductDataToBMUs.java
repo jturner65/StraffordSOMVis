@@ -16,7 +16,7 @@ import strafford_SOM_PKG.straff_SOM_Examples.products.ProductExample;
  * The product segment information is most relevant - this is the set of all map nodes that are bmus for training examples with specified product purchases
  * @author john
  */
-public class Straff_MapProductDataToBMUs extends MapDataToBMUs{
+public class Straff_MapProductDataToBMUs extends SOM_MapDataToBMUs{
 	ProductExample[] exs;
 
 	public Straff_MapProductDataToBMUs(SOM_MapManager _mapMgr, int _stProdIDX, int _endProdIDX, ProductExample[] _exs, int _thdIDX, boolean _useChiSqDist) {
@@ -33,7 +33,7 @@ public class Straff_MapProductDataToBMUs extends MapDataToBMUs{
 		//we want to map products to bmus
 		//for every product example find closest map node for both shared and all ftrs being compared
 		msgObj.dispMessage("MapProductDataToBMUs", "Run Thread : " +thdIDX, "Starting "+dataType+" data to BMU mapping using " + (endIdx-stIdx) + " of " + exs.length+" examples ["+stIdx+":"+endIdx+"] with " + ftrTypeDesc + " Features and both including and excluding unshared features in distance.", MsgCodes.info5);
-		TreeMap<Double, ArrayList<SOMMapNode>> mapNodesByDist;
+		TreeMap<Double, ArrayList<SOM_MapNode>> mapNodesByDist;
 		ProductExample ex;
 		
 		if (useChiSqDist) {	

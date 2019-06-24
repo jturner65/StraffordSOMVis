@@ -3,8 +3,8 @@ package strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.base;
 import java.util.concurrent.ExecutorService;
 
 import base_SOM_Objects.SOM_MapManager;
-import base_SOM_Objects.som_examples.ExDataType;
-import base_SOM_Objects.som_examples.SOMExampleManager;
+import base_SOM_Objects.som_examples.SOM_ExDataType;
+import base_SOM_Objects.som_examples.SOM_ExampleManager;
 import strafford_SOM_PKG.straff_Features.MonitorJpJpgrp;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 /**
@@ -12,7 +12,7 @@ import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
  * @author john
  *
  */
-public abstract class Straff_SOMExampleManager extends SOMExampleManager  {
+public abstract class Straff_SOMExampleManager extends SOM_ExampleManager  {
 	//manage all jps and jpgs seen in project
 	public MonitorJpJpgrp jpJpgrpMon;	
 	//ref to mt executor

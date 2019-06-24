@@ -27,8 +27,8 @@ public final class SOM_FtrWtSegment extends SOM_MappedSegment {
 	 * @param ex the example to check
 	 */
 	@Override
-	public final boolean doesExampleBelongInSeg(SOMExample ex) {
-		SOMMapNode mapNode = ex.getBmu();
+	public final boolean doesExampleBelongInSeg(SOM_Example ex) {
+		SOM_MapNode mapNode = ex.getBmu();
 		if(mapNode == null) {return false;}		//if no bmu then example does not belong in any segment
 		return doesMapNodeBelongInSeg(mapNode);		
 	}
@@ -36,14 +36,14 @@ public final class SOM_FtrWtSegment extends SOM_MappedSegment {
 	/**
 	 * determine whether a mapnode belongs in this segment getFtrWtSegment
 	 */
-	public final boolean doesMapNodeBelongInSeg(SOMMapNode _bmu) {
+	public final boolean doesMapNodeBelongInSeg(SOM_MapNode _bmu) {
 		TreeMap<Integer, Float> ftrs = _bmu.getCurrentFtrMap(ftrCalcType);
 		Float ftrAtIDX = ftrs.get(ftrIDX);
 		return ((_bmu.getFtrWtSegment(ftrIDX)== null) && (ftrAtIDX!=null) && (ftrAtIDX > 0.0f));
 	}
 
 	@Override
-	protected final void setMapNodeSegment(SOMMapNode mapNodeEx) {	mapNodeEx.setFtrWtSeg(ftrIDX, this);	}
+	protected final void setMapNodeSegment(SOM_MapNode mapNodeEx) {	mapNodeEx.setFtrWtSeg(ftrIDX, this);	}
 
 	/**
 	 * return bmu's value for this segment
@@ -51,7 +51,7 @@ public final class SOM_FtrWtSegment extends SOM_MappedSegment {
 	 * @return
 	 */
 	@Override
-	protected final Float getBMUSegmentValue(SOMMapNode _bmu) {	return _bmu.getCurrentFtrMap(ftrCalcType).get(ftrIDX);}
+	protected final Float getBMUSegmentValue(SOM_MapNode _bmu) {	return _bmu.getCurrentFtrMap(ftrCalcType).get(ftrIDX);}
 
 	/**
 	 * build descriptive string for hdr before bmu output
@@ -65,6 +65,6 @@ public final class SOM_FtrWtSegment extends SOM_MappedSegment {
 	}
 
 	@Override
-	protected Float getBMUSegmentCount(SOMMapNode _bmu) {return 1.0f;}
+	protected Float getBMUSegmentCount(SOM_MapNode _bmu) {return 1.0f;}
 
 }//class SOM_FtrWtSegment

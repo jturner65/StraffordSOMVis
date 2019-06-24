@@ -22,8 +22,8 @@ public final class SOM_UMatrixSegment extends SOM_MappedSegment {
 	 * @param ex the example to check
 	 */
 	@Override
-	public final boolean doesExampleBelongInSeg(SOMExample ex) {
-		SOMMapNode mapNode = ex.getBmu();
+	public final boolean doesExampleBelongInSeg(SOM_Example ex) {
+		SOM_MapNode mapNode = ex.getBmu();
 		if(mapNode == null) {return false;}		//if no bmu then example does not belong in any segment
 		return doesMapNodeBelongInSeg(mapNode);		
 	}
@@ -31,14 +31,14 @@ public final class SOM_UMatrixSegment extends SOM_MappedSegment {
 	/**
 	 * determine whether a mapnode belongs in this segment - only 1 umatrix segment per map node
 	 */
-	public final boolean doesMapNodeBelongInSeg(SOMMapNode ex) {	return ((ex.getUMatrixSegment() == null) && (thresh >= ex.getUMatDist()));}
+	public final boolean doesMapNodeBelongInSeg(SOM_MapNode ex) {	return ((ex.getUMatrixSegment() == null) && (thresh >= ex.getUMatDist()));}
 
 	/**
 	 * Set the passed map node to have this segment as its segment
 	 * @param ex map node to set this as a segment
 	 */
 	@Override
-	protected final void setMapNodeSegment(SOMMapNode mapNodeEx) {	mapNodeEx.setUMatrixSeg(this);	}
+	protected final void setMapNodeSegment(SOM_MapNode mapNodeEx) {	mapNodeEx.setUMatrixSeg(this);	}
 	
 	/**
 	 * return bmu's value for this segment
@@ -46,7 +46,7 @@ public final class SOM_UMatrixSegment extends SOM_MappedSegment {
 	 * @return
 	 */
 	@Override
-	protected final Float getBMUSegmentValue(SOMMapNode _bmu) {	return _bmu.getUMatDist();	}
+	protected final Float getBMUSegmentValue(SOM_MapNode _bmu) {	return _bmu.getUMatDist();	}
 
 	/**
 	 * build descriptive string for hdr before bmu output
@@ -59,6 +59,6 @@ public final class SOM_UMatrixSegment extends SOM_MappedSegment {
 		return title + "\n" + csvHdr;
 	}
 	@Override
-	protected Float getBMUSegmentCount(SOMMapNode _bmu) {return 1.0f;}
+	protected Float getBMUSegmentCount(SOM_MapNode _bmu) {return 1.0f;}
 
 }//SOM_UMatrixSegment

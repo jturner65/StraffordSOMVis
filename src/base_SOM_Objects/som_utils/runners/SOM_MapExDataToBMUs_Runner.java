@@ -10,7 +10,7 @@ import java.util.function.BiFunction;
 
 import base_SOM_Objects.SOM_MapManager;
 import base_SOM_Objects.som_examples.*;
-import base_SOM_Objects.som_utils.MapDataToBMUs;
+import base_SOM_Objects.som_utils.SOM_MapDataToBMUs;
 import base_Utils_Objects.io.MessageObject;
 import base_Utils_Objects.io.MsgCodes;
 import base_Utils_Objects.vectorObjs.Tuple;
@@ -22,12 +22,12 @@ import base_Utils_Objects.vectorObjs.Tuple;
  */
 public class SOM_MapExDataToBMUs_Runner extends SOM_MapRunner{
 
-	ExDataType dataType;
+	SOM_ExDataType dataType;
 	int curMapTestFtrType;
 	boolean useChiSqDist;
-	TreeMap<Tuple<Integer,Integer>, SOMMapNode> MapNodes;
+	TreeMap<Tuple<Integer,Integer>, SOM_MapNode> MapNodes;
 	//map of ftr idx and all map nodes that have non-zero presence in that ftr
-	protected TreeMap<Integer, HashSet<SOMMapNode>> MapNodesByFtr;
+	protected TreeMap<Integer, HashSet<SOM_MapNode>> MapNodesByFtr;
 	//ref to flags idx of boolean denoting this type of data is ready to save mapping results
 	protected int flagsRdyToSaveIDX;
 	//approx # per partition, divied up among the threads
@@ -38,7 +38,7 @@ public class SOM_MapExDataToBMUs_Runner extends SOM_MapRunner{
 	List<Future<Boolean>> ExMapperFtrs = new ArrayList<Future<Boolean>>();
 	List<MapExampleDataToBMUs> ExMappers = new ArrayList<MapExampleDataToBMUs>();
 		
-	public SOM_MapExDataToBMUs_Runner(SOM_MapManager _mapMgr, ExecutorService _th_exec, SOMExample[] _exData, String _dataTypName, ExDataType _dataType, int _readyToSaveIDX, boolean _forceST) {
+	public SOM_MapExDataToBMUs_Runner(SOM_MapManager _mapMgr, ExecutorService _th_exec, SOM_Example[] _exData, String _dataTypName, SOM_ExDataType _dataType, int _readyToSaveIDX, boolean _forceST) {
 		super( _mapMgr, _th_exec, _exData, _dataTypName,_forceST);
 		useChiSqDist = mapMgr.getUseChiSqDist();		
 		MapNodes = mapMgr.getMapNodes();
@@ -130,16 +130,16 @@ public class SOM_MapExDataToBMUs_Runner extends SOM_MapRunner{
 
 }//MapTestDataToBMUs_Runner
 
-class MapExampleDataToBMUs extends MapDataToBMUs{
-	protected SOMExample[] exs;
+class MapExampleDataToBMUs extends SOM_MapDataToBMUs{
+	protected SOM_Example[] exs;
 	
-	public MapExampleDataToBMUs(SOM_MapManager _mapMgr, int _stProdIDX, int _endProdIDX, SOMExample[] _exs, int _thdIDX, String _type, boolean _useChiSqDist) {
+	public MapExampleDataToBMUs(SOM_MapManager _mapMgr, int _stProdIDX, int _endProdIDX, SOM_Example[] _exs, int _thdIDX, String _type, boolean _useChiSqDist) {
 		super(_mapMgr, _stProdIDX,  _endProdIDX,  _thdIDX, _type, _useChiSqDist);			
 		exs = _exs;		//make sure these are cast appropriately
 	}	
 	
 	private void mapExample(int i, BiFunction<TreeMap<Integer, Float>, TreeMap<Integer, Float>, Double> _distFunc) {
-		TreeMap<Double, ArrayList<SOMMapNode>> mapNodesByDist = exs[i].findBMUFromFtrNodes(MapNodesByFtr,_distFunc, curMapFtrType);
+		TreeMap<Double, ArrayList<SOM_MapNode>> mapNodesByDist = exs[i].findBMUFromFtrNodes(MapNodesByFtr,_distFunc, curMapFtrType);
 		if(mapNodesByDist == null) {msgObj.dispMessage("SOM_MapExDataToBMUs_Runner::MapExampleDataToBMUs", "Run Thread : " +thdIDX, "ERROR!!! " + dataType + " ex " + exs[i].OID + " does not have any features that map to Map Nodes in SOM!", MsgCodes.error5);}
 		incrProgress(i);
 		//example has probabilities for specific class and categories based on BMU

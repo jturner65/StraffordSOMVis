@@ -7,7 +7,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import base_SOM_Objects.SOM_MapManager;
-import base_SOM_Objects.som_examples.SOMExample;
+import base_SOM_Objects.som_examples.SOM_Example;
 import base_Utils_Objects.io.FileIOManager;
 import base_Utils_Objects.io.MessageObject;
 import base_Utils_Objects.io.MsgCodes;
@@ -21,7 +21,7 @@ public class SOM_SaveExToBMUs_Runner extends SOM_MapRunner {
 	List<Future<Boolean>> ExSaveBMUFutures = new ArrayList<Future<Boolean>>();
 	List<SOM_ExToBMUs_CSVWriter> ExSaveBMUThds = new ArrayList<SOM_ExToBMUs_CSVWriter>();
 
-	public SOM_SaveExToBMUs_Runner(SOM_MapManager _mapMgr, ExecutorService _th_exec, SOMExample[] _exData, String _dataTypName, boolean _forceST, String _fileNamePrefix, int _rawNumPerPartition) {
+	public SOM_SaveExToBMUs_Runner(SOM_MapManager _mapMgr, ExecutorService _th_exec, SOM_Example[] _exData, String _dataTypName, boolean _forceST, String _fileNamePrefix, int _rawNumPerPartition) {
 		super(_mapMgr, _th_exec, _exData, _dataTypName, _forceST);
 		fileNamePrefix = _fileNamePrefix;
 		rawNumPerPartition = _rawNumPerPartition;
@@ -67,12 +67,12 @@ class SOM_ExToBMUs_CSVWriter implements Callable<Boolean>{
 	protected final String dataType;
 	protected static final float progAmt = .2f;
 	protected double progress = -progAmt;
-	protected final SOMExample[] exs;	
+	protected final SOM_Example[] exs;	
 	protected final String fileName;
 	//list of files to write
 	protected ArrayList<String> outStrs;
 	
-	public SOM_ExToBMUs_CSVWriter(SOM_MapManager _mapMgr, int _stExIDX, int _endExIDX, SOMExample[] _exs, int _thdIDX, String _datatype, String _fileNamePrfx) {
+	public SOM_ExToBMUs_CSVWriter(SOM_MapManager _mapMgr, int _stExIDX, int _endExIDX, SOM_Example[] _exs, int _thdIDX, String _datatype, String _fileNamePrfx) {
 		msgObj = _mapMgr.buildMsgObj();//make a new one for every thread
 		exs=_exs;
 		stIdx = _stExIDX;
@@ -103,7 +103,7 @@ class SOM_ExToBMUs_CSVWriter implements Callable<Boolean>{
 			return true;}
 		msgObj.dispMessage("SOM_ExToBMUCSVWriter", "Run Thread : " +thdIDX, "Starting saving BMU mappings for "+dataType+" example Data["+stIdx+":"+endIdx+"] | # saved records : " + (endIdx-stIdx), MsgCodes.info5);		
 		//typeOfCalc==0 means build features
-		for(SOMExample ex : exs) {
+		for(SOM_Example ex : exs) {
 			String resStr= ex.getBMU_NHoodMbrship_CSV();
 			outStrs.add(resStr);
 		}	

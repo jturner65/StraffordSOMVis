@@ -6,9 +6,9 @@ package strafford_SOM_PKG.straff_SOM_Segments;
 import java.util.TreeMap;
 
 import base_SOM_Objects.SOM_MapManager;
-import base_SOM_Objects.som_examples.ExDataType;
-import base_SOM_Objects.som_examples.SOMExample;
-import base_SOM_Objects.som_examples.SOMMapNode;
+import base_SOM_Objects.som_examples.SOM_ExDataType;
+import base_SOM_Objects.som_examples.SOM_Example;
+import base_SOM_Objects.som_examples.SOM_MapNode;
 import base_SOM_Objects.som_segments.segments.SOM_MappedSegment;
 import strafford_SOM_PKG.straff_SOM_Examples.Straff_SOMMapNode;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
@@ -30,26 +30,26 @@ public class Straff_SOM_NonProdJPClassSegment extends SOM_MappedSegment {
 	 * @param ex the example to check
 	 */
 	@Override
-	public final boolean doesExampleBelongInSeg(SOMExample ex) {
+	public final boolean doesExampleBelongInSeg(SOM_Example ex) {
 		//get type of example from ex
-		ExDataType exType = ex.getType();
+		SOM_ExDataType exType = ex.getType();
 		switch (exType) {		
 			case Training	: 
 			case Testing	: 
 			case Product	:
 			case Validation	: {
-				SOMMapNode bmu = ex.getBmu();
+				SOM_MapNode bmu = ex.getBmu();
 				if(bmu==null) {return false;}			
 				return doesMapNodeBelongInSeg(bmu);
 			}
-			case MapNode	: {		return doesMapNodeBelongInSeg((SOMMapNode) ex);}
+			case MapNode	: {		return doesMapNodeBelongInSeg((SOM_MapNode) ex);}
 			case MouseOver	: {		return false;}
 		}//switch
 		return false;
 	}
 	
 	@Override
-	public boolean doesMapNodeBelongInSeg(SOMMapNode mapNodeEx) {
+	public boolean doesMapNodeBelongInSeg(SOM_MapNode mapNodeEx) {
 		Straff_SOMMapNode straffMapNode = ((Straff_SOMMapNode)mapNodeEx);
 		TreeMap<Integer, Float> npJpMap = straffMapNode.getMappedNonProdJPCounts();
 		boolean check = (straffMapNode.getNonProdJPSegment(nonProdJP)== null) && npJpMap.keySet().contains(nonProdJP);	//looks like it is not adding
@@ -57,7 +57,7 @@ public class Straff_SOM_NonProdJPClassSegment extends SOM_MappedSegment {
 	}
 
 	@Override
-	protected void setMapNodeSegment(SOMMapNode mapNodeEx) {	((Straff_SOMMapNode)mapNodeEx).setNonProdJPSeg(nonProdJP, this);	}
+	protected void setMapNodeSegment(SOM_MapNode mapNodeEx) {	((Straff_SOMMapNode)mapNodeEx).setNonProdJPSeg(nonProdJP, this);	}
 	
 	/**
 	 * return bmu's value for this segment
@@ -65,7 +65,7 @@ public class Straff_SOM_NonProdJPClassSegment extends SOM_MappedSegment {
 	 * @return
 	 */
 	@Override
-	protected Float getBMUSegmentValue(SOMMapNode _bmu) {return ((Straff_SOMMapNode)_bmu).getNonProdJPProb(nonProdJP);		}
+	protected Float getBMUSegmentValue(SOM_MapNode _bmu) {return ((Straff_SOMMapNode)_bmu).getNonProdJPProb(nonProdJP);		}
 
 	/**
 	 * build descriptive string for hdr before bmu output
@@ -83,6 +83,6 @@ public class Straff_SOM_NonProdJPClassSegment extends SOM_MappedSegment {
 	 * @return
 	 */
 	@Override
-	protected Float getBMUSegmentCount(SOMMapNode _bmu) {  return ((Straff_SOMMapNode)_bmu).getMappedNonProdJPCountAtSeg(nonProdJP);}
+	protected Float getBMUSegmentCount(SOM_MapNode _bmu) {  return ((Straff_SOMMapNode)_bmu).getMappedNonProdJPCountAtSeg(nonProdJP);}
 
 }//Straff_SOM_NonProdJPClassSegment

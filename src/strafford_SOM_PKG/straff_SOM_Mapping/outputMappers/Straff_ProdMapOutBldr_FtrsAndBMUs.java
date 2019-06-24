@@ -65,17 +65,17 @@ public class Straff_ProdMapOutBldr_FtrsAndBMUs extends Straff_ProdMappingOutputB
 	}//saveAllSpecifiedProdMappings_ST()
 	
 	@Override
-	protected HashMap<ProductExample, HashMap<SOMMapNode, Double>> getProdsToMapNodes(){
-		HashMap<ProductExample, HashMap<SOMMapNode, Double>> prodToMapNodes = new HashMap<ProductExample, HashMap<SOMMapNode, Double>>();
+	protected HashMap<ProductExample, HashMap<SOM_MapNode, Double>> getProdsToMapNodes(){
+		HashMap<ProductExample, HashMap<SOM_MapNode, Double>> prodToMapNodes = new HashMap<ProductExample, HashMap<SOM_MapNode, Double>>();
 		//build for every product to be mapped, HashMap keyed by map node that holds confidences that are within specified distances from product, using specified distance measure
 		for (ProductExample ex : prodsToMap) {		//map result below contains map nodes that have >0 confidence for product ex
-			HashMap<SOMMapNode, Double> resForAllMapNodes = ex.getMapNodeConf(prodDistType, prodZoneDistThresh);
+			HashMap<SOM_MapNode, Double> resForAllMapNodes = ex.getMapNodeConf(prodDistType, prodZoneDistThresh);
 			prodToMapNodes.put(ex, resForAllMapNodes);
 		}
 		return prodToMapNodes;
 	}
 	@Override
-	protected void saveAllSpecifiedProspectMappings_MT(SOMExample[] prospectsToMap, String typeOfProspect, HashMap<ProductExample, HashMap<SOMMapNode, Double>> prodToMapNodes, int numForEachThrd) {
+	protected void saveAllSpecifiedProspectMappings_MT(SOM_Example[] prospectsToMap, String typeOfProspect, HashMap<ProductExample, HashMap<SOM_MapNode, Double>> prodToMapNodes, int numForEachThrd) {
 		List<Future<Boolean>> prdcttMapperFtrs = new ArrayList<Future<Boolean>>();
 		List<Straff_ProspectOutMapper_Dist_FtrsBMUs> prdcttMappers = new ArrayList<Straff_ProspectOutMapper_Dist_FtrsBMUs>();
 		//use this many for every thread but last one
@@ -92,7 +92,7 @@ public class Straff_ProdMapOutBldr_FtrsAndBMUs extends Straff_ProdMappingOutputB
 		
 	};
 	@Override
-	protected void saveAllSpecifiedProspectMappings_ST(SOMExample[] prospectsToMap, String typeOfProspect, HashMap<ProductExample, HashMap<SOMMapNode, Double>> prodToMapNodes) {
+	protected void saveAllSpecifiedProspectMappings_ST(SOM_Example[] prospectsToMap, String typeOfProspect, HashMap<ProductExample, HashMap<SOM_MapNode, Double>> prodToMapNodes) {
 		//invoke single-threaded version synchronously
 		Straff_ProspectOutMapper_Dist_FtrsBMUs mapper = new Straff_ProspectOutMapper_Dist_FtrsBMUs(msgObj,0, prospectsToMap.length, 0, typeOfProspect, prospectsToMap, prodToMapNodes, fullQualOutPerProspectDir);
 		mapper.call();//			
@@ -122,7 +122,7 @@ class Straff_ProdOutMapper_Dist_FtrsBMUs extends Straff_ProdOutMapper_Dist_Base{
 class Straff_ProspectOutMapper_Dist_FtrsBMUs extends Straff_ProspectOutMapper_Dist_Base{	
 	protected TreeMap<Double, String> resCalcData;		//declare here to hopefully speed up calc
 	
-	public Straff_ProspectOutMapper_Dist_FtrsBMUs(MessageObject _msgObj, int _stIDX, int _endIDX, int _thdIDX, String _prspctType,  SOMExample[] _prospectsToMap, HashMap<ProductExample, HashMap<SOMMapNode, Double>> _prodToMapNodes,String _fullQualOutDir) {
+	public Straff_ProspectOutMapper_Dist_FtrsBMUs(MessageObject _msgObj, int _stIDX, int _endIDX, int _thdIDX, String _prspctType,  SOM_Example[] _prospectsToMap, HashMap<ProductExample, HashMap<SOM_MapNode, Double>> _prodToMapNodes,String _fullQualOutDir) {
 		super( _msgObj, _stIDX,_endIDX, _thdIDX, _prspctType, _prospectsToMap, _prodToMapNodes, _fullQualOutDir, "Straff_ProdOutMapper_Dist_FtrsBMUs");
 		resCalcData = new TreeMap<Double, String> (new Comparator<Double>() { @Override public int compare(Double o1, Double o2) {   return o2.compareTo(o1);}});//descending key order
 	}//ctor
@@ -146,14 +146,14 @@ class Straff_ProspectOutMapper_Dist_FtrsBMUs extends Straff_ProspectOutMapper_Di
 	 * @param ex current example to map
 	 */
 	@Override
-	protected void buildOutputLists(ArrayList<String> strList, ArrayList<String> strListNoMaps, SOMExample ex) {
+	protected void buildOutputLists(ArrayList<String> strList, ArrayList<String> strListNoMaps, SOM_Example ex) {
 		resCalcData.clear();
 		String outRes;		
 		String exOutStr = ""+ex.OID + ","+String.format("%.6f",ex.get_sqDistToBMU())+",";
-		SOMMapNode _exBMU = ex.getBmu();
+		SOM_MapNode _exBMU = ex.getBmu();
 		if(_exBMU != null) {
 			for (ProductExample prod : prodToMapNodes.keySet()) {//for every product
-				HashMap<SOMMapNode, Double> nodeConfsToProds = prodToMapNodes.get(prod);				
+				HashMap<SOM_MapNode, Double> nodeConfsToProds = prodToMapNodes.get(prod);				
 				Double conf = nodeConfsToProds.get(_exBMU);//now find confidence of prod in this node's bmu
 				if((conf == null) || (conf == 0.0)) {continue;}
 				outRes = resCalcData.get(conf);

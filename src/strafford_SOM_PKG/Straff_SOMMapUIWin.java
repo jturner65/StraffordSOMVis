@@ -15,7 +15,7 @@ import strafford_SOM_PKG.straff_Features.featureCalc.Straff_WeightCalc;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 
 //window that accepts trajectory editing
-public class Straff_SOMMapUIWin extends SOMMapUIWin {
+public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	
 	//idxs of boolean values/flags - instance-specific
 	public static final int 
@@ -120,6 +120,7 @@ public class Straff_SOMMapUIWin extends SOMMapUIWin {
 	 * 			the 2nd elem is false string array, and 
 	 * 			the 3rd element is integer flag idx 
 	 */
+	@Override
 	protected final void initAllSOMPrivBtns_Indiv(ArrayList<Object[]> tmpBtnNamesArray) {
 		tmpBtnNamesArray.add(new Object[] {"Hide Non-Product Job Practices","Show Non-Product Job Practices", mapDrawNonProdJPSegIDX});          
 		tmpBtnNamesArray.add(new Object[] {"Hide Non-Product Job Practice Groups", "Show Non-Product Job Practice Groups", mapDrawNonProdJPGroupSegIDX});			

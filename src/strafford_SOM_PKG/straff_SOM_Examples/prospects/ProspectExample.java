@@ -51,7 +51,7 @@ public abstract class ProspectExample extends Straff_SOMExample{
 	public static int[] _numOptAllOccs = new int[] {0,0,0};
 
 	//build this object based on prospectData object from raw data
-	public ProspectExample(SOM_MapManager _map, ExDataType _type, ProspectData _prspctData) {
+	public ProspectExample(SOM_MapManager _map, SOM_ExDataType _type, ProspectData _prspctData) {
 		super(_map,_type,_prspctData.OID);	
 		initProspectEx(true);
 		prs_LUDate = _prspctData.getDate();
@@ -59,7 +59,7 @@ public abstract class ProspectExample extends Straff_SOMExample{
 	}//prospectData ctor
 	
 	//build this object based on csv string - rebuild data from csv string columns 4+
-	public ProspectExample(SOM_MapManager _map, ExDataType _type, String _OID, String _csvDataStr) {
+	public ProspectExample(SOM_MapManager _map, SOM_ExDataType _type, String _OID, String _csvDataStr) {
 		super(_map,_type,_OID);		
 		initProspectEx(false);
 		jpOccNotBuiltYet = false;		//is built directly from saved data

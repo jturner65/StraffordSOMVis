@@ -3,7 +3,7 @@ package base_SOM_Objects.som_utils.runners;
 import java.util.concurrent.ExecutorService;
 
 import base_SOM_Objects.SOM_MapManager;
-import base_SOM_Objects.som_examples.SOMExample;
+import base_SOM_Objects.som_examples.SOM_Example;
 import base_Utils_Objects.io.MessageObject;
 
 /**
@@ -25,13 +25,13 @@ public abstract class SOM_MapRunner {
 	//name of data type being operated on - for display purposes mainly
 	protected final String dataTypName;
 	//the example data being operated on
-	protected final SOMExample[] exData;
+	protected final SOM_Example[] exData;
 	//the # of usable threads available for MT exec
 	protected final int numUsableThreads;
 	//ref to thread executor
 	protected final ExecutorService th_exec;	
 	
-	public SOM_MapRunner(SOM_MapManager _mapMgr, ExecutorService _th_exec, SOMExample[] _exData, String _dataTypName, boolean _forceST) {
+	public SOM_MapRunner(SOM_MapManager _mapMgr, ExecutorService _th_exec, SOM_Example[] _exData, String _dataTypName, boolean _forceST) {
 		mapMgr = _mapMgr; 
 		msgObj = mapMgr.getMsgObj();
 		numUsableThreads = mapMgr.getNumUsableThreads()-1;

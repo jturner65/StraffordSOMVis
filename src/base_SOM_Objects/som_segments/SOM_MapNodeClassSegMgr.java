@@ -2,7 +2,7 @@ package base_SOM_Objects.som_segments;
 
 import java.util.TreeMap;
 
-import base_SOM_Objects.som_examples.SOMMapNode;
+import base_SOM_Objects.som_examples.SOM_MapNode;
 import base_SOM_Objects.som_segments.segmentData.SOM_MapNodeSegmentData;
 /**
  * This class manages all of a single map node's class-type segment functionality.
@@ -17,7 +17,7 @@ public class SOM_MapNodeClassSegMgr extends SOM_MapNodeSegMgr {
 	//counts are floats to enable us to use weighted counts
 	protected TreeMap<Integer, Float> mappedClassCounts;
 
-	public SOM_MapNodeClassSegMgr(SOMMapNode _owner) {
+	public SOM_MapNodeClassSegMgr(SOM_MapNode _owner) {
 		super(_owner);
 		//build structure that holds counts of classes mapped to this node
 		mappedClassCounts = new TreeMap<Integer, Float>();

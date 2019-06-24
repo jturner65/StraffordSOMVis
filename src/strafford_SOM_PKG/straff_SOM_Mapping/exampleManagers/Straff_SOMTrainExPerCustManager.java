@@ -3,8 +3,8 @@ package strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers;
 import java.util.ArrayList;
 
 import base_SOM_Objects.SOM_MapManager;
-import base_SOM_Objects.som_examples.ExDataType;
-import base_SOM_Objects.som_examples.SOMExample;
+import base_SOM_Objects.som_examples.SOM_ExDataType;
+import base_SOM_Objects.som_examples.SOM_Example;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.CustProspectExample;
 import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.base.Straff_SOMCustPrspctManager_Base;
 
@@ -24,10 +24,10 @@ public class Straff_SOMTrainExPerCustManager extends Straff_SOMCustPrspctManager
 	
 	//this treats every customer's total past behavior as a single training example 
 	@Override
-	protected final void validateAndAddExToArray(ArrayList<SOMExample> tmpList, SOMExample ex) {	if(!ex.isBadExample()) {tmpList.add(ex);}}//validateAndAddEx	//
+	protected final void validateAndAddExToArray(ArrayList<SOM_Example> tmpList, SOM_Example ex) {	if(!ex.isBadExample()) {tmpList.add(ex);}}//validateAndAddEx	//
 	@Override
 	//add example from map to array without validation
-	protected final SOMExample[] noValidateBuildExampleArray() {		return (CustProspectExample[])(exampleMap.values().toArray(new CustProspectExample[0]));		}	
+	protected final SOM_Example[] noValidateBuildExampleArray() {		return (CustProspectExample[])(exampleMap.values().toArray(new CustProspectExample[0]));		}	
 
 	@Override
 	//after example array has been built, and specific funcitonality for these types of examples

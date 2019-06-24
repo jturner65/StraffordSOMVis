@@ -23,26 +23,26 @@ public final class SOM_ClassSegment extends SOM_MappedSegment {
 	 * @param ex the example to check
 	 */
 	@Override
-	public final boolean doesExampleBelongInSeg(SOMExample ex) {
+	public final boolean doesExampleBelongInSeg(SOM_Example ex) {
 		//get type of example from ex
-		ExDataType exType = ex.getType();
+		SOM_ExDataType exType = ex.getType();
 		switch (exType) {		
 			case Training	: 
 			case Testing	: 
 			case Product	:
 			case Validation	: {
-				SOMMapNode bmu = ex.getBmu();
+				SOM_MapNode bmu = ex.getBmu();
 				if(bmu==null) {return false;}			
 				return doesMapNodeBelongInSeg(bmu);
 			}
-			case MapNode	: {		return doesMapNodeBelongInSeg((SOMMapNode) ex);}
+			case MapNode	: {		return doesMapNodeBelongInSeg((SOM_MapNode) ex);}
 			case MouseOver	: {		return false;}
 		}//switch
 		return false;
 	}//doesExampleBelongInSeg
 	
 	@Override
-	public final boolean doesMapNodeBelongInSeg(SOMMapNode ex) {
+	public final boolean doesMapNodeBelongInSeg(SOM_MapNode ex) {
 		
 		TreeMap<Integer, Float> classMap = ex.getMappedClassCounts();
 		boolean check = (ex.getClassSegment(cls)== null) && classMap.keySet().contains(cls);	//looks like it is not adding
@@ -51,7 +51,7 @@ public final class SOM_ClassSegment extends SOM_MappedSegment {
 	}
 
 	@Override
-	protected final void setMapNodeSegment(SOMMapNode mapNodeEx) {	mapNodeEx.setClassSeg(cls, this);	}
+	protected final void setMapNodeSegment(SOM_MapNode mapNodeEx) {	mapNodeEx.setClassSeg(cls, this);	}
 	
 	/**
 	 * return bmu's value for this segment
@@ -59,7 +59,7 @@ public final class SOM_ClassSegment extends SOM_MappedSegment {
 	 * @return
 	 */
 	@Override
-	protected final Float getBMUSegmentValue(SOMMapNode _bmu) {return _bmu.getClassProb(cls);		}
+	protected final Float getBMUSegmentValue(SOM_MapNode _bmu) {return _bmu.getClassProb(cls);		}
 
 	/**
 	 * build descriptive string for hdr before bmu output
@@ -77,6 +77,6 @@ public final class SOM_ClassSegment extends SOM_MappedSegment {
 	 * @return
 	 */
 	@Override
-	protected Float getBMUSegmentCount(SOMMapNode _bmu) {  return _bmu.getMappedClassCountAtSeg(cls);}
+	protected Float getBMUSegmentCount(SOM_MapNode _bmu) {  return _bmu.getMappedClassCountAtSeg(cls);}
 
 }//class SOM_ClassSegment

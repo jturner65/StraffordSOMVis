@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.Callable;
 
-import base_SOM_Objects.som_examples.SOMExample;
-import base_SOM_Objects.som_examples.SOMMapNode;
+import base_SOM_Objects.som_examples.SOM_Example;
+import base_SOM_Objects.som_examples.SOM_MapNode;
 import base_Utils_Objects.io.FileIOManager;
 import base_Utils_Objects.io.MessageObject;
 import base_Utils_Objects.io.MsgCodes;
@@ -14,15 +14,15 @@ import strafford_SOM_PKG.straff_SOM_Examples.products.ProductExample;
 public abstract class Straff_ProspectOutMapper_Dist_Base implements Callable<Boolean>{
 	protected MessageObject msgObj;
 	protected FileIOManager fileIO;
-	protected SOMExample[] prospectsToMap;
+	protected SOM_Example[] prospectsToMap;
 	protected int stIDX, endIDX, thdIDX;
-	protected HashMap<ProductExample, HashMap<SOMMapNode, Double>> prodToMapNodes;
+	protected HashMap<ProductExample, HashMap<SOM_MapNode, Double>> prodToMapNodes;
 	protected String fileNameToSave, fileNameBadProspectsToSave;
 	protected String callingClass;
 	
 	protected String outHdrStrHasMappings, outHdrStrHasNoMappings;
 
-	public Straff_ProspectOutMapper_Dist_Base(MessageObject _msgObj, int _stIDX, int _endIDX, int _thdIDX, String _prspctType,  SOMExample[] _prospectsToMap, HashMap<ProductExample, HashMap<SOMMapNode, Double>> _prodToMapNodes,String _fullQualOutDir, String _childClass) {
+	public Straff_ProspectOutMapper_Dist_Base(MessageObject _msgObj, int _stIDX, int _endIDX, int _thdIDX, String _prspctType,  SOM_Example[] _prospectsToMap, HashMap<ProductExample, HashMap<SOM_MapNode, Double>> _prodToMapNodes,String _fullQualOutDir, String _childClass) {
 		msgObj = _msgObj;	callingClass = _childClass;
 		stIDX = _stIDX;		endIDX = _endIDX;		thdIDX = _thdIDX;	
 		prospectsToMap = _prospectsToMap;	
@@ -45,7 +45,7 @@ public abstract class Straff_ProspectOutMapper_Dist_Base implements Callable<Boo
 	 * @param strListNoMaps array of strings of examples without mappings
 	 * @param ex current example to map
 	 */
-	protected abstract void buildOutputLists(ArrayList<String> strList, ArrayList<String> strListNoMaps, SOMExample ex);
+	protected abstract void buildOutputLists(ArrayList<String> strList, ArrayList<String> strListNoMaps, SOM_Example ex);
 	
 	@Override
 	public final Boolean call() {

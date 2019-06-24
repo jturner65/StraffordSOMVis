@@ -30,7 +30,7 @@ public abstract class SOM_MapManager {
 	//applet, if used in graphical context
 	private my_procApplet pa;				
 	//owning window
-	public SOMMapUIWin win;		
+	public SOM_MapUIWin win;		
 	//manage IO in this object
 	protected FileIOManager fileIO; 
 	//struct maintaining complete project configuration and information from config files - all file name data and building needs to be done by this object
@@ -38,18 +38,18 @@ public abstract class SOM_MapManager {
 	//object to manage messages for display and potentially logging
 	private MessageObject msgObj;
 	//object to manage interface with a UI, to make sure map data stays synchronized
-	public SOMUIToMapCom mapUIAPI;
+	public SOM_UIToMapCom mapUIAPI;
 	
 	//////////////////////////////
 	//map descriptors	
 	//all nodes of som map, keyed by node location as tuple of row/col coordinates
-	protected TreeMap<Tuple<Integer,Integer>, SOMMapNode> MapNodes;	
+	protected TreeMap<Tuple<Integer,Integer>, SOM_MapNode> MapNodes;	
 	//map of ftr idx and all map nodes that have non-zero presence in that ftr
-	protected TreeMap<Integer, HashSet<SOMMapNode>> MapNodesByFtrIDX;
+	protected TreeMap<Integer, HashSet<SOM_MapNode>> MapNodesByFtrIDX;
 	//map nodes that have/don't have  examples of specified type
-	private ConcurrentSkipListMap<ExDataType, HashSet<SOMMapNode>> nodesWithEx, nodesWithNoEx;	
+	private ConcurrentSkipListMap<SOM_ExDataType, HashSet<SOM_MapNode>> nodesWithEx, nodesWithNoEx;	
 	//array of per ftr idx treemaps of map nodes keyed by ftr weight
-	private TreeMap<Float,ArrayList<SOMMapNode>>[] PerFtrHiWtMapNodes;	
+	private TreeMap<Float,ArrayList<SOM_MapNode>>[] PerFtrHiWtMapNodes;	
 	
 	//array of map clusters based in UMatrix Distance
 	protected ArrayList<SOM_MappedSegment> UMatrix_Segments;
@@ -65,14 +65,14 @@ public abstract class SOM_MapManager {
 	//Map of classes to segment
 	protected TreeMap<Integer, SOM_MappedSegment> Class_Segments;
 	//map with key being class and with value being collection of map nodes with that class present in mapped examples
-	protected TreeMap<Integer,Collection<SOMMapNode>> MapNodesWithMappedClasses;
+	protected TreeMap<Integer,Collection<SOM_MapNode>> MapNodesWithMappedClasses;
 	//probabilities for each class for each map node
 	protected ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>> MapNodeClassProbs;
 
 	//map of categories to segment
 	protected TreeMap<Integer, SOM_MappedSegment> Category_Segments;
 	//map with key being category and with value being collection of map nodes with that category present in mapped examples
-	protected TreeMap<Integer,Collection<SOMMapNode>> MapNodesWithMappedCategories;
+	protected TreeMap<Integer,Collection<SOM_MapNode>> MapNodesWithMappedCategories;
 	//probabilities for each category for each map node
 	protected ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>> MapNodeCategoryProbs;
 	
@@ -86,18 +86,18 @@ public abstract class SOM_MapManager {
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	//data descriptions
 	//this map of mappers will manage the different kinds of raw data.  the instancing class should specify the keys and instancing members for this map
-	protected ConcurrentSkipListMap<String, SOMExampleManager> exampleDataMappers;	
+	protected ConcurrentSkipListMap<String, SOM_ExampleManager> exampleDataMappers;	
 	
 	//full input data, data set to be training data and testing data (all of these examples 
 	//are potential -training- data, in that they have all features required of training data)
 	//testing data will be otherwise valid training data that will be matched against map - having these 
 	//is not going to be necessary for most cases since this is unsupervised, but can be used to measure consistency
-	protected SOMExample[] inputData;
-	protected SOMExample[] trainData;
-	protected SOMExample[] testData;	
+	protected SOM_Example[] inputData;
+	protected SOM_Example[] trainData;
+	protected SOM_Example[] testData;	
 	//validationData are example records failing to meet the training criteria or otherwise desired to be mapped against SOM
 	//these were not used to train the map	
-	protected SOMExample[] validationData;		
+	protected SOM_Example[] validationData;		
 	//sizes of above data arrays
 	public int numInputData, numTrainData, numTestData, numValidationData;
 	
@@ -165,7 +165,7 @@ public abstract class SOM_MapManager {
 	
 	// String[] _dirs : idx 0 is config directory, as specified by cmd line; idx 1 is data directory, as specified by cmd line
 	// String[] _args : command line arguments other than directory info
-	public SOM_MapManager(SOMMapUIWin _win, float[] _dims, TreeMap<String, Object> _argsMap) {
+	public SOM_MapManager(SOM_MapUIWin _win, float[] _dims, TreeMap<String, Object> _argsMap) {
 		pa=null;//assigned by win if it exists
 		win=_win;			
 		mapDims = _dims;
@@ -199,7 +199,7 @@ public abstract class SOM_MapManager {
 		}
 		
 		//data mappers - eventually will replace all example maps, and will derive all training data arrays
-		exampleDataMappers = new ConcurrentSkipListMap<String, SOMExampleManager>();
+		exampleDataMappers = new ConcurrentSkipListMap<String, SOM_ExampleManager>();
 		//build mappers that will manage data read from disk in order to calculate features and build data arrays used by SOM
 		buildExampleDataMappers();
 		
@@ -226,10 +226,10 @@ public abstract class SOM_MapManager {
 	 * build an interface to manage communications between UI and SOM map dat
 	 * This interface will need to include a reference to an application-specific UI window
 	 */
-	protected abstract SOMUIToMapCom buildSOM_UI_Interface();
+	protected abstract SOM_UIToMapCom buildSOM_UI_Interface();
 	
 	public static String[] getNodeBMUMapTypes() {
-		String[] typeList = ExDataType.getListOfTypes();
+		String[] typeList = SOM_ExDataType.getListOfTypes();
 		if (nodeBMUMapTypes==null) {
 			nodeBMUMapTypes = new String[typeList.length-2];
 			for(int i=0;i<nodeBMUMapTypes.length;++i) {	nodeBMUMapTypes[i]=typeList[i];	}			
@@ -238,7 +238,7 @@ public abstract class SOM_MapManager {
 	}
 	
 	//use this to set window/UI components, if exist
-	public void setPADispWinData(SOMMapUIWin _win, my_procApplet _pa) {
+	public void setPADispWinData(SOM_MapUIWin _win, my_procApplet _pa) {
 		win=_win;
 		pa=_pa;
 		MessageObject.pa = _pa;
@@ -254,17 +254,17 @@ public abstract class SOM_MapManager {
 	
 	public void resetTrainDataAras() {
 		msgObj.dispMessage("SOMMapManager","resetTrainDataAras","Init Called to reset all train and test data.", MsgCodes.info5);
-		inputData = new SOMExample[0];
-		testData = new SOMExample[0];
-		trainData = new SOMExample[0];
+		inputData = new SOM_Example[0];
+		testData = new SOM_Example[0];
+		trainData = new SOM_Example[0];
 		numInputData=0;
 		numTrainData=0;
 		numTestData=0;		
-		nodesWithEx = new ConcurrentSkipListMap<ExDataType, HashSet<SOMMapNode>>();
-		nodesWithNoEx = new ConcurrentSkipListMap<ExDataType, HashSet<SOMMapNode>>();
-		for (ExDataType _type : ExDataType.values()) {
-			nodesWithEx.put(_type, new HashSet<SOMMapNode>());
-			nodesWithNoEx.put(_type, new HashSet<SOMMapNode>());		
+		nodesWithEx = new ConcurrentSkipListMap<SOM_ExDataType, HashSet<SOM_MapNode>>();
+		nodesWithNoEx = new ConcurrentSkipListMap<SOM_ExDataType, HashSet<SOM_MapNode>>();
+		for (SOM_ExDataType _type : SOM_ExDataType.values()) {
+			nodesWithEx.put(_type, new HashSet<SOM_MapNode>());
+			nodesWithNoEx.put(_type, new HashSet<SOM_MapNode>());		
 		}
 		msgObj.dispMessage("SOMMapManager","resetTrainDataAras","Init Finished", MsgCodes.info5);
 	}//resetTrainDataAras()
@@ -315,7 +315,7 @@ public abstract class SOM_MapManager {
 	public abstract void loadAndPreProcAllRawData(boolean fromCSVFiles);
 
 	//execute post-feature vector build code in multiple threads if supported
-	public void _ftrVecBuild(Collection<SOMExample> exs, int _typeOfProc, String exType, boolean forceST) {
+	public void _ftrVecBuild(Collection<SOM_Example> exs, int _typeOfProc, String exType, boolean forceST) {
 		getMsgObj().dispMessage("SOMMapManager","_ftrVecBuild : " + exType + " Examples","Begin "+exs.size()+" example processing.", MsgCodes.info1);
 		boolean canMultiThread=isMTCapable() && !forceST;//if false this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
 		//if((canMultiThread) && (exs.size()>0)) {//MapExFtrCalcs_Runner.rawNumPerPartition*10)){
@@ -323,21 +323,21 @@ public abstract class SOM_MapManager {
 			//MapExFtrCalcs_Runner(SOMMapManager _mapMgr, ExecutorService _th_exec, SOMExample[] _exData, String _dataTypName, ExDataType _dataType, int _typeOfProc)
 			//shuffling examples to attempt to spread out calculations more evenly - the examples that require the alt comp vector calc are expensive to calculate
 			//should not be multithread until concurrency issue pertaining to ftr calc can be determined
-			SOM_CalcExFtrs_Runner calcRunner = new SOM_CalcExFtrs_Runner(this, th_exec, shuffleTrainingData(exs.toArray(new SOMExample[0]),12345L) , exType, _typeOfProc, false);
+			SOM_CalcExFtrs_Runner calcRunner = new SOM_CalcExFtrs_Runner(this, th_exec, shuffleTrainingData(exs.toArray(new SOM_Example[0]),12345L) , exType, _typeOfProc, false);
 			calcRunner.runMe();
 		} else {//called after all features of this kind of object are built - this calculates alternate compare object
 			int curIDX = 0, ttlNum = exs.size(), modAmt = ttlNum/10;
 			if(_typeOfProc==0) {
 				getMsgObj().dispMessage("SOMMapManager","_ftrVecBuild : " + exType + " Examples","Begin build "+exs.size()+" feature vector.", MsgCodes.info1);
-				for (SOMExample ex : exs) {			ex.buildFeatureVector();	++curIDX; if(curIDX % modAmt == 0) {_dbg_ftrVecBuild_dispProgress(curIDX, ttlNum,exType,"build "+ttlNum+" feature vector.");}}
+				for (SOM_Example ex : exs) {			ex.buildFeatureVector();	++curIDX; if(curIDX % modAmt == 0) {_dbg_ftrVecBuild_dispProgress(curIDX, ttlNum,exType,"build "+ttlNum+" feature vector.");}}
 				getMsgObj().dispMessage("SOMMapManager","_ftrVecBuild : " + exType + " Examples","Finished build "+exs.size()+" feature vector.", MsgCodes.info1);
 			} else if(_typeOfProc==1) {
 				getMsgObj().dispMessage("SOMMapManager","_ftrVecBuild : " + exType + " Examples","Begin "+exs.size()+" After Feature Vector Build (Per example finalizing).", MsgCodes.info1);
-				for (SOMExample ex : exs) {			ex.postFtrVecBuild();	++curIDX; if(curIDX % modAmt == 0) {_dbg_ftrVecBuild_dispProgress(curIDX, ttlNum,exType,"build "+ttlNum+" After Feature Vector Build (Per example finalizing).");}}		
+				for (SOM_Example ex : exs) {			ex.postFtrVecBuild();	++curIDX; if(curIDX % modAmt == 0) {_dbg_ftrVecBuild_dispProgress(curIDX, ttlNum,exType,"build "+ttlNum+" After Feature Vector Build (Per example finalizing).");}}		
 				getMsgObj().dispMessage("SOMMapManager","_ftrVecBuild : " + exType + " Examples","Finished "+exs.size()+" After Feature Vector Build (Per example finalizing).", MsgCodes.info1);
 			} else if(_typeOfProc==2) {
 				getMsgObj().dispMessage("SOMMapManager","_ftrVecBuild : " + exType + " Examples","Begin "+exs.size()+" Post Feature Vector Structures (STD Vecs) Build.", MsgCodes.info1);
-				for (SOMExample ex : exs) {			ex.buildAfterAllFtrVecsBuiltStructs();	++curIDX; if(curIDX % modAmt == 0) {_dbg_ftrVecBuild_dispProgress(curIDX, ttlNum,exType,"build "+ttlNum+" Post Feature Vector Structures (STD Vecs and possibly alternate comparison ftrs).");}}		
+				for (SOM_Example ex : exs) {			ex.buildAfterAllFtrVecsBuiltStructs();	++curIDX; if(curIDX % modAmt == 0) {_dbg_ftrVecBuild_dispProgress(curIDX, ttlNum,exType,"build "+ttlNum+" Post Feature Vector Structures (STD Vecs and possibly alternate comparison ftrs).");}}		
 				getMsgObj().dispMessage("SOMMapManager","_ftrVecBuild : " + exType + " Examples","Finished "+exs.size()+" Post Feature Vector Structures (STD Vecs) Build.", MsgCodes.info1);
 			}
 		}
@@ -359,7 +359,7 @@ public abstract class SOM_MapManager {
 //	}//_postFtrVecBuild
 	
 	//this function will build the input data used by the SOM - this will be partitioned by some amount into test and train data (usually will use 100% train data, but may wish to test label mapping)
-	protected abstract SOMExample[] buildSOM_InputData();
+	protected abstract SOM_Example[] buildSOM_InputData();
 	//set input data and shuffle it; partition test and train arrays 
 	protected void setInputTrainTestShuffleDataAras(float trainTestPartition) {		
 		msgObj.dispMessage("SOMMapManager","setInputTestTrainDataArasShuffle","Shuffling Input, Building Training and Testing Partitions.", MsgCodes.info5);
@@ -372,10 +372,10 @@ public abstract class SOM_MapManager {
 		numTrainData = (int) (inputData.length * trainTestPartition);			
 		numTestData = inputData.length - numTrainData;		
 		//build train and test partitions
-		trainData = new SOMExample[numTrainData];	
+		trainData = new SOM_Example[numTrainData];	
 		msgObj.dispMessage("SOMMapManager","setInputTestTrainDataArasShuffle","# of training examples : " + numTrainData + " inputData size : " + inputData.length, MsgCodes.info3);
 		for (int i=0;i<trainData.length;++i) {trainData[i]=inputData[i];trainData[i].setIsTrainingDataIDX(true, i);}
-		testData = new SOMExample[numTestData];
+		testData = new SOM_Example[numTestData];
 		for (int i=0;i<testData.length;++i) {testData[i]=inputData[i+numTrainData];testData[i].setIsTrainingDataIDX(false, i+numTrainData);}		
 
 		msgObj.dispMessage("SOMMapManager","setInputTestTrainDataArasShuffle","Finished Shuffling Input, Building Training and Testing Partitions. Train size : " + numTrainData+ " Testing size : " + numTestData+".", MsgCodes.info5);
@@ -588,7 +588,7 @@ public abstract class SOM_MapManager {
 	// segments	
 	protected abstract int _getNumSecondaryMaps();
 	//only appropriate if using UI
-	public void setSaveLocClrImg(boolean val) {if (win != null) { win.setPrivFlags(SOMMapUIWin.saveLocClrImgIDX,val);}}
+	public void setSaveLocClrImg(boolean val) {if (win != null) { win.setPrivFlags(SOM_MapUIWin.saveLocClrImgIDX,val);}}
 	//whether or not distances between two datapoints assume that absent features in smaller-length datapoints are 0, or to ignore the values in the larger datapoints
 	public abstract void setMapExclZeroFtrs(boolean val);
 
@@ -598,10 +598,10 @@ public abstract class SOM_MapManager {
 		if ((MapNodes == null) || (MapNodes.size() == 0)) {return;}
 		msgObj.dispMessage("SOMMapManager","buildSegmentsOnMap","Started building UMatrix Distance-based cluster map", MsgCodes.info5);	
 		//clear existing segments 
-		for (SOMMapNode ex : MapNodes.values()) {ex.clearUMatrixSeg();}
+		for (SOM_MapNode ex : MapNodes.values()) {ex.clearUMatrixSeg();}
 		UMatrix_Segments.clear();
 		SOM_UMatrixSegment seg;
-		for (SOMMapNode ex : MapNodes.values()) {
+		for (SOM_MapNode ex : MapNodes.values()) {
 			seg = new SOM_UMatrixSegment(this, nodeInSegUMatrixDistThresh);
 			if(seg.doesMapNodeBelongInSeg(ex)) {
 				seg.addMapNodeToSegment(ex, MapNodes);		//this does dfs
@@ -619,7 +619,7 @@ public abstract class SOM_MapManager {
 		if ((MapNodes == null) || (MapNodes.size() == 0)) {return;}
 		msgObj.dispMessage("SOMMapManager","buildFtrWtSegmentsOnMap","Started building feature-weight-based cluster map", MsgCodes.info5);	
 		//clear existing segments 
-		for (SOMMapNode ex : MapNodes.values()) {ex.clearFtrWtSeg();}
+		for (SOM_MapNode ex : MapNodes.values()) {ex.clearFtrWtSeg();}
 		//for every feature IDX, for every map node
 		SOM_FtrWtSegment ftrSeg;
 		FtrWt_Segments.clear();
@@ -628,7 +628,7 @@ public abstract class SOM_MapManager {
 			ftrSeg = new SOM_FtrWtSegment(this, ftrIdx);
 			//FtrWtSegments.add(ftrSeg);
 			FtrWt_Segments.put(ftrIdx, ftrSeg);
-			for(SOMMapNode ex : MapNodes.values()) {
+			for(SOM_MapNode ex : MapNodes.values()) {
 				if(ftrSeg.doesMapNodeBelongInSeg(ex)) {					ftrSeg.addMapNodeToSegment(ex, MapNodes);		}//this does dfs to find neighbors who share feature value 	
 			}			
 		}
@@ -645,7 +645,7 @@ public abstract class SOM_MapManager {
 		String descStr = getClassSegMappingDescrStr();
 		getMsgObj().dispMessage("SOMMapManager","buildClassSegmentsOnMap","Started building " + descStr, MsgCodes.info5);	
 		//clear existing segments 
-		for (SOMMapNode ex : MapNodes.values()) {ex.clearClassSeg();}
+		for (SOM_MapNode ex : MapNodes.values()) {ex.clearClassSeg();}
 		Class_Segments.clear();
 		MapNodesWithMappedClasses.clear();
 		MapNodeClassProbs.clear();		
@@ -658,12 +658,12 @@ public abstract class SOM_MapManager {
 			Integer cls = allTrainClasses[clsIdx];
 			classSeg = new SOM_ClassSegment(this, cls);
 			Class_Segments.put(cls,classSeg);
-			for(SOMMapNode ex : MapNodes.values()) {if(classSeg.doesMapNodeBelongInSeg(ex)) {	classSeg.addMapNodeToSegment(ex, MapNodes);		}}//addMapNodeToSegment performs DFS to find neighbors who share segment membership 	
-			Collection<SOMMapNode> mapNodesForClass = classSeg.getAllMapNodes();
+			for(SOM_MapNode ex : MapNodes.values()) {if(classSeg.doesMapNodeBelongInSeg(ex)) {	classSeg.addMapNodeToSegment(ex, MapNodes);		}}//addMapNodeToSegment performs DFS to find neighbors who share segment membership 	
+			Collection<SOM_MapNode> mapNodesForClass = classSeg.getAllMapNodes();
 			MapNodesWithMappedClasses.put(cls, mapNodesForClass);
 			//getMsgObj().dispMessage("Straff_SOMMapManager","buildClassSegmentsOnMap","Class : " + cls + " has " + mapNodesForClass.size()+ " map nodes in its segment.", MsgCodes.info5);			
 			tmpMapOfNodeProbs = new ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>();
-			for(SOMMapNode mapNode : mapNodesForClass) {		tmpMapOfNodeProbs.put(mapNode.mapNodeCoord, mapNode.getClassProb(cls));}
+			for(SOM_MapNode mapNode : mapNodesForClass) {		tmpMapOfNodeProbs.put(mapNode.mapNodeCoord, mapNode.getClassProb(cls));}
 			MapNodeClassProbs.put(cls, tmpMapOfNodeProbs);
 		}
 		
@@ -678,7 +678,7 @@ public abstract class SOM_MapManager {
 		String descStr = getCategorySegMappingDescrStr();
 		getMsgObj().dispMessage("SOMMapManager","buildCategorySegmentsOnMap","Started building " + descStr, MsgCodes.info5);	
 		//clear existing segments 
-		for (SOMMapNode ex : MapNodes.values()) {ex.clearCategorySeg();}
+		for (SOM_MapNode ex : MapNodes.values()) {ex.clearCategorySeg();}
 		Category_Segments.clear();
 		MapNodesWithMappedCategories.clear();
 		MapNodeCategoryProbs.clear();		
@@ -691,13 +691,13 @@ public abstract class SOM_MapManager {
 			Integer cat = allTrainCategories[catIdx];
 			catSeg = new SOM_CategorySegment(this, cat);
 			Category_Segments.put(cat,catSeg);
-			for(SOMMapNode ex : MapNodes.values()) {if(catSeg.doesMapNodeBelongInSeg(ex)) {		catSeg.addMapNodeToSegment(ex, MapNodes);}}//addMapNodeToSegment performs DFS to find neighbors who share segment membership 	
+			for(SOM_MapNode ex : MapNodes.values()) {if(catSeg.doesMapNodeBelongInSeg(ex)) {		catSeg.addMapNodeToSegment(ex, MapNodes);}}//addMapNodeToSegment performs DFS to find neighbors who share segment membership 	
 				
-			Collection<SOMMapNode> mapNodesForCat = catSeg.getAllMapNodes();
+			Collection<SOM_MapNode> mapNodesForCat = catSeg.getAllMapNodes();
 			MapNodesWithMappedCategories.put(cat, mapNodesForCat);
 			//getMsgObj().dispMessage("SOMMapManager","buildCategorySegmentsOnMap","Category : " + cat + " has " + mapNodesForCat.size()+ " map nodes in its segment.", MsgCodes.info5);
 			tmpMapOfNodeProbs = new ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>();
-			for(SOMMapNode mapNode : mapNodesForCat) {	tmpMapOfNodeProbs.put(mapNode.mapNodeCoord, mapNode.getCategoryProb(cat));	}
+			for(SOM_MapNode mapNode : mapNodesForCat) {	tmpMapOfNodeProbs.put(mapNode.mapNodeCoord, mapNode.getCategoryProb(cat));	}
 			MapNodeCategoryProbs.put(cat, tmpMapOfNodeProbs);
 		}
 		getMsgObj().dispMessage("SOMMapManager","buildCategorySegmentsOnMap","Finished building " + descStr + " : " + MapNodesWithMappedCategories.size() + " categories have map nodes mapped to them.", MsgCodes.info5);			
@@ -801,7 +801,7 @@ public abstract class SOM_MapManager {
 		String fileName = _fileNamePrefix + "_All_BMUs.csv";	
 		ArrayList<String> outStrs = new ArrayList<String>();
 		outStrs.add(MapNodes.get(MapNodes.firstKey()).getSegment_Hdr_CSVStr(_segmentType));
-		for(SOMMapNode bmu : MapNodes.values()) {		outStrs.add(bmu.getSegment_CSVStr(_segmentType));	}
+		for(SOM_MapNode bmu : MapNodes.values()) {		outStrs.add(bmu.getSegment_CSVStr(_segmentType));	}
 		fileIO.saveStrings(fileName, outStrs);	
 	}//_saveBMU_SegmentReports
 	
@@ -810,7 +810,7 @@ public abstract class SOM_MapManager {
 	 * @param exData examples to save bmu mappings for
 	 * @param dataTypName
 	 */
-	protected void saveExamplesToBMUMappings(SOMExample[] exData, String dataTypName, int _rawNumPerParition) {
+	protected void saveExamplesToBMUMappings(SOM_Example[] exData, String dataTypName, int _rawNumPerParition) {
 		msgObj.dispMessage("SOMMapManager","saveExamplesToBMUMappings","Start Saving " +exData.length + " "+dataTypName+" bmu mappings to file.", MsgCodes.info5);
 		String _fileNamePrefix = projConfigData.getExampleToBMUFileNamePrefix(dataTypName);
 		if(exData.length > 0) {
@@ -839,12 +839,12 @@ public abstract class SOM_MapManager {
 	protected abstract void setProductBMUs();
 	
 	//once map is built, find bmus on map for each test data example
-	protected final void setTestBMUs() {	_setExamplesBMUs(testData, "Testing", ExDataType.Testing,testDataMappedIDX);	}//setTestBMUs	
+	protected final void setTestBMUs() {	_setExamplesBMUs(testData, "Testing", SOM_ExDataType.Testing,testDataMappedIDX);	}//setTestBMUs	
 	//once map is built, find bmus on map for each validation data example
-	protected final void setValidationDataBMUs() {_setExamplesBMUs(validationData, "Validation", ExDataType.Validation,validateDataMappedIDX);}//setValidationDataBMUs
+	protected final void setValidationDataBMUs() {_setExamplesBMUs(validationData, "Validation", SOM_ExDataType.Validation,validateDataMappedIDX);}//setValidationDataBMUs
 	
 	//set examples - either test data or validation data
-	protected void _setExamplesBMUs(SOMExample[] exData, String dataTypName, ExDataType dataType, int _rdyToSaveFlagIDX) {
+	protected void _setExamplesBMUs(SOM_Example[] exData, String dataTypName, SOM_ExDataType dataType, int _rdyToSaveFlagIDX) {
 		msgObj.dispMessage("SOMMapManager","_setExamplesBMUs","Start Mapping " +exData.length + " "+dataTypName+" data to best matching units.", MsgCodes.info5);
 		if(exData.length > 0) {		
 			//launch a MapTestDataToBMUs_Runner to manage multi-threaded calc
@@ -856,11 +856,11 @@ public abstract class SOM_MapManager {
 	
 	//call 1 time for any particular type of data - all _exs should have their bmu's set by now
 	//this will set the bmu lists for each map node to include the mapped examples
-	public synchronized void _completeBMUProcessing(SOMExample[] _exs, ExDataType dataType, boolean isMT) {
+	public synchronized void _completeBMUProcessing(SOM_Example[] _exs, SOM_ExDataType dataType, boolean isMT) {
 		msgObj.dispMessage("SOMMapManager","_completeBMUProcessing","Start completion of " +_exs.length + " "+dataType.getName()+" data bmu mappings - assign to BMU's example collection and finalize.", MsgCodes.info5);
 		int dataTypeVal = dataType.getVal();
-		for(SOMMapNode mapNode : MapNodes.values()){mapNode.clearBMUExs(dataTypeVal);addExToNodesWithNoExs(mapNode, dataType);}		//must be done synchronously always	
-		if(dataType==ExDataType.Training) {			for (int i=0;i<_exs.length;++i) {			_exs[i].mapTrainingToBMU(dataTypeVal);	}		} 
+		for(SOM_MapNode mapNode : MapNodes.values()){mapNode.clearBMUExs(dataTypeVal);addExToNodesWithNoExs(mapNode, dataType);}		//must be done synchronously always	
+		if(dataType==SOM_ExDataType.Training) {			for (int i=0;i<_exs.length;++i) {			_exs[i].mapTrainingToBMU(dataTypeVal);	}		} 
 		else {										for (int i=0;i<_exs.length;++i) {			_exs[i].mapToBMU(dataTypeVal);		}		}
 		_finalizeBMUProcessing(dataType);
 		msgObj.dispMessage("SOMMapManager","_completeBMUProcessing","Finished completion of " +_exs.length + " "+dataType.getName()+" data bmu mappings - assign to BMU's example collection and finalize.", MsgCodes.info5);
@@ -877,36 +877,36 @@ public abstract class SOM_MapManager {
 	 * @param withOutMap set of nodes with no natural mappings - should be << than with map set
 	 * @param typeIDX type of data
 	 */
-	private void addMappedNodesToEmptyNodes_FtrDist(HashSet<SOMMapNode> withMap, HashSet<SOMMapNode> withOutMap, int typeIDX) {
-		msgObj.dispMessage("SOMMapManager","addMappedNodesToEmptyNodes_FtrDist","Start assigning " +withOutMap.size() + " map nodes that are not BMUs to any " +ExDataType.getVal(typeIDX).getName() + " examples to have nearest map node to them as BMU.", MsgCodes.info5);		
+	private void addMappedNodesToEmptyNodes_FtrDist(HashSet<SOM_MapNode> withMap, HashSet<SOM_MapNode> withOutMap, int typeIDX) {
+		msgObj.dispMessage("SOMMapManager","addMappedNodesToEmptyNodes_FtrDist","Start assigning " +withOutMap.size() + " map nodes that are not BMUs to any " +SOM_ExDataType.getVal(typeIDX).getName() + " examples to have nearest map node to them as BMU.", MsgCodes.info5);		
 		msgObj.dispMessage("SOMMapManager","addMappedNodesToEmptyNodes_FtrDist","Start building map of nodes with examples keyed by ftr idx of non-zero ftrs", MsgCodes.info5);		
 		Double minSqDist;
 		float minMapSqDist, mapSqDist;
 		//build a map keyed by ftrIDX of all nodes that have non-zero ftr idx values for the key ftr idx and also have examples mapped to them
 		//MapNodesByFtrIDX map can't be used - it holds -all- map nodes, not just those with examples
-		TreeMap<Integer, HashSet<SOMMapNode>> MapNodesWithExByFtrIDX = new TreeMap<Integer, HashSet<SOMMapNode>>();
-		for(SOMMapNode nodeWithEx : withMap){
+		TreeMap<Integer, HashSet<SOM_MapNode>> MapNodesWithExByFtrIDX = new TreeMap<Integer, HashSet<SOM_MapNode>>();
+		for(SOM_MapNode nodeWithEx : withMap){
 			Integer[] nonZeroIDXs = nodeWithEx.getNonZeroIDXs();
 			for(Integer idx : nonZeroIDXs) {
-				HashSet<SOMMapNode> nodeSet = MapNodesWithExByFtrIDX.get(idx);
-				if(null==nodeSet) {nodeSet = new HashSet<SOMMapNode>();}
+				HashSet<SOM_MapNode> nodeSet = MapNodesWithExByFtrIDX.get(idx);
+				if(null==nodeSet) {nodeSet = new HashSet<SOM_MapNode>();}
 				nodeSet.add(nodeWithEx);
 				MapNodesWithExByFtrIDX.put(idx,nodeSet);
 			}	
 		}
-		ArrayList<SOMMapNode> closestNodeList = new ArrayList<SOMMapNode>();
-		Entry<Double, ArrayList<SOMMapNode>> closestList;
+		ArrayList<SOM_MapNode> closestNodeList = new ArrayList<SOM_MapNode>();
+		Entry<Double, ArrayList<SOM_MapNode>> closestList;
 		msgObj.dispMessage("SOMMapManager","addMappedNodesToEmptyNodes_FtrDist","Finished building map of nodes with examples keyed by ftr idx of non-zero ftrs | Start finding closest mapped nodes by ftr dist to non-mapped nodes.", MsgCodes.info5);		
 
 		//for each map node without training example bmus...
-		for(SOMMapNode emptyNode : withOutMap){//node has no label mappings, so need to determine label		
+		for(SOM_MapNode emptyNode : withOutMap){//node has no label mappings, so need to determine label		
 			//find list of closest nodes based on ftr similarity
 			closestList = emptyNode.findClosestMapNodes(MapNodesWithExByFtrIDX, emptyNode::getSqDistFromFtrType, SOM_MapManager.useUnmoddedDat);			
 			minSqDist = closestList.getKey();	
 			closestNodeList = closestList.getValue();	
 			
 			//now find closest actual map node
-			SOMMapNode closestMapNode  = emptyNode;					//will never be added
+			SOM_MapNode closestMapNode  = emptyNode;					//will never be added
 			//go through list to find closest map dist node from closest ftr dist nodes in 
 			if(closestNodeList.size()==1) {
 				closestMapNode = closestNodeList.get(0);		//adds single closest -map- node we know has a label, or itself if none found				
@@ -914,12 +914,12 @@ public abstract class SOM_MapManager {
 				//if more than 1 nodes is closest to the umapped node then find the closest of these in map topology
 				minMapSqDist = 1000000.0f;
 				if (isToroidal()) {//minimize in-loop if checks
-					for(SOMMapNode node2 : closestNodeList){					//this is adding a -map- node
+					for(SOM_MapNode node2 : closestNodeList){					//this is adding a -map- node
 						mapSqDist = getSqMapDist_torr(node2, emptyNode);			//actual map topology dist - need to handle wrapping!
 						if (mapSqDist < minMapSqDist) {minMapSqDist = mapSqDist; closestMapNode = node2;}
 					}	
 				} else {
-					for(SOMMapNode node2 : closestNodeList){					//this is adding a -map- node
+					for(SOM_MapNode node2 : closestNodeList){					//this is adding a -map- node
 						mapSqDist = getSqMapDist_flat(node2, emptyNode);			//actual map topology dist - need to handle wrapping!
 						if (mapSqDist < minMapSqDist) {minMapSqDist = mapSqDist; closestMapNode = node2;}
 					}					
@@ -928,28 +928,28 @@ public abstract class SOM_MapManager {
 			
 			emptyNode.copyMapNodeExamples(minSqDist, closestMapNode, typeIDX);			//adds single closest -map- node we know has a label, or itself if none found
 		}//for each non-mapped node
-		msgObj.dispMessage("SOMMapManager","addMappedNodesToEmptyNodes_FtrDist","Finished assigning " +withOutMap.size() + " map nodes that are not BMUs to any "  +ExDataType.getVal(typeIDX).getName() + " examples to have nearest map node to them as BMU.", MsgCodes.info5);
+		msgObj.dispMessage("SOMMapManager","addMappedNodesToEmptyNodes_FtrDist","Finished assigning " +withOutMap.size() + " map nodes that are not BMUs to any "  +SOM_ExDataType.getVal(typeIDX).getName() + " examples to have nearest map node to them as BMU.", MsgCodes.info5);
 	}//addMappedNodesToEmptyNodes_FtrDist
 	
 	/**
 	 * finalize the bmu processing - move som nodes that have been mapped to out of the list of nodes that have not been mapped to, copy the closest mapped som node to any som nodes without mappings, finalize all som nodes
 	 * @param dataType
 	 */
-	public synchronized void _finalizeBMUProcessing(ExDataType dataType) {
+	public synchronized void _finalizeBMUProcessing(SOM_ExDataType dataType) {
 		msgObj.dispMessage("SOMMapManager","_finalizeBMUProcessing","Start finalizing BMU processing for data type : "+ dataType.getName()+".", MsgCodes.info5);		
 		
-		HashSet<SOMMapNode> withMap = nodesWithEx.get(dataType), withOutMap = nodesWithNoEx.get(dataType);
+		HashSet<SOM_MapNode> withMap = nodesWithEx.get(dataType), withOutMap = nodesWithNoEx.get(dataType);
 		//clear out all nodes that have examples from struct holding no-example map nodes
 		//remove all examples that have been mapped to
-		for (SOMMapNode tmpMapNode : withMap) {			withOutMap.remove(tmpMapNode);		}
+		for (SOM_MapNode tmpMapNode : withMap) {			withOutMap.remove(tmpMapNode);		}
 		
 		int typeIDX = dataType.getVal();
 		
 		//copy closest som node with mapped training examples to each som map node that has none
-		if(dataType == ExDataType.Training) {addMappedNodesToEmptyNodes_FtrDist(withMap,withOutMap,typeIDX);}
+		if(dataType == SOM_ExDataType.Training) {addMappedNodesToEmptyNodes_FtrDist(withMap,withOutMap,typeIDX);}
 		
 		//finalize all examples - needs to finalize all nodes to manage the SOMMapNodeBMUExamples for the nodes that have not been mapped to 
-		for(SOMMapNode node : MapNodes.values()){		node.finalizeAllBmus(typeIDX);	}
+		for(SOM_MapNode node : MapNodes.values()){		node.finalizeAllBmus(typeIDX);	}
 		msgObj.dispMessage("SOMMapManager","_finalizeBMUProcessing","Finished finalizing BMU processing for data type : "+ dataType.getName()+".", MsgCodes.info5);		
 	}//sa_finalizeBMUProcessing
 		
@@ -957,20 +957,20 @@ public abstract class SOM_MapManager {
 		msgObj.dispMessage(callingClass,callingMethod, "Mapping "+_datType+" examples to BMUs not yet complete so no mappings are being saved - please try again later", MsgCodes.warning4);		
 	}
 	
-	public void clearBMUNodesWithExs(ExDataType _type) {							nodesWithEx.get(_type).clear();}
-	public void clearBMUNodesWithNoExs(ExDataType _type) {							nodesWithNoEx.get(_type).clear();}
-	public void addExToNodesWithExs(SOMMapNode node, ExDataType _type) {			nodesWithEx.get(_type).add(node);}	
-	public void addExToNodesWithNoExs(SOMMapNode node, ExDataType _type) {			nodesWithNoEx.get(_type).add(node);}	
-	public int getNumNodesWithBMUExs(ExDataType _type) {return nodesWithEx.get(_type).size();}
-	public int getNumNodesWithNoBMUExs(ExDataType _type) {return nodesWithNoEx.get(_type).size();}
-	public HashSet<SOMMapNode> getNodesWithExOfType(ExDataType _type){return nodesWithEx.get(_type);}
-	public HashSet<SOMMapNode> getNodesWithNoExOfType(ExDataType _type){return nodesWithNoEx.get(_type);}
+	public void clearBMUNodesWithExs(SOM_ExDataType _type) {							nodesWithEx.get(_type).clear();}
+	public void clearBMUNodesWithNoExs(SOM_ExDataType _type) {							nodesWithNoEx.get(_type).clear();}
+	public void addExToNodesWithExs(SOM_MapNode node, SOM_ExDataType _type) {			nodesWithEx.get(_type).add(node);}	
+	public void addExToNodesWithNoExs(SOM_MapNode node, SOM_ExDataType _type) {			nodesWithNoEx.get(_type).add(node);}	
+	public int getNumNodesWithBMUExs(SOM_ExDataType _type) {return nodesWithEx.get(_type).size();}
+	public int getNumNodesWithNoBMUExs(SOM_ExDataType _type) {return nodesWithNoEx.get(_type).size();}
+	public HashSet<SOM_MapNode> getNodesWithExOfType(SOM_ExDataType _type){return nodesWithEx.get(_type);}
+	public HashSet<SOM_MapNode> getNodesWithNoExOfType(SOM_ExDataType _type){return nodesWithNoEx.get(_type);}
 	
 	//called when som wts are first loaded
 	public void initMapNodes() {
-		MapNodes = new TreeMap<Tuple<Integer,Integer>, SOMMapNode>();
+		MapNodes = new TreeMap<Tuple<Integer,Integer>, SOM_MapNode>();
 		//this will hold all map nodes keyed by the ftr idx where they have non-zero weight
-		MapNodesByFtrIDX = new TreeMap<Integer, HashSet<SOMMapNode>>();
+		MapNodesByFtrIDX = new TreeMap<Integer, HashSet<SOM_MapNode>>();
 		//reset segement holders
 		//array of map segments based on UMatrix dist
 		UMatrix_Segments = new ArrayList<SOM_MappedSegment>();
@@ -982,9 +982,9 @@ public abstract class SOM_MapManager {
 		//map of categories to segment
 		Category_Segments = new TreeMap<Integer, SOM_MappedSegment>();
 		//map with key being class and with value being collection of map nodes with that class present in mapped examples
-		MapNodesWithMappedClasses = new TreeMap<Integer,Collection<SOMMapNode>>();
+		MapNodesWithMappedClasses = new TreeMap<Integer,Collection<SOM_MapNode>>();
 		//map with key being category and with value being collection of map nodes with that category present in mapped examples
-		MapNodesWithMappedCategories = new TreeMap<Integer,Collection<SOMMapNode>>();
+		MapNodesWithMappedCategories = new TreeMap<Integer,Collection<SOM_MapNode>>();
 		//probabilities for each class for each map node
 		MapNodeClassProbs = new ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>, Float>>();
 		//probabilities for each category for each map node
@@ -1004,7 +1004,7 @@ public abstract class SOM_MapManager {
 	}//initMapAras
 	
 	//process map node's ftr vals, add node to map, and add node to struct without any training examples (initial state for all map nodes)
-	public void addToMapNodes(Tuple<Integer,Integer> key, SOMMapNode mapnode, float[] tmpMapMaxs, int numTrainFtrs) {
+	public void addToMapNodes(Tuple<Integer,Integer> key, SOM_MapNode mapnode, float[] tmpMapMaxs, int numTrainFtrs) {
 		float[] ftrData = mapnode.getFtrs();
 		for(int d = 0; d<numTrainFtrs; ++d){
 			map_ftrsMean[d] += ftrData[d];
@@ -1015,13 +1015,13 @@ public abstract class SOM_MapManager {
 		//set map nodes by ftr idx
 		Integer[] nonZeroIDXs = mapnode.getNonZeroIDXs();
 		for(Integer idx : nonZeroIDXs) {
-			HashSet<SOMMapNode> nodeSet = MapNodesByFtrIDX.get(idx);
-			if(null==nodeSet) {nodeSet = new HashSet<SOMMapNode>();}
+			HashSet<SOM_MapNode> nodeSet = MapNodesByFtrIDX.get(idx);
+			if(null==nodeSet) {nodeSet = new HashSet<SOM_MapNode>();}
 			nodeSet.add(mapnode);
 			MapNodesByFtrIDX.put(idx,nodeSet);
 		}	
 		//initialize : add all nodes to set, will remove nodes when they get mappings
-		addExToNodesWithNoExs(mapnode, ExDataType.Training);//nodesWithNoTrainEx.add(dpt);				//initialize : add all nodes to set, will remove nodes when they get mappings
+		addExToNodesWithNoExs(mapnode, SOM_ExDataType.Training);//nodesWithNoTrainEx.add(dpt);				//initialize : add all nodes to set, will remove nodes when they get mappings
 	}//addToMapNodes
 	
 //	private TreeMap<Integer, HashSet<SOMMapNode>>  _buildMapNodesByFtrMap(Collection<SOMMapNode> mapNodes, TreeMap<Integer, HashSet<SOMMapNode>>  MapByFtr){
@@ -1039,9 +1039,9 @@ public abstract class SOM_MapManager {
 //	}//_buildMapNodesByFtrMap
 	
 	//returns sq distance between two map locations (using actual map distance, not feature similarity) - needs to handle wrapping if map built torroidally
-	private float getSqMapDist_flat(SOMMapNode a, SOMMapNode b){		return (a.mapLoc._SqrDist(b.mapLoc));	}//	
+	private float getSqMapDist_flat(SOM_MapNode a, SOM_MapNode b){		return (a.mapLoc._SqrDist(b.mapLoc));	}//	
 	//returns sq distance between two map locations - needs to handle wrapping if map built torroidally
-	private float getSqMapDist_torr(SOMMapNode a, SOMMapNode b){
+	private float getSqMapDist_torr(SOM_MapNode a, SOM_MapNode b){
 		float 
 			oldXa = a.mapLoc.x - b.mapLoc.x, oldXaSq = oldXa*oldXa,			//a is to right of b
 			newXa = oldXa + getMapWidth(), newXaSq = newXa*newXa,	//a is to left of b
@@ -1052,7 +1052,7 @@ public abstract class SOM_MapManager {
 
 	
 	//build all neighborhood values for UMatrix and distance
-	public void buildAllMapNodeNeighborhood_Dists() {for(SOMMapNode ex : MapNodes.values()) {	ex.buildMapNodeNeighborUMatrixVals(MapNodes); ex.buildMapNodeNeighborSqDistVals(MapNodes);	}}
+	public void buildAllMapNodeNeighborhood_Dists() {for(SOM_MapNode ex : MapNodes.values()) {	ex.buildMapNodeNeighborUMatrixVals(MapNodes); ex.buildMapNodeNeighborSqDistVals(MapNodes);	}}
 
 	public float[] initMapMgrMeanMinVar(int numTrainFtrs) {
 		map_ftrsMean = new float[numTrainFtrs];
@@ -1075,16 +1075,16 @@ public abstract class SOM_MapManager {
 	@SuppressWarnings("unchecked")
 	public void initPerFtrMapOfNodes(int numFtrs) {
 		PerFtrHiWtMapNodes = new TreeMap[numFtrs];
-		for (int i=0;i<PerFtrHiWtMapNodes.length; ++i) {PerFtrHiWtMapNodes[i] = new TreeMap<Float,ArrayList<SOMMapNode>>(new Comparator<Float>() { @Override public int compare(Float o1, Float o2) {   return o2.compareTo(o1);}});}
+		for (int i=0;i<PerFtrHiWtMapNodes.length; ++i) {PerFtrHiWtMapNodes[i] = new TreeMap<Float,ArrayList<SOM_MapNode>>(new Comparator<Float>() { @Override public int compare(Float o1, Float o2) {   return o2.compareTo(o1);}});}
 	}//initPerFtrMapOfNodes	
 	
 	//put a map node in PerFtrHiWtMapNodes per-ftr array
-	public void setMapNodeFtrStr(SOMMapNode mapNode) {
+	public void setMapNodeFtrStr(SOM_MapNode mapNode) {
 		TreeMap<Integer, Float> stdFtrMap = mapNode.getCurrentFtrMap(SOM_MapManager.useScaledDat);
 		for (Integer ftrIDX : stdFtrMap.keySet()) {
 			Float ftrVal = stdFtrMap.get(ftrIDX);
-			ArrayList<SOMMapNode> nodeList = PerFtrHiWtMapNodes[ftrIDX].get(ftrVal);
-			if (nodeList== null) {			nodeList = new ArrayList<SOMMapNode>();		}
+			ArrayList<SOM_MapNode> nodeList = PerFtrHiWtMapNodes[ftrIDX].get(ftrVal);
+			if (nodeList== null) {			nodeList = new ArrayList<SOM_MapNode>();		}
 			nodeList.add(mapNode);
 			PerFtrHiWtMapNodes[ftrIDX].put(ftrVal, nodeList);
 		}		
@@ -1111,7 +1111,7 @@ public abstract class SOM_MapManager {
 		float[] ftrData ;
 		//for every node, now build standardized features 
 		for(Tuple<Integer, Integer> key : MapNodes.keySet()){
-			SOMMapNode tmp = MapNodes.get(key);
+			SOM_MapNode tmp = MapNodes.get(key);
 			tmp.buildStdFtrsMapFromFtrData_MapNode(map_ftrsMin, map_ftrsDiffs);
 			//accumulate map ftr moments
 			ftrData = tmp.getFtrs();
@@ -1127,7 +1127,7 @@ public abstract class SOM_MapManager {
 	}//finalizeMapNodes
 
 	//build a map node that is formatted specifically for this project
-	public abstract SOMMapNode buildMapNode(Tuple<Integer,Integer>mapLoc, String[] tkns);
+	public abstract SOM_MapNode buildMapNode(Tuple<Integer,Integer>mapLoc, String[] tkns);
 
 	///////////////////////////
 	// end build and manage mapNodes 
@@ -1337,7 +1337,7 @@ public abstract class SOM_MapManager {
 				xInterp = (xColShift) %1, 
 				yInterp = (yRowShift) %1;
 		int xInt = (int) Math.floor(xColShift)%mapNodeCols, yInt = (int) Math.floor(yRowShift)%mapNodeRows;		//assume torroidal map		
-		SOMMapNode ex = MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt));
+		SOM_MapNode ex = MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt));
 		try{
 			Float uMatVal = 255.0f*(ex.biCubicInterp_UMatrix(xInterp, yInterp));
 			return uMatVal;
@@ -1354,7 +1354,7 @@ public abstract class SOM_MapManager {
 				xInterp = (xColShift) %1, 
 				yInterp = (yRowShift) %1;
 		int xInt = (int) Math.floor(xColShift)%mapNodeCols, yInt = (int) Math.floor(yRowShift)%mapNodeRows;		//assume torroidal map		
-		SOMMapNode ex = MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt));
+		SOM_MapNode ex = MapNodes.get(new Tuple<Integer, Integer>(xInt,yInt));
 		try{
 			Float uMatVal = (ex.biCubicInterp_UMatrix(xInterp, yInterp));
 			return (uMatVal > nodeInSegUMatrixDistThresh ? 0 : ex.getUMatrixSegClrAsInt());
@@ -1403,8 +1403,8 @@ public abstract class SOM_MapManager {
 		return _list;
 	}//shuffleStrList	
 	//shuffle all training example data passed
-	public SOMExample[] shuffleTrainingData(SOMExample[] _list, long seed) {
-		SOMExample tmp;
+	public SOM_Example[] shuffleTrainingData(SOM_Example[] _list, long seed) {
+		SOM_Example tmp;
 		Random tr = new Random(seed);
 		for(int i=(_list.length-1);i>0;--i){
 			int j = tr.nextInt(i + 1);//find random lower idx somewhere below current position but greater than stIdx, and swap current with this idx
@@ -1421,9 +1421,9 @@ public abstract class SOM_MapManager {
 	//set specific mouse-over display data/values
 	public SOM_MseOvrDisplay setMseDataExampleFtrs(myPointf ptrLoc, TreeMap<Integer, Float> ftrs, float sens) {mseOverExample.initMseDatFtrs(ptrLoc, ftrs, sens); return mseOverExample;}
 	public SOM_MseOvrDisplay setMseDataExampleDists(myPointf ptrLoc, float dist, float sens) {mseOverExample.initMseDatUMat( ptrLoc, dist, sens);return mseOverExample;}
-	public SOM_MseOvrDisplay setMseDataExampleClassProb(myPointf ptrLoc, SOMMapNode nearestNode, float sens) {mseOverExample.initMseDatProb( ptrLoc, nearestNode, sens, true);return mseOverExample;}
-	public SOM_MseOvrDisplay setMseDataExampleCategoryProb(myPointf ptrLoc, SOMMapNode nearestNode, float sens) {mseOverExample.initMseDatProb( ptrLoc, nearestNode, sens, false);return mseOverExample;}
-	public SOM_MseOvrDisplay setMseDataExampleNodePop(myPointf ptrLoc, SOMMapNode nearestNode, float sens) {mseOverExample.initMseDatProb( ptrLoc, nearestNode, sens, ExDataType.Training);return mseOverExample;}
+	public SOM_MseOvrDisplay setMseDataExampleClassProb(myPointf ptrLoc, SOM_MapNode nearestNode, float sens) {mseOverExample.initMseDatProb( ptrLoc, nearestNode, sens, true);return mseOverExample;}
+	public SOM_MseOvrDisplay setMseDataExampleCategoryProb(myPointf ptrLoc, SOM_MapNode nearestNode, float sens) {mseOverExample.initMseDatProb( ptrLoc, nearestNode, sens, false);return mseOverExample;}
+	public SOM_MseOvrDisplay setMseDataExampleNodePop(myPointf ptrLoc, SOM_MapNode nearestNode, float sens) {mseOverExample.initMseDatProb( ptrLoc, nearestNode, sens, SOM_ExDataType.Training);return mseOverExample;}
 	public SOM_MseOvrDisplay setMseDataExampleNone() { mseOverExample.clearMseDat(); return mseOverExample;}
 		
 	private static int dispTrainDataFrame = 0, numDispTrainDataFrames = 20;
@@ -1465,25 +1465,25 @@ public abstract class SOM_MapManager {
 	//draw boxes around each node representing umtrx values derived in SOM code - deprecated, now drawing image
 	public final void drawUMatrixVals(my_procApplet pa) {
 		pa.pushMatrix();pa.pushStyle();
-		for(SOMMapNode node : MapNodes.values()){	node.drawMeUMatDist(pa);	}		
+		for(SOM_MapNode node : MapNodes.values()){	node.drawMeUMatDist(pa);	}		
 		pa.popStyle();pa.popMatrix();
 	}//drawUMatrix
 	//draw boxes around each node representing UMatrix-distance-based segments these nodes belong to
 	public final void drawUMatrixSegments(my_procApplet pa) {
 		pa.pushMatrix();pa.pushStyle();
-		for(SOMMapNode node : MapNodes.values()){	node.drawMeUMatSegClr(pa);	}		
+		for(SOM_MapNode node : MapNodes.values()){	node.drawMeUMatSegClr(pa);	}		
 		pa.popStyle();pa.popMatrix();
 	}//drawUMatrix
 	
 	//draw boxes around each node representing ftrwt-based segments that nodes belong to, so long as their ftr values are higher than threshold amount
 	public final void drawFtrWtSegments(my_procApplet pa, float valThresh, int curFtrIdx) {
 		pa.pushMatrix();pa.pushStyle();
-		TreeMap<Float,ArrayList<SOMMapNode>> map = PerFtrHiWtMapNodes[curFtrIdx];
+		TreeMap<Float,ArrayList<SOM_MapNode>> map = PerFtrHiWtMapNodes[curFtrIdx];
 		//map holds map nodes keyed by wt of nodes that actually have curFtrIdx presence
-		SortedMap<Float,ArrayList<SOMMapNode>> headMap = map.headMap(valThresh);
+		SortedMap<Float,ArrayList<SOM_MapNode>> headMap = map.headMap(valThresh);
 		for(Float key : headMap.keySet()) {
-			ArrayList<SOMMapNode> ara = headMap.get(key);
-			for (SOMMapNode node : ara) {		node.drawMeFtrWtSegClr(pa, curFtrIdx, key);}
+			ArrayList<SOM_MapNode> ara = headMap.get(key);
+			for (SOM_MapNode node : ara) {		node.drawMeFtrWtSegClr(pa, curFtrIdx, key);}
 		}		
 		pa.popStyle();pa.popMatrix();
 	}//drawFtrWtSegments
@@ -1519,39 +1519,39 @@ public abstract class SOM_MapManager {
 	public void drawAllNodes(my_procApplet pa) {//, int[] dpFillClr, int[] dpStkClr) {
 		pa.pushMatrix();pa.pushStyle();
 		//pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
-		for(SOMMapNode node : MapNodes.values()){	node.drawMeSmall(pa);	}
+		for(SOM_MapNode node : MapNodes.values()){	node.drawMeSmall(pa);	}
 		pa.popStyle();pa.popMatrix();
 	} 
 	
 	public void drawAllNodesNoLbl(my_procApplet pa) {//, int[] dpFillClr, int[] dpStkClr) {
 		pa.pushMatrix();pa.pushStyle();
 		//pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
-		for(SOMMapNode node : MapNodes.values()){	node.drawMeSmallNoLbl(pa);	}
+		for(SOM_MapNode node : MapNodes.values()){	node.drawMeSmallNoLbl(pa);	}
 		pa.popStyle();pa.popMatrix();
 	} 
 	
 	public void drawNodesWithWt(my_procApplet pa, float valThresh, int curFtrIdx) {//, int[] dpFillClr, int[] dpStkClr) {
 		pa.pushMatrix();pa.pushStyle();
 		//pa.setFill(dpFillClr);pa.setStroke(dpStkClr);
-		TreeMap<Float,ArrayList<SOMMapNode>> map = PerFtrHiWtMapNodes[curFtrIdx];
-		SortedMap<Float,ArrayList<SOMMapNode>> headMap = map.headMap(valThresh);
+		TreeMap<Float,ArrayList<SOM_MapNode>> map = PerFtrHiWtMapNodes[curFtrIdx];
+		SortedMap<Float,ArrayList<SOM_MapNode>> headMap = map.headMap(valThresh);
 		for(Float key : headMap.keySet()) {
-			ArrayList<SOMMapNode> ara = headMap.get(key);
-			for (SOMMapNode node : ara) {		node.drawMeWithWt(pa, 10.0f*key, new String[] {""+node.OID+" : ",String.format("%.4f",key)});}
+			ArrayList<SOM_MapNode> ara = headMap.get(key);
+			for (SOM_MapNode node : ara) {		node.drawMeWithWt(pa, 10.0f*key, new String[] {""+node.OID+" : ",String.format("%.4f",key)});}
 		}
 		pa.popStyle();pa.popMatrix();
 	}//drawNodesWithWt
 	
-	public void drawPopMapNodes(my_procApplet pa, ExDataType _type) {
+	public void drawPopMapNodes(my_procApplet pa, SOM_ExDataType _type) {
 		pa.pushMatrix();pa.pushStyle();
 		int _typeIDX = _type.getVal();
-		for(SOMMapNode node : MapNodes.values()){	node.drawMePopLbl(pa, _typeIDX);}
+		for(SOM_MapNode node : MapNodes.values()){	node.drawMePopLbl(pa, _typeIDX);}
 		pa.popStyle();pa.popMatrix();		
 	}	
-	public void drawPopMapNodesNoLbl(my_procApplet pa, ExDataType _type) {
+	public void drawPopMapNodesNoLbl(my_procApplet pa, SOM_ExDataType _type) {
 		pa.pushMatrix();pa.pushStyle();
 		int _typeIDX = _type.getVal();
-		for(SOMMapNode node : MapNodes.values()){				node.drawMePopNoLbl(pa, _typeIDX);}
+		for(SOM_MapNode node : MapNodes.values()){				node.drawMePopNoLbl(pa, _typeIDX);}
 		pa.popStyle();pa.popMatrix();		
 	}
 	
@@ -1624,7 +1624,7 @@ public abstract class SOM_MapManager {
 	protected abstract float drawResultBarPriv3(my_procApplet pa, float yOff);
 	
 	//invoke multi-threading call to build map imgs - called from UI window
-	public void invokeSOMFtrDispBuild(List<SOMFtrMapVisImgBuilder> mapImgBuilders) {		
+	public void invokeSOMFtrDispBuild(List<SOM_FtrMapVisImgBldr> mapImgBuilders) {		
 		try {
 			List<Future<Boolean>> mapImgFtrs = th_exec.invokeAll(mapImgBuilders);
 			for(Future<Boolean> f: mapImgFtrs) { f.get(); }
@@ -1666,9 +1666,9 @@ public abstract class SOM_MapManager {
 	public int getMapNodeCols(){return mapNodeCols;}
 	public int getMapNodeRows(){return mapNodeRows;}	
 	
-	public SOMMapNode getMapNodeByCoords(Tuple<Integer,Integer> key) {return MapNodes.get(key);}
-	public TreeMap<Tuple<Integer,Integer>, SOMMapNode> getMapNodes(){return MapNodes;}
-	public TreeMap<Integer, HashSet<SOMMapNode>> getMapNodesByFtr(){return MapNodesByFtrIDX;}
+	public SOM_MapNode getMapNodeByCoords(Tuple<Integer,Integer> key) {return MapNodes.get(key);}
+	public TreeMap<Tuple<Integer,Integer>, SOM_MapNode> getMapNodes(){return MapNodes;}
+	public TreeMap<Integer, HashSet<SOM_MapNode>> getMapNodesByFtr(){return MapNodesByFtrIDX;}
 	
 	public float getNodePerPxlCol() {return nodeXPerPxl;}
 	public float getNodePerPxlRow() {return nodeYPerPxl;}	
@@ -1683,7 +1683,7 @@ public abstract class SOM_MapManager {
 	public abstract Float[] getTrainFtrMins();
 	public abstract Float[] getTrainFtrDiffs();
 
-	public SOMExample[] getTrainingData() {return trainData;}
+	public SOM_Example[] getTrainingData() {return trainData;}
 	
 	//# of features used to train SOM
 	public int getNumTrainFtrs() {return numTrnFtrs;}
@@ -1792,7 +1792,7 @@ public abstract class SOM_MapManager {
 	public boolean isMapDrawable(){return getFlag(loaderFinishedRtnIDX) && getFlag(SOMmapNodeDataLoadedIDX);}
 	public boolean isToroidal(){return projConfigData.isToroidal();}	
 	//get fill, stroke and text color ID if win exists (to reference papplet) otw returns 0,0,0
-	public int[] getClrFillStrkTxtAra(ExDataType _type) {
+	public int[] getClrFillStrkTxtAra(SOM_ExDataType _type) {
 		if (win==null) {return new int[] {0,0,0};}															//if null then not going to be displaying anything
 		switch(_type) {
 			case Training : {		return new int[] {my_procApplet.gui_Cyan,my_procApplet.gui_Cyan,my_procApplet.gui_Blue};}			//corresponds to prospect training example

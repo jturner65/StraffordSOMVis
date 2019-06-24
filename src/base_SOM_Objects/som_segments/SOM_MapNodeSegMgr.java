@@ -5,7 +5,7 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.TreeMap;
 
-import base_SOM_Objects.som_examples.SOMMapNode;
+import base_SOM_Objects.som_examples.SOM_MapNode;
 import base_SOM_Objects.som_segments.segmentData.SOM_MapNodeSegmentData;
 import base_SOM_Objects.som_segments.segments.SOM_MappedSegment;
 import base_UI_Objects.my_procApplet;
@@ -20,12 +20,12 @@ import base_Utils_Objects.io.MessageObject;
 public abstract class SOM_MapNodeSegMgr {
 	protected MessageObject msgObj;
 	//owning map node
-	protected SOMMapNode owner;
+	protected SOM_MapNode owner;
 	protected TreeMap<Integer, SOM_MapNodeSegmentData> segData;			//segment membership manager of class mapping - key is class/category
 	protected TreeMap<Integer, Float> segDataRatio;						//this is the ratio of # of a particular class to the total # of classes/categories mapped to this map node - these should of course sum to 1 (probability)
 	protected Float ttlNumMappedInstances;								//total # of training examples mapped to this map node - float to make sure non-int division when consumed
 
-	public SOM_MapNodeSegMgr(SOMMapNode _owner) {
+	public SOM_MapNodeSegMgr(SOM_MapNode _owner) {
 		owner = _owner;
 		msgObj = owner.mapMgr.buildMsgObj();
 		segData = new TreeMap<Integer, SOM_MapNodeSegmentData>();

@@ -7,8 +7,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-import base_SOM_Objects.som_examples.SOMExample;
-import base_SOM_Objects.som_examples.SOMMapNode;
+import base_SOM_Objects.som_examples.SOM_Example;
+import base_SOM_Objects.som_examples.SOM_MapNode;
 import base_Utils_Objects.io.MessageObject;
 import base_Utils_Objects.io.MsgCodes;
 import strafford_SOM_PKG.straff_SOM_Examples.products.ProductExample;
@@ -61,15 +61,15 @@ public class Straff_ProdMapOutBldr_Segments extends Straff_ProdMappingOutputBuil
 	}
 
 	@Override
-	protected HashMap<ProductExample, HashMap<SOMMapNode, Double>> getProdsToMapNodes() {
+	protected HashMap<ProductExample, HashMap<SOM_MapNode, Double>> getProdsToMapNodes() {
 		// TODO Auto-generated method stub
 		//NEED TO BUILD MECHANISM TO Aggregate products
 		msgObj.dispMessage("Base->"+callingClassName, "getProdsToMapNodes", "!!!!!!!!!! Building aggregate map of products for prospect mapping in Straff_ProdMappingOutputBuilder_Segments not finished!.", MsgCodes.info5);
-		return new HashMap<ProductExample, HashMap<SOMMapNode, Double>>();
+		return new HashMap<ProductExample, HashMap<SOM_MapNode, Double>>();
 	}
 
 	@Override
-	protected void saveAllSpecifiedProspectMappings_MT(SOMExample[] prospectsToMap, String typeOfProspect, HashMap<ProductExample, HashMap<SOMMapNode, Double>> prodToMapNodes, int numForEachThrd) {
+	protected void saveAllSpecifiedProspectMappings_MT(SOM_Example[] prospectsToMap, String typeOfProspect, HashMap<ProductExample, HashMap<SOM_MapNode, Double>> prodToMapNodes, int numForEachThrd) {
 		List<Future<Boolean>> prdcttMapperFtrs = new ArrayList<Future<Boolean>>();
 		List<Straff_ProspectOutMapper_Dist_Segments> prdcttMappers = new ArrayList<Straff_ProspectOutMapper_Dist_Segments>();
 		//use this many for every thread but last one
@@ -86,7 +86,7 @@ public class Straff_ProdMapOutBldr_Segments extends Straff_ProdMappingOutputBuil
 		
 	};
 	@Override
-	protected void saveAllSpecifiedProspectMappings_ST(SOMExample[] prospectsToMap, String typeOfProspect, HashMap<ProductExample, HashMap<SOMMapNode, Double>> prodToMapNodes) {
+	protected void saveAllSpecifiedProspectMappings_ST(SOM_Example[] prospectsToMap, String typeOfProspect, HashMap<ProductExample, HashMap<SOM_MapNode, Double>> prodToMapNodes) {
 		//invoke single-threaded version synchronously
 		Straff_ProspectOutMapper_Dist_Segments mapper = new Straff_ProspectOutMapper_Dist_Segments(msgObj,0, prospectsToMap.length, 0, typeOfProspect, prospectsToMap, prodToMapNodes, fullQualOutPerProspectDir);
 		mapper.call();//			
@@ -112,7 +112,7 @@ class Straff_ProdOutMapper_Dist_Segments extends Straff_ProdOutMapper_Dist_Base{
 
 class Straff_ProspectOutMapper_Dist_Segments extends Straff_ProspectOutMapper_Dist_Base{
 
-	public Straff_ProspectOutMapper_Dist_Segments(MessageObject _msgObj, int _stIDX, int _endIDX, int _thdIDX,String _prspctType, SOMExample[] _prospectsToMap,	HashMap<ProductExample, HashMap<SOMMapNode, Double>> _prodToMapNodes, String _fullQualOutDir) {
+	public Straff_ProspectOutMapper_Dist_Segments(MessageObject _msgObj, int _stIDX, int _endIDX, int _thdIDX,String _prspctType, SOM_Example[] _prospectsToMap,	HashMap<ProductExample, HashMap<SOM_MapNode, Double>> _prodToMapNodes, String _fullQualOutDir) {
 		super(_msgObj, _stIDX, _endIDX, _thdIDX, _prspctType, _prospectsToMap, _prodToMapNodes, _fullQualOutDir, "Straff_ProspectOutMapper_Dist_Segments");
 		
 	}
@@ -127,7 +127,7 @@ class Straff_ProspectOutMapper_Dist_Segments extends Straff_ProspectOutMapper_Di
 	protected String getFileNameToSave(String _fullQualOutDir, String _prspctType) {return _fullQualOutDir + _prspctType + "_segment_mappingResults_" + thdIDX+".csv";}
 
 	@Override
-	protected void buildOutputLists(ArrayList<String> strList, ArrayList<String> strListNoMaps, SOMExample ex) {
+	protected void buildOutputLists(ArrayList<String> strList, ArrayList<String> strListNoMaps, SOM_Example ex) {
 		//lists need to be built here
 		
 	}

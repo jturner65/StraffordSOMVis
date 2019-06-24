@@ -20,9 +20,9 @@ public abstract class SOM_MappedSegment {
 	public final int ID;
 	private static int count=0;
 	//map nodes making up this segment, keyed by location in map
-	protected ConcurrentSkipListMap<Tuple<Integer,Integer>, SOMMapNode> MapNodes;
+	protected ConcurrentSkipListMap<Tuple<Integer,Integer>, SOM_MapNode> MapNodes;
 	//map of map nodes keyed by segment "value", in descending order, with value being array of map nodes sharing that value
-	protected ConcurrentSkipListMap<Float,ArrayList<SOMMapNode>> MapNodesByDescValue;
+	protected ConcurrentSkipListMap<Float,ArrayList<SOM_MapNode>> MapNodesByDescValue;
 	//color to paint this segment
 	protected int[] segClr;
 	//color as int value
@@ -33,13 +33,13 @@ public abstract class SOM_MappedSegment {
 		mapMgr = _mapMgr; ID = count++;  
 		segClr = mapMgr.getRndClr(150);
 		segClrAsInt = ((segClr[3] & 0xff) << 24) + ((segClr[0] & 0xff) << 16)  + ((segClr[1] & 0xff) << 8) + (segClr[2] & 0xff);
-		MapNodes = new ConcurrentSkipListMap<Tuple<Integer,Integer>, SOMMapNode>();
-		MapNodesByDescValue = new ConcurrentSkipListMap<Float,ArrayList<SOMMapNode>>(new Comparator<Float>() { @Override public int compare(Float o1, Float o2) {   return o2.compareTo(o1);}});
+		MapNodes = new ConcurrentSkipListMap<Tuple<Integer,Integer>, SOM_MapNode>();
+		MapNodesByDescValue = new ConcurrentSkipListMap<Float,ArrayList<SOM_MapNode>>(new Comparator<Float>() { @Override public int compare(Float o1, Float o2) {   return o2.compareTo(o1);}});
 	}//ctor
 	
 	//called internally by instancing class
-	protected final void addMapNode(SOMMapNode _node) {	MapNodes.put(_node.mapNodeCoord, _node);}	
-	public final Collection<SOMMapNode> getAllMapNodes(){return MapNodes.values();}
+	protected final void addMapNode(SOM_MapNode _node) {	MapNodes.put(_node.mapNodeCoord, _node);}	
+	public final Collection<SOM_MapNode> getAllMapNodes(){return MapNodes.values();}
 	
 	public final void clearMapNodes() {MapNodes.clear();}	
 	public final int[] getSegClr() {return segClr;}
@@ -49,32 +49,32 @@ public abstract class SOM_MappedSegment {
 	 * determine whether a node belongs in this segment - base it on BMU
 	 * @param ex the example to check
 	 */
-	public abstract boolean doesExampleBelongInSeg(SOMExample ex);
+	public abstract boolean doesExampleBelongInSeg(SOM_Example ex);
 	
 	/**
 	 * determine whether a mapnode belongs in this segment
 	 * @param ex map node to check
 	 */
-	public abstract boolean doesMapNodeBelongInSeg(SOMMapNode ex);
+	public abstract boolean doesMapNodeBelongInSeg(SOM_MapNode ex);
 	
 	/**
 	 * Set the passed map node to have this segment as its segment
 	 * @param ex map node to set this as a segment
 	 */
-	protected abstract void setMapNodeSegment(SOMMapNode mapNodeEx);
+	protected abstract void setMapNodeSegment(SOM_MapNode mapNodeEx);
 	
 	/**
 	 * If map node meets criteria, add it to this segment as well as its neighbors
 	 * @param ex map node to add
 	 */
-	public final void addMapNodeToSegment(SOMMapNode mapNodeEx,TreeMap<Tuple<Integer,Integer>, SOMMapNode> mapNodes) {
+	public final void addMapNodeToSegment(SOM_MapNode mapNodeEx,TreeMap<Tuple<Integer,Integer>, SOM_MapNode> mapNodes) {
 		//add passed map node to this segment - expected that appropriate membership has already been verified
 		addMapNode(mapNodeEx);
 		//set this segment to belong to passed map node
 		setMapNodeSegment(mapNodeEx);
 		int row = 1, col = 1;//1,1 is this node within its neighborhood
 		//check neighborhood of this node to see if it belongs in this segment
-		SOMMapNode neighborEx = mapNodes.get(mapNodeEx.neighborMapCoords[row][col+1]);
+		SOM_MapNode neighborEx = mapNodes.get(mapNodeEx.neighborMapCoords[row][col+1]);
 		if(doesMapNodeBelongInSeg(neighborEx)) {addMapNodeToSegment(neighborEx,mapNodes);}
 		neighborEx = mapNodes.get(mapNodeEx.neighborMapCoords[row][col-1]);
 		if(doesMapNodeBelongInSeg(neighborEx)) {addMapNodeToSegment(neighborEx,mapNodes);}
@@ -94,8 +94,8 @@ public abstract class SOM_MappedSegment {
 		String tmp = _buildBMUMembership_CSV_Hdr();
 		res.add(tmp);
 		for(Float segVal : MapNodesByDescValue.keySet()) {
-			ArrayList<SOMMapNode> bmusAtVal = MapNodesByDescValue.get(segVal);
-			for(SOMMapNode bmu : bmusAtVal) {		res.add(_buildBMUMembership_CSV_Detail(bmu));}			
+			ArrayList<SOM_MapNode> bmusAtVal = MapNodesByDescValue.get(segVal);
+			for(SOM_MapNode bmu : bmusAtVal) {		res.add(_buildBMUMembership_CSV_Detail(bmu));}			
 		}
 		return res;		
 	}//buildBMUMembership_CSV
@@ -106,7 +106,7 @@ public abstract class SOM_MappedSegment {
 	 * @param _bmu map node member of segment
 	 * @return string of appropriate format for CSV output
 	 */	
-	protected String _buildBMUMembership_CSV_Detail(SOMMapNode _bmu) {	return "" + String.format("%1.7g",getBMUSegmentValue(_bmu)) + ","+getBMUSegmentCount(_bmu) +","+_bmu.mapNodeCoord.toCSVString();}	
+	protected String _buildBMUMembership_CSV_Detail(SOM_MapNode _bmu) {	return "" + String.format("%1.7g",getBMUSegmentValue(_bmu)) + ","+getBMUSegmentCount(_bmu) +","+_bmu.mapNodeCoord.toCSVString();}	
 	
 	/**
 	 * for every map node in this segment, build MapNodesByDescValue, a map keyed by segment value of 
@@ -114,10 +114,10 @@ public abstract class SOM_MappedSegment {
 	 */
 	private final void finalizeSegment() {
 		MapNodesByDescValue.clear();
-		for (SOMMapNode _bmu : MapNodes.values()) {
+		for (SOM_MapNode _bmu : MapNodes.values()) {
 			Float bmuVal = getBMUSegmentValue(_bmu);
-			ArrayList<SOMMapNode> bmusAtVal = MapNodesByDescValue.get(bmuVal);
-			if(null==bmusAtVal) {bmusAtVal = new ArrayList<SOMMapNode>(); MapNodesByDescValue.put(bmuVal,bmusAtVal);}
+			ArrayList<SOM_MapNode> bmusAtVal = MapNodesByDescValue.get(bmuVal);
+			if(null==bmusAtVal) {bmusAtVal = new ArrayList<SOM_MapNode>(); MapNodesByDescValue.put(bmuVal,bmusAtVal);}
 			bmusAtVal.add(_bmu);
 		}		
 	}//finalizeSegment	
@@ -127,13 +127,13 @@ public abstract class SOM_MappedSegment {
 	 * @param _bmu
 	 * @return
 	 */
-	protected abstract Float getBMUSegmentValue(SOMMapNode _bmu);
+	protected abstract Float getBMUSegmentValue(SOM_MapNode _bmu);
 	/**
 	 * return bmu's count of examples for this segment
 	 * @param _bmu
 	 * @return
 	 */
-	protected abstract Float getBMUSegmentCount(SOMMapNode _bmu);
+	protected abstract Float getBMUSegmentCount(SOM_MapNode _bmu);
 
 	/**
 	 * build descriptive string for hdr before bmu output

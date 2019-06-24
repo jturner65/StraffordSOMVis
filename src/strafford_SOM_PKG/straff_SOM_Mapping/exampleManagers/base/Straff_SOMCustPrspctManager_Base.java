@@ -5,8 +5,8 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.Future;
 
 import base_SOM_Objects.SOM_MapManager;
-import base_SOM_Objects.som_examples.SOMExample;
-import base_SOM_Objects.som_fileIO.SOMExCSVDataLoader;
+import base_SOM_Objects.som_examples.SOM_Example;
+import base_SOM_Objects.som_fileIO.SOM_ExCSVDataLoader;
 import base_SOM_Objects.som_utils.runners.SOM_SaveExToBMUs_Runner;
 import strafford_SOM_PKG.straff_Features.featureCalc.Straff_WeightCalc;
 import strafford_SOM_PKG.straff_ProcDataHandling.data_loaders.CustCSVDataLoader;
@@ -41,7 +41,7 @@ public abstract class Straff_SOMCustPrspctManager_Base extends Straff_SOMProspec
 	}//dispAllNumOrderCounts
 	
 	@Override
-	protected final SOMExample[] castArray(ArrayList<SOMExample> tmpList) {	return (CustProspectExample[])(tmpList.toArray(new CustProspectExample[0]));}
+	protected final SOM_Example[] castArray(ArrayList<SOM_Example> tmpList) {	return (CustProspectExample[])(tmpList.toArray(new CustProspectExample[0]));}
 	/**
 	 * return customer prospect example array - this will an array of customerProspect records always
 	 * this is here so that if per-order training data is generated via an instance of 
@@ -78,7 +78,7 @@ public abstract class Straff_SOMCustPrspctManager_Base extends Straff_SOMProspec
 		//jp the exemplar ftr vector that most closely described their data - this will then be applied to each true prospect 
 		((Straff_SOMMapManager)mapMgr).ftrCalcObj.initAllEqsForCustNonTrainCalc();	
 		//build per-non-prod jp ftr vector contribution
-		for (SOMExample ex : exampleMap.values()) {		((CustProspectExample) ex).buildNonProdJpFtrVec();}
+		for (SOM_Example ex : exampleMap.values()) {		((CustProspectExample) ex).buildNonProdJpFtrVec();}
 		
 		((Straff_SOMMapManager)mapMgr).ftrCalcObj.finalizeAllEqsCustForNonTrainCalc();	
 		msgObj.dispInfoMessage("Straff_SOMCustPrspctManager_Base","buildPrspctFtrVecs : " + exampleName + " Examples","Finished Setting Non-Product Jp Eqs training ftr vectors from Customer examples.");			
@@ -104,7 +104,7 @@ public abstract class Straff_SOMCustPrspctManager_Base extends Straff_SOMProspec
 	//manage multi-threaded loading
 	protected final void buildMTLoader(String[] loadSrcFNamePrefixAra, int numPartitions) {
 		List<Future<Boolean>> preProcLoadFtrs = new ArrayList<Future<Boolean>>();
-		List<SOMExCSVDataLoader> preProcLoaders = new ArrayList<SOMExCSVDataLoader>();
+		List<SOM_ExCSVDataLoader> preProcLoaders = new ArrayList<SOM_ExCSVDataLoader>();
 		for (int i=0; i<numPartitions;++i) {	preProcLoaders.add(new CustCSVDataLoader(mapMgr, i, loadSrcFNamePrefixAra[0]+"_"+i+".csv",  exampleName+ " Data file " + i +" of " +numPartitions + " loaded",  exampleName+ " Data File " + i +" of " +numPartitions +" Failed to load", exampleMap));}	
 		try {preProcLoadFtrs = th_exec.invokeAll(preProcLoaders);for(Future<Boolean> f: preProcLoadFtrs) { 			f.get(); 		}} catch (Exception e) { e.printStackTrace(); }					
 	}//buildMTLoader
