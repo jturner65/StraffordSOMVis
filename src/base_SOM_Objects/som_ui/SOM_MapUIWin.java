@@ -24,11 +24,11 @@ import processing.core.PImage;
  * @author john
  *
  */
-public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapDat{
+public abstract class SOM_MapUIWin extends myDispWindow implements ISOM_UIWinMapDat{
 	//map manager that is instanced 
 	public SOM_MapManager mapMgr;
 	//interface to facilitate keeping UI and the SOM MapData object synched w/respect to map data values
-	public SOMUIToMapCom mapUIAPI;
+	public SOM_UIToMapCom mapUIAPI;
 	//msgObj responsible for displaying messages to console and printing to log file
 	protected MessageObject msgObj;
 	
@@ -123,7 +123,7 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 	//threshold of wt value to display map node
 	protected float mapNodeWtDispThresh;
 	//type of examples using each map node as a bmu to display
-	protected ExDataType mapNodeDispType;
+	protected SOM_ExDataType mapNodeDispType;
 	
 	//////////////////////////////
 	//map drawing 	draw/interaction variables
@@ -148,7 +148,7 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 	protected SOM_MseOvrDisplay mseOvrData;//location and label of mouse-over point in map
 	
 	
-	public SOMMapUIWin(my_procApplet _p, String _n, int _flagIdx, int[] fc, int[] sc, float[] rd, float[] rdClosed,	String _winTxt, boolean _canDrawTraj) {
+	public SOM_MapUIWin(my_procApplet _p, String _n, int _flagIdx, int[] fc, int[] sc, float[] rd, float[] rdClosed,	String _winTxt, boolean _canDrawTraj) {
 		super(_p, _n, _flagIdx, fc, sc, rd, rdClosed, _winTxt, _canDrawTraj);
 		initAndSetSOMDatUIMaps();
 	}//ctor
@@ -215,7 +215,7 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 		mapMgr.setCurrentTrainDataFormat((int)(this.guiObjs[uiTrainDataFrmtIDX].getVal()));
 		mapMgr.setCurrentTestDataFormat((int)(this.guiObjs[uiTestDataFrmtIDX].getVal()));
 		mapNodeWtDispThresh = (float)(this.guiObjs[uiNodeWtDispThreshIDX].getVal());
-		mapNodeDispType = ExDataType.getVal((int)(this.guiObjs[uiMapNodeBMUTypeToDispIDX].getVal()));
+		mapNodeDispType = SOM_ExDataType.getVal((int)(this.guiObjs[uiMapNodeBMUTypeToDispIDX].getVal()));
 		mseOvrData = null;	
 		initMeIndiv();
 	}//initMe()	
@@ -683,7 +683,7 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 				mapMgr.buildUMatrixSegmentsOnMap();
 				break;}
 			case uiMapNodeBMUTypeToDispIDX : {//type of examples being mapped to each map node to display
-				mapNodeDispType = ExDataType.getVal((int)(this.guiObjs[uiMapNodeBMUTypeToDispIDX].getVal()));
+				mapNodeDispType = SOM_ExDataType.getVal((int)(this.guiObjs[uiMapNodeBMUTypeToDispIDX].getVal()));
 				break;}			
 			case uiMseRegionSensIDX : {
 				break;}
@@ -858,18 +858,18 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 			int numXPerPart = mapPerFtrWtImgs[0].width / numPartitions;			
 			int numXLastPart = (mapPerFtrWtImgs[0].width - (numXPerPart*numPartitions)) + numXPerPart;
 			List<Future<Boolean>> mapImgFtrs = new ArrayList<Future<Boolean>>();
-			List<SOMFtrMapVisImgBuilder> mapImgBuilders = new ArrayList<SOMFtrMapVisImgBuilder>();
+			List<SOM_FtrMapVisImgBldr> mapImgBuilders = new ArrayList<SOM_FtrMapVisImgBldr>();
 			int[] xVals = new int[] {0,0};
 			int[] yVals = new int[] {0,mapPerFtrWtImgs[0].height};
 			//each thread builds columns of every map
 			for (int i=0; i<numPartitions-1;++i) {	
 				xVals[1] += numXPerPart;
-				mapImgBuilders.add(new SOMFtrMapVisImgBuilder(mapMgr, mapPerFtrWtImgs, xVals, yVals, mapScaleVal));
+				mapImgBuilders.add(new SOM_FtrMapVisImgBldr(mapMgr, mapPerFtrWtImgs, xVals, yVals, mapScaleVal));
 				xVals[0] = xVals[1];				
 			}
 			//last one
 			xVals[1] += numXLastPart;
-			mapImgBuilders.add(new SOMFtrMapVisImgBuilder(mapMgr, mapPerFtrWtImgs, xVals, yVals, mapScaleVal));
+			mapImgBuilders.add(new SOM_FtrMapVisImgBldr(mapMgr, mapPerFtrWtImgs, xVals, yVals, mapScaleVal));
 			mapMgr.invokeSOMFtrDispBuild(mapImgBuilders);
 			//try {mapImgFtrs = pa.th_exec.invokeAll(mapImgBuilders);for(Future<Boolean> f: mapImgFtrs) { f.get(); }} catch (Exception e) { e.printStackTrace(); }					
 		} else {
@@ -915,7 +915,7 @@ public abstract class SOMMapUIWin extends myDispWindow implements ISOM_UIWinMapD
 	protected final SOM_MseOvrDisplay getDataPointAtLoc(float x, float y, myPointf locPt){//, boolean useScFtrs){
 		float sensitivity = (float) guiObjs[uiMseRegionSensIDX].getVal();
 		SOM_MseOvrDisplay dp; 
-		SOMMapNode nearestNode;
+		SOM_MapNode nearestNode;
 		if (getPrivFlags(mapDrawClassSegmentsIDX)) {			//disp class probs at nearest node
 			//find nearest map node to location
 			nearestNode = mapMgr.getMapNodeByCoords(new Tuple<Integer,Integer> ((int)(x+.5f), (int)(y+.5f)));

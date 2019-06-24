@@ -15,7 +15,7 @@ import base_Utils_Objects.io.MsgCodes;
  * Instances of this class are owned by a map manager; 
  * @author john
  */
-public abstract class SOMExampleManager {
+public abstract class SOM_ExampleManager {
 		//owning map manager
 	public static SOM_MapManager mapMgr;
 		//message object for logging and to display to screen
@@ -29,7 +29,7 @@ public abstract class SOMExampleManager {
 		//descriptive name of example type
 	public final String longExampleName;
 		//a map keyed by example ID of this specific type of examples
-	protected ConcurrentSkipListMap<String, SOMExample> exampleMap;
+	protected ConcurrentSkipListMap<String, SOM_Example> exampleMap;
 		//descriptive string of date and time of when the data this mapper manages was created
 		//this should be saved with data and loaded from files
 	protected String dateAndTimeOfDataCreation;
@@ -47,11 +47,11 @@ public abstract class SOMExampleManager {
 	public static final int numFlags = 7;
 	
 		//array of examples actually interacted with by SOM - will be a subset of examples, smaller due to some examples being "bad"
-	protected SOMExample[] SOMexampleArray;
+	protected SOM_Example[] SOMexampleArray;
 		//# of actual examples used by SOM of this type
 	protected int numSOMExamples;
 
-	public SOMExampleManager(SOM_MapManager _mapMgr, String _exName, String _longExampleName, boolean _shouldValidate) {
+	public SOM_ExampleManager(SOM_MapManager _mapMgr, String _exName, String _longExampleName, boolean _shouldValidate) {
 		mapMgr = _mapMgr;
 		projConfigData = mapMgr.projConfigData;
 		exampleName = _exName;
@@ -60,7 +60,7 @@ public abstract class SOMExampleManager {
 		//fileIO is used to load and save info from/to local files except for the raw data loading, which has its own handling
 		fileIO = new FileIOManager(msgObj,"SOMExampleMapper::"+exampleName);
 		
-		exampleMap = new ConcurrentSkipListMap<String, SOMExample>();
+		exampleMap = new ConcurrentSkipListMap<String, SOM_Example>();
 		initFlags();
 		setFlag(shouldValidateIDX, _shouldValidate);
 	}//ctor
@@ -69,7 +69,7 @@ public abstract class SOMExampleManager {
 	public final void reset() {
 		//faster than rebuilding
 		exampleMap.clear();
-		SOMexampleArray = new SOMExample[0];
+		SOMexampleArray = new SOM_Example[0];
 		numSOMExamples = 0;
 		//set date and time of reset == date and time of data creation.  will be overwritten by load
 		dateAndTimeOfDataCreation = msgObj.getCurrWallTime();
@@ -108,7 +108,7 @@ public abstract class SOMExampleManager {
 		} 
 		msgObj.dispMessage("SOMExampleMapper::"+exampleName,"buildFtrVec","Begin finalizing all " +exampleMap.size()+ " " + exampleName+ " examples to prepare them for ftr calc.", MsgCodes.info1);
 		//finalize each example - this will aggregate all the ftrs's that are seen in src data and prepare example for calculating ftr vector
-		for (SOMExample ex : exampleMap.values()) {			ex.finalizeBuildBeforeFtrCalc();		}	
+		for (SOM_Example ex : exampleMap.values()) {			ex.finalizeBuildBeforeFtrCalc();		}	
 		setFlag(dataFtrsPreparedIDX, true);
 		setFlag(dataFtrsCalcedIDX, false);
 		setFlag(dataPostFtrsBuiltIDX, false);
@@ -178,10 +178,10 @@ public abstract class SOMExampleManager {
 	 * @param validate whether or not this data should be validated (guaranteed to be reasonable training data - only necessary for data that is going to be used to train)
 	 * @return
 	 */
-	public final SOMExample[] buildExampleArray() {
+	public final SOM_Example[] buildExampleArray() {
 		boolean validate = getFlag(shouldValidateIDX);
 		if(validate) {
-			ArrayList<SOMExample> tmpList = new ArrayList<SOMExample>();
+			ArrayList<SOM_Example> tmpList = new ArrayList<SOM_Example>();
 			for (String key : exampleMap.keySet()) {			validateAndAddExToArray(tmpList, exampleMap.get(key));	}	//potentially different for every instancing class		
 			SOMexampleArray = castArray(tmpList);																	//every instancing class will manage different instancing classes of examples - this should provide arrays of the appropriate classes		
 		} 
@@ -198,18 +198,18 @@ public abstract class SOMExampleManager {
 	 * @param tmpList list to add data to 
 	 * @param ex specific example to add to list
 	 */
-	protected abstract void validateAndAddExToArray(ArrayList<SOMExample> tmpList, SOMExample ex);
+	protected abstract void validateAndAddExToArray(ArrayList<SOM_Example> tmpList, SOM_Example ex);
 	/**
 	 * Provide array of appropriately cast examples for use as training/testing/validation data
 	 * @param tmpList
 	 * @return
 	 */
-	protected abstract SOMExample[] castArray(ArrayList<SOMExample> tmpList);
+	protected abstract SOM_Example[] castArray(ArrayList<SOM_Example> tmpList);
 	/**
 	 * Build example array without any validation process - just take existing example map and convert to appropriately cast array of examples
 	 * @return
 	 */
-	protected abstract SOMExample[] noValidateBuildExampleArray();
+	protected abstract SOM_Example[] noValidateBuildExampleArray();
 	/**
 	 * Any instancing-class specific code to perform
 	 * @param validate whether data should be validated or not (to meet certain criteria for the SOM)
@@ -221,15 +221,15 @@ public abstract class SOMExampleManager {
 	// add/remove examples to map
 		//reset function acts as map initializer
 		//add an example, return old example if one existed
-	public final SOMExample addExampleToMap(String key, SOMExample ex) {return exampleMap.put(key, ex);	}
+	public final SOM_Example addExampleToMap(String key, SOM_Example ex) {return exampleMap.put(key, ex);	}
 		//remove an example by key
-	public final SOMExample removeExampleFromMap(String key) {return exampleMap.remove(key);}
+	public final SOM_Example removeExampleFromMap(String key) {return exampleMap.remove(key);}
 		//remove an example - use example's OID
-	public final SOMExample removeExampleFromMap(SOMExample ex) {return exampleMap.remove(ex.OID);}
+	public final SOM_Example removeExampleFromMap(SOM_Example ex) {return exampleMap.remove(ex.OID);}
 		//return an example by key 
-	public final SOMExample getExample(String key) {return exampleMap.get(key);}
+	public final SOM_Example getExample(String key) {return exampleMap.get(key);}
 		//return the entire example map
-	public final ConcurrentSkipListMap<String, SOMExample> getExampleMap(){return exampleMap;}
+	public final ConcurrentSkipListMap<String, SOM_Example> getExampleMap(){return exampleMap;}
 		//return set of keys in example map
 	public Set<String> getExampleKeySet(){return exampleMap.keySet();}
 	

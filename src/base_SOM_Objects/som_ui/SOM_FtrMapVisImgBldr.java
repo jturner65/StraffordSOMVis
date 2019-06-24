@@ -12,15 +12,15 @@ import base_Utils_Objects.vectorObjs.Tuple;
 import processing.core.PImage;
 
 //this will build a single image of the map based on ftr data
-public class SOMFtrMapVisImgBuilder implements Callable<Boolean>{
+public class SOM_FtrMapVisImgBldr implements Callable<Boolean>{
 	private MessageObject msgObj;
 	private int mapX, mapY, xSt, xEnd, ySt, yEnd, imgW;
 	//type of features to use to build vis, based on type used to train map (unmodified, stdftrs, normftrs)
 	private int ftrType;
 	private float mapScaleVal, sclMultXPerPxl, sclMultYPerPxl;
-	private TreeMap<Tuple<Integer,Integer>, SOMMapNode> MapNodes;
+	private TreeMap<Tuple<Integer,Integer>, SOM_MapNode> MapNodes;
 	private PImage[] mapLocClrImg;
-	public SOMFtrMapVisImgBuilder(SOM_MapManager _mapMgr, PImage[] _mapLocClrImg, int[] _xVals, int[] _yVals,  float _mapScaleVal) {
+	public SOM_FtrMapVisImgBldr(SOM_MapManager _mapMgr, PImage[] _mapLocClrImg, int[] _xVals, int[] _yVals,  float _mapScaleVal) {
 		msgObj= _mapMgr.buildMsgObj();
 		MapNodes = _mapMgr.getMapNodes();
 		ftrType = _mapMgr.getCurrentTrainDataFormat();

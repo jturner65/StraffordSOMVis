@@ -11,15 +11,15 @@ import base_Utils_Objects.io.MessageObject;
 import base_Utils_Objects.vectorObjs.Tuple;
 
 //class to manage mapping of examples to bmus
-public abstract class MapDataToBMUs implements Callable<Boolean>{
+public abstract class SOM_MapDataToBMUs implements Callable<Boolean>{
 	protected SOM_MapManager mapMgr;
 	protected MessageObject msgObj;
 	protected final int stIdx, endIdx, curMapFtrType, thdIDX, progressBnd;
 	//calculate the exclusionary feature distance(only measure distance from map via features that the node has non-zero values in)
 	protected final boolean useChiSqDist;
-	protected final TreeMap<Tuple<Integer,Integer>, SOMMapNode> MapNodes;
+	protected final TreeMap<Tuple<Integer,Integer>, SOM_MapNode> MapNodes;
 	//map of ftr idx and all map nodes that have non-zero presence in that ftr
-	protected TreeMap<Integer, HashSet<SOMMapNode>> MapNodesByFtr;
+	protected TreeMap<Integer, HashSet<SOM_MapNode>> MapNodesByFtr;
 	//Map of classes to segment - segment contains the map nodes that participate in that segment
 	protected TreeMap<Integer, SOM_MappedSegment> Class_Segments;
 	//map of categories to segment
@@ -29,7 +29,7 @@ public abstract class MapDataToBMUs implements Callable<Boolean>{
 	protected static final float progAmt = .2f;
 	protected double progress = -progAmt;
 	
-	public MapDataToBMUs(SOM_MapManager _mapMgr, int _stProdIDX, int _endProdIDX, int _thdIDX, String _type, boolean _useChiSqDist){
+	public SOM_MapDataToBMUs(SOM_MapManager _mapMgr, int _stProdIDX, int _endProdIDX, int _thdIDX, String _type, boolean _useChiSqDist){
 		mapMgr = _mapMgr;
 		MapNodes = mapMgr.getMapNodes();
 		MapNodesByFtr = mapMgr.getMapNodesByFtr();

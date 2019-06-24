@@ -22,7 +22,7 @@ import base_Utils_Objects.vectorObjs.Tuple;
 * The instancing class is responsible for managing any connections to underlying src data, which is project dependent
 * @author john
 */
-public abstract class SOMMapNode extends SOMExample{
+public abstract class SOM_MapNode extends SOM_Example{
 	protected static float ftrThresh = 0.0f;			//change to non-zero value if wanting to clip very low values
 	public Tuple<Integer,Integer> mapNodeCoord;	
 	//structure to manage examples that consider this node a BMU
@@ -59,15 +59,15 @@ public abstract class SOMMapNode extends SOMExample{
 	protected int[][] dispClrs;
 	
 	//build a map node from a float array of ftrs
-	public SOMMapNode(SOM_MapManager _map, Tuple<Integer,Integer> _mapNodeLoc, float[] _ftrs) {
-		super(_map, ExDataType.MapNode,"Node_"+_mapNodeLoc.x+"_"+_mapNodeLoc.y);
+	public SOM_MapNode(SOM_MapManager _map, Tuple<Integer,Integer> _mapNodeLoc, float[] _ftrs) {
+		super(_map, SOM_ExDataType.MapNode,"Node_"+_mapNodeLoc.x+"_"+_mapNodeLoc.y);
 		if(_ftrs.length != 0){	setFtrsFromFloatAra(_ftrs);	}
 		initMapNode( _mapNodeLoc);		
 	}
 	
 	//build a map node from a string array of features
-	public SOMMapNode(SOM_MapManager _map,Tuple<Integer,Integer> _mapNodeLoc, String[] _strftrs) {
-		super(_map, ExDataType.MapNode, "Node_"+_mapNodeLoc.x+"_"+_mapNodeLoc.y);
+	public SOM_MapNode(SOM_MapManager _map,Tuple<Integer,Integer> _mapNodeLoc, String[] _strftrs) {
+		super(_map, SOM_ExDataType.MapNode, "Node_"+_mapNodeLoc.x+"_"+_mapNodeLoc.y);
 		if(_strftrs.length != 0){	
 			float[] _tmpFtrs = new float[_strftrs.length];		
 			for (int i=0;i<_strftrs.length; ++i) {		_tmpFtrs[i] = Float.parseFloat(_strftrs[i]);	}
@@ -99,7 +99,7 @@ public abstract class SOMMapNode extends SOMExample{
 
 	//called at end of base class construction
 	private void initMapNode(Tuple<Integer,Integer> _mapNode){
-		hasMappedExamples = new boolean[ExDataType.getNumVals()];
+		hasMappedExamples = new boolean[SOM_ExDataType.getNumVals()];
 		dispClrs = new int[hasMappedExamples.length][];
 		for(int i=0;i<hasMappedExamples.length;++i) {		hasMappedExamples[i]=false;		dispClrs[i]=nodeClrs;	}
 		mapNodeCoord = _mapNode;		
@@ -109,8 +109,8 @@ public abstract class SOMMapNode extends SOMExample{
 		//these are the same for map nodes
 		mapNodeLoc.set(mapLoc);
 		uMatClr = new int[3];
-		BMUExampleNodes = new SOMMapNodeBMUExamples[ExDataType.getNumVals()];
-		for(int i=0;i<BMUExampleNodes.length;++i) {	BMUExampleNodes[i] = new SOMMapNodeBMUExamples(this,ExDataType.getVal(i));	}
+		BMUExampleNodes = new SOMMapNodeBMUExamples[SOM_ExDataType.getNumVals()];
+		for(int i=0;i<BMUExampleNodes.length;++i) {	BMUExampleNodes[i] = new SOMMapNodeBMUExamples(this,SOM_ExDataType.getVal(i));	}
 		uMatrixSegData = new SOM_MapNodeSegmentData(this, this.OID+"_UMatrixData", "UMatrix Distance");
 		ftrWtSegData = new TreeMap<Integer, SOM_MapNodeSegmentData>();
 		for(Integer idx : ftrMaps[ftrMapTypeKey].keySet()) {
@@ -123,6 +123,10 @@ public abstract class SOMMapNode extends SOMExample{
 		categorySegManager = new SOM_MapNodeCategorySegMgr(this);
 		//instancing class-specific functionality
 		_initDataFtrMappings();
+		//build essential components of feature vector
+		buildAllNonZeroFtrIDXs();
+		buildNormFtrData();//once ftr map is built can normalize easily
+		_buildFeatureVectorEnd_Priv();
 	}//initMapNode
 	
 	/**
@@ -255,6 +259,27 @@ public abstract class SOMMapNode extends SOMExample{
 	 */
 	public void setSegmentsAndProbsFromBMU() {};
 	
+	//called by SOMDataLoader - these are standardized based on data mins and diffs seen in -map nodes- feature data, not in training data
+	//call this instead of buildStdFtrsMap, passing mins and diffs
+	//called by SOMDataLoader - these are standardized based on data mins and diffs seen in -map nodes- feature data, not in training data
+	public final void buildStdFtrsMapFromFtrData_MapNode(float[] minsAra, float[] diffsAra) {
+		clearFtrMap(stdFtrMapTypeKey);
+		if (ftrMaps[ftrMapTypeKey].size() > 0) {
+			for(Integer destIDX : ftrMaps[ftrMapTypeKey].keySet()) {
+				Float lb = minsAra[destIDX], diff = diffsAra[destIDX];
+				float val = 0.0f;
+				if (diff==0) {//same min and max
+					if (lb > 0) {	val = 1.0f;}//only a single value same min and max-> set feature value to 1.0
+					else {val= 0.0f;}
+				} else {				val = (ftrMaps[ftrMapTypeKey].get(destIDX)-lb)/diff;				}
+				ftrMaps[stdFtrMapTypeKey].put(destIDX,val);
+			}//for each non-zero feature
+		}
+		//just set the comparator vector array == to the actual feature vector array
+		buildCompFtrVector(0.0f);
+		setFlag(stdFtrsBuiltIDX,true);
+	}//buildStdFtrsMap_MapNode
+	
 	//////////////////////////////
 	// neighborhood construction and calculations
 	//initialize 4-neighbor node neighborhood - grid of adjacent 4x4 nodes
@@ -277,7 +302,7 @@ public abstract class SOMMapNode extends SOMExample{
 	 * build a structure to hold the SQ L2 distance between this map node and its neighbor map nodes, ftr-wise
 	 * @param mapNodes - map of all SOM map nodes
 	 */
-	public final void buildMapNodeNeighborSqDistVals(TreeMap<Tuple<Integer,Integer>, SOMMapNode> mapNodes) {//only build immediate neighborhood
+	public final void buildMapNodeNeighborSqDistVals(TreeMap<Tuple<Integer,Integer>, SOM_MapNode> mapNodes) {//only build immediate neighborhood
 		neighborSqDistVals = new double[ftrMapTypeKeysAra.length][][];
 		//TreeMap<Tuple<Integer,Integer>, SOMMapNode> mapNodes = mapMgr.getMapNodes();
 		for(int ftrIDX = 0;ftrIDX<neighborSqDistVals.length;++ftrIDX) {
@@ -295,7 +320,7 @@ public abstract class SOMMapNode extends SOMExample{
 	 * 2d array of all umatrix weights and L2 Distances for neighors of this node, for bi-cubic interp
 	 * @param mapNodes - map of all SOM map nodes
 	 */
-	public final void buildMapNodeNeighborUMatrixVals(TreeMap<Tuple<Integer,Integer>, SOMMapNode> mapNodes) {
+	public final void buildMapNodeNeighborUMatrixVals(TreeMap<Tuple<Integer,Integer>, SOM_MapNode> mapNodes) {
 		neighborUMatWts = new float[neighborMapCoords.length][];				
 		//TreeMap<Tuple<Integer,Integer>, SOMMapNode> mapNodes
 		for(int row=0;row<neighborUMatWts.length;++row) {
@@ -346,7 +371,7 @@ public abstract class SOMMapNode extends SOMExample{
 	public void clearBMUExs(int _typeIDX) {		BMUExampleNodes[_typeIDX].init();	}//addToBMUs
 	
 	//add passed example to appropriate bmu construct depending on what type of example is passed (training, testing, product)
-	public void addTrainingExToBMUs(SOMExample ex, int _typeIDX) {
+	public void addTrainingExToBMUs(SOM_Example ex, int _typeIDX) {
 		//same as adding any example
 		double sqDist = ex.get_sqDistToBMU();
 		BMUExampleNodes[_typeIDX].addExample(sqDist,ex);
@@ -356,7 +381,7 @@ public abstract class SOMMapNode extends SOMExample{
 	}//addTrainingExToBMUs 
 	
 	//add passed example to appropriate bmu construct depending on what type of example is passed (training, testing, product)
-	public void addExToBMUs(SOMExample ex, int _typeIDX) {
+	public void addExToBMUs(SOM_Example ex, int _typeIDX) {
 		double sqDist = ex.get_sqDistToBMU();
 		BMUExampleNodes[_typeIDX].addExample(sqDist,ex);
 		hasMappedExamples[_typeIDX]=true;
@@ -364,13 +389,13 @@ public abstract class SOMMapNode extends SOMExample{
 	
 	//copy passed map node example to appropriate bmu construct depending on what type of example is passed (training, testing, product)
 	//will only be called one time, so no need to synchrnonize
-	public void copyMapNodeExamples(double dist, SOMMapNode ex, int _typeIDX) {
+	public void copyMapNodeExamples(double dist, SOM_MapNode ex, int _typeIDX) {
 		//int _typeIDX = ex.type.getVal();
 		//BMUExampleNodes[_typeIDX].addExample(dist,ex);		
 		BMUExampleNodes[_typeIDX].setCopyOfMapNode(dist, ex.BMUExampleNodes[_typeIDX]);
 		hasMappedExamples[_typeIDX]=false;
 		//add relelvant tags, if any, for training examples - only call if being called by training examples
-		if(ExDataType.Training == ExDataType.getVal(_typeIDX)) {	addMapNodeExToBMUs_Priv(dist,ex);}
+		if(SOM_ExDataType.Training == SOM_ExDataType.getVal(_typeIDX)) {	addMapNodeExToBMUs_Priv(dist,ex);}
 	}//addMapNodeExToBMUs 
 	
 	//finalize all calculations for examples using this node as a bmu - this calculates quantities based on totals derived, used for visualizations
@@ -387,13 +412,9 @@ public abstract class SOMMapNode extends SOMExample{
 	 * @param dist
 	 * @param ex
 	 */
-	protected abstract void addTrainingExToBMUs_Priv(double dist, SOMExample ex);
+	protected abstract void addTrainingExToBMUs_Priv(double dist, SOM_Example ex);
 	//add map node with examples to map node without any
-	protected abstract void addMapNodeExToBMUs_Priv(double dist, SOMMapNode ex);
-	
-	//call this instead of buildStdFtrsMap, passing mins and diffs
-	//called by SOMDataLoader - these are standardized based on data mins and diffs seen in -map nodes- feature data, not in training data
-	public abstract void buildStdFtrsMapFromFtrData_MapNode(float[] minsAra, float[] diffsAra);			
+	protected abstract void addMapNodeExToBMUs_Priv(double dist, SOM_MapNode ex);
 	
 	//this will return the training label(s) of this example - a map node -never- is used as training
 	//they should not be used for supervision during/after training (not sure how that could even happen)
@@ -403,7 +424,7 @@ public abstract class SOMMapNode extends SOMExample{
 	//get # of requested type of examples mapping to this node
 	public int getNumExamples(int _typeIDX) {	return BMUExampleNodes[_typeIDX].getNumExamples();	}		
 	//get a map of all examples of specified type near this bmu and the distances for the example
-	public HashMap<SOMExample, Double> getAllExsAndDist(int _typeIDX){	return BMUExampleNodes[_typeIDX].getExsAndDist();}//getAllExsAndDist	
+	public HashMap<SOM_Example, Double> getAllExsAndDist(int _typeIDX){	return BMUExampleNodes[_typeIDX].getExsAndDist();}//getAllExsAndDist	
 	//return string array of descriptions for the requested kind of examples mapped to this node
 	public String[] getAllExampleDescs(int _typeIDX) {return BMUExampleNodes[_typeIDX].getAllExampleDescs();}
 	
@@ -510,9 +531,9 @@ public abstract class SOMMapNode extends SOMExample{
 //this class will hold a structure to aggregate and process the examples of a particular type that consider the owning node a BMU
 class SOMMapNodeBMUExamples{
 	//owning node of these examples
-	private SOMMapNode node;
+	private SOM_MapNode node;
 	//map of examples that consider node to be their bmu; keyed by euclidian distance
-	private TreeMap<Double,HashSet<SOMExample>> examplesBMU;
+	private TreeMap<Double,HashSet<SOM_Example>> examplesBMU;
 	//size of examplesBMU
 	private int numMappedEx;
 	//log size of examplesBMU +1, used for visualization radius
@@ -522,20 +543,20 @@ class SOMMapNodeBMUExamples{
 	//string array holding relevant info for visualization
 	private String[] visLabel;
 	//data type of examples this is managing
-	private ExDataType dataType;
+	private SOM_ExDataType dataType;
 	//whether or not this BMU node has examples
 	private boolean hasExamples;
 	//color to show node with, based on whether it has examples or not
 	private int[] dispClrs;
 	//this is node we copied from, if this node is copied; otherwise it is the same as node
-	private SOMMapNode copyNode;
+	private SOM_MapNode copyNode;
 	//this is the distance from copyNode that this object's owning node is
 	private double sqDistToCopyNode;
 	//
-	public SOMMapNodeBMUExamples(SOMMapNode _node, ExDataType _dataType) {	
+	public SOMMapNodeBMUExamples(SOM_MapNode _node, SOM_ExDataType _dataType) {	
 		node = _node;
 		dataType = _dataType;
-		examplesBMU = new TreeMap<Double,HashSet<SOMExample>>(); 
+		examplesBMU = new TreeMap<Double,HashSet<SOM_Example>>(); 
 		init();
 		copyNode = node;
 	}//ctor
@@ -557,11 +578,11 @@ class SOMMapNodeBMUExamples{
 	//set this example to be a copy of passed example
 	public void setCopyOfMapNode(double sqdist, SOMMapNodeBMUExamples otrEx) {
 		examplesBMU.clear();
-		TreeMap<Double,HashSet<SOMExample>> otrExamples = otrEx.examplesBMU;
+		TreeMap<Double,HashSet<SOM_Example>> otrExamples = otrEx.examplesBMU;
 		for(Double dist : otrExamples.keySet()) {
-			HashSet<SOMExample> otrExs = otrExamples.get(dist);
-			HashSet<SOMExample> myExs = new HashSet<SOMExample>();
-			for(SOMExample ex : otrExs) {myExs.add(ex);}
+			HashSet<SOM_Example> otrExs = otrExamples.get(dist);
+			HashSet<SOM_Example> myExs = new HashSet<SOM_Example>();
+			for(SOM_Example ex : otrExs) {myExs.add(ex);}
 			examplesBMU.put(dist, myExs);
 		}		
 		sqDistToCopyNode = sqdist;
@@ -575,11 +596,11 @@ class SOMMapNodeBMUExamples{
 	 * @param sqdist the squared distance from ex to the map node
 	 * @param _ex the example treating this map node as bmu
 	 */
-	public void addExample(double sqdist, SOMExample _ex) {
+	public void addExample(double sqdist, SOM_Example _ex) {
 		//synching on examplesBMU since owning map node might be called multiple times by different examples in a multi-threaded environment
 		synchronized(examplesBMU) {
-			HashSet<SOMExample> tmpList = examplesBMU.get(sqdist);
-			if(tmpList == null) {tmpList = new HashSet<SOMExample>();}
+			HashSet<SOM_Example> tmpList = examplesBMU.get(sqdist);
+			if(tmpList == null) {tmpList = new HashSet<SOM_Example>();}
 			tmpList.add(_ex);		
 			examplesBMU.put(sqdist, tmpList);	
 		}
@@ -595,7 +616,7 @@ class SOMMapNodeBMUExamples{
 		nodeSphrDet = (int)( Math.log(logExSize+1)+2);
 		visLabel = new String[] {""+node.OID+" : ", ""+numMappedEx};
 		dispClrs = hasExamples ? node.nodeClrs : node.altClrs;
-		if(!hasExamples && (dataType==ExDataType.Training)) {
+		if(!hasExamples && (dataType==SOM_ExDataType.Training)) {
 			node.mapMgr.getMsgObj().dispInfoMessage("SOMMapNodeBMUExamples", "finalize", "Finalize for " +dataType.getName() + " non-example map node in SOMMapNodeBMUExamples with "+numMappedEx+" copied ex | dispClrs : ["+dispClrs[0]+","+dispClrs[1]+","+dispClrs[2]+"] | node addr : " + node.mapNodeCoord +" | copied node addr : "+copyNode.mapNodeCoord+" | dist to copy node : " + sqDistToCopyNode+".");
 		}
 	}
@@ -618,12 +639,12 @@ class SOMMapNodeBMUExamples{
 	}
 	
 	//return a listing of all examples and their distance from this BMU
-	public HashMap<SOMExample, Double> getExsAndDist(){
-		HashMap<SOMExample, Double> res = new HashMap<SOMExample, Double>();
+	public HashMap<SOM_Example, Double> getExsAndDist(){
+		HashMap<SOM_Example, Double> res = new HashMap<SOM_Example, Double>();
 		for(double dist : examplesBMU.keySet() ) {
-			HashSet<SOMExample> tmpList = examplesBMU.get(dist);
+			HashSet<SOM_Example> tmpList = examplesBMU.get(dist);
 			if(tmpList == null) {continue;}//should never happen			
-			for (SOMExample ex : tmpList) {res.put(ex, dist);}
+			for (SOM_Example ex : tmpList) {res.put(ex, dist);}
 		}
 		return res;
 	}//getExsAndDist()
@@ -632,10 +653,10 @@ class SOMMapNodeBMUExamples{
 	public String[] getAllExampleDescs() {
 		ArrayList<String> tmpRes = new ArrayList<String>();
 		for(double dist : examplesBMU.keySet() ) {
-			HashSet<SOMExample> tmpList = examplesBMU.get(dist);
+			HashSet<SOM_Example> tmpList = examplesBMU.get(dist);
 			if(tmpList == null) {continue;}//should never happen
 			String tmpStr = String.format("%.6f", dist);
-			for (SOMExample ex : tmpList) {tmpStr += "," + ex.OID;	}
+			for (SOM_Example ex : tmpList) {tmpStr += "," + ex.OID;	}
 			tmpRes.add(tmpStr);
 		}		
 		return tmpRes.toArray(new String[1]);		

@@ -11,16 +11,16 @@ import base_Utils_Objects.io.MessageObject;
 import base_Utils_Objects.io.MsgCodes;
 
 //this class will load the pre-procced csv data into the prospect data structure owned by the SOMMapData object
-public abstract class SOMExCSVDataLoader implements Callable<Boolean>{
+public abstract class SOM_ExCSVDataLoader implements Callable<Boolean>{
 	public SOM_MapManager mapMgr;
 	private MessageObject msgObj;
 	private String fileName, dispYesStr, dispNoStr;
 	private int thdIDX;
 	private FileIOManager fileIO;
 	//ref to map to add to, either prospects or validation records
-	private ConcurrentSkipListMap<String, SOMExample> mapToAddTo;
+	private ConcurrentSkipListMap<String, SOM_Example> mapToAddTo;
 	protected String type;
-	public SOMExCSVDataLoader(SOM_MapManager _mapMgr, int _thdIDX, String _fileName, String _yStr, String _nStr, ConcurrentSkipListMap<String, SOMExample> _mapToAddTo) {	
+	public SOM_ExCSVDataLoader(SOM_MapManager _mapMgr, int _thdIDX, String _fileName, String _yStr, String _nStr, ConcurrentSkipListMap<String, SOM_Example> _mapToAddTo) {	
 		mapMgr=_mapMgr;
 		msgObj=mapMgr.buildMsgObj();thdIDX=_thdIDX;fileName=_fileName;dispYesStr=_yStr;dispNoStr=_nStr; 
 		mapToAddTo = _mapToAddTo;
@@ -28,7 +28,7 @@ public abstract class SOMExCSVDataLoader implements Callable<Boolean>{
 		type="";
 	}//ctor
 	
-	protected abstract SOMExample buildExample(String oid, String str);
+	protected abstract SOM_Example buildExample(String oid, String str);
 	
 	@Override
 	public Boolean call() throws Exception {	
@@ -39,9 +39,9 @@ public abstract class SOMExCSVDataLoader implements Callable<Boolean>{
 			String str = csvLoadRes[j];
 			int pos = str.indexOf(',');
 			String oid = str.substring(0, pos);
-			SOMExample ex = buildExample(oid, str);//new custProspectExample(mapMgr, oid, str);
+			SOM_Example ex = buildExample(oid, str);//new custProspectExample(mapMgr, oid, str);
 			//ProspectExample oldEx = mapMgr.putInProspectMap(ex);//mapMgr.prospectMap.put(ex.OID, ex);	
-			SOMExample oldEx = mapToAddTo.put(ex.OID, ex);	//mapMgr.prospectMap.put(ex.OID, ex);	
+			SOM_Example oldEx = mapToAddTo.put(ex.OID, ex);	//mapMgr.prospectMap.put(ex.OID, ex);	
 			if(oldEx != null) {msgObj.dispMessage("SOMExCSVDataLoader", type+": call thd : " +String.format("%02d", thdIDX), "ERROR : "+thdIDX+" : Attempt to add duplicate record to prospectMap w/OID : " + oid, MsgCodes.error2);	}
 		}		
 		msgObj.dispMessage("SOMExCSVDataLoader", type+": call thd : " +String.format("%02d", thdIDX),"Finished loading file :"+fileName, MsgCodes.info1);	

@@ -12,13 +12,13 @@ import base_SOM_Objects.SOM_MapManager;
  * @author john
  *
  */
-public class SOMUIToMapCom {
+public class SOM_UIToMapCom {
 	//owning map manager
 	protected SOM_MapManager mapMgr;	
 	//ref to owning window
 	protected ISOM_UIWinMapDat win;
 
-	public SOMUIToMapCom(SOM_MapManager _mapMgr, ISOM_UIWinMapDat _win) {	
+	public SOM_UIToMapCom(SOM_MapManager _mapMgr, ISOM_UIWinMapDat _win) {	
 		mapMgr = _mapMgr;win=_win;
 	}	
 	////////////////////////////////////

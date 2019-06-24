@@ -5,6 +5,7 @@ import java.util.Map.Entry;
 import java.util.function.BiFunction;
 
 import base_SOM_Objects.*;
+import base_SOM_Objects.som_exampleFeatures.SOM_Features;
 import base_SOM_Objects.som_segments.segmentData.SOM_MapNodeSegmentData;
 import base_SOM_Objects.som_segments.segments.SOM_MappedSegment;
 import base_UI_Objects.*;
@@ -26,22 +27,36 @@ import base_Utils_Objects.vectorObjs.myPointf;
  * This is the base class describing an example data point to be used to train a SOM
  * @author john turner
  */
-public abstract class SOMExample extends baseDataPtVis{	
+public abstract class SOM_Example extends baseDataPtVis{	
 	//unique key field used for this example
-	public final String OID;		
+	public final String OID;
+	//structure holding all features for this example
+	//private SOM_Features features;
+	
+	//# of features the dataset this example is from has (including zero features)
+	//this will stay the same across all examples and map nodes
+	protected int numFtrs;
 	//use a map to hold only sparse data of each frmt for feature vector
-	protected TreeMap<Integer, Float>[] ftrMaps;	
+	public TreeMap<Integer, Float>[] ftrMaps;	
 	//this map is what is used by examples to compare for mappings - this may include combinations of other features or values
 	//when all ftrs are calculated (unmodded, normalized and stdizd) they need to be mapped to this structure, possibly in
 	//combination with an alternate set of features or other calculations
-	protected TreeMap<Integer, Float>[] compFtrMaps;
-	//idx's in feature vector that have non-zero values
-	public ArrayList<Integer> allNonZeroFtrIDXs;	
+	public TreeMap<Integer, Float>[] compFtrMaps;
 	//magnitude of this feature vector
 	public float ftrVecMag;	
+	//idx's in feature vector that have non-zero values
+	public ArrayList<Integer> allNonZeroFtrIDXs;	
 	//keys for ftr map arrays
 	protected static final int ftrMapTypeKey = SOM_MapManager.useUnmoddedDat, normFtrMapTypeKey = SOM_MapManager.useNormedDat, stdFtrMapTypeKey = SOM_MapManager.useScaledDat;	
 	protected static final Integer[] ftrMapTypeKeysAra = new Integer[] {ftrMapTypeKey, normFtrMapTypeKey, stdFtrMapTypeKey};
+	
+//	//these objects are for reporting on individual examples.  
+//	//use a map per feature type : unmodified, normalized, standardized,to hold the features sorted by weight as key, value is array of ftrs at a particular weight -submap needs to be instanced in descending key order
+//	private TreeMap<Float, ArrayList<Integer>>[] mapOfWtsToFtrIDXs;	
+//	//a map per feature type : unmodified, normalized, standardized, of ftr IDXs and their relative "rank" in this particular example, as determined by the weight calc
+//	private TreeMap<Integer,Integer>[] mapOfFtrIDXVsWtRank;	
+	
+	
 
 	private int[] stFlags;						//state flags - bits in array holding relevant process info
 	public static final int
@@ -55,21 +70,14 @@ public abstract class SOMExample extends baseDataPtVis{
 	public static final int numFlags = 6;	
 	
 	//reference to map node that best matches this example node
-	private SOMMapNode bmu;			
+	private SOM_MapNode bmu;			
 	//this is the squared distance, using the chosen distance measure, to the best matching unit of the map for this example
 	private double _sqDistToBMU;
 	//to hold 9 node neighborhood surrounding bmu - using array of nodes because nodes can be equidistant form multiple nodes
 	//TODO set a list of these nodes for each SOMMapNodeExample upon their construction? will this speed up anything?
-	private TreeMap<Double, ArrayList<SOMMapNode>> mapNodeNghbrs;
+	private TreeMap<Double, ArrayList<SOM_MapNode>> mapNodeNghbrs;
 	//hash code for using in a map
-	private int _hashCode;
-	
-	//these objects are for reporting on individual examples.  
-	//use a map per feature type : unmodified, normalized, standardized,to hold the features sorted by weight as key, value is array of ftrs at a particular weight -submap needs to be instanced in descending key order
-	private TreeMap<Float, ArrayList<Integer>>[] mapOfWtsToFtrIDXs;	
-	//a map per feature type : unmodified, normalized, standardized, of ftr IDXs and their relative "rank" in this particular example, as determined by the weight calc
-	private TreeMap<Integer,Integer>[] mapOfFtrIDXVsWtRank;	
-	
+	private final int _hashCode;
 	
 	//is this datapoint used for training; whether this record has a source "event" attached to it
 	protected boolean isTrainingData;
@@ -77,7 +85,7 @@ public abstract class SOMExample extends baseDataPtVis{
 	protected int testTrainDataIDX;
 	//two maps of distances to each map node for each example, with each array either including unshared features or excluding unshared features in distance calc
 	//keyed by distance, array list is list of map nodes at that distance
-	protected TreeMap<Double,ArrayList<SOMMapNode>>[] allMapNodesDists;	
+	protected TreeMap<Double,ArrayList<SOM_MapNode>>[] allMapNodesDists;	
 	//two kinds of maps to bmus available - all ftrs looks at all feature values for distances, 
 	//while shared only measures distances where this example's wts are non-zero
 	public static final int
@@ -85,22 +93,19 @@ public abstract class SOMExample extends baseDataPtVis{
 		SharedFtrsIDX = 1;			//looks only at non-zero features in this node for distance calculations
 	protected static int numFtrCompVals = 2;
 
-	//segments this product belongs to, based on features, classes(jp) and categories(jp groups)
-	//there will be 1 entry for all ftrs, jps and jpgroups this example belongs to	
+	//segments this product belongs to, based on features, classes and categories
+	//there will be 1 entry for all ftrs, classes and categories this example belongs to	
 	private TreeMap<Integer, SOM_MappedSegment> ftrWtSegData;			//keyed by non-zero ftr index	
 	private TreeMap<Integer, SOM_MappedSegment> class_SegData;			//segment membership manager class mapping
 	private TreeMap<Integer, SOM_MappedSegment> categorys_SegData;		//segment membership manager category mapping
 
 	
-	public SOMExample(SOM_MapManager _map, ExDataType _type, String _id) {
+	public SOM_Example(SOM_MapManager _map, SOM_ExDataType _type, String _id) {
 		super(_map,_type);
 		OID = _id;
 		set_sqDistToBMU(0.0);
 		initFlags();	
-		ftrMaps = new TreeMap[ftrMapTypeKeysAra.length];
-		for (int i=0;i<ftrMaps.length;++i) {			ftrMaps[i] = new TreeMap<Integer, Float>(); 		}
-		compFtrMaps = new TreeMap[ftrMapTypeKeysAra.length];		
-		for (int i=0;i<compFtrMaps.length;++i) {			compFtrMaps[i] = new TreeMap<Integer, Float>(); 		}
+		initFeatureLists();
 		String tmp = OID + "" + type;
 		_hashCode = tmp.hashCode();
 		_initSegStructs();
@@ -108,18 +113,21 @@ public abstract class SOMExample extends baseDataPtVis{
 	
 	//copy ctor - shallow copy of _otr - used to provide casting between nearly identical example types
 	//it is expected that _otr ref will be disposed
-	public SOMExample(SOMExample _otr) {
+	public SOM_Example(SOM_Example _otr) {
 		super(_otr);
 		OID = _otr.OID;
 		setBmu(_otr.getBmu());
 		set_sqDistToBMU(_otr.get_sqDistToBMU());
 		_hashCode = _otr._hashCode;
+		
+		//features = _otr.features;
+		
 		ftrMaps = _otr.ftrMaps;
 		compFtrMaps = _otr.compFtrMaps;
 		ftrVecMag = _otr.ftrVecMag;
 		allNonZeroFtrIDXs = _otr.allNonZeroFtrIDXs;
-		mapOfWtsToFtrIDXs = _otr.mapOfWtsToFtrIDXs;
-		mapOfFtrIDXVsWtRank = _otr.mapOfFtrIDXVsWtRank;
+//		mapOfWtsToFtrIDXs = _otr.mapOfWtsToFtrIDXs;
+//		mapOfFtrIDXVsWtRank = _otr.mapOfFtrIDXVsWtRank;
 		mapNodeNghbrs = _otr.mapNodeNghbrs;
 		isTrainingData = _otr.isTrainingData;
 		testTrainDataIDX = _otr.testTrainDataIDX;
@@ -130,6 +138,21 @@ public abstract class SOMExample extends baseDataPtVis{
 
 		stFlags = _otr.stFlags;		
 	}//copy ctor
+	
+	/**
+	 * call only on construction or change of # of featrues, to enable structs holding feature values to remain constructed  
+	 */
+	private void initFeatureLists() {
+		ftrMaps = new TreeMap[ftrMapTypeKeysAra.length];
+		for (int i=0;i<ftrMaps.length;++i) {			ftrMaps[i] = new TreeMap<Integer, Float>(); 		}
+		compFtrMaps = new TreeMap[ftrMapTypeKeysAra.length];		
+		for (int i=0;i<compFtrMaps.length;++i) {			compFtrMaps[i] = new TreeMap<Integer, Float>(); 		}		
+	}
+	/**
+	 * set # of feature to be seen in dataset owned by this example
+	 * @param _numFtrs
+	 */
+	public void setNumFtrs(int _numFtrs) {numFtrs = _numFtrs;}
 	
 	private void _initSegStructs() {
 		ftrWtSegData = new TreeMap<Integer, SOM_MappedSegment>();		//keyed by non-zero ftr index	                   
@@ -183,24 +206,24 @@ public abstract class SOMExample extends baseDataPtVis{
 	
 	//add passed map node, with passed feature distance, to neighborhood nodes
 	//using a map of arrays so that we can precalc distances 1 time
-	protected final void addMapNodeToNeighbrhdMap(SOMMapNode _n, double _dist) {
-		ArrayList<SOMMapNode> tmpMap = mapNodeNghbrs.get(_dist);
-		if (null==tmpMap) {tmpMap = new ArrayList<SOMMapNode>();}
+	protected final void addMapNodeToNeighbrhdMap(SOM_MapNode _n, double _dist) {
+		ArrayList<SOM_MapNode> tmpMap = mapNodeNghbrs.get(_dist);
+		if (null==tmpMap) {tmpMap = new ArrayList<SOM_MapNode>();}
 		tmpMap.add(_n);
 		mapNodeNghbrs.put(_dist, tmpMap);		
 	}//addMapUnitToNeighbrhdMap
 	
 	//once BMU and distToBMU is set, init map and add node to neighborhood map keyed by dist
 	protected final void addBMUToNeighbrhdMap() {
-		mapNodeNghbrs = new TreeMap<Double, ArrayList<SOMMapNode>>();
-		ArrayList<SOMMapNode> tmpMap = new ArrayList<SOMMapNode>();
+		mapNodeNghbrs = new TreeMap<Double, ArrayList<SOM_MapNode>>();
+		ArrayList<SOM_MapNode> tmpMap = new ArrayList<SOM_MapNode>();
 		tmpMap.add(getBmu());
 		mapNodeLoc.set(getBmu().mapLoc);
 		mapNodeNghbrs.put(get_sqDistToBMU(), tmpMap);		//to hold 9 neighbor nodes and their ftr distance		
 	}//addBMUToNeighbrhdMap
 	
 	//assign passed map node to be bmu
-	protected final void _setBMUAddToNeighborhood(SOMMapNode _n, double _dist) {
+	protected final void _setBMUAddToNeighborhood(SOM_MapNode _n, double _dist) {
 		//if (checkForErrors(_n, mapMgr.map_ftrsVar)) {return;}//if true then this is catastrophic error and should interrupt flow here
 		setBmu(_n);	
 		set_sqDistToBMU(_dist);
@@ -214,7 +237,7 @@ public abstract class SOMExample extends baseDataPtVis{
 		setBmu(null);
 		set_sqDistToBMU(Double.MAX_VALUE);
 		mapLoc.set(0,0,0);
-		mapNodeNghbrs = new TreeMap<Double, ArrayList<SOMMapNode>>();
+		mapNodeNghbrs = new TreeMap<Double, ArrayList<SOM_MapNode>>();
 	}
 	
 	public boolean isBmuNull() {return (null==bmu);}
@@ -231,8 +254,8 @@ public abstract class SOMExample extends baseDataPtVis{
 		return bmu.getCategoryProb(category);
 	}
 	//assumes bmu exists and is not null
-	public Set<Integer> getBMUClassSegIDs(){			return bmu.getClassSegIDs();}
-	public Set<Integer> getBMUCategorySegIDs(){			return bmu.getCategorySegIDs();}
+	public Set<Integer> getBMUClassSegIDs(){				return bmu.getClassSegIDs();}
+	public Set<Integer> getBMUCategorySegIDs(){				return bmu.getCategorySegIDs();}
 	public SOM_MappedSegment getBMUClassSegment(int cls) {	return bmu.getClassSegment(cls);}
 	public SOM_MappedSegment getBMUCategorySegment(int cat) {	return bmu.getCategorySegment(cat);}
 	
@@ -246,7 +269,7 @@ public abstract class SOMExample extends baseDataPtVis{
 	//also does not use comparison vector but actual ftrMaps/training vector for the above reason
 	//this also adds this data point to the map's node with a key of the distance
 	//dataVar is variance of feature weights of map nodes.  this is for chi-squared distance measurements
-	public final void setTrainingExBMU(SOMMapNode _n, int _ftrType){
+	public final void setTrainingExBMU(SOM_MapNode _n, int _ftrType){
 		_setBMUAddToNeighborhood(_n,getSqDistFromFtrType(_n.ftrMaps[_ftrType],  ftrMaps[_ftrType]));
 		//find ftr distance to all 8 surrounding nodes and add them to mapNodeNeighbors
 		buildNghbrhdMapNodes( _ftrType, this::getSqDistFromFtrType);
@@ -257,7 +280,7 @@ public abstract class SOMExample extends baseDataPtVis{
 	//also does not use comparison vector but actual ftrMaps/training vector for the above reason
 	//this also adds this data point to the map's node with a key of the distance
 	//dataVar is variance of feature weights of map nodes.  this is for chi-squared distance measurements
-	public final void setTrainingExBMU_ChiSq(SOMMapNode _n, int _ftrType){
+	public final void setTrainingExBMU_ChiSq(SOM_MapNode _n, int _ftrType){
 		_setBMUAddToNeighborhood(_n,getSqDistFromFtrType_ChiSq(_n.ftrMaps[_ftrType],  ftrMaps[_ftrType]));
 		//find ftr distance to all 8 surrounding nodes and add them to mapNodeNeighbors
 		buildNghbrhdMapNodes( _ftrType, this::getSqDistFromFtrType_ChiSq);
@@ -272,7 +295,7 @@ public abstract class SOMExample extends baseDataPtVis{
 		int mapColsSize = mapMgr.getMapNodeCols(), mapRowSize = mapMgr.getMapNodeRows();
 		int mapCtrX = bmu.mapNodeCoord.x, mapCtrY = bmu.mapNodeCoord.y;
 		Integer xTup, yTup;
-		TreeMap<Tuple<Integer,Integer>, SOMMapNode> mapNodes = mapMgr.getMapNodes();
+		TreeMap<Tuple<Integer,Integer>, SOM_MapNode> mapNodes = mapMgr.getMapNodes();
 		//measuring distance to map node neighbors around bmu
 		for (int x=-1; x<2;++x) {//should be 3 cols
 			xTup = (mapCtrX + x + mapColsSize) % mapColsSize;
@@ -280,7 +303,7 @@ public abstract class SOMExample extends baseDataPtVis{
 				if((y==0) && (x==0)){continue;}//ignore "center" node - this is bmu
 				yTup = (mapCtrY + y + mapRowSize) % mapRowSize;		
 				Tuple<Integer,Integer> key = new Tuple<Integer, Integer>(xTup, yTup);
-				SOMMapNode mapNode = mapNodes.get(key);
+				SOM_MapNode mapNode = mapNodes.get(key);
 				double dist = _distFunc.apply(mapNode.ftrMaps[_ftrType], ftrMaps[_ftrType]);
 				addMapNodeToNeighbrhdMap(mapNode, dist);
 			}//for each row/y
@@ -297,7 +320,7 @@ public abstract class SOMExample extends baseDataPtVis{
 	}//calcWrapMod
 	
 	//return location of passed map node, with value added or subtracted based on whether it wraps around map
-	private final myPointf findNodeLocWrap(SOMMapNode mapNode, Integer bmuX, Integer bmuY, float mapW, float mapH) {
+	private final myPointf findNodeLocWrap(SOM_MapNode mapNode, Integer bmuX, Integer bmuY, float mapW, float mapH) {
 		Integer mapNode_X = mapNode.mapNodeCoord.x, mapNode_Y = mapNode.mapNodeCoord.y;
 		myPointf loc = new myPointf(mapNode.mapLoc);
 		float locXMod = calcWrapMod(bmuX, mapNode_X, mapW);		//subtract or add map width or height depending on whether neighborhood wraps around torroidal map
@@ -312,16 +335,16 @@ public abstract class SOMExample extends baseDataPtVis{
 		float ttlInvDist = 0.0f,invDistP1;
 		for (double _dist : mapNodeNghbrs.keySet()) {
 			invDistP1 = (float) (1.0f/(1.0f+_dist));					//handles 0 dist - max will be 0, min will be some fraction
-			ArrayList<SOMMapNode> tmpMap = mapNodeNghbrs.get(_dist);
-			for (SOMMapNode ex : tmpMap) {			ttlInvDist +=invDistP1;		}			
+			ArrayList<SOM_MapNode> tmpMap = mapNodeNghbrs.get(_dist);
+			for (SOM_MapNode ex : tmpMap) {			ttlInvDist +=invDistP1;		}			
 		}
 		float mapW = mapMgr.getMapWidth(), mapH = mapMgr.getMapHeight();
 		Integer bmuX = getBmu().mapNodeCoord.x,  bmuY = getBmu().mapNodeCoord.y;
 		//scale by ttlInvDist so that all distance wts sum to 1
 		for (double _dist : mapNodeNghbrs.keySet()) {
 			invDistP1 = ((float) (1.0f/(1.0f+_dist))/ttlInvDist);					//handles 0 dist - max will be 0, min will be some fraction
-			ArrayList<SOMMapNode> tmpMap = mapNodeNghbrs.get(_dist);
-			for (SOMMapNode mapNode : tmpMap) {		
+			ArrayList<SOM_MapNode> tmpMap = mapNodeNghbrs.get(_dist);
+			for (SOM_MapNode mapNode : tmpMap) {		
 				//if ex is more than 1 in x or y from bmu, then wrap arround, need to add (or subtract) x or y dim of map
 				locToAdd = findNodeLocWrap(mapNode, bmuX, bmuY, mapW, mapH);
 				totalLoc._add(myPointf._mult(locToAdd, invDistP1));				
@@ -398,73 +421,16 @@ public abstract class SOMExample extends baseDataPtVis{
 		}//for each non-zero ftr
 	}//standardizeFeatureVector		getSqDistFromFtrType
 		
-	//initialize structures used to aggregate and report the ranking of particular ftrs for this example
-	private final void initPerFtrObjs() {
-		mapOfWtsToFtrIDXs = new TreeMap[ftrMapTypeKeysAra.length];
-		mapOfFtrIDXVsWtRank = new TreeMap[ftrMapTypeKeysAra.length];
-		for(Integer ftrType : ftrMapTypeKeysAra) {//type of features
-			mapOfWtsToFtrIDXs[ftrType] = new TreeMap<Float, ArrayList<Integer>>(new Comparator<Float>() { @Override public int compare(Float o1, Float o2) {   return o2.compareTo(o1);}});//descending key order
-			mapOfFtrIDXVsWtRank[ftrType] = new TreeMap<Integer,Integer>();
-		}
-	}//initPerFtrObjs()
+//	//called to report on this example's feature weight rankings 
+//	public final void buildFtrRprtStructs() {features.buildFtrRprtStructs();}//buildFtrReports
+//	
+//	//return mapping of ftr IDXs to rank for this example
+//	public final TreeMap<Integer,Integer> getMapOfFtrIDXBsWtRank(int mapToGet){return features.getMapOfFtrIDXBsWtRank(mapToGet);}//getMapOfFtrIDXBsWtRank	
+//	public final TreeMap<Float, ArrayList<Integer>> getMapOfWtsToFtrIDXs(int mapToGet){return features.getMapOfWtsToFtrIDXs(mapToGet);}//getMapOfWtsToFtrIDXs		
+//	//clears out structures used for reports, to minimize memory footprint
+//	public final void clearFtrRprtStructs() {features.clearFtrRprtStructs();}//clearFtrReports
 	
-	//to execute per-example ftr-based reporting, first call buildFtrRptStructs for all examples, then iterate through getters for ftr type == mapToGet, then call clearFtrRptStructs to release memory
-	//called to report on this example's feature weight rankings 
-	public final void buildFtrRprtStructs() {
-		if(getFlag(ftrWtRptBuiltIDX)) {return;}
-		initPerFtrObjs();
-		//for every feature type build 
-		for(Integer mapToGet : ftrMapTypeKeysAra) {//type of features
-			int rank = 0;
-			TreeMap<Integer, Float> ftrMap = ftrMaps[mapToGet];
-			//go through features ara, for each ftr idx find rank 
-			TreeMap<Float, ArrayList<Integer>> mapOfFtrsToIdxs = mapOfWtsToFtrIDXs[mapToGet];
-			//shouldn't be null - means using inappropriate key
-			if(mapOfFtrsToIdxs == null) {mapMgr.getMsgObj().dispMessage("SOMExample" + OID,"buildFtrRprtStructs","Using inappropriate key to access mapOfWtsToFtrIDXs : " + mapToGet + " No submap exists with this key.", MsgCodes.warning2); return;}	
-			for (Integer ftrIDX : ftrMap.keySet()) {
-				float wt = ftrMap.get(ftrIDX);
-				ArrayList<Integer> ftrIDXsAtWt = mapOfFtrsToIdxs.get(wt);
-				if (ftrIDXsAtWt == null) {ftrIDXsAtWt = new ArrayList<Integer>(); }
-				ftrIDXsAtWt.add(ftrIDX);
-				mapOfFtrsToIdxs.put(wt, ftrIDXsAtWt);
-			}
-			//after every feature is built, then poll mapOfFtrsToIdxs for ranked features
-			TreeMap<Integer,Integer> mapOfRanks = mapOfFtrIDXVsWtRank[mapToGet];
-			for (Float wtVal : mapOfFtrsToIdxs.keySet()) {
-				ArrayList<Integer> ftrsAtRank = mapOfFtrsToIdxs.get(wtVal);
-				for (Integer ftr : ftrsAtRank) {	mapOfRanks.put(ftr, rank);}
-				++rank;
-			}
-			mapOfFtrIDXVsWtRank[mapToGet] = mapOfRanks;//probably not necessary since already initialized (will never be empty or deleted)					
-		}//for ftrType		
-		setFlag(ftrWtRptBuiltIDX, true);
-	}//buildFtrReports
 	
-	//return mapping of ftr IDXs to rank for this example
-	public final TreeMap<Integer,Integer> getMapOfFtrIDXBsWtRank(int mapToGet){
-		if(!getFlag(ftrWtRptBuiltIDX)) {
-			mapMgr.getMsgObj().dispMessage("SOMExample" + OID,"getMapOfFtrIDXBsWtRank","Feature-based report structures not yet built. Aborting.", MsgCodes.warning2);
-			return null;
-		}
-		return mapOfFtrIDXVsWtRank[mapToGet];
-	}//getMapOfFtrIDXBsWtRank
-	
-	public final TreeMap<Float, ArrayList<Integer>> getMapOfWtsToFtrIDXs(int mapToGet){
-		if(!getFlag(ftrWtRptBuiltIDX)) {
-			mapMgr.getMsgObj().dispMessage("SOMExample" + OID,"getMapOfWtsToFtrIDXs","Feature-based report structures not yet built. Aborting.", MsgCodes.warning2);
-			return null;
-		}
-		return mapOfWtsToFtrIDXs[mapToGet];
-	}//getMapOfWtsToFtrIDXs
-		
-	//clears out structures used for reports, to minimize memory footprint
-	public final void clearFtrRprtStructs() {		
-		mapOfWtsToFtrIDXs = null;
-		mapOfFtrIDXVsWtRank = null;		
-		setFlag(ftrWtRptBuiltIDX, false);		
-	}//clearFtrReports
-	
-
 	////////////////////////////////
 	//distance measures between nodes
 	/**
@@ -583,20 +549,20 @@ public abstract class SOMExample extends baseDataPtVis{
 	public abstract void buildCompFtrVector(float _ratio);
 	
 	//this value corresponds to training data type - we want to check training data type counts at each node
-	private final int _trainDataTypeIDX = ExDataType.Training.getVal();
+	private final int _trainDataTypeIDX = SOM_ExDataType.Training.getVal();
 	//given a sqdistance-keyed map of lists of mapnodes, this will find the best matching unit (min distance), with favor given to equi-distant units that have more examples
-	private final void _setBMUFromMapNodeDistMap(TreeMap<Double, ArrayList<SOMMapNode>> mapNodes) {
+	private final void _setBMUFromMapNodeDistMap(TreeMap<Double, ArrayList<SOM_MapNode>> mapNodes) {
 		ArrayList<Tuple<Integer,Integer>> bmuKeys = new ArrayList<Tuple<Integer,Integer>>();
-		Entry<Double, ArrayList<SOMMapNode>> topEntry = mapNodes.firstEntry();
+		Entry<Double, ArrayList<SOM_MapNode>> topEntry = mapNodes.firstEntry();
 		Double bmuDist = topEntry.getKey();
-		ArrayList<SOMMapNode>  bmuList = topEntry.getValue();
+		ArrayList<SOM_MapNode>  bmuList = topEntry.getValue();
 		int numBMUs = bmuList.size();
 		for (int i=0;i<numBMUs;++i) {	bmuKeys.add(i, bmuList.get(i).mapNodeCoord);	}
-		SOMMapNode bestUnit = null;//keep null to break on errors - shouldn't happen // bmuList.get(0);//default to first entry
+		SOM_MapNode bestUnit = null;//keep null to break on errors - shouldn't happen // bmuList.get(0);//default to first entry
 		if (numBMUs > 1) {//if more than 1 entry with same distance, find entry with most examples - if no entries have examples, then this will default to first entry
 			int maxNumExamples = 0;
 			for (int i=0;i<numBMUs;++i) {//# of map nodes sharing distance to this node
-				SOMMapNode node = bmuList.get(i);
+				SOM_MapNode node = bmuList.get(i);
 				int numExamples = node.getNumExamples(_trainDataTypeIDX);//want # of training examples - use training examples as map node relevance weight
 				if (numExamples >= maxNumExamples) {//need to manage if all map nodes that are "best" have no direct training examples (might happen on large maps), hence >= and not >
 					maxNumExamples = numExamples;
@@ -644,13 +610,13 @@ public abstract class SOMExample extends baseDataPtVis{
 	 * @param _MapNodesByFtr : map of all nodes keyed by feature index containing non-zero index
 	 * @return set of nodes that have non-zero values in features this node also has non-zero values in
 	 */
-	private final void buildRelevantMapNodes(HashSet<SOMMapNode> _RelevantMapNodes, Set<Integer> nonZeroFtrIDXs, TreeMap<Integer, HashSet<SOMMapNode>> _MapNodesByFtr){
+	private final void buildRelevantMapNodes(HashSet<SOM_MapNode> _RelevantMapNodes, Set<Integer> nonZeroFtrIDXs, TreeMap<Integer, HashSet<SOM_MapNode>> _MapNodesByFtr){
 		//query _MapNodesByFtr by all non-zero features in this map
-		HashSet<SOMMapNode> nodesWithNonZeroFtrs;
+		HashSet<SOM_MapNode> nodesWithNonZeroFtrs;
 		for(Integer idx : nonZeroFtrIDXs) {
 			nodesWithNonZeroFtrs = _MapNodesByFtr.get(idx);
 			if(null==nodesWithNonZeroFtrs) {continue;}
-			for(SOMMapNode node : nodesWithNonZeroFtrs) {		_RelevantMapNodes.add(node);}
+			for(SOM_MapNode node : nodesWithNonZeroFtrs) {		_RelevantMapNodes.add(node);}
 		}		
 	}//buildRelevantMapNodes
 	
@@ -661,14 +627,14 @@ public abstract class SOMExample extends baseDataPtVis{
 	 * @param _ftrType : kind of features (unmod, normed, stdized) to be used for comparison/distance calc
 	 * @return
 	 */	
-	public final TreeMap<Double, ArrayList<SOMMapNode>> findMapNodesByDist(TreeMap<Integer, HashSet<SOMMapNode>> _MapNodesByFtr,  BiFunction<TreeMap<Integer, Float>, TreeMap<Integer, Float>, Double> _distFunc, int _ftrType){
-		HashSet<SOMMapNode> _RelevantMapNodes = new HashSet<SOMMapNode>();
+	public final TreeMap<Double, ArrayList<SOM_MapNode>> findMapNodesByDist(TreeMap<Integer, HashSet<SOM_MapNode>> _MapNodesByFtr,  BiFunction<TreeMap<Integer, Float>, TreeMap<Integer, Float>, Double> _distFunc, int _ftrType){
+		HashSet<SOM_MapNode> _RelevantMapNodes = new HashSet<SOM_MapNode>();
 		buildRelevantMapNodes(_RelevantMapNodes, compFtrMaps[_ftrType].keySet(), _MapNodesByFtr);
-		TreeMap<Double, ArrayList<SOMMapNode>> mapNodesByDist = new TreeMap<Double, ArrayList<SOMMapNode>>();	
-		for (SOMMapNode mapNode : _RelevantMapNodes) {
+		TreeMap<Double, ArrayList<SOM_MapNode>> mapNodesByDist = new TreeMap<Double, ArrayList<SOM_MapNode>>();	
+		for (SOM_MapNode mapNode : _RelevantMapNodes) {
 			double sqDistToNode = _distFunc.apply(mapNode.compFtrMaps[_ftrType], compFtrMaps[_ftrType]);
-			ArrayList<SOMMapNode> tmpAra = mapNodesByDist.get(sqDistToNode);
-			if(tmpAra == null) {tmpAra = new ArrayList<SOMMapNode>();}
+			ArrayList<SOM_MapNode> tmpAra = mapNodesByDist.get(sqDistToNode);
+			if(tmpAra == null) {tmpAra = new ArrayList<SOM_MapNode>();}
 			tmpAra.add(mapNode);
 			mapNodesByDist.put(sqDistToNode, tmpAra);		
 		}	
@@ -683,8 +649,8 @@ public abstract class SOMExample extends baseDataPtVis{
 	 * @param _ftrType : kind of features (unmod, normed, stdized) to be used for comparison/distance calc
 	 * @return
 	 */
-	public final Entry<Double, ArrayList<SOMMapNode>> findClosestMapNodes(TreeMap<Integer, HashSet<SOMMapNode>> _MapNodesByFtr,  BiFunction<TreeMap<Integer, Float>, TreeMap<Integer, Float>, Double> _distFunc, int _ftrType){
-		TreeMap<Double, ArrayList<SOMMapNode>> mapNodesByDist = findMapNodesByDist(_MapNodesByFtr,_distFunc, _ftrType );
+	public final Entry<Double, ArrayList<SOM_MapNode>> findClosestMapNodes(TreeMap<Integer, HashSet<SOM_MapNode>> _MapNodesByFtr,  BiFunction<TreeMap<Integer, Float>, TreeMap<Integer, Float>, Double> _distFunc, int _ftrType){
+		TreeMap<Double, ArrayList<SOM_MapNode>> mapNodesByDist = findMapNodesByDist(_MapNodesByFtr,_distFunc, _ftrType );
 		return mapNodesByDist.firstEntry();	
 	}
 	
@@ -699,8 +665,8 @@ public abstract class SOMExample extends baseDataPtVis{
 	 * @param _ftrType : kind of features (unmod, normed, stdized) to be used for comparison/distance calc
 	 * @return
 	 */
-	public synchronized final TreeMap<Double, ArrayList<SOMMapNode>> findBMUFromFtrNodes(TreeMap<Integer, HashSet<SOMMapNode>> _MapNodesByFtr,  BiFunction<TreeMap<Integer, Float>, TreeMap<Integer, Float>, Double> _distFunc, int _ftrType) {
-		TreeMap<Double, ArrayList<SOMMapNode>> mapNodesByDist = findMapNodesByDist(_MapNodesByFtr,_distFunc, _ftrType );
+	public synchronized final TreeMap<Double, ArrayList<SOM_MapNode>> findBMUFromFtrNodes(TreeMap<Integer, HashSet<SOM_MapNode>> _MapNodesByFtr,  BiFunction<TreeMap<Integer, Float>, TreeMap<Integer, Float>, Double> _distFunc, int _ftrType) {
+		TreeMap<Double, ArrayList<SOM_MapNode>> mapNodesByDist = findMapNodesByDist(_MapNodesByFtr,_distFunc, _ftrType );
 		//handle if this node has no ftrs that map directly to map node ftrs - perhaps similarity groupings exist to build mappings from
 		//buildMapNodeDistsFromGroupings(mapNodesByDist, _MapNodesByFtr);
 		if(mapNodesByDist.size() == 0) {_setNullBMU(); return null;}
@@ -761,6 +727,8 @@ public abstract class SOMExample extends baseDataPtVis{
 			default : {return _toSVMString(ftrMaps[ftrMapTypeKey]); }
 		}		
 	}//toLRNString
+	
+	
 	//build a feature vector from the map of ftr values
 	private final float[] _getFtrsFromMap(TreeMap<Integer, Float> ftrMap) {
 		float[] ftrs = new float[mapMgr.getNumTrainFtrs()];
@@ -790,7 +758,8 @@ public abstract class SOMExample extends baseDataPtVis{
 		return ftrs;
 	}
 	
-	private final String dispFtrs(TreeMap<Integer, Float> ftrs) {
+	private final String dispFtrs(int _type) {
+		TreeMap<Integer, Float> ftrs = ftrMaps[_type];
 		String res = "";
 		if((ftrs==null) || (ftrs.size() == 0)){res+=" None\n";} 
 		else {
@@ -801,7 +770,8 @@ public abstract class SOMExample extends baseDataPtVis{
 		return res;
 	}
 	
-	protected final String dispFtrMapVals(TreeMap<Integer, Float> ftrs) {
+	protected final String dispFtrMapVals(int _type) {
+		TreeMap<Integer, Float> ftrs = ftrMaps[_type];
 		String res = "";
 		if((ftrs==null) || (ftrs.size() == 0)){res+=" None\n";} 
 		else {			for(Integer i : ftrs.keySet()){				res += dispFtrVal(ftrs, i);}}		
@@ -818,7 +788,7 @@ public abstract class SOMExample extends baseDataPtVis{
 		if (this == obj)			return true;
 		if (obj == null)			return false;
 		if (getClass() != obj.getClass())			return false;
-		SOMExample other = (SOMExample) obj;
+		SOM_Example other = (SOM_Example) obj;
 		if (_hashCode != other._hashCode)			return false;
 		return true;
 	}
@@ -839,8 +809,8 @@ public abstract class SOMExample extends baseDataPtVis{
 	public final boolean getFlag(int idx){int bitLoc = 1<<(idx%32);return (stFlags[idx/32] & bitLoc) == bitLoc;}		
 	public final double get_sqDistToBMU() {	return _sqDistToBMU;}
 	public final void set_sqDistToBMU(double _sqDistToBMU) {this._sqDistToBMU = _sqDistToBMU;}
-	public final SOMMapNode getBmu() {	return bmu;	}
-	public final void setBmu(SOMMapNode _bmu) {	bmu = _bmu;}
+	public final SOM_MapNode getBmu() {	return bmu;	}
+	public final void setBmu(SOM_MapNode _bmu) {	bmu = _bmu;}
 	
 	/**
 	 * this will return the bmu membership and neighborhood membership of this node
@@ -856,8 +826,8 @@ public abstract class SOMExample extends baseDataPtVis{
 		}
 		for(Double _dist : mapNodeNghbrs.keySet()) {
 			String distRes = ""+String.format("%.8f", _dist)+",";
-			ArrayList<SOMMapNode> _list = mapNodeNghbrs.get(_dist);
-			for(SOMMapNode _mapNode : _list) {		res += distRes+_mapNode.mapNodeCoord.toCSVString()+",";	}
+			ArrayList<SOM_MapNode> _list = mapNodeNghbrs.get(_dist);
+			for(SOM_MapNode _mapNode : _list) {		res += distRes+_mapNode.mapNodeCoord.toCSVString()+",";	}
 		}
 		return res;
 	}//getBMU_NHoodMbrshipString
@@ -880,11 +850,11 @@ public abstract class SOMExample extends baseDataPtVis{
 		int numTrnFtrs = mapMgr.getNumTrainFtrs();
 		if (numTrnFtrs > 0) {
 			res += "\nUnscaled Features (" +numTrnFtrs+ " ) :";
-			res += dispFtrs(ftrMaps[ftrMapTypeKey]);
+			res += dispFtrs(ftrMapTypeKey);
 			res +="\nScaled Features : ";
-			res += dispFtrs(ftrMaps[stdFtrMapTypeKey]);
+			res += dispFtrs(stdFtrMapTypeKey);
 			res +="\nNormed Features : ";
-			res += dispFtrs(ftrMaps[normFtrMapTypeKey]);
+			res += dispFtrs(normFtrMapTypeKey);
 		}
 		return res;
 	}
@@ -897,7 +867,7 @@ abstract class baseDataPtVis{
 	//message object manages logging/printing to screen
 	protected static MessageObject msgObj;
 	//type of example data this is
-	protected ExDataType type;
+	protected SOM_ExDataType type;
 	//location in mapspace most closely matching this node - actual map location (most likely between 4 map nodes)
 	public myPointf mapLoc;		
 	//bmu map node location - this is same as mapLoc/ignored for map nodes
@@ -911,7 +881,7 @@ abstract class baseDataPtVis{
 	//alt is for displaying alternate state
 	protected int[] nodeClrs, altClrs;		
 	
-	public baseDataPtVis(SOM_MapManager _map, ExDataType _type) {
+	public baseDataPtVis(SOM_MapManager _map, SOM_ExDataType _type) {
 		mapMgr = _map;type=_type;
 		if(msgObj==null) {msgObj=mapMgr.buildMsgObj();}
 		mapLoc = new myPointf();	
@@ -940,7 +910,7 @@ abstract class baseDataPtVis{
 	public float getRad(){return rad;}
 	
 	public int getTypeVal() {return type.getVal();}
-	public ExDataType getType() {return type;}
+	public SOM_ExDataType getType() {return type;}
 	
 	//set map location for this example
 	public final void setMapLoc(myPointf _pt){mapLoc.set(_pt.x,_pt.y,_pt.z);}
@@ -989,37 +959,37 @@ abstract class baseDataPtVis{
 
 
 
-//class description for a data point -
-//TODO change this to some other structure, or other comparison mechanism?  allow for subset membership check?
-class dataClass implements Comparable<dataClass> {
-	
-	public String label;
-	public String lrnKey;
-	private String cls;
-	//color of this class, for vis rep
-	public int[] clrVal;
-	
-	public dataClass(String _lrnKey, String _lbl, String _cls, int[] _clrVal){
-		lrnKey=_lrnKey;
-		label = _lbl;	
-		cls = _cls;
-		clrVal = _clrVal;
-	}	
-	public dataClass(dataClass _o){this(_o.lrnKey, _o.label,_o.cls, _o.clrVal);}//copy ctor
-		
-	//this will guarantee that, so long as a string has only one period, the value returned will be in the appropriate format for this mocapClass to match it
-	//reparses and recalcs subject and clip from passed val
-	public static String getPrfxFromData(String val){
-		String[] valTkns = val.trim().split("\\.");
-		return String.format("%03d",(Integer.parseInt(valTkns[0]))) + "."+ String.format("%03d",(Integer.parseInt(valTkns[1])));		
-	}	
-	@Override
-	public int compareTo(dataClass o) {	return label.compareTo(o.label);}
-	public String toCSVString(){String res = "" + lrnKey +","+label+","+cls;	return res;}
-	public String getFullLabel(){return label +"|"+cls;}
-	//public static String buildPrfx(int val){return (val < 100 ? (val < 10 ? "00" : "0") : "") + val;}//handles up to 999 val to be prefixed with 0's	
-	public String toString(){
-		String res = "Label :  " +label + "\tLrnKey : " + lrnKey  +"\tDesc : "+cls;
-		return res;		
-	}	
-}//dataClass
+////class description for a data point -
+////TODO change this to some other structure, or other comparison mechanism?  allow for subset membership check?
+//class dataClass implements Comparable<dataClass> {
+//	
+//	public String label;
+//	public String lrnKey;
+//	private String cls;
+//	//color of this class, for vis rep
+//	public int[] clrVal;
+//	
+//	public dataClass(String _lrnKey, String _lbl, String _cls, int[] _clrVal){
+//		lrnKey=_lrnKey;
+//		label = _lbl;	
+//		cls = _cls;
+//		clrVal = _clrVal;
+//	}	
+//	public dataClass(dataClass _o){this(_o.lrnKey, _o.label,_o.cls, _o.clrVal);}//copy ctor
+//		
+//	//this will guarantee that, so long as a string has only one period, the value returned will be in the appropriate format for this mocapClass to match it
+//	//reparses and recalcs subject and clip from passed val
+//	public static String getPrfxFromData(String val){
+//		String[] valTkns = val.trim().split("\\.");
+//		return String.format("%03d",(Integer.parseInt(valTkns[0]))) + "."+ String.format("%03d",(Integer.parseInt(valTkns[1])));		
+//	}	
+//	@Override
+//	public int compareTo(dataClass o) {	return label.compareTo(o.label);}
+//	public String toCSVString(){String res = "" + lrnKey +","+label+","+cls;	return res;}
+//	public String getFullLabel(){return label +"|"+cls;}
+//	//public static String buildPrfx(int val){return (val < 100 ? (val < 10 ? "00" : "0") : "") + val;}//handles up to 999 val to be prefixed with 0's	
+//	public String toString(){
+//		String res = "Label :  " +label + "\tLrnKey : " + lrnKey  +"\tDesc : "+cls;
+//		return res;		
+//	}	
+//}//dataClass

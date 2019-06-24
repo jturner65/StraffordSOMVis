@@ -9,16 +9,16 @@ import base_Utils_Objects.io.MessageObject;
 import base_Utils_Objects.io.MsgCodes;
 
 //save all training/testing data to appropriate format for SOM
-public class SOMTrainDataWriter implements Callable<Boolean>{
+public class SOM_TrainDataWriter implements Callable<Boolean>{
 	private SOM_MapManager mapMgr;	
 	private MessageObject msgObj;
 	private int dataFrmt, numFtrs,numSmpls;
-	private SOMExample[] exAra;
+	private SOM_Example[] exAra;
 	private String savFileFrmt, fileName;
 	//manage IO in this object
 	private FileIOManager fileIO;
 	
-	public SOMTrainDataWriter(SOM_MapManager _mapData, int _dataFrmt, int _numTrainFtrs, String _fileName, String _savFileFrmt, SOMExample[] _exAra) {
+	public SOM_TrainDataWriter(SOM_MapManager _mapData, int _dataFrmt, int _numTrainFtrs, String _fileName, String _savFileFrmt, SOM_Example[] _exAra) {
 		mapMgr = _mapData; msgObj = mapMgr.buildMsgObj();
 		dataFrmt = _dataFrmt;		//either unmodified, standardized or normalized -> 0,1,2
 		exAra = _exAra;
