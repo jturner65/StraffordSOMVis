@@ -1079,29 +1079,28 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	public void drawProductRegion(my_procApplet pa, int prodJpIDX, double maxDist) {	prodExMapper.drawProductRegion(pa,prodJpIDX, maxDist, getProdDistType());}//drawProductRegion
 	
 	@Override
-	protected float getPreBuiltMapInfoDetail(my_procApplet pa, String[] str, int idx, float yOff) {
-		pa.showOffsetText(0,pa.gui_White,""+String.format("%02d", idx+1)+" | "+str[0]);
-		pa.translate(10.0f,0.0f,0.0f);
-		yOff += sideBarYDisp;
-		pa.translate(0.0f, sideBarYDisp, 0.0f);
-		pa.showOffsetText(0,pa.gui_White,"Weight Calc Used for this map : ");
+	protected float getPreBuiltMapInfoDetail(my_procApplet pa, String[] str, int idx, float yOff, boolean isLoaded) {
+		int clrIDX = (isLoaded ? pa.gui_Yellow : pa.gui_White);
+		pa.showOffsetText(0,clrIDX,"Weight Calc Used for this map : ");
 		yOff += sideBarYDisp;
 		pa.translate(10.0f, sideBarYDisp, 0.0f);
-		pa.showOffsetText(0,pa.gui_White,str[1]);
+		pa.showOffsetText(0,clrIDX,str[1]);
+//		yOff += sideBarYDisp;
+//		pa.translate(-10.0f, sideBarYDisp, 0.0f);
+//		pa.showOffsetText(0,clrIDX,"Detail : ");
+//		yOff += sideBarYDisp;
+//		pa.translate(10.0f, sideBarYDisp, 0.0f);
+//		for(int i=2;i<str.length;++i) {
+//			pa.showOffsetText(0,clrIDX,str[i]);		
+//			yOff += sideBarYDisp;
+//			pa.translate(0.0f, sideBarYDisp, 0.0f);			
+//		}
+//		
 		yOff += sideBarYDisp;
 		pa.translate(-10.0f, sideBarYDisp, 0.0f);
-		pa.showOffsetText(0,pa.gui_White,"Detail : ");
-		yOff += sideBarYDisp;
-		pa.translate(10.0f, sideBarYDisp, 0.0f);
-		for(int i=2;i<str.length;++i) {
-			pa.showOffsetText(0,pa.gui_White,str[i]);		
-			yOff += sideBarYDisp;
-			pa.translate(0.0f, sideBarYDisp, 0.0f);			
-		}
-		//add another space
+		//add extra space
 		yOff += sideBarYDisp;
 		pa.translate(-10.0f, sideBarYDisp, 0.0f);
-		pa.translate(-10.0f,0.0f,0.0f);
 		return yOff;
 	}//
 	

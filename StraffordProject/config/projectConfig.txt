@@ -110,11 +110,11 @@ useSparseTestingData,"true"
 #	specify map directories containing prebuilt maps - default is first listed unless otherwise specified below
 #	add as many entries as desired, all using same prefix "preBuiltMapDir"
 #	UI currently will allow interaction with first 4
-preBuiltMapDir,"StraffSOM_2019_06_17_13_22"
 preBuiltMapDir,"StraffSOM_2019_06_18_13_06"
 preBuiltMapDir,"StraffSOM_2019_06_20_11_22"
 preBuiltMapDir,"StraffSOM_2019_06_20_11_34"
 preBuiltMapDir,"StraffSOM_2019_06_20_11_42"
+preBuiltMapDir,"StraffSOM_2019_06_17_13_22"
 #
 #	default preBuiltMap index to use (of those listed above)
 dfltPreBuiltMapIDX, 0

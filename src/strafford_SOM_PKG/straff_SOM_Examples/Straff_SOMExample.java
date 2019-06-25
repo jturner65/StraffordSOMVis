@@ -39,27 +39,42 @@ import strafford_SOM_PKG.straff_SOM_Mapping.*;
  */
 
 public abstract class Straff_SOMExample extends SOM_Example{
-	//reference to jp-jpg mapping/managing object
-	protected static MonitorJpJpgrp jpJpgMon;
-	
-	//all jps in this example that correspond to actual products.
-	//products are used for training vectors - these will be used to build feature vector used by SOM
+	/**
+	 * reference to jp-jpg mapping/managing object
+	 */
+	protected static MonitorJpJpgrp jpJpgMon;	
+	/**
+	 * all jps in this example that correspond to actual products. products 
+	 * are used for training vectors - these will be used to build feature 
+	 * vector used by SOM
+	 */
 	protected HashSet<Integer> allProdJPs;
-	//all jpgroups refed in this example that represent actual products
+	/**
+	 * all jpgroups refed in this example that represent actual products
+	 */
 	protected HashSet<Integer> allProdJPGroups;
-		
-	//alternate comparison structure - used in conjunction with ftrVec of chosen format
-	//use a map to hold only sparse data of each frmt for feature vector
-	//each array element map corresponds to a type of ftr map - ftr, norm and std
-	//each map has key == to _jpg_ and value == multiplier
+	/**
+	* alternate comparison structure - used in conjunction with ftrVec of chosen format
+	* use a map to hold only sparse data of each frmt for feature vector
+	* each array element map corresponds to a type of ftr map - ftr, norm and std
+	* each map has key == to _jpg_ and value == multiplier
+	*/
 	protected TreeMap<Integer, Float>[] compValFtrDataMaps;
 	public float compValFtrDataMapMag = 0.0f;
 	
-	//probability structure for this prospect/product - probability of every node for each jp this product covers
-	//keyed by jp, value is map keyed by mapnode tuple loc, value is probablity (ratio of # of orders of key jp mapped to that node over # of all jps mapped to that node)
+	/**
+	 * probability structure for this prospect - probability of every map node for each 
+	 * jp this example covers, keyed by jp, value is map keyed by mapnode tuple loc, value is 
+	 * probability (ratio of # of orders of key jp mapped to that node over # of all jps mapped 
+	 * to that node)	
+	 */	
 	protected ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>> perJPMapNodeProbMap;
-	//probability structure for this product - probability of every node for each jp group this product covers
-	//keyed by jpgroup, value is map keyed by mapnode tuple loc, value is probablity (ratio of # of orders of key jpgroup mapped to that node over # of all jpgroups mapped to that node)
+	/**
+	 * probability structure for this prospect - probability of every map node for each jp group 
+	 * this example covers keyed by jpgroup, value is map keyed by mapnode tuple loc, value is 
+	 * probability (ratio of # of orders of key jpgroup mapped to that node over # of all 
+	 * jpgroups mapped to that node) 
+	 */
 	protected ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>> perJPGroupMapNodeProbMap;
 	
 	public Straff_SOMExample(SOM_MapManager _map, SOM_ExDataType _type, String _id) {

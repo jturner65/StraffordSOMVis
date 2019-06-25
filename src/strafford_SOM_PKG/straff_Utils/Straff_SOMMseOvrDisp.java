@@ -39,9 +39,9 @@ public class Straff_SOMMseOvrDisp extends SOM_MseOvrDisplay{
 	}//buildPerFtrData
 
 	@Override
-	protected String getClassProbTitleString(SOM_MapNode nearestMapNode, int ttlNumClasses) { return nearestMapNode.mapNodeCoord.toString() + " Order JP Probs : ("+ttlNumClasses+" order mapped) ";}
+	protected String getClassProbTitleString(SOM_MapNode nearestMapNode, int ttlNumClasses) { return nearestMapNode.mapNodeCoord.toString() + " Order JP Probs : ("+ttlNumClasses+" orders mapped) Ttl JP ";}
 	@Override
-	protected String getCategoryProbTitleString(SOM_MapNode nearestMapNode, int ttlNumCategories) { return nearestMapNode.mapNodeCoord.toString() + " Order JPGroup Probs : ("+ttlNumCategories+" order mapped) ";}
+	protected String getCategoryProbTitleString(SOM_MapNode nearestMapNode, int ttlNumCategories) { return nearestMapNode.mapNodeCoord.toString() + " Order JPGroup Probs : ("+ttlNumCategories+" orders mapped) Ttl JPG ";}
 	
 	/**
 	 * instancing-specific initialization called for every data change for mouse object

@@ -330,6 +330,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		//refresh max size of guiobj - heavy handed, these values won't change often, and this is called -every draw frame-.
 		guiObjs[uiFtrJPToDispIDX].setNewMax(jpLen-1);
 		guiObjs[uiFtrJPGToDispIDX].setNewMax(jpGrpLen-1);	
+		setJPGroupIDXFromJp(false);
 	}//setUI_JPListMaxVals
 	
 	public void setUI_JPAllSeenListMaxVals(int jpGrpLen, int jpLen) {
@@ -340,6 +341,26 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	
 	private boolean settingJPGFromJp = false, settingJPFromJPG = false;
 	private boolean settingProdJPGFromJp = false, settingProdJPFromJPG = false;
+	
+	private void setJPGroupIDXFromJp(boolean settingJPFromJPG) {
+		curMapImgIDX = (int)guiObjs[uiFtrJPToDispIDX].getVal();
+		curProdToShowIDX = (int)guiObjs[uiFtrJPToDispIDX].getVal();
+		//msgObj.dispInfoMessage("SOM WIN","setUIWinVals::uiJPToDispIDX", "Click : settingJPFromJPG : " + settingJPFromJPG);
+		if(!settingJPFromJPG) {		//don't want to change jpg again if setting from jpgroup change - loop potential
+			int curJPGIdxVal = (int)guiObjs[uiFtrJPGToDispIDX].getVal();
+			int jpgIdxToSet = ((Straff_SOMMapManager) mapMgr).getUI_JPGrpIdxFromFtrJPIdx(curMapImgIDX, curJPGIdxVal);
+			//fix this
+			if(curJPGIdxVal != jpgIdxToSet) {
+				//msgObj.dispMessage("SOM WIN","setUIWinVals::uiJPToDispIDX", "Attempt to modify uiJPGToDispIDX : cur JPG IDX val : "+ curJPGIdxVal + " | jpg IDX To Set : " + jpgIdxToSet, MsgCodes.info1);					
+				settingJPGFromJp = true;
+				guiObjs[uiFtrJPGToDispIDX].setVal(jpgIdxToSet);
+				setUIWinValsIndiv(uiFtrJPGToDispIDX);
+				uiVals[uiFtrJPGToDispIDX] =guiObjs[uiFtrJPGToDispIDX].getVal();
+				settingJPGFromJp = false;
+			}
+		}		
+	}//setJPGroupIDXFromJp
+	
 	@Override 
 	//handle instance-specific UI components
 	protected void setUIWinValsIndiv(int UIidx) {
@@ -367,23 +388,25 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 				}
 				//msgObj.dispInfoMessage("SOM WIN","setUIWinVals::uiFtrJPGToDispIDX", "End : settingJPGFromJp : "+settingJPGFromJp+" | settingProdJPGFromJp : "+settingProdJPGFromJp+" | settingJPFromJPG : "+settingJPFromJPG+" | settingProdJPFromJPG : "+settingProdJPFromJPG);
 				break;}
-			case uiFtrJPToDispIDX : {//highlight display of different region of SOM map corresponding to selected JP				
-				curMapImgIDX = (int)guiObjs[uiFtrJPToDispIDX].getVal();
-				curProdToShowIDX = (int)guiObjs[uiFtrJPToDispIDX].getVal();
-				//msgObj.dispInfoMessage("SOM WIN","setUIWinVals::uiJPToDispIDX", "Click : settingJPFromJPG : " + settingJPFromJPG);
-				if(!settingJPFromJPG) {
-					int curJPGIdxVal = (int)guiObjs[uiFtrJPGToDispIDX].getVal();
-					int jpgIdxToSet = ((Straff_SOMMapManager) mapMgr).getUI_JPGrpIdxFromFtrJPIdx(curMapImgIDX, curJPGIdxVal);
-					//fix this
-					if(curJPGIdxVal != jpgIdxToSet) {
-						//msgObj.dispMessage("SOM WIN","setUIWinVals::uiJPToDispIDX", "Attempt to modify uiJPGToDispIDX : cur JPG IDX val : "+ curJPGIdxVal + " | jpg IDX To Set : " + jpgIdxToSet, MsgCodes.info1);					
-						settingJPGFromJp = true;
-						guiObjs[uiFtrJPGToDispIDX].setVal(jpgIdxToSet);
-						setUIWinValsIndiv(uiFtrJPGToDispIDX);
-						uiVals[uiFtrJPGToDispIDX] =guiObjs[uiFtrJPGToDispIDX].getVal();
-						settingJPGFromJp = false;
-					}
-				}
+			case uiFtrJPToDispIDX : {//highlight display of different region of SOM map corresponding to selected JP	
+				setJPGroupIDXFromJp(settingJPFromJPG);
+				
+//				curMapImgIDX = (int)guiObjs[uiFtrJPToDispIDX].getVal();
+//				curProdToShowIDX = (int)guiObjs[uiFtrJPToDispIDX].getVal();
+//				//msgObj.dispInfoMessage("SOM WIN","setUIWinVals::uiJPToDispIDX", "Click : settingJPFromJPG : " + settingJPFromJPG);
+//				if(!settingJPFromJPG) {
+//					int curJPGIdxVal = (int)guiObjs[uiFtrJPGToDispIDX].getVal();
+//					int jpgIdxToSet = ((Straff_SOMMapManager) mapMgr).getUI_JPGrpIdxFromFtrJPIdx(curMapImgIDX, curJPGIdxVal);
+//					//fix this
+//					if(curJPGIdxVal != jpgIdxToSet) {
+//						//msgObj.dispMessage("SOM WIN","setUIWinVals::uiJPToDispIDX", "Attempt to modify uiJPGToDispIDX : cur JPG IDX val : "+ curJPGIdxVal + " | jpg IDX To Set : " + jpgIdxToSet, MsgCodes.info1);					
+//						settingJPGFromJp = true;
+//						guiObjs[uiFtrJPGToDispIDX].setVal(jpgIdxToSet);
+//						setUIWinValsIndiv(uiFtrJPGToDispIDX);
+//						uiVals[uiFtrJPGToDispIDX] =guiObjs[uiFtrJPGToDispIDX].getVal();
+//						settingJPGFromJp = false;
+//					}
+//				}
 				//msgObj.dispInfoMessage("SOM WIN","setUIWinVals::uiFtrJPToDispIDX", "End : settingJPGFromJp : "+settingJPGFromJp+" | settingProdJPGFromJp : "+settingProdJPGFromJp+" | settingJPFromJPG : "+settingJPFromJPG+" | settingProdJPFromJPG : "+settingProdJPFromJPG);
 				//msgObj.dispMessage("mySOMMapUIWin","setUIWinVals","uiJPToDispIDX : Setting UI JP Map to display to be idx :" + curMapImgIDX + " Corresponding to JP : " + mapMgr.getJpByIdxStr(curMapImgIDX) );					
 				break;}
