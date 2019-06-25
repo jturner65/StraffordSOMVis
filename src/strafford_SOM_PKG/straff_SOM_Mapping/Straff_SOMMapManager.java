@@ -38,7 +38,7 @@ import strafford_SOM_PKG.straff_Utils.Straff_SOMProjConfig;
 //this class holds the data describing a SOM and the data used to both build and query the som
 public class Straff_SOMMapManager extends SOM_MapManager {	
 	//structure to map specified products to the SOM and find prospects with varying levels of confidence
-	private Straff_ProdMapOutBldr_FtrsAndBMUs prodOutputMapper;	
+	//private Straff_ProdMapOutBldr_FtrsAndBMUs prodOutputMapper;	
 	//manage all jps and jpgs seen in project
 	public MonitorJpJpgrp jpJpgrpMon;	
 	//calc object to be used to derive feature vector for each prospect
@@ -1075,18 +1075,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 		pa.showOffsetText(0,clrIDX,"Weight Calc Used for this map : ");
 		yOff += sideBarYDisp;
 		pa.translate(10.0f, sideBarYDisp, 0.0f);
-		pa.showOffsetText(0,clrIDX,str[1]);
-//		yOff += sideBarYDisp;
-//		pa.translate(-10.0f, sideBarYDisp, 0.0f);
-//		pa.showOffsetText(0,clrIDX,"Detail : ");
-//		yOff += sideBarYDisp;
-//		pa.translate(10.0f, sideBarYDisp, 0.0f);
-//		for(int i=2;i<str.length;++i) {
-//			pa.showOffsetText(0,clrIDX,str[i]);		
-//			yOff += sideBarYDisp;
-//			pa.translate(0.0f, sideBarYDisp, 0.0f);			
-//		}
-//		
+		pa.showOffsetText(0,clrIDX,str[str.length-1]);
 		yOff += sideBarYDisp;
 		pa.translate(-10.0f, sideBarYDisp, 0.0f);
 		//add extra space

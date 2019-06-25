@@ -44,31 +44,17 @@ public class Straff_SOMProjConfig extends SOM_ProjConfigData {
 	public int getTypeOfEventsForCustAndProspect(){		return custTruePrsTypeEvents;}//
 	
 	/**
-	 * get the per-map detail date used to display information regarding prebuilt maps
-	 * 	idx0 is specified dir
-	 * 	idx1 is weight calc file used
-	 * 	idx2+ is # of training examples,  type of features used to train map
+	 * get the project-specific per-map detail data used to display information regarding prebuilt maps
+	 * adds weight calc file used
 	 */
 	@Override
-	protected String[] getPreBuiltMapInfoStr_Indiv(String _preBuiltMapDir) {
-		ArrayList<String> res = new ArrayList<String>();
-		res.add(_preBuiltMapDir);
+	protected String[] getPreBuiltMapInfoStr_Indiv(ArrayList<String> res, String _preBuiltMapDir) {
 		String fullQualPreBuiltMapDir = getDirNameAndBuild(subDirLocs.get("SOM_MapProc") + _preBuiltMapDir, true);
 		System.out.println("getPreBuiltMapInfoStr_Indiv : " + fullQualPreBuiltMapDir);
 		String custCalcInfoFileName = fullQualPreBuiltMapDir + getSOMExpCustomConfigFileName_Indiv();
 		TreeMap<String,String> custSOMTrainInfo =  getSOMExpConfigData(custCalcInfoFileName,"Custom SOM Config Data for Strafford");
 		res.add(custSOMTrainInfo.get("calcWtFileName"));
 		
-		String SOMExecConfigFileName = fullQualPreBuiltMapDir + expProjConfigFileName;
-		TreeMap<String,String> somExecConfigMap = getSOMExpConfigData(SOMExecConfigFileName,"project config data for SOM Execution");
-		for(String s : somExecConfigMap.keySet()) {	System.out.println("key : " + s +" | value :  " + somExecConfigMap.get(s));}
-		res.add("# Training Examples : "+ String.format("%02d", Integer.parseInt(somExecConfigMap.get("expNumTrain"))));
-		res.add("Feature Type used to train : " + mapMgr.getDataDescFromInt_Short(mapMgr.getDataFrmtTypeFromName(somExecConfigMap.get("dataType"))));
-		
-		String SOMMapConfigFileName = fullQualPreBuiltMapDir + somExecConfigMap.get("SOMFileNamesAra[7]");
-		TreeMap<String,String> somMapConfigMap = getSOMExpConfigData(SOMMapConfigFileName,"project config data for SOM Execution");
-		for(String s : somMapConfigMap.keySet()) {	System.out.println("key : " + s +" | value :  " + somMapConfigMap.get(s));}
-		res.add("Rows : " +String.format("%02d", Integer.parseInt(somMapConfigMap.get("mapRows"))) + " | Cols : "+ String.format("%02d", Integer.parseInt(somMapConfigMap.get("mapCols"))));
 		return res.toArray(new String[0]);
 	}//getPreBuiltMapInfoStr_Indiv
 
@@ -159,7 +145,7 @@ public class Straff_SOMProjConfig extends SOM_ProjConfigData {
 	}//setSOM_UsePreBuilt_Indiv	
 	
 	/**
-	 * This will save any application-specific reporting data
+	 * This will save any application-specific reporting data by adding to arraylist
 	 * @param reportData
 	 */
 	@Override
