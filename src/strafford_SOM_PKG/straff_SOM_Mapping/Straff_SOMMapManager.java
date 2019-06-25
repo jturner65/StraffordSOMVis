@@ -762,15 +762,6 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 		getMsgObj().dispMessage("StraffSOMMapManager","setTrueProspectBMUs","Finished processing true prospects for BMUs.", MsgCodes.info1);	
 	}//buildAndSaveTrueProspectReport
 	
-	//need to map true prospects and then save results
-	//this will load the product IDs to query on map for prospects from the location specified in the config
-	//map these ids to loaded products and then 
-	//prodZoneDistThresh is distance threshold to determine outermost map region to be mapped to a specific product
-	@Override
-	protected void loadMapProcAllData_Indiv(Double prodZoneDistThresh) {
-		//saveProductMappings(prodZoneDistThresh);		
-	}
-	
 	///////////////////////////////
 	// segment reports and saving
 	
