@@ -6,7 +6,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import base_SOM_Objects.som_examples.*;
-import base_SOM_Objects.som_utils.SOMProjConfigData;
+import base_SOM_Objects.som_utils.SOM_ProjConfigData;
 import base_Utils_Objects.*;
 import base_Utils_Objects.io.FileIOManager;
 import base_Utils_Objects.io.MessageObject;
@@ -31,7 +31,7 @@ public class Straff_SOMRawDataLdrCnvrtr {
 	//message object for logging/displaying results to screen
 	private static MessageObject msgObj;
 	//struct maintaining complete project configuration and information from config files - all file name data and building needs to be done by this object
-	public SOMProjConfigData projConfigData;			
+	public SOM_ProjConfigData projConfigData;			
 	//manage IO in this object - only file writing; custom loader classes manage reading from csv or sql(if implemented)
 	protected FileIOManager fileIO; 
 
@@ -73,7 +73,7 @@ public class Straff_SOMRawDataLdrCnvrtr {
 	public TreeMap<String, Straff_RawDataLoader>straffDataLoaders;
 	//executor
 	private ExecutorService th_exec;
-	public Straff_SOMRawDataLdrCnvrtr(Straff_SOMMapManager _mapMgr, SOMProjConfigData _projConfig) {
+	public Straff_SOMRawDataLdrCnvrtr(Straff_SOMMapManager _mapMgr, SOM_ProjConfigData _projConfig) {
 		mapMgr=_mapMgr;
 		msgObj = mapMgr.buildMsgObj();
 		fileIO = new FileIOManager(MessageObject.buildMe(),"StraffSOMRawDataLdrCnvrtr");

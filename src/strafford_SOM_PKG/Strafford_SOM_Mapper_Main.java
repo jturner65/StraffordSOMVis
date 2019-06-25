@@ -9,7 +9,7 @@ import java.util.TreeMap;
 import net.sourceforge.argparse4j.*;
 import net.sourceforge.argparse4j.impl.*;
 import net.sourceforge.argparse4j.inf.*;
-import base_SOM_Objects.som_utils.SOMProjConfigData;
+import base_SOM_Objects.som_utils.SOM_ProjConfigData;
 import base_Utils_Objects.io.MessageObject;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 

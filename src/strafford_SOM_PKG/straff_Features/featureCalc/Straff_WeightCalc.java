@@ -5,7 +5,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import base_SOM_Objects.SOM_MapManager;
-import base_SOM_Objects.som_utils.SOMProjConfigData;
+import base_SOM_Objects.som_utils.SOM_ProjConfigData;
 import base_UI_Objects.*;
 import base_Utils_Objects.*;
 import base_Utils_Objects.io.FileIOManager;
@@ -107,7 +107,7 @@ public class Straff_WeightCalc {
 		int idx = 0;
 		String[] strVals = new String[0];
 		while (!foundDflt) {
-			if ((configDatList[idx].contains(SOMProjConfigData.fileComment)) || (configDatList[idx].trim() == "")) {++idx;			}
+			if ((configDatList[idx].contains(SOM_ProjConfigData.fileComment)) || (configDatList[idx].trim() == "")) {++idx;			}
 			else {
 				msgObj.dispMessage("StraffWeightCalc","_loadWtCalcConfig", "First line after comments : " + configDatList[idx].trim(), MsgCodes.info1);
 				strVals = configDatList[idx].trim().split(",");
@@ -120,7 +120,7 @@ public class Straff_WeightCalc {
 		//now go through every line and build eqs for specified jps
 		for (int i=idx+1; i<configDatList.length; ++i) {
 			String line = configDatList[i].trim();
-			if ((line.length()==0) || (line.contains(SOMProjConfigData.fileComment))) {continue;			}
+			if ((line.length()==0) || (line.contains(SOM_ProjConfigData.fileComment))) {continue;			}
 			strVals = line.split(",");	
 			if(strVals.length == 0) {continue;}
 			//put all values of specified jps intended to override default cals in map, keyed by jp string

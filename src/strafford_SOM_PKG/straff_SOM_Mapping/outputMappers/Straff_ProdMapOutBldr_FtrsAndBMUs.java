@@ -1,13 +1,10 @@
 package strafford_SOM_PKG.straff_SOM_Mapping.outputMappers;
 
 import java.util.*;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import base_SOM_Objects.som_examples.*;
-import base_SOM_Objects.som_utils.SOMProjConfigData;
-import base_Utils_Objects.*;
 import base_Utils_Objects.io.MessageObject;
 import strafford_SOM_PKG.straff_SOM_Examples.products.ProductExample;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;

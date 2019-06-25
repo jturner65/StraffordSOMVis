@@ -5,11 +5,11 @@ import java.util.ArrayList;
 import java.util.TreeMap;
 
 import base_SOM_Objects.SOM_MapManager; 
-import base_SOM_Objects.som_utils.SOMProjConfigData;
+import base_SOM_Objects.som_utils.SOM_ProjConfigData;
 import base_Utils_Objects.io.MsgCodes;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 
-public class Straff_SOMProjConfig extends SOMProjConfigData {
+public class Straff_SOMProjConfig extends SOM_ProjConfigData {
 	//type of event membership that defines a prospect as a customer and as a true prospect (generally will be cust has order event, prospect doesnt)
 	protected int custTruePrsTypeEvents;
 	//file name to use to save strafford-specific SOM config data

@@ -14,12 +14,12 @@ import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 public class Straff_SOMMseOvrDisp extends SOM_MseOvrDisplay{
 	private MonitorJpJpgrp jpJpgMon;
 		
-	public Straff_SOMMseOvrDisp(Straff_SOMMapManager _map, myPointf ptrLoc, float _thresh) {
+	public Straff_SOMMseOvrDisp(Straff_SOMMapManager _map, float _thresh) {
 		super(_map, _thresh);	
 	}//Straff_SOMDispMapExample
 	
 	@Override
-	protected int[] setNodeColors() {return ((Straff_SOMMapManager)mapMgr).getClrFillStrkTxtAra(SOM_ExDataType.MouseOver);}
+	protected int[] setNodeColors() {return mapMgr.getClrFillStrkTxtAra(SOM_ExDataType.MouseOver);}
 	@Override
 	protected String getFtrDispTitleString(int count) { return "JPs :  count : "+count;}
 	

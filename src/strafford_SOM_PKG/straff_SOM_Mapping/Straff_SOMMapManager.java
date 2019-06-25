@@ -10,7 +10,7 @@ import base_SOM_Objects.som_segments.segments.SOM_CategorySegment;
 import base_SOM_Objects.som_segments.segments.SOM_ClassSegment;
 import base_SOM_Objects.som_ui.SOM_UIToMapCom;
 import base_SOM_Objects.som_ui.SOM_MseOvrDisplay;
-import base_SOM_Objects.som_utils.SOMProjConfigData;
+import base_SOM_Objects.som_utils.SOM_ProjConfigData;
 import base_UI_Objects.*;
 import base_Utils_Objects.*;
 import base_Utils_Objects.io.MessageObject;
@@ -163,7 +163,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	 * build instance-specific project file configuration 
 	 */
 	@Override
-	protected SOMProjConfigData buildProjConfigData(TreeMap<String, Object> _argsMap) {				return new Straff_SOMProjConfig(this,_argsMap);	}
+	protected SOM_ProjConfigData buildProjConfigData(TreeMap<String, Object> _argsMap) {				return new Straff_SOMProjConfig(this,_argsMap);	}
 	
 	/**
 	 * build an interface to manage communications between UI and SOM map dat
@@ -1106,13 +1106,16 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	}//
 	
 	//app-specific drawing routines for side bar
+	@Override
 	protected float drawResultBarPriv1(my_procApplet pa, float yOff){
 		
 		return yOff;
 	}
+	@Override
 	protected float drawResultBarPriv2(my_procApplet pa, float yOff){
 		return yOff;
 	}
+	@Override
 	protected float drawResultBarPriv3(my_procApplet pa, float yOff){
 		return yOff;
 	}
@@ -1123,7 +1126,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	
 	@Override
 	//build the example that represents the data where the mouse is
-	protected final SOM_MseOvrDisplay buildMseOverExample() {return new Straff_SOMMseOvrDisp(this, new myPointf(0.0f,0.0f,0.0f),0.0f);}
+	protected final SOM_MseOvrDisplay buildMseOverExample() {return new Straff_SOMMseOvrDisp(this,0.0f);}
 		
 	//whether or not distances between two datapoints assume that absent features in smaller-length datapoints are 0, or to ignore the values in the larger datapoints
 	@Override

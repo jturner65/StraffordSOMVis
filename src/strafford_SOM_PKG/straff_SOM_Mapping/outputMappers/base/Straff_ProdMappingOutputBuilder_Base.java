@@ -6,7 +6,7 @@ import java.util.concurrent.ExecutorService;
 
 import base_SOM_Objects.som_examples.SOM_Example;
 import base_SOM_Objects.som_examples.SOM_MapNode;
-import base_SOM_Objects.som_utils.SOMProjConfigData;
+import base_SOM_Objects.som_utils.SOM_ProjConfigData;
 import base_Utils_Objects.io.FileIOManager;
 import base_Utils_Objects.io.MessageObject;
 import base_Utils_Objects.io.MsgCodes;
@@ -20,7 +20,7 @@ public abstract class Straff_ProdMappingOutputBuilder_Base {
 	public String fileName;
 	public Straff_SOMMapManager mapMgr;
 	protected FileIOManager fileIO;
-	protected SOMProjConfigData projConfigData;
+	protected SOM_ProjConfigData projConfigData;
 	protected ProductExample[] prodsToMap;
 	protected String[] fullQualOutPerProdDirs;
 	protected String fullQualOutPerProspectDir;

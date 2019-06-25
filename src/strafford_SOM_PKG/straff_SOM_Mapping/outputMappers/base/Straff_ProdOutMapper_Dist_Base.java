@@ -3,7 +3,7 @@ package strafford_SOM_PKG.straff_SOM_Mapping.outputMappers.base;
 import java.util.ArrayList;
 import java.util.concurrent.Callable;
 
-import base_SOM_Objects.som_utils.SOMProjConfigData;
+import base_SOM_Objects.som_utils.SOM_ProjConfigData;
 import base_Utils_Objects.io.FileIOManager;
 import base_Utils_Objects.io.MessageObject;
 import base_Utils_Objects.io.MsgCodes;
@@ -16,7 +16,7 @@ public abstract class Straff_ProdOutMapper_Dist_Base implements Callable<Boolean
 	protected ProductExample[] prodsToMap;
 	protected String[] fullQualOutDirs;
 	protected int stIDX, endIDX, thdIDX;
-	protected SOMProjConfigData projConfigData;
+	protected SOM_ProjConfigData projConfigData;
 
 	public Straff_ProdOutMapper_Dist_Base(Straff_SOMMapManager _mapMgr, int _stIDX, int _endIDX, int _thdIDX, ProductExample[] _prodsToMap, String[] _fullQualOutDirs) {
 		msgObj = _mapMgr.buildMsgObj();		projConfigData = _mapMgr.projConfigData;
