@@ -6,3 +6,5 @@ This is an Eclipse (4.9.0) Java project, built with Java 1.8.0_181.
 All the required libraries to execute the visualizations (Mostly Processing library jars) are included for most platforms, along with the Jackson jars required for the JSON translation.
 
 It also includes an executable of the SOM code (based on Somoclu 1.7.5, but modified by me to write more output data and perform a few other calculations) compiled from the c++ for Windows.
+
+Uses https://github.com/jturner65/base_UIProjectJTools lib (.jar) for various utilities and https://github.com/jturner65/base_SOMProjectJTools lib (.jar) for base SOM functionality.
