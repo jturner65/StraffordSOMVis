@@ -3,6 +3,8 @@ package strafford_SOM_PKG;
 
 import base_UI_Objects.*;
 import base_UI_Objects.windowUI.myDispWindow;
+import strafford_SOM_PKG.straff_UI.Straff_SOMMapUIWin;
+import strafford_SOM_PKG.straff_UI.mySideBarMenu;
 /**
  * Testbed to visually inspect and verify results from Strafford prospect mapping to a SOM
  * 

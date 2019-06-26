@@ -17,7 +17,6 @@ import base_Utils_Objects.io.MessageObject;
 import base_Utils_Objects.io.MsgCodes;
 import base_Utils_Objects.vectorObjs.Tuple;
 import base_Utils_Objects.vectorObjs.myPointf;
-import strafford_SOM_PKG.Straff_SOMMapUIWin;
 import strafford_SOM_PKG.straff_Features.*;
 import strafford_SOM_PKG.straff_Features.featureCalc.Straff_WeightCalc;
 import strafford_SOM_PKG.straff_RawDataHandling.Straff_SOMRawDataLdrCnvrtr;
@@ -31,6 +30,7 @@ import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.base.Straff_SOMCustP
 import strafford_SOM_PKG.straff_SOM_Mapping.outputMappers.Straff_ProdMapOutBldr_FtrsAndBMUs;
 import strafford_SOM_PKG.straff_SOM_Segments.Straff_SOM_NonProdJPClassSegment;
 import strafford_SOM_PKG.straff_SOM_Segments.Straff_SOM_NonProdJPGCatSegment;
+import strafford_SOM_PKG.straff_UI.Straff_SOMMapUIWin;
 import strafford_SOM_PKG.straff_Utils.Straff_SOMMseOvrDisp;
 import strafford_SOM_PKG.straff_Utils.Straff_SOMProjConfig;
 
