@@ -50,7 +50,7 @@ public class Straff_SOMProjConfig extends SOM_ProjConfigData {
 	@Override
 	protected String[] getPreBuiltMapInfoStr_Indiv(ArrayList<String> res, String _preBuiltMapDir) {
 		String fullQualPreBuiltMapDir = getDirNameAndBuild(subDirLocs.get("SOM_MapProc") + _preBuiltMapDir, true);
-		System.out.println("getPreBuiltMapInfoStr_Indiv : " + fullQualPreBuiltMapDir);
+		//System.out.println("getPreBuiltMapInfoStr_Indiv : " + fullQualPreBuiltMapDir);
 		String custCalcInfoFileName = fullQualPreBuiltMapDir + getSOMExpCustomConfigFileName_Indiv();
 		TreeMap<String,String> custSOMTrainInfo =  getSOMExpConfigData(custCalcInfoFileName,"Custom SOM Config Data for Strafford");
 		res.add(custSOMTrainInfo.get("calcWtFileName"));

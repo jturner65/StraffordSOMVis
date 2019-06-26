@@ -119,8 +119,12 @@ public class MonitorJpJpgrp {
 
 	//set this after "all" jp_jpg data object is built
 	private void setUI_MaxValsForFtrAndAllSeenJpJpg() {
-		mapMgr.setUI_JPFtrMaxVals(mapOfJPData.get(typeOfJpStrs[productExJpsIDX]).getLenJpGrpByIdx(),mapOfJPData.get(typeOfJpStrs[productExJpsIDX]).getLenJpByIdx()); 
-		mapMgr.setUI_JPAllSeenMaxVals(allJpJpgData.getLenJpGrpByIdx(),allJpJpgData.getLenJpByIdx()); 		
+		JP_JPG_Data prodData = mapOfJPData.get(typeOfJpStrs[productExJpsIDX]);
+		TreeMap<Integer, String> trainJPNamesMap = prodData.getJpNames();
+		TreeMap<Integer, String> trainJPGNamesMap = prodData.getJpGrpNames();
+		
+		mapMgr.setUI_JPFtrListVals(trainJPNamesMap.values().toArray(new String[0]),trainJPGNamesMap.values().toArray(new String[0])); 
+		mapMgr.setUI_JPAllSeenListVals(allJpJpgData.getJpNames().values().toArray(new String[0]),allJpJpgData.getJpGrpNames().values().toArray(new String[0])); 		
 	}
 
 	/////////////////////////////
@@ -562,6 +566,8 @@ abstract class JP_JPG_Data{
 	public int getLenJpByIdx() {		return jpByIdx.length;	}//# of jps seen
 	public int getLenJpGrpByIdx(){	return jpGrpByIdx.length; }//# of jpgrps seen
 	
+	//public String[] getJpGrpStrNames
+	
 	public Integer[] getJpByIDXAra() {return jpByIdx;}
 	public Integer[] getJpgrpByIDXAra() {return jpGrpByIdx;}
 	
@@ -583,8 +589,8 @@ abstract class JP_JPG_Data{
 	public Integer[] getJpGrpByIdx(){return jpGrpByIdx;}
 	
 	public TreeMap<Integer, String> getJpNamesRaw(){return jpNamesRaw;} 
-	public TreeMap<Integer, String> getJpGrpNamesRaw (){return jpGrpNamesRaw;} //these are all the names known from reading all the data in - not all may be represented in actual data
-	public TreeMap<Integer, String> getJpNames (){return jpNames;}
+	public TreeMap<Integer, String> getJpGrpNamesRaw(){return jpGrpNamesRaw;} //these are all the names known from reading all the data in - not all may be represented in actual data
+	public TreeMap<Integer, String> getJpNames(){return jpNames;}
 	public TreeMap<Integer, String> getJpGrpNames(){return jpGrpNames;} 	
 	
 	//return how many times this JP has been seen

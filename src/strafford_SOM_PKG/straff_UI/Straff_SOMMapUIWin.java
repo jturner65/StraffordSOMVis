@@ -45,9 +45,8 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 
 	public static final int numPrivFlags = numSOMBasePrivFlags + 15;
 	
-	//SOM map list options
-	public String[] 
-		uiRawDataSourceList = new String[] {"Prebuilt CSV Files","Data Tables Via SQL"};
+//	//SOM map list options
+//	public String[] 		uiRawDataSourceList = new String[] {"Prebuilt CSV Files","Data Tables Via SQL"};
 	
 	//	//GUI Objects	
 	public final static int //offset from end of base class SOM UI objs
@@ -292,11 +291,16 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	 * 			the 2nd element is starting value
 	 * 			the 3rd elem is label for object
 	 * 			the 4th element is boolean array of {treat as int, has list values, value is sent to owning window}
+	 * @param tmpListObjVals treemap keyed by object IDX and value is list of strings of values for all UI list select objects
 	 */
-	protected final void setupGUIObjsArasIndiv(ArrayList<Object[]> tmpUIObjArray) {	
+	protected final void setupGUIObjsArasIndiv(ArrayList<Object[]> tmpUIObjArray, TreeMap<Integer, String[]> tmpListObjVals) {	
 		//per object entry : object array of {min,max,mod},stVal,lbl,bool ara
-		double dsLen = uiRawDataSourceList.length-1;
-		tmpUIObjArray.add(new Object[] {new double[]{0.0, dsLen, 1}, 0.0, "Raw Data Source", new boolean []{true, true, true}});		//uiRawDataSourceIDX
+		tmpListObjVals.put(uiRawDataSourceIDX,new String[] {"Prebuilt CSV Files","Data Tables Via SQL"});
+		tmpListObjVals.put(uiFtrJPGToDispIDX, new String[] {"Unknown"});
+		tmpListObjVals.put(uiFtrJPToDispIDX, new String[] {"Unknown"});
+		tmpListObjVals.put(uiAllJpSeenToDispIDX, new String[] {"Unknown"});
+		
+		tmpUIObjArray.add(new Object[] {new double[]{0.0, tmpListObjVals.get(uiRawDataSourceIDX).length, 1}, 0.0, "Raw Data Source", new boolean []{true, true, true}});		//uiRawDataSourceIDX
 		tmpUIObjArray.add(new Object[] {new double[]{0.0, 100, 1.0}, 0.0, "JPGrp Ftrs Shown", new boolean []{true, true, true}});		//uiFtrJPGToDispIDX		
 		tmpUIObjArray.add(new Object[] {new double[]{0.0, 260, 1.0}, 0.0, "JP Ftr Shown", new boolean []{true, true, true}});			//uiFtrJPToDispIDX	
 		tmpUIObjArray.add(new Object[] {new double[]{0.0, 260, 1.0}, 0.0, "All JP to Show", new boolean []{true, true, true}});			//uiAllJpSeenToDispIDX	
@@ -304,37 +308,30 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	
 	}//setupGUIObjsArasIndiv
 	
-	@Override
-	protected String getUIListValStrIndiv(int UIidx, int validx) {
-		//msgObj.dispMessage("mySOMMapUIWin","getUIListValStr","UIidx : " + UIidx + "  Val : " + validx );
-		switch(UIidx){//pa.score.staffs.size()
-			case uiRawDataSourceIDX 			: {return uiRawDataSourceList[validx % uiRawDataSourceList.length];}
-			case uiFtrJPGToDispIDX				: {return ((Straff_SOMMapManager) mapMgr).getFtrJpGrpStrByIdx(validx); }	
-			case uiFtrJPToDispIDX				: {return ((Straff_SOMMapManager) mapMgr).getFtrJpStrByIdx(validx);}	
-			case uiAllJpSeenToDispIDX			: {return ((Straff_SOMMapManager) mapMgr).getAllJpStrByIdx(validx); }	
-		}
-		return "";
-	}//getUIListValStrIndiv
-
-	@Override
-	//get index of list for this instance's lists (not found in base window
-	protected int getIdxFromListStringIndiv(int UIidx, String dat){
-		switch(UIidx){//pa.score.staffs.size()
-			case uiRawDataSourceIDX : {return getIDXofStringInArray(uiRawDataSourceList, dat);}
-		}
-		return -1;
-	}//getIdxFromListStringIndiv
 	
-	public void setUI_JPFtrListMaxVals(int jpGrpLen, int jpLen) {
+	/**
+	 * pass the list of values for the training jp group and jp list boxes, in idx order
+	 * @param jpGrpVals
+	 * @param jpVals
+	 */
+	public void setUI_JPFtrListVals(String[] jpGrpVals, String[] jpVals) {
 		//refresh max size of guiobj - heavy handed, these values won't change often, and this is called -every draw frame-.
-		guiObjs[uiFtrJPToDispIDX].setNewMax(jpLen-1);
-		guiObjs[uiFtrJPGToDispIDX].setNewMax(jpGrpLen-1);	
+		
+		guiObjs[uiFtrJPToDispIDX].setListVals(jpVals);
+		guiObjs[uiFtrJPGToDispIDX].setListVals(jpGrpVals);	
+		
 		setJPGroupIDXFromJp(false);
 	}//setUI_JPListMaxVals
 	
-	public void setUI_JPAllSeenListMaxVals(int jpGrpLen, int jpLen) {
+	/**
+	 * pass the list of values for all jp group and jp list boxes, in idx order
+	 * @param jpGrpVals
+	 * @param jpVals
+	 */
+	public void setUI_JPAllSeenListVals(String[] jpGrpVals, String[] jpVals) {
 		//refresh max size of guiobj - heavy handed, these values won't change often, and this is called -every draw frame-.
-		guiObjs[uiAllJpSeenToDispIDX].setNewMax(jpLen-1);
+		//guiObjs[uiAllJpSeenToDispIDX].setNewMax(jpLen-1);
+		guiObjs[uiAllJpSeenToDispIDX].setListVals(jpVals);
 		//guiObjs[uiAllJpgSeenToDispIDX].setNewMax(jpGrpLen-1);	
 	}//setUI_JPListMaxVals
 	
@@ -435,7 +432,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	protected void drawRightSideInfoBarPriv(float modAmtMillis) {
 		pa.pushMatrix();pa.pushStyle();
 		//display current simulation variables - call sim world through sim exec
-		mapMgr.drawResultBar(pa, yOff);
+		mapMgr.drawResultBar(pa, yOff, curPreBuiltMapIDX);
 		pa.popStyle();pa.popMatrix();					
 	}//drawOnScreenStuff
 	
@@ -483,17 +480,14 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	protected void drawSegmentsUMatrixDispIndiv() {
 		if(getPrivFlags(mapDrawNonProdJPSegIDX)) {	 			((Straff_SOMMapManager) mapMgr).drawAllNonProdJpSegments(pa);}
 		if(getPrivFlags(mapDrawNonProdJPGroupSegIDX)) { 		((Straff_SOMMapManager) mapMgr).drawAllNonProdJPGroupSegments(pa);}
-	}
-	
+	}	
 	
 	@Override
-	protected void drawMapIndiv() {
-		
+	protected void drawMapIndiv() {		
 		if (getPrivFlags(mapDrawCustAnalysisVisIDX)){	_drawAnalysis(custExCalcedIDX, mapDrawCustAnalysisVisIDX);	} 
 		else if (getPrivFlags(mapDrawTPAnalysisVisIDX)){_drawAnalysis(tpExCalcedIDX, mapDrawTPAnalysisVisIDX);}
 		else if (getPrivFlags(mapDrawTrainDataAnalysisVisIDX)) {_drawAnalysis(trainExCalcedIDX, mapDrawTrainDataAnalysisVisIDX);}
-	}
-	
+	}	
 	
 	private void _drawAnalysis(int exCalcedIDX, int mapDrawAnalysisIDX) {
 		if (getPrivFlags(exCalcedIDX)){	

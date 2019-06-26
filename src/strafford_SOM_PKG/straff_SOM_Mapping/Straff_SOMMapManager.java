@@ -6,39 +6,39 @@ import java.util.concurrent.*;
 import base_SOM_Objects.*;
 import base_SOM_Objects.som_examples.*;
 import base_SOM_Objects.som_segments.segments.SOM_MappedSegment;
-import base_SOM_Objects.som_segments.segments.SOM_CategorySegment;
-import base_SOM_Objects.som_segments.segments.SOM_ClassSegment;
 import base_SOM_Objects.som_ui.SOM_UIToMapCom;
 import base_SOM_Objects.som_ui.SOM_MseOvrDisplay;
 import base_SOM_Objects.som_utils.SOM_ProjConfigData;
+
 import base_UI_Objects.*;
-import base_Utils_Objects.*;
 import base_Utils_Objects.io.MessageObject;
 import base_Utils_Objects.io.MsgCodes;
 import base_Utils_Objects.vectorObjs.Tuple;
-import base_Utils_Objects.vectorObjs.myPointf;
+
 import strafford_SOM_PKG.straff_Features.*;
 import strafford_SOM_PKG.straff_Features.featureCalc.Straff_WeightCalc;
+
 import strafford_SOM_PKG.straff_RawDataHandling.Straff_SOMRawDataLdrCnvrtr;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.BaseRawData;
 
 import strafford_SOM_PKG.straff_SOM_Examples.*;
 import strafford_SOM_PKG.straff_SOM_Examples.products.ProductExample;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.*;
+
 import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.*;
 import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.base.Straff_SOMCustPrspctManager_Base;
-import strafford_SOM_PKG.straff_SOM_Mapping.outputMappers.Straff_ProdMapOutBldr_FtrsAndBMUs;
+
 import strafford_SOM_PKG.straff_SOM_Segments.Straff_SOM_NonProdJPClassSegment;
 import strafford_SOM_PKG.straff_SOM_Segments.Straff_SOM_NonProdJPGCatSegment;
+
 import strafford_SOM_PKG.straff_UI.Straff_SOMMapUIWin;
+
 import strafford_SOM_PKG.straff_Utils.Straff_SOMMseOvrDisp;
 import strafford_SOM_PKG.straff_Utils.Straff_SOMProjConfig;
 
 
 //this class holds the data describing a SOM and the data used to both build and query the som
 public class Straff_SOMMapManager extends SOM_MapManager {	
-	//structure to map specified products to the SOM and find prospects with varying levels of confidence
-	//private Straff_ProdMapOutBldr_FtrsAndBMUs prodOutputMapper;	
 	//manage all jps and jpgs seen in project
 	public MonitorJpJpgrp jpJpgrpMon;	
 	//calc object to be used to derive feature vector for each prospect
@@ -115,7 +115,9 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	public static final int preProcDatPartSz = 50000;	
 	
 	private Straff_SOMMapManager(Straff_SOMMapUIWin _win, float[] _dims, TreeMap<String, Object> _argsMap) {
-		super(_win,_dims, _argsMap);		
+		super(_win,_dims, _argsMap);	
+		//if there's enough ram to run all prospects at once
+		if(_argsMap.get("enoughRamToLoadAllProspects") != null) {enoughRamToLoadAllProspects = (boolean) _argsMap.get("enoughRamToLoadAllProspects");}
 		//object to manage all jps and jpgroups seen in project
 		jpJpgrpMon = new MonitorJpJpgrp(this);
 		//all raw data loading moved to this object
@@ -339,8 +341,10 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	}//_buildCustomerAndProspectMaps	
 
 	//set max display list values
-	public void setUI_JPFtrMaxVals(int jpGrpLen, int jpLen) {if (win != null) {((Straff_SOMMapUIWin)win).setUI_JPFtrListMaxVals(jpGrpLen, jpLen);}}
-	public void setUI_JPAllSeenMaxVals(int jpGrpLen, int jpLen) {if (win != null) {((Straff_SOMMapUIWin)win).setUI_JPAllSeenListMaxVals(jpGrpLen, jpLen);}}
+//	public void setUI_JPFtrMaxVals(int jpGrpLen, int jpLen) {if (win != null) {((Straff_SOMMapUIWin)win).setUI_JPFtrListVals(jpGrpLen, jpLen);}}
+//	public void setUI_JPAllSeenMaxVals(int jpGrpLen, int jpLen) {if (win != null) {((Straff_SOMMapUIWin)win).setUI_JPAllSeenListVals(jpGrpLen, jpLen);}}
+	public void setUI_JPFtrListVals(String[] jpList, String[] jpGrpList) {if (win != null) {((Straff_SOMMapUIWin)win).setUI_JPFtrListVals(jpGrpList, jpList);}}
+	public void setUI_JPAllSeenListVals(String[] jpList,String[] jpGrpList) {if (win != null) {((Straff_SOMMapUIWin)win).setUI_JPAllSeenListVals(jpGrpList, jpList);}}
 	protected int _getNumSecondaryMaps(){return jpJpgrpMon.getLenFtrJpGrpByIdx();}
 	
 	//reset all data mappers used to manage preprocessed data
@@ -903,56 +907,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	//save non-prod-jpgroup segment information
 	private void saveNonProdJpGroup_BMUReport(){		_saveSegmentReports(nonProdJpGroup_Segments,projConfigData.getSegmentFileNamePrefix("nonprod_jpgroups",""));}
 	
-	
-//	public void buildProdMapper(double prodZoneDistThresh) {
-//		if(prodOutputMapper != null) { return;}
-//		//get file name of product mapper configuration file
-//		String prodMapFileName = ((Straff_SOMProjConfig)projConfigData).getFullProdOutMapperInfoFileName();
-//		//builds the output mapper and loads the product IDs to map from config file
-//		prodOutputMapper = new Straff_ProdMapOutBldr_FtrsAndBMUs(this, prodMapFileName,th_exec, getProdDistType(), prodZoneDistThresh);		
-//	}//buildProdMapper
-//	
-//	@Override
-//	public void saveProductMappings(double prodZoneDistThresh) {
-//		if(prodOutputMapper == null) {buildProdMapper(prodZoneDistThresh);}
-//		if (getProdDataBMUsRdyToSave()) {
-//			getMsgObj().dispMessage("StraffSOMMapManager","saveProductMappings","Finished load of product to prospecting mapping configuration and building product output mapper | Begin Saving prod-to-prospect mappings to files", MsgCodes.info1);	
-//			//by here all prods to map have been specified. prodMapBuilder will determine whether multithreaded or single threaded; 
-//			prodOutputMapper.saveAllSpecifiedProdMappings();		
-//			getMsgObj().dispMessage("StraffSOMMapManager","saveProductMappings","Finished Saving prod-to-prospect mappings to files.", MsgCodes.info1);
-//		} else {			_dispMappingNotDoneMsg("StraffSOMMapManager","saveProductMappings","Product");	}
-//	}//saveProductMappings
-//	
-//	@Override
-//	public void saveTestTrainMappings(double prodZoneDistThresh) {
-//		if(prodOutputMapper == null) {buildProdMapper(prodZoneDistThresh);}
-//		if((getTrainDataBMUsRdyToSave()) && (getTestDataBMUsRdyToSave())) {
-//			getMsgObj().dispMessage("StraffSOMMapManager","saveTestTrainMappings","Begin Saving customer-to-product mappings to files.", MsgCodes.info1);	
-//			//save customer-to-product mappings
-//			
-//			
-//			//prodOutputMapper.saveAllProspectToProdMappings(inputData, custExKey);
-//			
-//			
-//			getMsgObj().dispMessage("StraffSOMMapManager","saveTestTrainMappings","Finished Saving " + inputData.length + " customer-to-product mappings to files.", MsgCodes.info1);	
-//		} else {		_dispMappingNotDoneMsg("StraffSOMMapManager","saveTestTrainMappings","Test/Train (Customers)");		}		
-//	}//saveTestTrainMappings
-//	
-//	@Override
-//	public void saveValidationMappings(double prodZoneDistThresh) {
-//		if(prodOutputMapper == null) {buildProdMapper(prodZoneDistThresh);}
-//		if(getValidationDataBMUsRdyToSave()) {
-//			getMsgObj().dispMessage("StraffSOMMapManager","saveValidationMappings","Begin Saving prospect-to-product mappings to files.", MsgCodes.info1);	
-//			
-//			
-//			//prodOutputMapper.saveAllProspectToProdMappings(validationData, prspctExKey);
-//			
-//			
-//			getMsgObj().dispMessage("StraffSOMMapManager","saveValidationMappings","Finished Saving " + validationData.length + " true prospect-to-product mappings to files", MsgCodes.info5);
-//		} else {		_dispMappingNotDoneMsg("StraffSOMMapManager","saveValidationMappings","Validation (True Prospects)");  }		
-//	}//saveValidationMappings
-	
-	
+
 	/////////////////////////////////////////
 	//drawing and graphics methods - these must check if win and/or pa exist, or else except win or pa as passed arguments, to manage when this code is executed without UI
 	/**
