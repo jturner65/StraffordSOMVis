@@ -5,11 +5,8 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.Future;
 
 import base_SOM_Objects.SOM_MapManager;
-import base_SOM_Objects.som_examples.SOM_ExDataType;
 import base_SOM_Objects.som_examples.SOM_Example;
 import base_SOM_Objects.som_fileIO.SOM_ExCSVDataLoader;
-import base_SOM_Objects.som_utils.runners.SOM_MapExDataToBMUs_Runner;
-import base_SOM_Objects.som_utils.runners.SOM_SaveExToBMUs_Runner;
 import base_Utils_Objects.io.MsgCodes;
 import strafford_SOM_PKG.straff_SOM_Mapping.*;
 import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.base.Straff_SOMProspectManager;
@@ -112,72 +109,32 @@ public class Straff_SOMTruePrspctManager extends Straff_SOMProspectManager {
 			}
 		}				
 	}//buildSTLoader
+		
 	
+//	/**
+//	 * Save all True Prospect -> BMU mappings
+//	 */
+//	@Override
+//	public boolean saveExampleBMUMappings() {
+//		if(!isExampleArrayBuilt()) {		buildExampleArray();	}			//incase example array has not yet been built
+//		
+//		//(SOM_MapManager _mapMgr, ExecutorService _th_exec, SOMExample[] _exData, String _dataTypName, boolean _forceST, String _fileNamePrefix)
+//		String _fileNamePrefix = projConfigData.getExampleToBMUFileNamePrefix(exampleName);
+//		SOM_SaveExToBMUs_Runner saveRunner = new SOM_SaveExToBMUs_Runner(mapMgr, th_exec, SOMexampleArray, exampleName, true,  _fileNamePrefix, preProcDatPartSz);
+//		saveRunner.runMe();
+//		
+//		return true;
+//	}//saveExampleBMUMappings
 	
 	/**
-	 * This exists only for true prospects because TP is the only dataset sufficiently 
-	 * large to warrant loading, mapping and saving mappings per perProcData File, 
-	 * as opposed to doing each step across all data
-	 * @param subdir subdir location of preproc example data
+	 * return array of examples to save their bmus - called from saveExampleBMUMappings in Straff_SOMExampleManager
 	 * @return
 	 */
-	public boolean loadPreProcMapBMUAndSaveMappings(String subDir) {
-		//first load individual file partition
-		String[] loadSrcFNamePrefixAra = projConfigData.buildPreProccedDataCSVFNames_Load(subDir, exampleName+ "MapSrcData");
-		int numPartitions = getNumSrcFilePartitions(loadSrcFNamePrefixAra,subDir);
-		//load each paritition 1 at a time, calc all features for partition, map to bmus and save mappings
-		for(int i=0;i<numPartitions;++i) {
-			//clear out all data
-			reset();
-			
-			String dataFile = loadSrcFNamePrefixAra[0]+"_"+i+".csv";
-			String[] csvLoadRes = fileIO.loadFileIntoStringAra(dataFile, exampleName+ " Data file " + i +" of " +numPartitions +" loaded",  exampleName+ " Data File " + i +" of " +numPartitions +" Failed to load");
-			//ignore first entry - header
-			for (int j=1;j<csvLoadRes.length; ++j) {
-				String str = csvLoadRes[j];
-				int pos = str.indexOf(',');
-				String oid = str.substring(0, pos);
-				TrueProspectExample ex = new TrueProspectExample(mapMgr, oid, str);
-				exampleMap.put(oid, ex);			
-			}
-			setAllDataLoaded();
-			setAllDataPreProcced();
-				//data is loaded here, now finalize before ftr calc
-			finalizeAllExamples();
-				//now build feature vectors
-			buildFeatureVectors();	
-				//build post-feature vectors - build STD vectors, build alt calc vec mappings
-			buildAfterAllFtrVecsBuiltStructs();
-				//build array - gets rid of bad examples (have no ftr vector values at all)
-			buildExampleArray();
-				//launch a MapTestDataToBMUs_Runner to manage multi-threaded calc
-			SOM_MapExDataToBMUs_Runner mapRunner = new SOM_MapExDataToBMUs_Runner(mapMgr, th_exec, SOMexampleArray, exampleName, SOM_ExDataType.Validation,mapMgr.validateDataMappedIDX, false);	
-			mapRunner.runMe();
-				//build array again to remove any non-BMU-mapped examples (?)
-			//buildExampleArray();
-			//(SOM_MapManager _mapMgr, ExecutorService _th_exec, SOMExample[] _exData, String _dataTypName, boolean _forceST, String _fileNamePrefix)
-			String _fileNamePrefix = projConfigData.getExampleToBMUFileNamePrefix(exampleName)+"_SrcFileIDX_"+String.format("%02d", i);
-			SOM_SaveExToBMUs_Runner saveRunner = new SOM_SaveExToBMUs_Runner(mapMgr, th_exec, SOMexampleArray, exampleName, true,  _fileNamePrefix, preProcDatPartSz);
-			saveRunner.runMe();	
-		}
-		return true;
-	}//loadPreProcMapBMUAndSaveMappings
-	
-	
-	
-	/**
-	 * Save all True Prospect -> BMU mappings
-	 */
 	@Override
-	public boolean saveExampleBMUMappings() {
-		if(!isExampleArrayBuilt()) {		buildExampleArray();	}			//incase example array has not yet been built
-		
-		//(SOM_MapManager _mapMgr, ExecutorService _th_exec, SOMExample[] _exData, String _dataTypName, boolean _forceST, String _fileNamePrefix)
-		String _fileNamePrefix = projConfigData.getExampleToBMUFileNamePrefix(exampleName);
-		SOM_SaveExToBMUs_Runner saveRunner = new SOM_SaveExToBMUs_Runner(mapMgr, th_exec, SOMexampleArray, exampleName, true,  _fileNamePrefix, preProcDatPartSz);
-		saveRunner.runMe();
-		
-		return true;
-	}//saveExampleBMUMappings
+	protected final SOM_Example[] getExToSave() {
+		if(!isExampleArrayBuilt()) {		buildExampleArray();	}	//incase example array has not yet been built
+		msgObj.dispInfoMessage("Straff_SOMTruePrspctManager","getExToSave","Size of exToSaveBMUs : " + SOMexampleArray.length);
+		return SOMexampleArray;
+	};
 
 }//class Straff_SOMTruePrspctMapper

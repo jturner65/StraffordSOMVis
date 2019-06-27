@@ -40,24 +40,19 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		showSelJPIDX					= numSOMBasePrivFlags + 12, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
 		//train/test data managemen
 		procTruProspectsIDX				= numSOMBasePrivFlags + 13,			//this will process true prospects, and load them if they haven't been loaded
-		saveProdMapsOfPrspctsIDX		= numSOMBasePrivFlags + 14;			//this will save all the product data for the currently selected prod JP
+		saveBMUMapsForTruPrspctsIDX		= numSOMBasePrivFlags + 14;			//this will save all the product data for the currently selected prod JP
 
 
 	public static final int numPrivFlags = numSOMBasePrivFlags + 15;
 	
-//	//SOM map list options
-//	public String[] 		uiRawDataSourceList = new String[] {"Prebuilt CSV Files","Data Tables Via SQL"};
-	
 	//	//GUI Objects	
 	public final static int //offset from end of base class SOM UI objs
 		uiRawDataSourceIDX 			= numSOMBaseGUIObjs + 0,			//source of raw data to be preprocced and used to train the map
-		uiFtrJPGToDispIDX			= numSOMBaseGUIObjs + 1,			//which group of jp's (a single jpg) to display on map
-		uiFtrJPToDispIDX			= numSOMBaseGUIObjs + 2,			//which JP Ftr IDX to display as map
-		//uiAllJpgSeenToDispIDX		= numSOMBaseGUIObjs + 3,			//display products of this jpg
-		uiAllJpSeenToDispIDX		= numSOMBaseGUIObjs + 3,			//display products with this jp
-		uiProdZoneDistThreshIDX		= numSOMBaseGUIObjs + 4;			//max distance from a product that a map node should be considered to be covered by that product
+		uiAllJpSeenToDispIDX		= numSOMBaseGUIObjs + 1,			//choose jp to show based on all jps seen
+		uiProdJPToDispIDX			= numSOMBaseGUIObjs + 2,			//choose current product/zone to show
+		uiProdZoneDistThreshIDX		= numSOMBaseGUIObjs + 3;			//max distance from a product that a map node should be considered to be covered by that product
 	
-	public final int numGUIObjs = numSOMBaseGUIObjs + 5;
+	public final int numGUIObjs = numSOMBaseGUIObjs + 4;
 	
 	//types of data that can be used for calc analysis 
 	private int curCalcAnalysisSrcDataTypeIDX = Straff_WeightCalc.bndAra_AllJPsIDX;
@@ -128,9 +123,16 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		tmpBtnNamesArray.add(new Object[] {"Hide True Prspct Calc Plot", "Show True Prspct Calc Plot", mapDrawTPAnalysisVisIDX});       
 		tmpBtnNamesArray.add(new Object[] {"Hide True Prospects on Map", "Show True Prospects on Map", mapDrawTruePspctIDX});           
 		tmpBtnNamesArray.add(new Object[] {"Mapping True Prospect BMUs", "Map True Prospect BMUs", procTruProspectsIDX});           
-		tmpBtnNamesArray.add(new Object[] {"Saving Prospect Mappings for prods","Save Prospect Mappings for prods", saveProdMapsOfPrspctsIDX});      
-	}
-	
+		tmpBtnNamesArray.add(new Object[] {"Building/Saving Tru Prspct BMUs for loaded Map","Build/Save Tru Prspct BMUs for loaded Map", saveBMUMapsForTruPrspctsIDX});      
+	}//initAllSOMPrivBtns_Indiv
+	/**
+	 * Instance class determines the true and false labels the class-category locking should use
+	 * @return array holding true(idx0) and false(idx1) labels for buttons to control display of whether 
+	 * category should be locked to allow selection through within-category classes
+	 */
+	@Override
+	protected String[] getClassCatLockBtnTFLabels() {return new String[] {"JPGroup Changes with JP","Lock JPGroup; restrict JPs to JPG"};}
+
 	/**
 	 * Instance class determines the true and false labels the class buttons use - if empty then no classes used
 	 * @return array holding true(idx0) and false(idx1) labels for buttons to control display of class-based segment
@@ -227,8 +229,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 			case mapDrawCustAnalysisVisIDX	: {//whether or not to draw feature calc analysis graphs  
 				if (val) {//if setting to true then aggregate data
 					setPrivFlags(mapDrawTPAnalysisVisIDX, false);
-					setPrivFlags(mapDrawTrainDataAnalysisVisIDX, false);
-					
+					setPrivFlags(mapDrawTrainDataAnalysisVisIDX, false);					
 					curCalcAnalysisSrcDataTypeIDX= Straff_WeightCalc.custCalcObjIDX;
 					((Straff_SOMMapManager) mapMgr).processCalcAnalysis(curCalcAnalysisSrcDataTypeIDX);	
 					setAnalysisDimWidth();
@@ -239,8 +240,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 			case mapDrawTPAnalysisVisIDX	: {//whether or not to draw feature calc analysis graphs  
 				if (val) {//if setting to true then aggregate data
 					setPrivFlags(mapDrawCustAnalysisVisIDX, false);
-					setPrivFlags(mapDrawTrainDataAnalysisVisIDX, false);
-					
+					setPrivFlags(mapDrawTrainDataAnalysisVisIDX, false);					
 					curCalcAnalysisSrcDataTypeIDX= Straff_WeightCalc.tpCalcObjIDX;
 					((Straff_SOMMapManager) mapMgr).processCalcAnalysis(curCalcAnalysisSrcDataTypeIDX);	
 					setAnalysisDimWidth();
@@ -252,8 +252,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 			case mapDrawTrainDataAnalysisVisIDX : {
 				if (val) {//if setting to true then aggregate data
 					setPrivFlags(mapDrawCustAnalysisVisIDX, false);
-					setPrivFlags(mapDrawTPAnalysisVisIDX, false);
-					
+					setPrivFlags(mapDrawTPAnalysisVisIDX, false);					
 					curCalcAnalysisSrcDataTypeIDX= Straff_WeightCalc.trainCalcObjIDX;
 					((Straff_SOMMapManager) mapMgr).processCalcAnalysis(curCalcAnalysisSrcDataTypeIDX);	
 					setAnalysisDimWidth();
@@ -269,10 +268,10 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 //					addPrivBtnToClear(procTruProspectsIDX);					
 //				}			
 				break;}		//put true prospects on the SOM
-			case saveProdMapsOfPrspctsIDX : {
+			case saveBMUMapsForTruPrspctsIDX : {
 				if(val) {
-					((Straff_SOMMapManager) mapMgr).saveAllExamplesToSOMMappings();		
-					addPrivBtnToClear(saveProdMapsOfPrspctsIDX);			
+					((Straff_SOMMapManager) mapMgr).saveBMUMapsForTruPrspcts();		
+					addPrivBtnToClear(saveBMUMapsForTruPrspctsIDX);			
 				}				
 				break;}		//save all product to prospect mappings given currently selected product jp and dist thresh
 			
@@ -281,6 +280,18 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 			case trainExCalcedIDX 	: {		break;}
 		}		
 	}//setPrivFlagsIndiv
+	/**
+	 * Instance-specific code for managing locking of category segment selection to enable cycling through class within category
+	 * @param val whether the lock button is being turned on or off
+	 */
+	@Override
+	protected void setPrivFlags_LockCatForClassSegs(boolean val) {
+		if(val) {
+			
+		} else {
+			
+		}		
+	}//setPrivFlags_LockCatForClassSegs
 	
 	/**
 	 * Instancing class-specific (application driven) UI objects should be defined
@@ -296,32 +307,47 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	protected final void setupGUIObjsArasIndiv(ArrayList<Object[]> tmpUIObjArray, TreeMap<Integer, String[]> tmpListObjVals) {	
 		//per object entry : object array of {min,max,mod},stVal,lbl,bool ara
 		tmpListObjVals.put(uiRawDataSourceIDX,new String[] {"Prebuilt CSV Files","Data Tables Via SQL"});
-		tmpListObjVals.put(uiFtrJPGToDispIDX, new String[] {"Unknown"});
-		tmpListObjVals.put(uiFtrJPToDispIDX, new String[] {"Unknown"});
 		tmpListObjVals.put(uiAllJpSeenToDispIDX, new String[] {"Unknown"});
+		tmpListObjVals.put(uiProdJPToDispIDX, new String[] {"Unknown"}); 
 		
 		tmpUIObjArray.add(new Object[] {new double[]{0.0, tmpListObjVals.get(uiRawDataSourceIDX).length, 1}, 0.0, "Raw Data Source", new boolean []{true, true, true}});		//uiRawDataSourceIDX
-		tmpUIObjArray.add(new Object[] {new double[]{0.0, 100, 1.0}, 0.0, "JPGrp Ftrs Shown", new boolean []{true, true, true}});		//uiFtrJPGToDispIDX		
-		tmpUIObjArray.add(new Object[] {new double[]{0.0, 260, 1.0}, 0.0, "JP Ftr Shown", new boolean []{true, true, true}});			//uiFtrJPToDispIDX	
+		tmpUIObjArray.add(new Object[] {new double[]{0.0, 260, 1.0}, 0.0, "Product JP to Show", new boolean []{true, true, true}});			//uiProdJPToDispIDX	
+		tmpUIObjArray.add(new Object[] {new double[]{0.0, 5, .01}, 0.99, "Prod Max Sq Dist", new boolean []{false, false, true}});		//uiProdZoneDistThreshIDX	
 		tmpUIObjArray.add(new Object[] {new double[]{0.0, 260, 1.0}, 0.0, "All JP to Show", new boolean []{true, true, true}});			//uiAllJpSeenToDispIDX	
-		tmpUIObjArray.add(new Object[] {new double[]{0.0, 2, .01}, 0.99, "Prod Max Sq Dist", new boolean []{false, false, true}});		//uiProdZoneDistThreshIDX	
-	
+
 	}//setupGUIObjsArasIndiv
 	
+	/**
+	 * instancing class description for category display UI object - if null or length==0 then not shown/used
+	 */
+	@Override
+	protected String getCategoryUIObjLabel() {		return "JPGrp Segments To Show";}
+
+	/**
+	 * instancing class description for class display UI object - if null or length==0 then not shown/used
+	 */
+	@Override
+	protected String getClassUIObjLabel() {			return "JP Segments To Show";}
 	
 	/**
-	 * pass the list of values for the training jp group and jp list boxes, in idx order
-	 * @param jpGrpVals
-	 * @param jpVals
+	 * pass the list of values for the list boxes that use training jp group and jp, in idx order
+	 * (ftr idx box, jp/class select and jpgroup/category select
+	 * @param ftrVals
+	 * @param classVals
+	 * @param categoryVals
+	 * @param prodVals
 	 */
-	public void setUI_JPFtrListVals(String[] jpGrpVals, String[] jpVals) {
-		//refresh max size of guiobj - heavy handed, these values won't change often, and this is called -every draw frame-.
-		
-		guiObjs[uiFtrJPToDispIDX].setListVals(jpVals);
-		guiObjs[uiFtrJPGToDispIDX].setListVals(jpGrpVals);	
-		
-		setJPGroupIDXFromJp(false);
+	public void setUI_JPFtrListVals(String[] ftrVals, String[] classVals, String[] categoryVals, String[] prodVals) {
+		//lists of display strings for 
+		setUI_FeatureListVals(ftrVals);
+		setUI_ClassListVals(classVals);
+		setUI_CategoryListVals(categoryVals);
+		//set product list values
+		this.guiObjs[uiProdJPToDispIDX].setListVals(prodVals);
+		//in super class
+		setUIWinVals_HandleClass(false);
 	}//setUI_JPListMaxVals
+	
 	
 	/**
 	 * pass the list of values for all jp group and jp list boxes, in idx order
@@ -335,59 +361,46 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		//guiObjs[uiAllJpgSeenToDispIDX].setNewMax(jpGrpLen-1);	
 	}//setUI_JPListMaxVals
 	
-	private boolean settingJPGFromJp = false, settingJPFromJPG = false;
 	private boolean settingProdJPGFromJp = false, settingProdJPFromJPG = false;
 	
-	private void setJPGroupIDXFromJp(boolean settingJPFromJPG) {
-		curMapImgIDX = (int)guiObjs[uiFtrJPToDispIDX].getVal();
-		curProdToShowIDX = (int)guiObjs[uiFtrJPToDispIDX].getVal();
-		//msgObj.dispInfoMessage("SOM WIN","setUIWinVals::uiJPToDispIDX", "Click : settingJPFromJPG : " + settingJPFromJPG);
-		if(!settingJPFromJPG) {		//don't want to change jpg again if setting from jpgroup change - loop potential
-			int curJPGIdxVal = (int)guiObjs[uiFtrJPGToDispIDX].getVal();
-			int jpgIdxToSet = ((Straff_SOMMapManager) mapMgr).getUI_JPGrpIdxFromFtrJPIdx(curMapImgIDX, curJPGIdxVal);
-			//fix this
-			if(curJPGIdxVal != jpgIdxToSet) {
-				//msgObj.dispMessage("SOM WIN","setUIWinVals::uiJPToDispIDX", "Attempt to modify uiJPGToDispIDX : cur JPG IDX val : "+ curJPGIdxVal + " | jpg IDX To Set : " + jpgIdxToSet, MsgCodes.info1);					
-				settingJPGFromJp = true;
-				guiObjs[uiFtrJPGToDispIDX].setVal(jpgIdxToSet);
-				setUIWinValsIndiv(uiFtrJPGToDispIDX);
-				uiVals[uiFtrJPGToDispIDX] =guiObjs[uiFtrJPGToDispIDX].getVal();
-				settingJPGFromJp = false;
-			}
-		}		
-		//msgObj.dispInfoMessage("SOM WIN","setUIWinVals::uiFtrJPToDispIDX", "End : settingJPGFromJp : "+settingJPGFromJp+" | settingProdJPGFromJp : "+settingProdJPGFromJp+" | settingJPFromJPG : "+settingJPFromJPG+" | settingProdJPFromJPG : "+settingProdJPFromJPG);
-		//msgObj.dispMessage("mySOMMapUIWin","setUIWinVals","uiJPToDispIDX : Setting UI JP Map to display to be idx :" + curMapImgIDX + " Corresponding to JP : " + mapMgr.getJpByIdxStr(curMapImgIDX) );					
-	}//setJPGroupIDXFromJp
+
+	@Override
+	protected final int getCategoryFromClass(int _curCatIDX, int _classIDX) { return ((Straff_SOMMapManager) mapMgr).getUI_JPGrpIdxFromFtrJPIdx(_classIDX, _curCatIDX);}
+	//((Straff_SOMMapManager) mapMgr).getUI_JPGrpIdxFromFtrJPIdx(curMapImgIDX, _clsIDX);
+
+	@Override
+	protected final int getClassFromCategory(int _catIDX, int _curClassIDX) { return ((Straff_SOMMapManager) mapMgr).getUI_FirstJPIdxFromFtrJPGIdx(_catIDX, _curClassIDX);}
+
+	/**
+	 * return class label from index - will be instance specific
+	 * @param _idx idx from class list box to get class label (used as key in map holding class data in map manager)
+	 * @return
+	 */
+	@Override
+	protected final int getClassLabelFromIDX(int _idx) {	return ((Straff_SOMMapManager) mapMgr).getFtrJpByIdx(_idx);	}
+	
+	
+	/**
+	 * return category label from index - will be instance specific
+	 * @param _idx idx from category list box to get category label (used as key in map holding category data in map manager)
+	 * @return
+	 */
+	@Override
+	protected final int getCategoryLabelFromIDX(int _idx) {	return ((Straff_SOMMapManager) mapMgr).getFtrJpGroupByIdx(_idx);}
 	
 	@Override 
 	//handle instance-specific UI components
 	protected void setUIWinValsIndiv(int UIidx) {
-		//if(!(settingJPGFromJp || settingProdJPGFromJp || settingJPFromJPG || settingProdJPFromJPG)) {msgObj.dispInfoMessage("SOM WIN","setUIWinVals","Idx to set  : " + UIidx);}
+		//if(!(settingJPGFromJp || settingProdJPGFromJp || settingClassFromCategory || settingProdJPFromJPG)) {msgObj.dispInfoMessage("SOM WIN","setUIWinVals","Idx to set  : " + UIidx);}
 		switch(UIidx){
 			case uiRawDataSourceIDX  : {//source of raw data
 				rawDataSource = (int)(this.guiObjs[uiRawDataSourceIDX].getVal());
 				//change button display
 				setCustMenuBtnNames();
 				msgObj.dispMessage("mySOMMapUIWin","setUIWinVals","uiRawDataSourceIDX : rawDataSource set to : " + rawDataSource, MsgCodes.info1);
-				break;}			
-			case uiFtrJPGToDispIDX : {//highlight display of different region of SOM map corresponding to group of JPs (jpg)
-				//msgObj.dispInfoMessage("SOM WIN","setUIWinVals::uiJPGToDispIDX", "Click : settingJPGFromJp : " + settingJPGFromJp);
-				if(!settingJPGFromJp) {
-					int curJPIdxVal = (int)guiObjs[uiFtrJPToDispIDX].getVal();
-					int jpIdxToSet = ((Straff_SOMMapManager) mapMgr).getUI_FirstJPIdxFromFtrJPGIdx((int)guiObjs[uiFtrJPGToDispIDX].getVal(), curJPIdxVal);
-					if(curJPIdxVal != jpIdxToSet) {
-						//msgObj.dispMessage("SOM WIN","setUIWinVals:uiJPGToDispIDX", "Attempt to modify uiJPToDispIDX : curJPIdxVal : "  +curJPIdxVal + " | jpToSet : " + jpIdxToSet, MsgCodes.info1);
-						settingJPFromJPG = true;
-						guiObjs[uiFtrJPToDispIDX].setVal(jpIdxToSet);	
-						setUIWinValsIndiv(uiFtrJPToDispIDX);
-						uiVals[uiFtrJPToDispIDX] =guiObjs[uiFtrJPToDispIDX].getVal();
-						settingJPFromJPG = false;
-					}
-				}
-				//msgObj.dispInfoMessage("SOM WIN","setUIWinVals::uiFtrJPGToDispIDX", "End : settingJPGFromJp : "+settingJPGFromJp+" | settingProdJPGFromJp : "+settingProdJPGFromJp+" | settingJPFromJPG : "+settingJPFromJPG+" | settingProdJPFromJPG : "+settingProdJPFromJPG);
-				break;}
-			case uiFtrJPToDispIDX : {//highlight display of different region of SOM map corresponding to selected JP	
-				setJPGroupIDXFromJp(settingJPFromJPG);
+				break;}					
+			case uiProdJPToDispIDX : {//product to display, for product influence zones
+				curProdToShowIDX = (int)guiObjs[uiProdJPToDispIDX].getVal();				
 				break;}
 	
 			case uiAllJpSeenToDispIDX		: {
@@ -397,7 +410,8 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 				prodZoneDistThresh = this.guiObjs[uiProdZoneDistThreshIDX].getVal();			
 				break;}
 		}		
-	}
+	}//setUIWinValsIndiv
+	
 	
 	//modify menu buttons to display whether using CSV or SQL to access raw data
 	@Override
@@ -447,28 +461,20 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	}
 	@Override
 	//stuff to draw specific to this instance, before nodes are drawn
-	protected void drawMapRectangleIndiv(int curImgNum) {
+	protected void drawMapRectangle_Indiv(int curImgNum) {
 		if(getPrivFlags(mapDrawTruePspctIDX)){			((Straff_SOMMapManager) mapMgr).drawTruPrspctData(pa);}
-		//not drawing any analysis currently
 		boolean notDrawAnalysis = !(getPrivFlags(mapDrawCustAnalysisVisIDX) || getPrivFlags(mapDrawTPAnalysisVisIDX));
-		if (curImgNum > -1) {
-			if(getPrivFlags(mapDrawPrdctFtrBMUsIDX)){		((Straff_SOMMapManager) mapMgr).drawProductNodes(pa, curMapImgIDX, true);}
-			if(getPrivFlags(mapDrawWtMapNodesIDX)){		mapMgr.drawNodesWithWt(pa, mapNodeWtDispThresh, curMapImgIDX);} 
-			//display ftr-wt, class and category images, if enabled
-			drawSegmentsFtrWeightDisp(curMapImgIDX);
-			drawClassCatDisp(((Straff_SOMMapManager) mapMgr).getFtrJpByIdx(curMapImgIDX), ((Straff_SOMMapManager) mapMgr).getFtrJpGroupByIdx((int)guiObjs[uiFtrJPGToDispIDX].getVal()));
-			drawNonProdSegs();
-		} else {//draw all products				
-			if(getPrivFlags(mapDrawPrdctFtrBMUsIDX)){		((Straff_SOMMapManager) mapMgr).drawAllProductNodes(pa);}
-		}
+		//not drawing any analysis currently
 		if (notDrawAnalysis && (mseOvrData != null)){	drawMseOverData();}//draw mouse-over info if not showing calc analysis				
 		
 		if (getPrivFlags( mapDrawCurProdFtrBMUZoneIDX)){		((Straff_SOMMapManager) mapMgr).drawProductRegion(pa,curProdToShowIDX,prodZoneDistThresh);}
 	}//drawMapRectangleIndiv
-	
-	
-	private void drawNonProdSegs() {
-		//TODO this needs to be mapped to UI values
+	/**
+	 * draw instance-specific per-ftr map display
+	 */
+	@Override
+	protected void drawPerFtrMap_Indiv() {
+		if(getPrivFlags(mapDrawPrdctFtrBMUsIDX)){				((Straff_SOMMapManager) mapMgr).drawProductNodes(pa, curMapImgIDX, true);}
 		if(getPrivFlags(mapDrawNonProdJPSegIDX)) {	 			((Straff_SOMMapManager) mapMgr).drawNonProdJpSegments(pa,curAllJPToShowIDX);	}		
 		if(getPrivFlags(mapDrawNonProdJPGroupSegIDX)) { 		((Straff_SOMMapManager) mapMgr).drawNonProdJPGroupSegments(pa,curAllJPToShowIDX);	}	
 	}
@@ -480,6 +486,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	protected void drawSegmentsUMatrixDispIndiv() {
 		if(getPrivFlags(mapDrawNonProdJPSegIDX)) {	 			((Straff_SOMMapManager) mapMgr).drawAllNonProdJpSegments(pa);}
 		if(getPrivFlags(mapDrawNonProdJPGroupSegIDX)) { 		((Straff_SOMMapManager) mapMgr).drawAllNonProdJPGroupSegments(pa);}
+		if(getPrivFlags(mapDrawPrdctFtrBMUsIDX)){				((Straff_SOMMapManager) mapMgr).drawAllProductNodes(pa);}
 	}	
 	
 	@Override
@@ -602,6 +609,8 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 				case 1 : 
 				case 2 : 
 				case 3 : {//load all training data, default map config, and build map
+					curPreBuiltMapIDX = btn;
+					uiVals[uiMapPreBuiltDirIDX] = this.guiObjs[uiMapPreBuiltDirIDX].setVal(curPreBuiltMapIDX);
 					mapMgr.loadPretrainedExistingMap(btn, true);//runs in thread, button state reset there
 					resetButtonState();
 					break;}
@@ -671,5 +680,6 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		String res = super.toString();
 		return res;
 	}
+
 
 }//mySOMMapUIWin

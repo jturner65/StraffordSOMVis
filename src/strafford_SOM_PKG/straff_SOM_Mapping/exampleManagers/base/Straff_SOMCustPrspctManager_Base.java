@@ -1,13 +1,11 @@
 package strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.base;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.Future;
 
 import base_SOM_Objects.SOM_MapManager;
 import base_SOM_Objects.som_examples.SOM_Example;
 import base_SOM_Objects.som_fileIO.SOM_ExCSVDataLoader;
-import base_SOM_Objects.som_utils.runners.SOM_SaveExToBMUs_Runner;
 import strafford_SOM_PKG.straff_Features.featureCalc.Straff_WeightCalc;
 import strafford_SOM_PKG.straff_ProcDataHandling.data_loaders.CustCSVDataLoader;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.CustProspectExample;
@@ -126,20 +124,18 @@ public abstract class Straff_SOMCustPrspctManager_Base extends Straff_SOMProspec
 		}
 	}//buildSTLoader
 	
+
 	/**
-	 * Save all customer prospect -> BMU mappings
+	 * return array of examples to save their bmus - called from saveExampleBMUMappings in Straff_SOMExampleManager
+	 * @return
 	 */
 	@Override
-	public final boolean saveExampleBMUMappings() {
+	protected final SOM_Example[] getExToSave() {
 		buildExampleArray();					//force rebuilding
-		CustProspectExample[] exToSaveBMUs = getCustProspectExamples();
-		msgObj.dispInfoMessage("Straff_SOMCustPrspctManager_Base","saveExampleBMUMappings","Size of exToSaveBMUs : " + exToSaveBMUs.length);
-		//(SOM_MapManager _mapMgr, ExecutorService _th_exec, SOMExample[] _exData, String _dataTypName, boolean _forceST, String _fileNamePrefix)
-		String _fileNamePrefix = projConfigData.getExampleToBMUFileNamePrefix(exampleName);
-		SOM_SaveExToBMUs_Runner saveRunner = new SOM_SaveExToBMUs_Runner(mapMgr, th_exec, exToSaveBMUs, exampleName, true,  _fileNamePrefix, preProcDatPartSz);
-		saveRunner.runMe();
-		return true;
-	}//saveExampleBMUMappings
-	
+		CustProspectExample[] exToSaveBMUs = getCustProspectExamples();		
+		msgObj.dispInfoMessage("Straff_SOMCustPrspctManager_Base","getExToSave","Size of exToSaveBMUs : " + exToSaveBMUs.length);
+		return exToSaveBMUs;
+	};
+
 	
 }//Straff_SOMCustPrspctMapper

@@ -340,10 +340,19 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 		getMsgObj().dispMessage("StraffSOMMapManager","procRawLoadedData->_buildCustomerAndProspectMaps", "Finished Mapping Raw Prospects to Customers and True Prospects", MsgCodes.info5);
 	}//_buildCustomerAndProspectMaps	
 
-	//set max display list values
-//	public void setUI_JPFtrMaxVals(int jpGrpLen, int jpLen) {if (win != null) {((Straff_SOMMapUIWin)win).setUI_JPFtrListVals(jpGrpLen, jpLen);}}
-//	public void setUI_JPAllSeenMaxVals(int jpGrpLen, int jpLen) {if (win != null) {((Straff_SOMMapUIWin)win).setUI_JPAllSeenListVals(jpGrpLen, jpLen);}}
-	public void setUI_JPFtrListVals(String[] jpList, String[] jpGrpList) {if (win != null) {((Straff_SOMMapUIWin)win).setUI_JPFtrListVals(jpGrpList, jpList);}}
+	/**
+	 * set display list values from jpjpgroup monitor obj
+	 * @param jpList_prod : list of jp short names (For products)
+	 * @param jpList_IDX : list of jp names with IDX (For features)
+	 * @param jpList_Jp : list of jp names with jp ID (for class names)
+	 * @param jpGrpList : list of jpgroup names with jpgroup ID (for category names)
+	 */
+	public void setUI_JPFtrListVals(String[] jpList_prod, String[] jpList_IDX, String[] jpList_Jp, String[] jpGrpList) {
+		if (win != null) {		
+			//(String[] ftrVals, String[] classVals, String[] categoryVals, String[] prodVals)
+			((Straff_SOMMapUIWin)win).setUI_JPFtrListVals(jpList_IDX, jpList_Jp,  jpGrpList, jpList_Jp);		
+		}
+	}
 	public void setUI_JPAllSeenListVals(String[] jpList,String[] jpGrpList) {if (win != null) {((Straff_SOMMapUIWin)win).setUI_JPAllSeenListVals(jpGrpList, jpList);}}
 	protected int _getNumSecondaryMaps(){return jpJpgrpMon.getLenFtrJpGrpByIdx();}
 	
@@ -479,50 +488,51 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 			//not really test data so clear flag
 			setFlag(testDataMappedIDX, false);
 		}
-			//save customer mappings
-		custPrspctExMapper.saveExampleBMUMappings();
+			//save customer mappings - simple save
+		custPrspctExMapper.saveExampleBMUMappings(preProcDatPartSz);
 			//save product to bmu mappings
-		prodExMapper.saveExampleBMUMappings();
+		prodExMapper.saveExampleBMUMappings(preProcDatPartSz);
 		
 			//by here all map data is loaded, both training data and product data are mapped to BMUs, and the BMU data has been saved to file
-		msgObj.dispMessage("StraffSOMMapManager","loadAllDataAndBuildMappings","Finished Saving Map Ftrs, Classes(JPs),Categories(JP groups) and customer and product BMU mappings. | Start Mapping true prospects to map and saving results.", MsgCodes.info1);
+		msgObj.dispMessage("StraffSOMMapManager","loadAllDataAndBuildMappings","Finished Saving Map Ftrs, Classes(JPs),Categories(JP groups) and customer and product BMU mappings. | Start Loading & mapping true prospects and saving results.", MsgCodes.info1);
 		
-		if(enoughRamToLoadAllProspects) {
-			//go through process all at once
-			loadTrueProspectsAndMapToBMUs(subDir);
-		} else {
-			// process to go through validation data in chunks
-			((Straff_SOMTruePrspctManager)truePrspctExMapper).loadPreProcMapBMUAndSaveMappings(subDir);
-		}
-		msgObj.dispMessage("StraffSOMMapManager","loadAllDataAndBuildMappings","Finished Mapping true prospects to map and saving results", MsgCodes.info1);			
+		loadAndMapTrueProspects(subDir);
+
+		msgObj.dispMessage("StraffSOMMapManager","loadAllDataAndBuildMappings","Finished Loading & mapping true prospects and saving results", MsgCodes.info1);			
 		
 		msgObj.dispMessage("StraffSOMMapManager","loadAllDataAndBuildMappings","Finished loading all preprocced example data, specified trained SOM, mapping all data to BMUs, and saving all mappings.", MsgCodes.info1);			
 	}//loadAllDataAndBuildMappings
 	
 	/**
-	 * This will load all trueprospects, map them to bmus and save the resulting 
-	 * mappings - -this loads all data into mememory at one time, and should only 
-	 * be performed if sufficient system ram exists
+	 * This will load all true prospects, map them to bmus and save the resulting 
+	 * mappings.
+	 * 
+	 * this either loads, processes, maps and saves data in pages corresponding 
+	 * to preproc data size, or loads all data into mememory at one time(and should only 
+	 * be performed if sufficient system ram exists if this is the case)
 	 * @param subDir
 	 */
-	public void loadTrueProspectsAndMapToBMUs(String subDir) {
-			//load true prospects
-		truePrspctExMapper.loadAllPreProccedMapData(subDir);	
-			//data is loaded here, now finalize before ftr calc
-		truePrspctExMapper.finalizeAllExamples();
-			//now build feature vectors
-		truePrspctExMapper.buildFeatureVectors();	
-			//build post-feature vectors - build STD vectors, build alt calc vec mappings
-		truePrspctExMapper.buildAfterAllFtrVecsBuiltStructs();		
-			//build array of trueProspectData used to map
-		validationData = truePrspctExMapper.buildExampleArray();
-			//set bmus for all validation data
-		setValidationDataBMUs();
-			//save all validation data example-to-bmus mappings
-		saveExamplesToBMUMappings(this.validationData, truePrspctExMapper.exampleName, preProcDatPartSz);
-		
-	}//loadTrueProspectsAndMapToBMUs
-	
+	public void loadAndMapTrueProspects(String subDir) {		
+		if(enoughRamToLoadAllProspects) {
+				//load true prospects
+			truePrspctExMapper.loadAllPreProccedMapData(subDir);	
+				//data is loaded here, now finalize before ftr calc
+			truePrspctExMapper.finalizeAllExamples();
+				//now build feature vectors
+			truePrspctExMapper.buildFeatureVectors();	
+				//build post-feature vectors - build STD vectors, build alt calc vec mappings
+			truePrspctExMapper.buildAfterAllFtrVecsBuiltStructs();		
+				//build array of trueProspectData used to map
+			validationData = truePrspctExMapper.buildExampleArray();
+				//set bmus for all validation data
+			setValidationDataBMUs();
+				//save bmus
+			truePrspctExMapper.saveExampleBMUMappings(preProcDatPartSz);
+		} else {
+			// process to go through validation data in chunks
+			truePrspctExMapper.loadDataMapBMUAndSavePerPreProcFile(subDir, SOM_ExDataType.Validation, validateDataMappedIDX);
+		}
+	}//loadAndMapTrueProspects
 	
 	/**
 	 * reload calc object data and recalc ftrs
@@ -769,16 +779,18 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	///////////////////////////////
 	// segment reports and saving
 	
-	//this will load the product IDs to query on map for prospects from the location specified in the config
-	//map these ids to loaded products and then 
-	//prodZoneDistThresh is distance threshold to determine outermost map region to be mapped to a specific product
-	public void saveAllExamplesToSOMMappings() {
+	/**
+	 * This will load true prospects, map them and save their mappings
+	 */
+	public void saveBMUMapsForTruPrspcts() {
 		if (!getSOMMapNodeDataIsLoaded()) {	getMsgObj().dispMessage("StraffSOMMapManager","saveExamplesToSOMMappings","No Mapped data has been loaded or processed; aborting", MsgCodes.error2);		return;}		
 		getMsgObj().dispMessage("StraffSOMMapManager","saveExamplesToSOMMappings","Starting saving all segment data for Classes, Categories and BMUs.", MsgCodes.info5);	
 		saveAllSegment_BMUReports();
 		getMsgObj().dispMessage("StraffSOMMapManager","saveExamplesToSOMMappings","Finished saving all segment data for Classes, Categories and BMUs | Start saving all example->bmu mappings.", MsgCodes.info5);			
-		//send all validation data to have bmus mapped
-		saveExamplesToBMUMappings(this.validationData, "Validation Data", preProcDatPartSz);
+
+		String subDir = projConfigData.getPreProcDataDesiredSubDirName();
+		loadAndMapTrueProspects(subDir);		
+		
 		getMsgObj().dispMessage("StraffSOMMapManager","saveExamplesToSOMMappings","Finished saving all example->bmu mappings.", MsgCodes.info5);	
 	}//saveAllExamplesToSOMMappings	
 
@@ -796,6 +808,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	public String getNonProdJPSegmentTitleString(int npJpID) {return "Job Practice, Probability Segment, of training data mapped to node possessing Non-product-related JP  : " + npJpID + " | "+ jpJpgrpMon.getAllJpStrByJp(npJpID);}
 	
 	public String getNonProdJPGroupSegmentTitleString(int npJpgID) {return "Job Practice, Group Probability, Segment of training data mapped to node possessing Non-product-related JPgroup  : " + npJpgID + " | "+ jpJpgrpMon.getAllJpGrpStrByJpg(npJpgID);}
+
 	
 	public ConcurrentSkipListMap<Tuple<Integer,Integer>, Float> getMapNodeJPProbsForJP(Integer jp){return MapNodeClassProbs.get(jp);}		
 	public ConcurrentSkipListMap<Tuple<Integer,Integer>, Float> getMapNodeJPGroupProbsForJPGroup(Integer jpg){return MapNodeCategoryProbs.get(jpg);}	
@@ -947,43 +960,6 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 		pa.popStyle();pa.popMatrix();
 	}
 	public final void drawAllNonProdJPGroupSegments(my_procApplet pa) {	for(Integer key : nonProdJpGroup_Segments.keySet()) {	drawNonProdJPGroupSegments(pa,key);}	} 
-	
-	/**
-	 * draw boxes around each node representing class-based segments that node 
-	 * belongs to, with color strength proportional to probablity and 
-	 * different colors for each segment
-	 * pass class -label- not class index
-	 * @param pa
-	 * @param classLabel - label corresponding to class to be displayed
-	 */
-	@Override
-	public final void drawClassSegments(my_procApplet pa, int curJP) {
-		//Integer jp = jpJpgrpMon.getFtrJpByIdx(curJPIdx);
-		Collection<SOM_MapNode> mapNodesWithClasses = MapNodesWithMappedClasses.get(curJP);
-		if(null==mapNodesWithClasses) {		return;}
-		pa.pushMatrix();pa.pushStyle();
-		for (SOM_MapNode node : mapNodesWithClasses) {		node.drawMeClassClr(pa, curJP);}		
-		pa.popStyle();pa.popMatrix();
-	}//drawFtrWtSegments	
-	
-	/**
-	 * draw filled boxes around each node representing category-based segments 
-	 * that node belongs to, with color strength proportional to probablity 
-	 * and different colors for each segment
-	 * pass class -label- not class index
-	 * @param pa
-	 * @param classLabel - label corresponding to class to be displayed
-	 */
-	//draw boxes around each node representing category-based segments that nodes belong to
-	@Override
-	public final void drawCategorySegments(my_procApplet pa, int curJPGroup) {
-		//Integer jpg = jpJpgrpMon.getFtrJpGroupByIdx(curJPGroupIdx);
-		Collection<SOM_MapNode> mapNodes = MapNodesWithMappedCategories.get(curJPGroup);
-		if(null==mapNodes) {return;}
-		pa.pushMatrix();pa.pushStyle();
-		for (SOM_MapNode node : mapNodes) {		node.drawMeCategorySegClr(pa, curJPGroup);}				
-		pa.popStyle();pa.popMatrix();
-	}//drawAllOrderJPGroupSegments
 	
 	//draw all product nodes with max vals corresponding to current JPIDX
 	public void drawProductNodes(my_procApplet pa, int prodJpIDX, boolean showJPorJPG) {
@@ -1179,6 +1155,5 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 		String res = super.toString();
 		return res;
 	}
-
 	
 }//Straff_SOMMapManager

@@ -123,9 +123,35 @@ public class MonitorJpJpgrp {
 		TreeMap<Integer, String> trainJPNamesMap = prodData.getJpNames();
 		TreeMap<Integer, String> trainJPGNamesMap = prodData.getJpGrpNames();
 		
-		mapMgr.setUI_JPFtrListVals(trainJPNamesMap.values().toArray(new String[0]),trainJPGNamesMap.values().toArray(new String[0])); 
+		String[] tmpTrainJPNamesAra = new String[trainJPNamesMap.size()];
+		String[] tmpTrainJPNamesAra_IDX = new String[tmpTrainJPNamesAra.length];
+		String[] tmpTrainJPNamesAra_JP = new String[tmpTrainJPNamesAra.length];
+		
+		int idxJP = 0;
+		for(Integer jp : trainJPNamesMap.keySet()) {
+			String brfJPName = trainJPNamesMap.get(jp);
+			tmpTrainJPNamesAra[idxJP] = brfJPName;
+			tmpTrainJPNamesAra_IDX[idxJP] =  "IDX:"+String.format("%3d", idxJP)+ ":" + brfJPName;
+			tmpTrainJPNamesAra_JP[idxJP] = "JP:" +String.format("%3d", jp)+ ":" + brfJPName;			
+			++idxJP;
+		}
+		
+		String[] trainJPGrpNamesAraWithJPG = new String[trainJPGNamesMap.size()];
+		int idxJPG = 0;
+		for(Integer jpg :  trainJPGNamesMap.keySet()) {
+			String brfJPGName = trainJPGNamesMap.get(jpg);
+			trainJPGrpNamesAraWithJPG[idxJPG++] = "JP Group:"+String.format("%3d", jpg)+ ":" +brfJPGName;			
+		}		
+		mapMgr.setUI_JPFtrListVals(tmpTrainJPNamesAra,tmpTrainJPNamesAra_IDX,tmpTrainJPNamesAra_JP,trainJPGrpNamesAraWithJPG); 
 		mapMgr.setUI_JPAllSeenListVals(allJpJpgData.getJpNames().values().toArray(new String[0]),allJpJpgData.getJpGrpNames().values().toArray(new String[0])); 		
 	}
+	/**
+	 * @param jpList_prod : list of jp short names (For products)
+	 * @param jpList_IDX : list of jp names with IDX (For features)
+	 * @param jpList_Jp : list of jp names with jp ID (for class names)
+	 * @param jpGrpList : list of jpgroup names with jpgroup ID (for category names)
+	*/
+	
 
 	/////////////////////////////
 	//Save this object's data

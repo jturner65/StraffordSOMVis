@@ -4,7 +4,6 @@ import java.util.*;
 
 import base_SOM_Objects.SOM_MapManager;
 import base_SOM_Objects.som_examples.SOM_Example;
-import base_SOM_Objects.som_utils.runners.SOM_SaveExToBMUs_Runner;
 import base_UI_Objects.my_procApplet;
 import base_Utils_Objects.io.MsgCodes;
 import strafford_SOM_PKG.straff_SOM_Examples.products.ProductExample;
@@ -136,16 +135,27 @@ public class Straff_SOMProductManager extends Straff_SOMExampleManager {
 	/**
 	 * Save all example product -> BMU mappings
 	 */
+//	@Override
+//	public final boolean saveExampleBMUMappings() {
+//		if(!isExampleArrayBuilt()) {		buildExampleArray();	}			//incase example array has not yet been built
+//		
+//		//(SOM_MapManager _mapMgr, ExecutorService _th_exec, SOMExample[] _exData, String _dataTypName, boolean _forceST, String _fileNamePrefix)
+//		String _fileNamePrefix = projConfigData.getExampleToBMUFileNamePrefix(exampleName);
+//		SOM_SaveExToBMUs_Runner saveRunner = new SOM_SaveExToBMUs_Runner(mapMgr, th_exec, SOMexampleArray, exampleName, true,  _fileNamePrefix, Straff_SOMMapManager.preProcDatPartSz);
+//		saveRunner.runMe();		
+//		return true;
+//	}//saveExampleBMUMappings
+//	
+	/**
+	 * return array of examples to save their bmus - called from saveExampleBMUMappings in Straff_SOMExampleManager
+	 * @return
+	 */
 	@Override
-	public boolean saveExampleBMUMappings() {
-		if(!isExampleArrayBuilt()) {		buildExampleArray();	}			//incase example array has not yet been built
-		
-		//(SOM_MapManager _mapMgr, ExecutorService _th_exec, SOMExample[] _exData, String _dataTypName, boolean _forceST, String _fileNamePrefix)
-		String _fileNamePrefix = projConfigData.getExampleToBMUFileNamePrefix(exampleName);
-		SOM_SaveExToBMUs_Runner saveRunner = new SOM_SaveExToBMUs_Runner(mapMgr, th_exec, SOMexampleArray, exampleName, true,  _fileNamePrefix, Straff_SOMMapManager.preProcDatPartSz);
-		saveRunner.runMe();		
-		return true;
-	}//saveExampleBMUMappings
+	protected final SOM_Example[] getExToSave() {
+		if(!isExampleArrayBuilt()) {		buildExampleArray();	}	
+		msgObj.dispInfoMessage("Straff_SOMProductMapper","getExToSave","Size of exToSaveBMUs : " + SOMexampleArray.length);
+		return SOMexampleArray;
+	};
 	
 	private static int dispProdJPDataFrame = 0, curProdJPIdx = -1, curProdTimer = 0;
 	//display the region of the map expected to be impacted by the products serving the passed jp 
