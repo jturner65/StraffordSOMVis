@@ -531,6 +531,9 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 		} else {
 			// process to go through validation data in chunks
 			truePrspctExMapper.loadDataMapBMUAndSavePerPreProcFile(subDir, SOM_ExDataType.Validation, validateDataMappedIDX);
+			//only last pass
+			validationData = truePrspctExMapper.buildExampleArray();
+			
 		}
 	}//loadAndMapTrueProspects
 	
@@ -791,7 +794,8 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 		String subDir = projConfigData.getPreProcDataDesiredSubDirName();
 		loadAndMapTrueProspects(subDir);		
 		
-		getMsgObj().dispMessage("StraffSOMMapManager","saveExamplesToSOMMappings","Finished saving all example->bmu mappings.", MsgCodes.info5);	
+		getMsgObj().dispMessage("StraffSOMMapManager","saveExamplesToSOMMappings","Finished saving all example->bmu mappings.", MsgCodes.info5);
+		
 	}//saveAllExamplesToSOMMappings	
 
 	@Override
