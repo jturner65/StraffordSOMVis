@@ -6,8 +6,8 @@ import java.util.concurrent.*;
 import base_SOM_Objects.*;
 import base_SOM_Objects.som_examples.*;
 import base_SOM_Objects.som_segments.segments.SOM_MappedSegment;
-import base_SOM_Objects.som_ui.SOM_UIToMapCom;
 import base_SOM_Objects.som_ui.SOM_MseOvrDisplay;
+import base_SOM_Objects.som_ui.win_disp_ui.SOM_UIToMapCom;
 import base_SOM_Objects.som_utils.SOM_ProjConfigData;
 
 import base_UI_Objects.*;

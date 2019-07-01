@@ -77,13 +77,13 @@ public class Straff_SOMProjConfig extends SOM_ProjConfigData {
 //	 */	
 //	public String[] buildMappedExDataCSVFNames_Load(String subDir, String _desSuffix) {	return buildCSVFileNamesAra(subDir, _desSuffix,"SOM_MappedExData");}	
 	
-	//return subdirectory to use to write results for product with passed OID
-	//THIS IS THE OLD VERSION AND WILL BE DEPRECATED
-	public String getPerProdOutSubDirName(String fullBaseDir,  String OID) {return getDirNameAndBuild(fullBaseDir, OID+File.separator, true);}
-	public String getFullProdOutMapperBaseDir(String sfx) {
-		String [] tmpNow = getDateTimeString(false, "_");
-		return getDirNameAndBuild(subDirLocs.get("SOM_ProdSuggest") + "PerProdMaps_"+sfx+"_"+ tmpNow[1] + "_data_" +dateTimeStrAra[0]+File.separator, true);
-	}
+//	//return subdirectory to use to write results for product with passed OID
+//	//THIS IS THE OLD VERSION AND WILL BE DEPRECATED
+//	public String getPerProdOutSubDirName(String fullBaseDir,  String OID) {return getDirNameAndBuild(fullBaseDir, OID+File.separator, true);}
+//	public String getFullProdOutMapperBaseDir(String sfx) {
+//		String [] tmpNow = getDateTimeString(false, "_");
+//		return getDirNameAndBuild(subDirLocs.get("SOM_ProdSuggest") + "PerProdMaps_"+sfx+"_"+ tmpNow[1] + "_data_" +dateTimeStrAra[0]+File.separator, true);
+//	}
 	
 	@Override
 	protected String getSegmentFileNamePrefix_Indiv(String segType, String fNamePrefix) {
@@ -158,6 +158,7 @@ public class Straff_SOMProjConfig extends SOM_ProjConfigData {
 	//these file names are specified via a config file 
 	public String getFullCalcInfoFileName(){ return SOM_QualifiedConfigDir + subDirLocs.get("StraffCalcEqWtFiles") + configFileNames.get("calcWtFileName");}
 	//
-	public String getFullProdOutMapperInfoFileName(){ return SOM_QualifiedConfigDir + configFileNames.get("reqProdConfigFileName");}	
+	//not using this currently - keeping in case we wish to add the functionality to take existing bmu<-> prospects and bmu <-> features/ order jps/order jpgroups and link them 
+	//public String getFullProdOutMapperInfoFileName(){ return SOM_QualifiedConfigDir + configFileNames.get("reqProdConfigFileName");}	
 
 }//Straff_SOMProjConfig

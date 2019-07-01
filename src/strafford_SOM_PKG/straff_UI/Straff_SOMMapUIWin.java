@@ -4,9 +4,8 @@ import java.io.File;
 import java.util.*;
 
 import base_SOM_Objects.*;
-import base_SOM_Objects.som_ui.*;
+import base_SOM_Objects.som_ui.win_disp_ui.SOM_MapUIWin;
 import base_UI_Objects.*;
-import base_UI_Objects.windowUI.BaseBarMenu;
 import base_Utils_Objects.io.MsgCodes;
 import base_Utils_Objects.vectorObjs.myPoint;
 import base_Utils_Objects.vectorObjs.myVector;

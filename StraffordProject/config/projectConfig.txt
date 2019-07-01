@@ -28,8 +28,8 @@ calcWtFileName,"WeightEqConfig_allDecay_p01_optWt_p01"
 #	calc with .2 wt order, decay all dates by .01
 #calcWtFileName, "WeightEqConfig_allDecay_p01_p2wtOrdr"
 #
-#	file name of requested products to map to prospects
-reqProdConfigFileName,"ProductsToMap_Test.txt"
+#	file name of requested products to map to prospects - DEPRECATED not mapping to products directly anymore
+#reqProdConfigFileName,"ProductsToMap_Test.txt"
 #
 # 	default SOM exe map configuration file name
 SOMDfltConfigFileName,"SOM_MapConfig_default.txt"
@@ -60,10 +60,13 @@ SOM_Logs,"Logs"
 #	subdir under config directory of location of weight files
 StraffCalcEqWtFiles,"CalcWtConfigs"
 #
-#	subdir to hold prospect and product suggestions - THIS IS BEING REPLACED/DEPRECATED BY THE FOLLOWING ENTRIES
-SOM_ProdSuggest,"PerProdSuggestions"
+#	subdir to hold prospect and product suggestions - DEPRECATED not mapping to products directly anymore
+#SOM_ProdSuggest,"PerProdSuggestions"
 #
-######mapping/proposal reports locations (as of 6/7/19)
+###### mapping/proposal reports locations (as of 6/7/19)
+# 	mapping order jp(class), order jpgroup (category) and ftr to (And from) bmus, also mapping 
+#	prospects to (and from) bmus.  
+#
 #	subdir to hold proposals based on ftr, class, category, etc
 SOM_ProposalDir, "ProposalReports"
 #
