@@ -16,7 +16,9 @@ import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 //window that accepts trajectory editing
 public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	
-	//idxs of boolean values/flags - instance-specific
+	/**
+	 * idxs of boolean values/flags - instance-specific
+	 */
 	public static final int 
 		custExCalcedIDX					= numSOMBasePrivFlags + 0,			//whether customer prospect examples have been loaded and ftrs have been calculated or not  StraffWeightCalc.bndAra_ProdJPsIDX StraffWeightCalc.bndAra_AllJPsIDX
 		tpExCalcedIDX					= numSOMBasePrivFlags + 1,			//whether true propsect examples have been loaded and ftrs have been calculated or not
@@ -40,9 +42,10 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		//train/test data managemen
 		procTruProspectsIDX				= numSOMBasePrivFlags + 13,			//this will process true prospects, and load them if they haven't been loaded
 		saveBMUMapsForTruPrspctsIDX		= numSOMBasePrivFlags + 14;			//this will save all the product data for the currently selected prod JP
-
-
-	public static final int numPrivFlags = numSOMBasePrivFlags + 15;
+	/**
+	 * need to specify how many private state flags are in use
+	 */
+	private final int _numPrivFlags = numSOMBasePrivFlags + 15;			//size to set up priv flags array
 	
 	//	//GUI Objects	
 	public final static int //offset from end of base class SOM UI objs
@@ -51,7 +54,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		uiProdJPToDispIDX			= numSOMBaseGUIObjs + 2,			//choose current product/zone to show
 		uiProdZoneDistThreshIDX		= numSOMBaseGUIObjs + 3;			//max distance from a product that a map node should be considered to be covered by that product
 	
-	public final int numGUIObjs = numSOMBaseGUIObjs + 4;
+	//public final int numGUIObjs = numSOMBaseGUIObjs + 4;
 	
 	//types of data that can be used for calc analysis 
 	private int curCalcAnalysisSrcDataTypeIDX = Straff_WeightCalc.bndAra_AllJPsIDX;
@@ -109,9 +112,10 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	 * 			the first element is the true string label, 
 	 * 			the 2nd elem is false string array, and 
 	 * 			the 3rd element is integer flag idx 
+	 * @return total number of privBtnFlags in instancing class (including those not displayed)
 	 */
 	@Override
-	protected final void initAllSOMPrivBtns_Indiv(ArrayList<Object[]> tmpBtnNamesArray) {
+	protected final int initAllSOMPrivBtns_Indiv(ArrayList<Object[]> tmpBtnNamesArray) {
 		tmpBtnNamesArray.add(new Object[] {"Hide Non-Product Job Practices","Show Non-Product Job Practices", mapDrawNonProdJPSegIDX});          
 		tmpBtnNamesArray.add(new Object[] {"Hide Non-Product Job Practice Groups", "Show Non-Product Job Practice Groups", mapDrawNonProdJPGroupSegIDX});			
 		tmpBtnNamesArray.add(new Object[] {"Hide Products (ftr BMUs)","Show Products (ftr BMUs)", mapDrawPrdctFtrBMUsIDX});          
@@ -122,7 +126,9 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		tmpBtnNamesArray.add(new Object[] {"Hide True Prspct Calc Plot", "Show True Prspct Calc Plot", mapDrawTPAnalysisVisIDX});       
 		tmpBtnNamesArray.add(new Object[] {"Hide True Prospects on Map", "Show True Prospects on Map", mapDrawTruePspctIDX});           
 		tmpBtnNamesArray.add(new Object[] {"Mapping True Prospect BMUs", "Map True Prospect BMUs", procTruProspectsIDX});           
-		tmpBtnNamesArray.add(new Object[] {"Building/Saving Tru Prspct BMUs for loaded Map","Build/Save Tru Prspct BMUs for loaded Map", saveBMUMapsForTruPrspctsIDX});      
+		tmpBtnNamesArray.add(new Object[] {"Building/Saving Tru Prspct BMUs for loaded Map","Build/Save Tru Prspct BMUs for loaded Map", saveBMUMapsForTruPrspctsIDX}); 
+		return 	this._numPrivFlags;
+
 	}//initAllSOMPrivBtns_Indiv
 	/**
 	 * Instance class determines the true and false labels the class-category locking should use
@@ -170,10 +176,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		pa.setAllMenuBtnNames(menuBtnNames);	
 		initMapAras(1, 1);
 	}//initMeIndiv()
-	
-	@Override
-	protected void initAllPrivFlags() {	initPrivFlags(numPrivFlags);}
-	
+		
 	@Override
 	//SOM_mapDims is built by base class initMe
 	protected SOM_MapManager buildMapMgr() {
@@ -281,6 +284,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	}//setPrivFlagsIndiv
 	/**
 	 * Instance-specific code for managing locking of category segment selection to enable cycling through class within category
+	 * TODO
 	 * @param val whether the lock button is being turned on or off
 	 */
 	@Override
@@ -434,8 +438,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	@Override
 	protected void setCameraIndiv(float[] camVals){}
 	@Override
-	protected void stopMe() {}	
-	
+	protected void stopMe() {}		
 	@Override
 	protected void drawOnScreenStuffPriv(float modAmtMillis) {}
 
