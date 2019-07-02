@@ -348,7 +348,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		//set product list values
 		this.guiObjs[uiProdJPToDispIDX].setListVals(prodVals);
 		//in super class
-		setUIWinVals_HandleClass(false);
+		setClass_UIObj(false);
 	}//setUI_JPListMaxVals
 	
 	
