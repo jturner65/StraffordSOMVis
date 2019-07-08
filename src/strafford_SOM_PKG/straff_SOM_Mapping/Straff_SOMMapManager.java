@@ -239,12 +239,12 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	//save all currently preprocced loaded data - customer and true prospects, products, and jpjpg monitor
 	protected void saveAllPreProcExamples() {
 		getMsgObj().dispMessage("Straff_SOMMapManager","saveAllExamples","Begin Saving all Preproccessed Examples.", MsgCodes.info5);
-			//save customer prospect examples
-		boolean custPrspctSuccess = custPrspctExMapper.saveAllPreProccedMapData();
-			//save true prospect examples
-		boolean truePrspctSuccess = truePrspctExMapper.saveAllPreProccedMapData();
 			//save products
-		boolean prodSuccess = prodExMapper.saveAllPreProccedMapData();
+		boolean prodSuccess = prodExMapper.saveAllPreProccedExampleData();
+			//save customer prospect examples
+		boolean custPrspctSuccess = custPrspctExMapper.saveAllPreProccedExampleData();
+			//save true prospect examples
+		boolean truePrspctSuccess = truePrspctExMapper.saveAllPreProccedExampleData();
 		getMsgObj().dispMessage("Straff_SOMMapManager","saveAllExamples","Finished Saving all Preproccessed Examples.", MsgCodes.info5);
 		if (custPrspctSuccess || truePrspctSuccess || prodSuccess) { saveMonitorJpJpgrp();}		
 	}//saveAllExamples
@@ -378,10 +378,10 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 		getMsgObj().dispMultiLineMessage("Straff_SOMMapManager","loadPreProcTrainData","Jp/Jp Group Profile of data : " + jpJpgrpMon.toString(), MsgCodes.info1);
 
 			//load customer data
-		if(!custPrspctExMapper.isDataPreProcced() || forceLoad) {			custPrspctExMapper.loadAllPreProccedMapData(subDir);}
+		if(!custPrspctExMapper.isDataPreProcced() || forceLoad) {			custPrspctExMapper.loadAllPreProccedExampleData(subDir);}
 		else {getMsgObj().dispMessage("Straff_SOMMapManager","loadPreProcTrainData","Not loading preprocessed Customer Prospect examples since they are already loaded.", MsgCodes.info1);}
 			//load preproc product data
-		if(!prodExMapper.isDataPreProcced() || forceLoad) {					prodExMapper.loadAllPreProccedMapData(subDir);		}	
+		if(!prodExMapper.isDataPreProcced() || forceLoad) {					prodExMapper.loadAllPreProccedExampleData(subDir);		}	
 		else {getMsgObj().dispMessage("Straff_SOMMapManager","loadPreProcTrainData","Not loading preprocessed Product examples since they are already loaded.", MsgCodes.info1);}
 			//finalize and calc ftr vecs on customer prospects and products if we have loaded new data - don't build True Prospect feature vectors since they might not be loaded in synch with these files
 		finishSOMExampleBuild(false);
@@ -396,7 +396,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 			//load customers if not loaded
 		loadPreprocAndBuildTestTrainPartitions(projConfigData.getTrainTestPartition(), false);
 			//load true prospects
-		truePrspctExMapper.loadAllPreProccedMapData(subDir);
+		truePrspctExMapper.loadAllPreProccedExampleData(subDir);
 			//process all true prospects, building their ftrs and making array of validation data
 		procTrueProspectExamples();
 		
@@ -461,9 +461,9 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 		}
 		msgObj.dispMessage("Straff_SOMMapManager","loadAllDataAndBuildMappings","Finished loading Default SOM Map data. | Start loading customer, true prospect and product preproc data.", MsgCodes.info1);		
 			//load customer data
-		custPrspctExMapper.loadAllPreProccedMapData(subDir);
+		custPrspctExMapper.loadAllPreProccedExampleData(subDir);
 			//load preproc product data
-		prodExMapper.loadAllPreProccedMapData(subDir);		
+		prodExMapper.loadAllPreProccedExampleData(subDir);		
 		
 		msgObj.dispMessage("Straff_SOMMapManager","loadAllDataAndBuildMappings","Finished load all preproc data | Begin build features, set mins/diffs and calc post-global-ftr-calc data.", MsgCodes.info1);	
 			//build features, set mins and diffs, and build after-feature-values
@@ -514,7 +514,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	public void loadAndMapTrueProspects(String subDir) {		
 		if(enoughRamToLoadAllProspects) {
 				//load true prospects
-			truePrspctExMapper.loadAllPreProccedMapData(subDir);	
+			truePrspctExMapper.loadAllPreProccedExampleData(subDir);	
 				//data is loaded here, now finalize before ftr calc
 			truePrspctExMapper.finalizeAllExamples();
 				//now build feature vectors
@@ -547,7 +547,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	
 					
 	//finish building the prospect map - finalize each prospect example and then perform calculation to derive weight vector
-	private void finishSOMExampleBuild(boolean buildTPIfExist) {
+	protected void finishSOMExampleBuild(boolean buildTPIfExist) {
 		getMsgObj().dispMessage("Straff_SOMMapManager","finishSOMExampleBuild","Begin finalize mappers, calculate feature data, diffs, mins, and calculate post-global-ftr-data calcs.", MsgCodes.info5);
 		//if((custPrspctExMapper.getNumMapExamples() != 0) || (prodExMapper.getNumMapExamples() != 0)) {
 				//current SOM map, if there is one, is now out of date, do not use
@@ -557,7 +557,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 		_finalizeAllMappersBeforeFtrCalc();
 			//feature vector only corresponds to actual -customers- since this is what is used to build the map - build feature vector for customer prospects				
 		boolean custBldFtrSuccess = custPrspctExMapper.buildFeatureVectors();	
-		if(!custBldFtrSuccess) {getMsgObj().dispMessage("Straff_SOMMapManager","finishSOMExampleBuild","Building Customer Prospect Feature vectors faileddue to above error (no data available).  Aborting - No features have been calculated for any prospect or product examples!", MsgCodes.error1);	return;	}
+		if(!custBldFtrSuccess) {getMsgObj().dispMessage("Straff_SOMMapManager","finishSOMExampleBuild","Building Customer Prospect Feature vectors failed due to above error (no data available).  Aborting - No features have been calculated for any examples!", MsgCodes.error1);	return;	}
 		
 			//build/rebuild true prospects if there are any 
 		if(buildTPIfExist) {
@@ -707,6 +707,14 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	
 	///////////////////////////
 	// end build and manage mapNodes 
+	
+	/**
+	 * return the per-file data partition size to use when saving preprocessed training data csv files
+	 * @return
+	 */
+	@Override
+	public final int getPreProcDatPartSz() {		return preProcDatPartSz;	};
+
 	
 	@Override
 	/**

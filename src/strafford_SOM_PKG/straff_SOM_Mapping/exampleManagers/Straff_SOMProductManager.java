@@ -7,6 +7,7 @@ import base_SOM_Objects.som_examples.SOM_Example;
 import base_UI_Objects.my_procApplet;
 import base_Utils_Objects.io.MsgCodes;
 import strafford_SOM_PKG.straff_SOM_Examples.products.Straff_ProductExample;
+import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_TrueProspectExample;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.base.Straff_SOMExampleManager;
 
@@ -85,67 +86,45 @@ public class Straff_SOMProductManager extends Straff_SOMExampleManager {
 			productsByJpg.put(jpg, exList);	
 		}
 	}//addProductToProductMaps	
-
-	@Override
-	public void loadAllPreProccedMapData(String subDir) {
-		msgObj.dispMessage("Straff_SOMProductMapper","loadAllProductMapData","Loading all product map data", MsgCodes.info5);
-		//clear out current product data
-		reset();
-		//load data creation date time, if exists
-		loadDataCreateDateTime(subDir);
-		
-		String[] loadSrcFNamePrefixAra = projConfigData.buildPreProccedDataCSVFNames_Load(subDir, "productMapSrcData");
-		String dataFile =  loadSrcFNamePrefixAra[0]+".csv";
-		String[] csvLoadRes = fileIO.loadFileIntoStringAra(dataFile, "Product Data file loaded", "Product Data File Failed to load");
-		//ignore first entry - header
-		for (int j=1;j<csvLoadRes.length; ++j) {
-			String str = csvLoadRes[j];
-			int pos = str.indexOf(',');
-			String oid = str.substring(0, pos);
-			Straff_ProductExample ex = new Straff_ProductExample((Straff_SOMMapManager)mapMgr, oid, str);
-			exampleMap.put(oid, ex);			
-		}
-		setAllDataLoaded();
-		setAllDataPreProcced();
-		msgObj.dispMessage("Straff_SOMProductMapper","loadAllProductMapData","Finished loading and preprocessing all local prospect map data and calculating features.  Number of entries in productMap : " + exampleMap.size(), MsgCodes.info5);
-	}//loadAllPreProccedMapData
-
-	//save all pre-processed product data
-	@Override
-	public boolean saveAllPreProccedMapData() {
-		if ((null != exampleMap) && (exampleMap.size() > 0)) {
-			msgObj.dispMessage("Straff_SOMProductMapper","saveAllPreProccedMapData","Saving all product map data : " + exampleMap.size() + " examples to save.", MsgCodes.info5);
-			//save date/time of data creation
-			saveDataCreateDateTime();
-			
-			String[] saveDestFNamePrefixAra = projConfigData.buildPreProccedDataCSVFNames_Save("productMapSrcData");
-			ArrayList<String> csvResTmp = new ArrayList<String>();		
-			Straff_ProductExample ex1 = (Straff_ProductExample) exampleMap.get(exampleMap.firstKey());
-			String hdrStr = ex1.getRawDescColNamesForCSV();
-			csvResTmp.add( hdrStr);	
-			for (SOM_Example ex : exampleMap.values()) {			
-				csvResTmp.add(ex.getPreProcDescrForCSV());
-			}
-			fileIO.saveStrings(saveDestFNamePrefixAra[0]+".csv", csvResTmp);		
-			msgObj.dispMessage("Straff_SOMProductMapper","saveAllPreProccedMapData","Finished saving all product map data", MsgCodes.info5);
-			return true;
-		} else {msgObj.dispMessage("Straff_SOMProductMapper","saveAllPreProccedMapData","No product example data to save. Aborting", MsgCodes.error2); return false;}
-	}//saveAllPreProccedMapData	
 	
 	/**
-	 * Save all example product -> BMU mappings
+	 * multi threaded and single threaded load;  Since # of products will always be fairly small, these can be the same
 	 */
-//	@Override
-//	public final boolean saveExampleBMUMappings() {
-//		if(!isExampleArrayBuilt()) {		buildExampleArray();	}			//incase example array has not yet been built
-//		
-//		//(SOM_MapManager _mapMgr, ExecutorService _th_exec, SOMExample[] _exData, String _dataTypName, boolean _forceST, String _fileNamePrefix)
-//		String _fileNamePrefix = projConfigData.getExampleToBMUFileNamePrefix(exampleName);
-//		SOM_SaveExToBMUs_Runner saveRunner = new SOM_SaveExToBMUs_Runner(mapMgr, th_exec, SOMexampleArray, exampleName, true,  _fileNamePrefix, Straff_SOMMapManager.preProcDatPartSz);
-//		saveRunner.runMe();		
-//		return true;
-//	}//saveExampleBMUMappings
-//	
+	@Override
+	protected void buildMTLoader(String[] loadSrcFNamePrefixAra, int numPartitions) {
+		for (int i=numPartitions-1; i>=0;--i) {
+			String dataFile =  loadSrcFNamePrefixAra[0]+".csv";
+			String[] csvLoadRes = fileIO.loadFileIntoStringAra(dataFile, "Product Data file loaded", "Product Data File Failed to load");
+			//ignore first entry - header
+			for (int j=1;j<csvLoadRes.length; ++j) {
+				String str = csvLoadRes[j];
+				int pos = str.indexOf(',');
+				String oid = str.substring(0, pos);
+				Straff_ProductExample ex = new Straff_ProductExample((Straff_SOMMapManager)mapMgr, oid, str);
+				exampleMap.put(oid, ex);			
+			}
+		}				
+	}//buildMTLoader
+	/**
+	 * multi threaded and single threaded load;  Since # of products will always be fairly small, these can be the same
+	 */
+
+	@Override
+	protected void buildSTLoader(String[] loadSrcFNamePrefixAra, int numPartitions) {
+		for (int i=numPartitions-1; i>=0;--i) {
+			String dataFile = loadSrcFNamePrefixAra[0]+"_"+i+".csv";
+			String[] csvLoadRes = fileIO.loadFileIntoStringAra(dataFile, exampleName+ " Data file " + i +" of " +numPartitions +" loaded",  exampleName+ " Data File " + i +" of " +numPartitions +" Failed to load");
+			//ignore first entry - header
+			for (int j=1;j<csvLoadRes.length; ++j) {
+				String str = csvLoadRes[j];
+				int pos = str.indexOf(',');
+				String oid = str.substring(0, pos);
+				Straff_ProductExample ex = new Straff_ProductExample((Straff_SOMMapManager)mapMgr, oid, str);
+				exampleMap.put(oid, ex);			
+			}
+		}				
+	}//buildSTLoader
+
 	/**
 	 * return array of examples to save their bmus - called from saveExampleBMUMappings in Straff_SOMExampleManager
 	 * @return
@@ -162,6 +141,7 @@ public class Straff_SOMProductManager extends Straff_SOMExampleManager {
 	public void drawProductRegion(my_procApplet pa, int prodJpIDX, double maxDist, int distType) {
 		pa.pushMatrix();pa.pushStyle();
 		ArrayList<Straff_ProductExample> prodsToShow = productsByJp.get(jpJpgrpMon.getProdJpByIdx(prodJpIDX));
+		//msgObj.dispInfoMessage("Straff_SOMProductMapper","drawProductRegion","# prods to show for prod Jp IDX : " + prodJpIDX + " : "+ prodsToShow.size());
 		if(curProdJPIdx != prodJpIDX) {
 			curProdJPIdx = prodJpIDX;
 			dispProdJPDataFrame = 0;
@@ -203,6 +183,7 @@ public class Straff_SOMProductManager extends Straff_SOMExampleManager {
 		//for(ProductExample ex : productData) {ex.drawMeLinkedToBMU(pa, 5.0f,ex.OID);}		
 		pa.popStyle();pa.popMatrix();
 	}//drawProductNodes
+
 
 
 }//class Straff_SOMProductMapper

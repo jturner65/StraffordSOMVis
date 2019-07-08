@@ -50,9 +50,9 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	//	//GUI Objects	
 	public final static int //offset from end of base class SOM UI objs
 		uiRawDataSourceIDX 			= numSOMBaseGUIObjs + 0,			//source of raw data to be preprocced and used to train the map
-		uiAllJpSeenToDispIDX		= numSOMBaseGUIObjs + 1,			//choose jp to show based on all jps seen
-		uiProdJPToDispIDX			= numSOMBaseGUIObjs + 2,			//choose current product/zone to show
-		uiProdZoneDistThreshIDX		= numSOMBaseGUIObjs + 3;			//max distance from a product that a map node should be considered to be covered by that product
+		uiProdJPToDispIDX			= numSOMBaseGUIObjs + 1,			//choose current product/zone to show
+		uiProdZoneDistThreshIDX		= numSOMBaseGUIObjs + 2,			//max distance from a product that a map node should be considered to be covered by that product
+		uiAllJpSeenToDispIDX		= numSOMBaseGUIObjs + 3;			//choose jp to show based on all jps seen
 	
 	//public final int numGUIObjs = numSOMBaseGUIObjs + 4;
 	
@@ -310,13 +310,13 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	protected final void setupGUIObjsArasIndiv(ArrayList<Object[]> tmpUIObjArray, TreeMap<Integer, String[]> tmpListObjVals) {	
 		//per object entry : object array of {min,max,mod},stVal,lbl,bool ara
 		tmpListObjVals.put(uiRawDataSourceIDX,new String[] {"Prebuilt CSV Files","Data Tables Via SQL"});
-		tmpListObjVals.put(uiAllJpSeenToDispIDX, new String[] {"Unknown"});
 		tmpListObjVals.put(uiProdJPToDispIDX, new String[] {"Unknown"}); 
+		tmpListObjVals.put(uiAllJpSeenToDispIDX, new String[] {"Unknown"});
 		
-		tmpUIObjArray.add(new Object[] {new double[]{0.0, tmpListObjVals.get(uiRawDataSourceIDX).length, 1}, 0.0, "Raw Data Source", new boolean []{true, true, true}});		//uiRawDataSourceIDX
+		tmpUIObjArray.add(new Object[] {new double[]{0.0, tmpListObjVals.get(uiRawDataSourceIDX).length-1, 1}, 0.0, "Raw Data Source", new boolean []{true, true, true}});		//uiRawDataSourceIDX
 		tmpUIObjArray.add(new Object[] {new double[]{0.0, 260, 1.0}, 0.0, "Product JP to Show", new boolean []{true, true, true}});			//uiProdJPToDispIDX	
 		tmpUIObjArray.add(new Object[] {new double[]{0.0, 5, .01}, 0.99, "Prod Max Sq Dist", new boolean []{false, false, true}});		//uiProdZoneDistThreshIDX	
-		tmpUIObjArray.add(new Object[] {new double[]{0.0, 260, 1.0}, 0.0, "All JP to Show", new boolean []{true, true, true}});			//uiAllJpSeenToDispIDX	
+		tmpUIObjArray.add(new Object[] {new double[]{0.0, 260, 1.0}, 0.0, "All JP to Show (Calc Analysis)", new boolean []{true, true, true}});			//uiAllJpSeenToDispIDX	
 
 	}//setupGUIObjsArasIndiv
 	
@@ -405,13 +405,13 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 			case uiProdJPToDispIDX : {//product to display, for product influence zones
 				curProdToShowIDX = (int)guiObjs[uiProdJPToDispIDX].getVal();				
 				break;}
+			case uiProdZoneDistThreshIDX : {//max distance for a node to be considered a part of a product's "region" of influence		
+				prodZoneDistThresh = this.guiObjs[uiProdZoneDistThreshIDX].getVal();			
+				break;}
 	
 			case uiAllJpSeenToDispIDX		: {
 				curAllJPToShowIDX = (int)guiObjs[uiAllJpSeenToDispIDX].getVal();
 				break;}	
-			case uiProdZoneDistThreshIDX : {//max distance for a node to be considered a part of a product's "region" of influence		
-				prodZoneDistThresh = this.guiObjs[uiProdZoneDistThreshIDX].getVal();			
-				break;}
 		}		
 	}//setUIWinValsIndiv
 	
