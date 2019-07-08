@@ -597,7 +597,10 @@ class dataBoundArray{
 	public Float[] getCountBndsAra(int typeIDX) {return bndsAra[typeIDX][countBndIDX];}
 	
 	//increment count of training examples with jp data represented by destIDX, and total calc value seen
-	public synchronized void incrBnds(int typeIDX, int destIDX) {bndsAra[typeIDX][countBndIDX][destIDX] +=1; bndsAra[ttlOfAllCalcIDX][countBndIDX][destIDX] +=1;}	
+	public void incrBnds(int typeIDX, int destIDX) {
+		synchronized(bndsAra[typeIDX][countBndIDX][destIDX]) {bndsAra[typeIDX][countBndIDX][destIDX] +=1; }
+		synchronized(bndsAra[ttlOfAllCalcIDX][countBndIDX][destIDX]) {bndsAra[ttlOfAllCalcIDX][countBndIDX][destIDX] +=1;}
+	}	
 	
 	public String getDescForIdx(int idx) {
 		return String.format("%6d", (Math.round(bndsAra[ttlOfAllCalcIDX][countBndIDX][idx]))) + "\t| Min val : " +String.format("%6.4f", bndsAra[ttlOfAllCalcIDX][minBndIDX][idx]) + "\t| Max val : " +String.format("%6.4f", bndsAra[ttlOfAllCalcIDX][maxBndIDX][idx]);

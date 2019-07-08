@@ -101,8 +101,7 @@ public class Straff_TrueProspectExample extends Straff_ProspectExample{
 			((Straff_SOMMapManager)mapMgr).ftrCalcObj.calcTruePrspctFtrVec(this,allProdJPs,ftrMaps[ftrMapTypeKey], JpOccurrences);			
 		} else {ftrMaps[ftrMapTypeKey].clear(); }
 		//now, if there's a non-null posOptAllEventObj then for all jps who haven't gotten an opt conribution to calculation, add positive opt-all result
-	}//buildFeaturesMap	
-	
+	}//buildFeaturesMap		
 
 	public static int NumTPWithNoFtrs = 0;
 	public static int maxNumNonProdJps= 0;
@@ -113,9 +112,8 @@ public class Straff_TrueProspectExample extends Straff_ProspectExample{
 	 */
 	public synchronized final void buildCompFtrVector(float _ratio) {
 		//ratio needs to be [0..1], is ratio of compValMaps value to ftr value
-		if((_ratio <=0) && (ftrMaps[0].size()>0)) {compFtrMaps = ftrMaps;}
-		//if no features then just use complete comValFtrDataMaps
-		else {  
+		if((_ratio <=0) && (ftrMaps[0].size()>0)) {compFtrMaps = ftrMaps;}	//if ftrMaps size is 0 then have no direct features in record, so have to build comparator vector
+		else {  //if no features then just use complete comValFtrDataMaps
 			calcCompValMaps();
 			if((_ratio >= 1) || (ftrMaps[0].size()==0)){
 				//call here since this will most likely need to be built for true prospects
