@@ -15,15 +15,15 @@ import base_SOM_Objects.som_segments.segments.SOM_FtrWtSegment;
 import base_UI_Objects.my_procApplet;
 import base_Utils_Objects.*;
 import base_Utils_Objects.vectorObjs.Tuple;
-import strafford_SOM_PKG.straff_Features.MonitorJpJpgrp;
-import strafford_SOM_PKG.straff_SOM_Examples.prospects.CustProspectExample;
-import strafford_SOM_PKG.straff_SOM_Examples.prospects.ProspectExample;
+import strafford_SOM_PKG.straff_Features.Straff_MonitorJpJpgrp;
+import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_CustProspectExample;
+import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_ProspectExample;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 
 ////this class represents a particular node in the SOM map, with specific customizations for strafford data
 public class Straff_SOMMapNode extends SOM_MapNode{
 	//reference to jp-jpg mapping/managing object
-	protected static MonitorJpJpgrp jpJpgMon;
+	protected static Straff_MonitorJpJpgrp jpJpgMon;
 
 	//this manages the segment functionality for the class segments
 	protected SOM_MapNodeSegMgr nonProdJPSegManager;
@@ -58,7 +58,7 @@ public class Straff_SOMMapNode extends SOM_MapNode{
 	//manage instancing map node handling - specifically, handle using 2ndary features as node markers (like a product tag or a class)
 	//in other words, this takes the passed example's "class" in our case all the order jps, and assigns them to this node
 	protected void addTrainingExToBMUs_Priv(double dist, SOM_Example ex) {
-		TreeMap<Tuple<Integer, Integer>, Integer> trainExOrderCounts = ((CustProspectExample)ex).getOrderCountsForExample();
+		TreeMap<Tuple<Integer, Integer>, Integer> trainExOrderCounts = ((Straff_CustProspectExample)ex).getOrderCountsForExample();
 		//for each jpg-jp used in training example, assign 
 		//TreeMap<Integer, Integer> jpCountsAtJpGrp, npJpCountsAtJpGrp;
 		for (Tuple<Integer, Integer> jpgJp : trainExOrderCounts.keySet()) {
@@ -69,7 +69,7 @@ public class Straff_SOMMapNode extends SOM_MapNode{
 			Float dummy = getCategorySegManager().addSegDataFromTrainingEx(new Integer[] {jpg,jp}, newCount, "_JPGroupCount_JPG_", "JPGroup Orders present for jpg :");
 		}		
 		//now build structure for non-prod jps and jpgroups-based segments
-		HashSet<Tuple<Integer,Integer>> nonProdJpgJps = ((ProspectExample) ex).getNonProdJpgJps();
+		HashSet<Tuple<Integer,Integer>> nonProdJpgJps = ((Straff_ProspectExample) ex).getNonProdJpgJps();
 		//if(nonProdJpgJps.size() > 0) {System.out.println("# of nonprodjpgpjps for node : " + ex.OID+" | "+nonProdJpgJps.size());}
 		for(Tuple<Integer, Integer> npJpgJp :nonProdJpgJps) {
 			Integer npJpg = npJpgJp.x, npJp = npJpgJp.y;

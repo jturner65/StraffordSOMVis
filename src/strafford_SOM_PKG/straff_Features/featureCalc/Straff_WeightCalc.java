@@ -12,10 +12,10 @@ import base_Utils_Objects.io.FileIOManager;
 import base_Utils_Objects.io.MessageObject;
 import base_Utils_Objects.io.MsgCodes;
 import base_Utils_Objects.vectorObjs.Tuple;
-import strafford_SOM_PKG.straff_Features.MonitorJpJpgrp;
-import strafford_SOM_PKG.straff_SOM_Examples.prospects.JP_OccurrenceData;
-import strafford_SOM_PKG.straff_SOM_Examples.prospects.ProspectExample;
-import strafford_SOM_PKG.straff_SOM_Examples.prospects.TrueProspectExample;
+import strafford_SOM_PKG.straff_Features.Straff_MonitorJpJpgrp;
+import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_JP_OccurrenceData;
+import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_ProspectExample;
+import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_TrueProspectExample;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 
 /**
@@ -28,7 +28,7 @@ import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 public class Straff_WeightCalc {
 	//public StraffSOMMapManager mapMgr;
 	private MessageObject msgObj;
-	public MonitorJpJpgrp jpJpgMon; 
+	public Straff_MonitorJpJpgrp jpJpgMon; 
 	private FileIOManager fileIO;
 	//base file name, minus type and extension 
 	private String fileName;
@@ -41,7 +41,7 @@ public class Straff_WeightCalc {
 			   					dIdx = new int[] {3, 6, 9, 12, 15};
 	//map of per-jp equations to calculate feature vector from event data (expandable to more sources eventually if necessary).  keyed by jp
 	//and ftrEqs map, holding only eqs used to directly calculate ftr vector values (subset, some jps are not used to train feature vec) (This is just a convenient filter object)
-	private TreeMap<Integer, JPWeightEquation> allEqs, ftrEqs;	
+	private TreeMap<Integer, Straff_JPWeightEquation> allEqs, ftrEqs;	
 	
 	//hold relevant quantities for each jp calculation across all data; IDX 0 is for ftr vec calc, idx 1 is for all jps
 	//idx 0 is for ftr vector calculation; idx 1 will be for alternate comparator vector calc
@@ -73,7 +73,7 @@ public class Straff_WeightCalc {
 	private static final int[] ftrCalcFlags = new int[] {ftrCalcCustCompleteIDX,ftrCalcTPCompleteIDX,ftrCalcTrainCompleteIDX};
 	private static final int[] calcCompleteFlags = new int[] {custCalcAnalysisCompleteIDX,TPCalcAnalysisCompleteIDX,TrainCalcAnalysisCompleteIDX};
 	
-	public Straff_WeightCalc(Straff_SOMMapManager _mapMgr, String _fileNamePrfx, MonitorJpJpgrp _jpJpgMon) {
+	public Straff_WeightCalc(Straff_SOMMapManager _mapMgr, String _fileNamePrfx, Straff_MonitorJpJpgrp _jpJpgMon) {
 		msgObj = _mapMgr.buildMsgObj();
 		Calendar nowCal = _mapMgr.getInstancedNow();
 		fileIO = new FileIOManager(msgObj, "StraffWeightCalc");
@@ -132,7 +132,7 @@ public class Straff_WeightCalc {
 	private void _buildJPEq(int jp, int allIDX, Float[][] eqVals) {
 		Integer ftrIDX = jpJpgMon.getFtrJpToIDX(jp);
 		if(ftrIDX == null) {ftrIDX = -1;}
-		JPWeightEquation eq = new JPWeightEquation(this,jpJpgMon.getJPNameFromJP(jp),jp, new int[] {ftrIDX,allIDX}, eqVals, true);
+		Straff_JPWeightEquation eq = new Straff_JPWeightEquation(this,jpJpgMon.getJPNameFromJP(jp),jp, new int[] {ftrIDX,allIDX}, eqVals, true);
 		allEqs.put(jp, eq);
 		if(ftrIDX!=-1) {ftrEqs.put(jp, eq);	}
 	}
@@ -146,8 +146,8 @@ public class Straff_WeightCalc {
 		Float[] dfltM = getFAraFromStrAra(strVals,mIdx), dfltO = getFAraFromStrAra(strVals,oIdx), dfltD = getFAraFromStrAra(strVals,dIdx);
 		//strVals holds default map configuration - config all weight calcs to match this	
 		//build eqs map for all jps found
-		allEqs = new TreeMap<Integer, JPWeightEquation> ();
-		ftrEqs = new TreeMap<Integer, JPWeightEquation> ();
+		allEqs = new TreeMap<Integer, Straff_JPWeightEquation> ();
+		ftrEqs = new TreeMap<Integer, Straff_JPWeightEquation> ();
 		int ttlNumJps = jpJpgMon.getNumAllJpsFtrs();
 		for (int allIDX=0;allIDX<ttlNumJps;++allIDX) {_buildJPEq(jpJpgMon.getAllJpByIdx(allIDX), allIDX,  new Float[][] {dfltM, dfltO, dfltD});	}//
 		
@@ -226,26 +226,26 @@ public class Straff_WeightCalc {
 	///////////////////////////
 	// calculate feature vectors - currently only works on product features - and comparator vectors - built off membership in jpgroups
 
-	private JP_OccurrenceData getOptAndCheck(ProspectExample ex, TreeMap<Integer, JP_OccurrenceData> optOccs, Integer jp, String srcMethod) {
-		JP_OccurrenceData optOcc = optOccs.get(jp);
+	private Straff_JP_OccurrenceData getOptAndCheck(Straff_ProspectExample ex, TreeMap<Integer, Straff_JP_OccurrenceData> optOccs, Integer jp, String srcMethod) {
+		Straff_JP_OccurrenceData optOcc = optOccs.get(jp);
 		if ((optOcc != null )&& ((ex.getPosOptAllOccObj() != null) || (ex.getNegOptAllOccObj() != null))) {	//opt all means they have opted for positive behavior for all jps that allow opts
 			msgObj.dispMessage("StraffWeightCalc","getOptAndCheck("+srcMethod+")","Multiple opt refs for prospect : " + ex.OID + " : indiv opt and opt-all | This should not happen - opt events will be overly-weighted.", MsgCodes.warning4);	
 		}		
 		return optOcc;
 	}//getOptAndCheck
 		
-	public void calcTruePrspctFtrVec(ProspectExample ex, HashSet<Integer> jps,TreeMap<Integer, Float> ftrDest,TreeMap<String, TreeMap<Integer, JP_OccurrenceData>> JpOccurrences){	
+	public void calcTruePrspctFtrVec(Straff_ProspectExample ex, HashSet<Integer> jps,TreeMap<Integer, Float> ftrDest,TreeMap<String, TreeMap<Integer, Straff_JP_OccurrenceData>> JpOccurrences){	
 		synchronized(ex) {
-			_calcFtrDataVec(ex,jps, ftrDest, new TreeMap<Integer, JP_OccurrenceData>(), JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"),tpCalcObjIDX,JPWeightEquation.now, "calcTruePrspctFtrVec");
+			_calcFtrDataVec(ex,jps, ftrDest, new TreeMap<Integer, Straff_JP_OccurrenceData>(), JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"),tpCalcObjIDX,Straff_JPWeightEquation.now, "calcTruePrspctFtrVec");
 		}
 	}		
-	public void calcCustFtrDataVec(ProspectExample ex, HashSet<Integer> jps,TreeMap<Integer, Float> ftrDest,TreeMap<String, TreeMap<Integer, JP_OccurrenceData>> JpOccurrences) {
+	public void calcCustFtrDataVec(Straff_ProspectExample ex, HashSet<Integer> jps,TreeMap<Integer, Float> ftrDest,TreeMap<String, TreeMap<Integer, Straff_JP_OccurrenceData>> JpOccurrences) {
 		synchronized(ex) {
-			_calcFtrDataVec(ex,jps, ftrDest,  JpOccurrences.get("orders"), JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"),custCalcObjIDX, JPWeightEquation.now, "calcCustFtrDataVec");
+			_calcFtrDataVec(ex,jps, ftrDest,  JpOccurrences.get("orders"), JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"),custCalcObjIDX, Straff_JPWeightEquation.now, "calcCustFtrDataVec");
 		}
 	}
 	//includes order date
-	public void calcTrainingFtrDataVec(ProspectExample ex, HashSet<Integer> jps,TreeMap<Integer, Float> ftrDest, Date orderDate, TreeMap<String, TreeMap<Integer, JP_OccurrenceData>> JpOccurrences) {
+	public void calcTrainingFtrDataVec(Straff_ProspectExample ex, HashSet<Integer> jps,TreeMap<Integer, Float> ftrDest, Date orderDate, TreeMap<String, TreeMap<Integer, Straff_JP_OccurrenceData>> JpOccurrences) {
 		synchronized(ex) {
 			_calcFtrDataVec(ex,jps, ftrDest,  JpOccurrences.get("orders"), JpOccurrences.get("links"), JpOccurrences.get("opts"), JpOccurrences.get("sources"),trainCalcObjIDX, orderDate, "calcTrainingFtrDataVec");
 		}
@@ -253,11 +253,11 @@ public class Straff_WeightCalc {
 	}//
 	
 	//calculate feature vector for this ProspectExample example on actual product-based features - these features are for comparison, not training!
-	private void _calcFtrDataVec(ProspectExample ex, HashSet<Integer> jps,TreeMap<Integer, Float> ftrDest,
-			TreeMap<Integer, JP_OccurrenceData> orderOccs,TreeMap<Integer, JP_OccurrenceData> linkOccs, 
-			TreeMap<Integer, JP_OccurrenceData> optOccs,TreeMap<Integer, JP_OccurrenceData> srcOccs, int _exampleType, Date orderDate, String _type) {
+	private void _calcFtrDataVec(Straff_ProspectExample ex, HashSet<Integer> jps,TreeMap<Integer, Float> ftrDest,
+			TreeMap<Integer, Straff_JP_OccurrenceData> orderOccs,TreeMap<Integer, Straff_JP_OccurrenceData> linkOccs, 
+			TreeMap<Integer, Straff_JP_OccurrenceData> optOccs,TreeMap<Integer, Straff_JP_OccurrenceData> srcOccs, int _exampleType, Date orderDate, String _type) {
 		float ftrVecSqMag = 0.0f;
-		JP_OccurrenceData optOcc;
+		Straff_JP_OccurrenceData optOcc;
 		//for each jp present in ex, perform calculation
 		Integer destIDX;	
 		boolean isZeroMagExample = true;		//if all values are 0 then this is a bad training example, we want to ignore it
@@ -280,8 +280,8 @@ public class Straff_WeightCalc {
 	}//calcFeatureVector	
 	
 	//initialize and finalize all calcs for CUSTOMER data - this builds the exemplar training data vector for each non-prod jp
-	public void initAllEqsForCustNonTrainCalc() {setFlag(custNonProdCalcCompleteIDX, false);	for(JPWeightEquation jpEq:allEqs.values()) {jpEq.initCalcCustNonProdWtVec();}}
-	public void finalizeAllEqsCustForNonTrainCalc() {for(JPWeightEquation jpEq:allEqs.values()) {jpEq.finalizeCalcCustNonProdWtVec();}setFlag(custNonProdCalcCompleteIDX, true);}
+	public void initAllEqsForCustNonTrainCalc() {setFlag(custNonProdCalcCompleteIDX, false);	for(Straff_JPWeightEquation jpEq:allEqs.values()) {jpEq.initCalcCustNonProdWtVec();}}
+	public void finalizeAllEqsCustForNonTrainCalc() {for(Straff_JPWeightEquation jpEq:allEqs.values()) {jpEq.finalizeCalcCustNonProdWtVec();}setFlag(custNonProdCalcCompleteIDX, true);}
 		
 	public static int numNonProdFtrVecDims = 0;
 	public static ConcurrentSkipListMap<Integer, Integer> mapOfNonProdFtrVecDims = new ConcurrentSkipListMap<Integer, Integer>(); 
@@ -332,17 +332,17 @@ public class Straff_WeightCalc {
 	}//dbg_SetMapValues
 	
 	//this will calculate for every non-product jp the contribution that ex should get based on srcOccs wt calc for each non-product jp present in ex
-	public synchronized void calcNonProdJpTrainFtrContribVec(ProspectExample ex, HashSet<Tuple<Integer,Integer>> nonProdJpgJps,TreeMap<Integer, Float> destMap, TreeMap<Integer, JP_OccurrenceData> srcOccs) {
+	public synchronized void calcNonProdJpTrainFtrContribVec(Straff_ProspectExample ex, HashSet<Tuple<Integer,Integer>> nonProdJpgJps,TreeMap<Integer, Float> destMap, TreeMap<Integer, Straff_JP_OccurrenceData> srcOccs) {
 		destMap.clear();
 		float ttlSrcContrib = 0.0f;
 		TreeMap<Integer, Float> ttlSrcContribMap = new TreeMap<Integer, Float>();	
 		
 		for(Tuple<Integer,Integer> jpJpgrp : nonProdJpgJps) {
 			Integer nonProdJP = jpJpgrp.y;
-			JPWeightEquation jpEq = allEqs.get(nonProdJP);
+			Straff_JPWeightEquation jpEq = allEqs.get(nonProdJP);
 			if(null==jpEq) {//msgObj.dispMessage("StraffWeightCalc","calcNonProdJpTrainFtrContribVec", "Null jpeq for jp : " + nonProdJP, MsgCodes.warning4);	
 				continue;}
-			JP_OccurrenceData srcOcc = srcOccs.get(nonProdJP);
+			Straff_JP_OccurrenceData srcOcc = srcOccs.get(nonProdJP);
 			if(null==srcOcc) {continue;}
 			float srcContrib = jpEq.getSrcContrib_Now(srcOcc);	//srcContrib is multiplied against vector and decayed from current date
 			if(srcContrib==0.0f) {continue;}			
@@ -377,7 +377,7 @@ public class Straff_WeightCalc {
 
 	//this will build the non-product jp training vectors based on weighting each passed example by the example's srcOccs data
 	//for each non-product jp.  This trained vector gets stored in the jp eq object
-	public void buildCustNonProdFtrVecs(ProspectExample ex, TreeMap<Integer, Float> ftrData, HashSet<Tuple<Integer,Integer>> nonProdJpgJps, TreeMap<Integer, JP_OccurrenceData> srcOccs) {
+	public void buildCustNonProdFtrVecs(Straff_ProspectExample ex, TreeMap<Integer, Float> ftrData, HashSet<Tuple<Integer,Integer>> nonProdJpgJps, TreeMap<Integer, Straff_JP_OccurrenceData> srcOccs) {
 		//set this example's contribution by weighting their normalized feature vector by their non-prod-calc jp data
 		for(Tuple<Integer,Integer> jpJpgrp : nonProdJpgJps) {
 			Integer nonProdJP = jpJpgrp.y;
@@ -394,14 +394,14 @@ public class Straff_WeightCalc {
 	public boolean custNonProdJpCalcIsDone() {return getFlag(custNonProdCalcCompleteIDX);}
 	
 	//this will reset all analysis components of feature vectors.  this is so that new feature calculations won't aggregate stats with old ones
-	public void resetCalcObjs(int _exampleType) {for ( JPWeightEquation eq : allEqs.values()	) {	eq.resetAnalysis(_exampleType);	}	setFlag(ftrCalcFlags[_exampleType], false);}//resetCalcObjs
+	public void resetCalcObjs(int _exampleType) {for ( Straff_JPWeightEquation eq : allEqs.values()	) {	eq.resetAnalysis(_exampleType);	}	setFlag(ftrCalcFlags[_exampleType], false);}//resetCalcObjs
 	
 	//called when all current prospect examples have been calculated
 	public void finishFtrCalcs(int _exampleType) {	setFlag(ftrCalcFlags[_exampleType], true); 	}	
 	//after all features are calculated, run this first to finalize reporting statistics on eq performance
 	public void finalizeCalcAnalysis(int _exampleType) {
 		if (calcAnalysisShouldBeDone(_exampleType)) {
-			for(JPWeightEquation jpEq:allEqs.values()) {jpEq.aggregateFtrCalcVals(_exampleType);}
+			for(Straff_JPWeightEquation jpEq:allEqs.values()) {jpEq.aggregateFtrCalcVals(_exampleType);}
 			setFlag(calcCompleteFlags[_exampleType], true);
 		}
 	}//finalizeCalcAnalysis
@@ -412,7 +412,7 @@ public class Straff_WeightCalc {
 	//retrieve a list of all eq performance data per ftr
 	public ArrayList<String> getCalcAnalysisRes(int _exampleType){
 		ArrayList<String> res = new ArrayList<String>();
-		for(JPWeightEquation jpEq:allEqs.values()) {	res.addAll(jpEq.getCalcRes(_exampleType));}
+		for(Straff_JPWeightEquation jpEq:allEqs.values()) {	res.addAll(jpEq.getCalcRes(_exampleType));}
 		return res;
 	}//getCalcAnalysisRes	
 	
@@ -424,9 +424,9 @@ public class Straff_WeightCalc {
 	//draw only ftr JP calc res
 	public void drawFtrCalcRes(my_procApplet p, float ht, float barWidth, int curJPIdx,int _exampleType) {_drawCalcRes(p, ht, barWidth,curJPIdx,_exampleType, bndAra_ProdJPsIDX, ftrEqs);}//draw analysis res for each graphically
 	
-	private void _drawCalcRes(my_procApplet p, float ht, float barWidth, int curJPIdx,int _exampleType, int _jpType, TreeMap<Integer, JPWeightEquation> _eqMap) {
+	private void _drawCalcRes(my_procApplet p, float ht, float barWidth, int curJPIdx,int _exampleType, int _jpType, TreeMap<Integer, Straff_JPWeightEquation> _eqMap) {
 		p.pushMatrix();p.pushStyle();		
-		for(JPWeightEquation jpEq:_eqMap.values()) {	//only draw eqs that calculated actual feature values (jps found in products)
+		for(Straff_JPWeightEquation jpEq:_eqMap.values()) {	//only draw eqs that calculated actual feature values (jps found in products)
 			//draw bar
 			jpEq.drawFtrVec(p, ht, barWidth, jpEq.jpIDXs[_jpType]==curJPIdx,_jpType,_exampleType);
 			//move over for next bar
@@ -480,12 +480,12 @@ public class Straff_WeightCalc {
 			msgObj.dispInfoMessage("Straff_SOMTruePrspctMapper","dispCompFtrVecRes","\t" + sizeOfCompVec + ", " + Straff_WeightCalc.mapOfNonProdFtrVecDims.get(sizeOfCompVec)+ ", " +mapOfFtrs.size() + "," + tmp);
 		}
 		
-		msgObj.dispInfoMessage("Straff_SOMTruePrspctMapper","dispCompFtrVecRes","" + TrueProspectExample.NumTPWithNoFtrs+ " True Prospect records with no product-jp-related information - max nonprod jps seen : " +TrueProspectExample.maxNumNonProdJps+" | largest comp vector seen : " + Straff_WeightCalc.numNonProdFtrVecDims+".");
+		msgObj.dispInfoMessage("Straff_SOMTruePrspctMapper","dispCompFtrVecRes","" + Straff_TrueProspectExample.NumTPWithNoFtrs+ " True Prospect records with no product-jp-related information - max nonprod jps seen : " +Straff_TrueProspectExample.maxNumNonProdJps+" | largest comp vector seen : " + Straff_WeightCalc.numNonProdFtrVecDims+".");
 		
 		dbg_dispFtrVecMinMaxs(Straff_WeightCalc.mapOfTPCompFtrVecMins, Straff_WeightCalc.mapOfTPCompFtrVecMaxs, "dispCompFtrVecRes");
 
-		TrueProspectExample.NumTPWithNoFtrs = 0;
-		TrueProspectExample.maxNumNonProdJps =0;
+		Straff_TrueProspectExample.NumTPWithNoFtrs = 0;
+		Straff_TrueProspectExample.maxNumNonProdJps =0;
 		Straff_WeightCalc.numNonProdFtrVecDims= 0;
 		Straff_WeightCalc.mapOfNonProdFtrVecDims.clear();
 		Straff_WeightCalc.mapOfTPNonProdJpsPerSizeNonProdFtrVec.clear();
@@ -505,7 +505,7 @@ public class Straff_WeightCalc {
 	@Override
 	public String toString() {
 		String res  = "";
-		for (JPWeightEquation eq : allEqs.values()) {					
+		for (Straff_JPWeightEquation eq : allEqs.values()) {					
 			Integer ftrIDX = eq.jpIDXs[bndAra_ProdJPsIDX];//, allIDX = eq.jpIDXs[bndAra_AllJPsIDX];
 			if(ftrIDX != -1) {	res+= eq.toString() + " | # Ftr Calcs done : " +  bndsAra[bndAra_ProdJPsIDX].getDescForIdx(ftrIDX) + "\n";	} 
 			else {				res+= eq.toString() +"  | # Ftr Calcs done : 0 (not a feature JP)\n";}			

@@ -6,7 +6,7 @@ import base_Utils_Objects.*;
 import base_Utils_Objects.io.MessageObject;
 import base_Utils_Objects.io.MsgCodes;
 import base_Utils_Objects.vectorObjs.Tuple;
-import strafford_SOM_PKG.straff_RawDataHandling.raw_data.BaseRawData;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.Straff_BaseRawData;
 
 /**
  * this class holds information from a single record and performs conversion from 
@@ -23,19 +23,19 @@ public abstract class Straff_RawToTrainData{
 	//magic value for opt key field in map, to use for non-opt records. 
 	protected static final int FauxOptVal = 3;
 	//array of jpg/jp records for this training data example
-	protected ArrayList<JpgJpDataRecord> listOfJpgsJps;
+	protected ArrayList<Straff_JpgJpDataRecord> listOfJpgsJps;
 	//type of instancing/owning example's source data (prospect, product, etc)
 	public final String sourceTypeName;
 	
 	public Straff_RawToTrainData(String _sourceTypeName) {
-		listOfJpgsJps = new ArrayList<JpgJpDataRecord>(); 
+		listOfJpgsJps = new ArrayList<Straff_JpgJpDataRecord>(); 
 		sourceTypeName = _sourceTypeName;
 	}
 	
 	public abstract void addJPG_JPDataFromCSVString(String _csvDataStr);
 	protected void addJPG_JPDataRecsFromCSVStr(Integer optKey, String _csvDataStr) {
 		//boolean isOptEvent = ((-2 <= optKey) && (optKey <= 2));
-		listOfJpgsJps = new ArrayList<JpgJpDataRecord>(); 	//order of recs is priority of jpgs
+		listOfJpgsJps = new ArrayList<Straff_JpgJpDataRecord>(); 	//order of recs is priority of jpgs
 		String[] strAra1 = _csvDataStr.split("numJPGs,");//use idx 1
 		String[] strAraVals = strAra1[1].trim().split(","+jpgrpStTag);//1st element will be # of JPDataRecs, next elements will be Data rec vals
 		Integer numDataRecs = Integer.parseInt(strAraVals[0].trim());
@@ -44,7 +44,7 @@ public abstract class Straff_RawToTrainData{
 			String[] csvVals = csvString.split(",");
 			//typeVal is specific type of record - opt value for opt records, source kind for source event records
 			Integer typeVal = Integer.parseInt(csvVals[1]), JPG = Integer.parseInt(csvVals[3]);
-			JpgJpDataRecord rec = new JpgJpDataRecord(JPG,i, typeVal, csvString);
+			Straff_JpgJpDataRecord rec = new Straff_JpgJpDataRecord(JPG,i, typeVal, csvString);
 			listOfJpgsJps.add(rec);			
 		}
 	}//addEventDataFromCSVStrByKey	
@@ -53,7 +53,7 @@ public abstract class Straff_RawToTrainData{
 	//return a hash set of all the jps in this raw training data example
 	public HashSet<Integer> getAllJpsInData(){
 		HashSet<Integer> res = new HashSet<Integer>();
-		for (JpgJpDataRecord jpgRec : listOfJpgsJps) {
+		for (Straff_JpgJpDataRecord jpgRec : listOfJpgsJps) {
 			ArrayList<Integer> jps = jpgRec.getJPlist();
 			for(Integer jp : jps) {res.add(jp);}
 		}
@@ -63,7 +63,7 @@ public abstract class Straff_RawToTrainData{
 	//return a hash set of all tuples of jpg,jp relations in data
 	public HashSet<Tuple<Integer,Integer>> getAllJpgJpsInData(){
 		HashSet<Tuple<Integer,Integer>> res = new HashSet<Tuple<Integer,Integer>>();
-		for (JpgJpDataRecord jpgRec : listOfJpgsJps) {
+		for (Straff_JpgJpDataRecord jpgRec : listOfJpgsJps) {
 			Integer jpg = jpgRec.getJPG();
 			ArrayList<Integer> jps = jpgRec.getJPlist();
 			for(Integer jp : jps) {res.add(new Tuple<Integer,Integer>(jpg, jp));}
@@ -71,8 +71,8 @@ public abstract class Straff_RawToTrainData{
 		return res;		
 	}//getAllJpgJpsInData	
 	
-	public abstract void addEventDataFromEventObj(BaseRawData ev);	
-	protected void addEventDataRecsFromRawData(Integer optVal, BaseRawData ev, boolean isOptEvent) {
+	public abstract void addEventDataFromEventObj(Straff_BaseRawData ev);	
+	protected void addEventDataRecsFromRawData(Integer optVal, Straff_BaseRawData ev, boolean isOptEvent) {
 		//boolean isOptEvent = ((-2 <= optVal) && (optVal <= 2));
 		TreeMap<Integer, ArrayList<Integer>> newEvMapOfJPAras = ev.rawJpMapOfArrays;//keyed by jpg, or -1 for jpg order array, value is ordered list of jps/jpgs (again for -1 key)
 		if (newEvMapOfJPAras.size() == 0) {					//if returns an empty list from event raw data then either unspecified, which is bad record, or infers entire list of jp data
@@ -92,10 +92,10 @@ public abstract class Straff_RawToTrainData{
 			newJPGOrderArray = new ArrayList<Integer> ();
 			newJPGOrderArray.add(newEvMapOfJPAras.firstKey());//this adds only jpg to array	
 		}
-		JpgJpDataRecord rec;
+		Straff_JpgJpDataRecord rec;
 		for (int i = 0; i < newJPGOrderArray.size(); ++i) {					//for every jpg key in ordered array
 			int jpg = newJPGOrderArray.get(i);								//get list of jps for this jpg				
-			rec = new JpgJpDataRecord(jpg,i,optVal);						//build a jpg->jp record for this jpg, passing order of jps under this jpg
+			rec = new Straff_JpgJpDataRecord(jpg,i,optVal);						//build a jpg->jp record for this jpg, passing order of jps under this jpg
 			ArrayList<Integer> jpgs = newEvMapOfJPAras.get(jpg);			//get list of jps		
 			for (int j=0;j<jpgs.size();++j) {rec.addToJPList(jpgs.get(j));}	//add each in order
 			listOfJpgsJps.add(rec);				
@@ -103,7 +103,7 @@ public abstract class Straff_RawToTrainData{
 	}//_buildListOfJpgJps
 	
 	//different event types will have different record formats to write/read
-	protected abstract String getRecCSVString(JpgJpDataRecord rec);
+	protected abstract String getRecCSVString(Straff_JpgJpDataRecord rec);
 	
 	protected String buildJPGJP_CSVString() {
 		String res = "";	
@@ -120,7 +120,7 @@ public abstract class Straff_RawToTrainData{
 	@Override
 	public String toString() {
 		String res="";
-		for (JpgJpDataRecord jpRec : listOfJpgsJps) { res += "\t" + jpRec.toString()+"\n";}
+		for (Straff_JpgJpDataRecord jpRec : listOfJpgsJps) { res += "\t" + jpRec.toString()+"\n";}
 		return res;
  	}
 }//class StraffTrainData

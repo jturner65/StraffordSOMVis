@@ -4,7 +4,7 @@ package strafford_SOM_PKG;
 import base_UI_Objects.*;
 import base_UI_Objects.windowUI.myDispWindow;
 import strafford_SOM_PKG.straff_UI.Straff_SOMMapUIWin;
-import strafford_SOM_PKG.straff_UI.mySideBarMenu;
+import strafford_SOM_PKG.straff_UI.Straff_SOMMapUISideBarMenu;
 /**
  * Testbed to visually inspect and verify results from Strafford prospect mapping to a SOM
  * 
@@ -82,7 +82,7 @@ public class Strafford_SOM_Mapper_UI_Main extends my_procApplet {
 		buildInitMenuWin(showUIMenu);
 		//menu bar init
 		int wIdx = dispMenuIDX,fIdx=showUIMenu;
-		dispWinFrames[wIdx] = new mySideBarMenu(this, winTitles[wIdx], fIdx, winFillClrs[wIdx], winStrkClrs[wIdx], winRectDimOpen[wIdx], winRectDimClose[wIdx], winDescr[wIdx],dispWinFlags[wIdx][dispCanDrawInWinIDX]);	
+		dispWinFrames[wIdx] = new Straff_SOMMapUISideBarMenu(this, winTitles[wIdx], fIdx, winFillClrs[wIdx], winStrkClrs[wIdx], winRectDimOpen[wIdx], winRectDimClose[wIdx], winDescr[wIdx],dispWinFlags[wIdx][dispCanDrawInWinIDX]);	
 		//instanced window dimensions when open and closed - only showing 1 open at a time
 		float[] _dimOpen  =  new float[]{menuWidth, 0, getWidth()-menuWidth, getHeight()}, _dimClosed  =  new float[]{menuWidth, 0, hideWinWidth, getHeight()};	
 		//(int _winIDX, float[] _dimOpen, float[] _dimClosed, String _ttl, String _desc, 
@@ -185,7 +185,7 @@ public class Strafford_SOM_Mapper_UI_Main extends my_procApplet {
 		//init boolean state machine flags for program
 	public void initVisFlags(){
 		visFlags = new int[1 + numVisFlags/32];for(int i =0; i<numVisFlags;++i){forceVisFlag(i,false);}	
-		((mySideBarMenu)dispWinFrames[dispMenuIDX]).initPFlagColors();			//init sidebar window flags
+		((Straff_SOMMapUISideBarMenu)dispWinFrames[dispMenuIDX]).initPFlagColors();			//init sidebar window flags
 	}		
 	@Override
 	//address all flag-setting here, so that if any special cases need to be addressed they can be

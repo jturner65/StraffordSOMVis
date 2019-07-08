@@ -19,10 +19,10 @@ import strafford_SOM_PKG.straff_Features.*;
 import strafford_SOM_PKG.straff_Features.featureCalc.Straff_WeightCalc;
 
 import strafford_SOM_PKG.straff_RawDataHandling.Straff_SOMRawDataLdrCnvrtr;
-import strafford_SOM_PKG.straff_RawDataHandling.raw_data.BaseRawData;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.Straff_BaseRawData;
 
 import strafford_SOM_PKG.straff_SOM_Examples.*;
-import strafford_SOM_PKG.straff_SOM_Examples.products.ProductExample;
+import strafford_SOM_PKG.straff_SOM_Examples.products.Straff_ProductExample;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.*;
 
 import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.*;
@@ -40,7 +40,7 @@ import strafford_SOM_PKG.straff_Utils.Straff_SOMProjConfig;
 //this class holds the data describing a SOM and the data used to both build and query the som
 public class Straff_SOMMapManager extends SOM_MapManager {	
 	//manage all jps and jpgs seen in project
-	public MonitorJpJpgrp jpJpgrpMon;	
+	public Straff_MonitorJpJpgrp jpJpgrpMon;	
 	//calc object to be used to derive feature vector for each prospect
 	public Straff_WeightCalc ftrCalcObj;
 	//object to manage all raw data processing
@@ -69,7 +69,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	protected TreeMap<Integer, HashSet<SOM_MapNode>> MapNodesByJPGroupIDX;
 	
 	//data for products to be measured on map
-	private ProductExample[] productData;
+	private Straff_ProductExample[] productData;
 	//maps of product arrays, with key for each map being either jpg or jp
 	//private TreeMap<Integer, ArrayList<ProductExample>> productsByJpg, productsByJp;
 	//total # of jps in all data, including source events
@@ -119,7 +119,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 		//if there's enough ram to run all prospects at once
 		if(_argsMap.get("enoughRamToLoadAllProspects") != null) {enoughRamToLoadAllProspects = (boolean) _argsMap.get("enoughRamToLoadAllProspects");}
 		//object to manage all jps and jpgroups seen in project
-		jpJpgrpMon = new MonitorJpJpgrp(this);
+		jpJpgrpMon = new Straff_MonitorJpJpgrp(this);
 		//all raw data loading moved to this object
 		rawDataLdr = new Straff_SOMRawDataLdrCnvrtr(this, projConfigData);	
 		//default to using orders as training data - TODO make this a modifiable flag ?  
@@ -186,7 +186,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	public void loadAndPreProcAllRawData(boolean fromCSVFiles) {
 		getMsgObj().dispMessage("StraffSOMMapManager","loadAndPreProcAllRawData","Start loading and processing raw data", MsgCodes.info5);
 		//this will load all raw data into memory from csv files or sql queries(todo)
-		ConcurrentSkipListMap<String, ArrayList<BaseRawData>> _rawDataAras = rawDataLdr.loadAllRawData(fromCSVFiles);
+		ConcurrentSkipListMap<String, ArrayList<Straff_BaseRawData>> _rawDataAras = rawDataLdr.loadAllRawData(fromCSVFiles);
 		if(null==_rawDataAras) {		return;	}
 		//process loaded data
 		//dbgLoadedData(tcTagsIDX);
@@ -252,13 +252,13 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	
 	//this will display debug-related info related to event mapping in raw prospect records
 	private void dispDebugEventPresenceData(int[] countsOfBoolResOcc, int[] countsOfBoolResEvt) {
-		for(int i=0;i<CustProspectExample.jpOccTypeKeys.length;++i) {
-			getMsgObj().dispMessage("StraffSOMMapManager","_buildCustomerAndProspectMaps->dispDebugEventPresenceData","# prospect OCC records with "+ CustProspectExample.jpOccTypeKeys[i]+" events : " + countsOfBoolResOcc[i] , MsgCodes.info1);				
-			getMsgObj().dispMessage("StraffSOMMapManager","_buildCustomerAndProspectMaps->dispDebugEventPresenceData","# prospect Event records with "+ CustProspectExample.jpOccTypeKeys[i]+" events : " + countsOfBoolResEvt[i] , MsgCodes.info1);	
+		for(int i=0;i<Straff_CustProspectExample.jpOccTypeKeys.length;++i) {
+			getMsgObj().dispMessage("StraffSOMMapManager","_buildCustomerAndProspectMaps->dispDebugEventPresenceData","# prospect OCC records with "+ Straff_CustProspectExample.jpOccTypeKeys[i]+" events : " + countsOfBoolResOcc[i] , MsgCodes.info1);				
+			getMsgObj().dispMessage("StraffSOMMapManager","_buildCustomerAndProspectMaps->dispDebugEventPresenceData","# prospect Event records with "+ Straff_CustProspectExample.jpOccTypeKeys[i]+" events : " + countsOfBoolResEvt[i] , MsgCodes.info1);	
 			if(i==1) {
-				getMsgObj().dispMessage("StraffSOMMapManager","_buildCustomerAndProspectMaps->dispDebugEventPresenceData","# prospect records with global opt : " + ProspectExample._numOptAllOccs[0] , MsgCodes.info1);	
-				getMsgObj().dispMessage("StraffSOMMapManager","_buildCustomerAndProspectMaps->dispDebugEventPresenceData","# prospect records with non-positive global opt : " + ProspectExample._numOptAllOccs[1] , MsgCodes.info1);	
-				getMsgObj().dispMessage("StraffSOMMapManager","_buildCustomerAndProspectMaps->dispDebugEventPresenceData","# prospect records with positive global opt : " + ProspectExample._numOptAllOccs[2], MsgCodes.info1);	
+				getMsgObj().dispMessage("StraffSOMMapManager","_buildCustomerAndProspectMaps->dispDebugEventPresenceData","# prospect records with global opt : " + Straff_ProspectExample._numOptAllOccs[0] , MsgCodes.info1);	
+				getMsgObj().dispMessage("StraffSOMMapManager","_buildCustomerAndProspectMaps->dispDebugEventPresenceData","# prospect records with non-positive global opt : " + Straff_ProspectExample._numOptAllOccs[1] , MsgCodes.info1);	
+				getMsgObj().dispMessage("StraffSOMMapManager","_buildCustomerAndProspectMaps->dispDebugEventPresenceData","# prospect records with positive global opt : " + Straff_ProspectExample._numOptAllOccs[2], MsgCodes.info1);	
 			}
 			getMsgObj().dispMessage("StraffSOMMapManager","_buildCustomerAndProspectMaps->dispDebugEventPresenceData"," " , MsgCodes.info1);				
 		}		
@@ -267,7 +267,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	}//dispDebugEventPresenceData
 
 	//necessary processing for true prospects - convert a customer to a true prospect if appropriate?
-	private void _handleTrueProspect(SOM_ExampleManager truePrspctMapper,String OID, ProspectExample ex) {truePrspctMapper.addExampleToMap(OID,new TrueProspectExample(ex));	}//handleTrueProspect
+	private void _handleTrueProspect(SOM_ExampleManager truePrspctMapper,String OID, Straff_ProspectExample ex) {truePrspctMapper.addExampleToMap(OID,new Straff_TrueProspectExample(ex));	}//handleTrueProspect
 		
 	//this function will take all raw loaded prospects and partition them into customers and true prospects
 	//it determines what the partition/definition is for a "customer" which is used to train the map, and a "true prospect" which is polled against the map to find product membership.
@@ -283,8 +283,8 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 		int numRecsToProc = tmpProspectMapper.getNumMapExamples();
 		int typeOfEventsForCustomer = ((Straff_SOMProjConfig)projConfigData).getTypeOfEventsForCustAndProspect();
 
-		int[] countsOfBoolResOcc = new int[CustProspectExample.jpOccTypeKeys.length+1],
-			countsOfBoolResEvt = new int[CustProspectExample.jpOccTypeKeys.length+1];		//all types of events supported + 1
+		int[] countsOfBoolResOcc = new int[Straff_CustProspectExample.jpOccTypeKeys.length+1],
+			countsOfBoolResEvt = new int[Straff_CustProspectExample.jpOccTypeKeys.length+1];		//all types of events supported + 1
 
 		custPrspctExMapper.reset();
 		//SOMExampleMapper truePrspctMapper = exampleDataMappers.get("trueProspect");		truePrspctMapper.reset();
@@ -297,7 +297,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 		case 0 : {		// cust has order event, prospect does not but has source and possibly other events
 			prospectDesc = "Records that do not have any order events";
 			for (String OID : keySet) {		
-				ProspectExample ex = (ProspectExample) tmpProspectMapper.removeExampleFromMap(OID); 
+				Straff_ProspectExample ex = (Straff_ProspectExample) tmpProspectMapper.removeExampleFromMap(OID); 
 				if(dispDebugEventMembership) {dbgEventInExample(ex, countsOfBoolResOcc, countsOfBoolResEvt);}
 				if (ex.isTrainablePastCustomer()) {			custPrspctExMapper.addExampleToMap(OID, ex);		} 			//training data - has valid feature vector and past order events
 				else if (ex.isTrueProspect()) {				_handleTrueProspect(truePrspctExMapper,OID, ex);	} 				//no past order events but has valid source event data
@@ -311,7 +311,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 		case 1 : {		//cust has some non-source event, prospect does not have customer event but does have source event
 			prospectDesc = "Records that only have source events";
 			for (String OID : keySet) {		
-				ProspectExample ex = (ProspectExample) tmpProspectMapper.removeExampleFromMap(OID);
+				Straff_ProspectExample ex = (Straff_ProspectExample) tmpProspectMapper.removeExampleFromMap(OID);
 				if(dispDebugEventMembership) {dbgEventInExample(ex, countsOfBoolResOcc, countsOfBoolResEvt);}
 				if (ex.hasNonSourceEvents()) {					custPrspctExMapper.addExampleToMap(OID, ex);		} 			//training data - has valid feature vector and any non-source event data
 				else if (ex.hasOnlySourceEvents()) {			_handleTrueProspect(truePrspctExMapper,OID, ex);		} 				//only has source data
@@ -604,7 +604,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	protected void buildTrainTestFromPartition(float trainTestPartition) {
 		getMsgObj().dispMessage("StraffSOMMapManager","buildTestTrainFromInput","Starting Building Input, Test, Train, Product data arrays.", MsgCodes.info5);
 		//build array of product examples based on product map
-		productData = (ProductExample[]) prodExMapper.buildExampleArray();
+		productData = (Straff_ProductExample[]) prodExMapper.buildExampleArray();
 		setFlag(testTrainProdDataBuiltIDX,true);
 		//set input data, shuffle it and set test and train partitions
 		setInputTrainTestShuffleDataAras(trainTestPartition);
@@ -996,7 +996,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 		pa.popStyle();pa.popMatrix();
 	}//drawAnalysisOneFtrJp	
 		//which product feature calcs to use to determine prod distance
-	private int getProdDistType() {return (getFlag(mapExclProdZeroFtrIDX) ? ProductExample.SharedFtrsIDX : ProductExample.AllFtrsIDX);}
+	private int getProdDistType() {return (getFlag(mapExclProdZeroFtrIDX) ? Straff_ProductExample.SharedFtrsIDX : Straff_ProductExample.AllFtrsIDX);}
 		//display the region of the map expected to be impacted by the products serving the passed jp 
 	public void drawProductRegion(my_procApplet pa, int prodJpIDX, double maxDist) {	prodExMapper.drawProductRegion(pa,prodJpIDX, maxDist, getProdDistType());}//drawProductRegion
 	
@@ -1132,7 +1132,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	public void dbgShowJpJpgrpData() {		getMsgObj().dispMessage("StraffSOMMapManager","dbgShowJpJpgrpData","Showing current jpJpg Data : \n"+jpJpgrpMon.toString(), MsgCodes.info1);	}
 	
 	//check and increment relevant counters if specific events are found in a particular example
-	private void dbgEventInExample(ProspectExample ex, int[] countsOfBoolResOcc, int[] countsOfBoolResEvt) {
+	private void dbgEventInExample(Straff_ProspectExample ex, int[] countsOfBoolResOcc, int[] countsOfBoolResEvt) {
 		boolean[] exOCCStatus, exEvtStatus;
 		exOCCStatus = ex.getExampleStatusOcc();
 		exEvtStatus = ex.getExampleStatusEvt();
@@ -1145,7 +1145,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	//debug - display spans of weights of all features in products after products are built
 	public void dbgDispProductWtSpans() {
 		//debug - display spans of weights of all features in products
-		String[] prodExVals = ProductExample.getMinMaxDists();
+		String[] prodExVals = Straff_ProductExample.getMinMaxDists();
 		getMsgObj().dispMessageAra(prodExVals,"StraffSOMMapManager", "SOMMapManager::finishSOMExampleBuild : spans of all product ftrs seen", 1, MsgCodes.info1);		
 	}//dbgDispProductWtSpans()
 	

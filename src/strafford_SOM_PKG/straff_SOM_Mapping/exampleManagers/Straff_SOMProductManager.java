@@ -6,18 +6,18 @@ import base_SOM_Objects.SOM_MapManager;
 import base_SOM_Objects.som_examples.SOM_Example;
 import base_UI_Objects.my_procApplet;
 import base_Utils_Objects.io.MsgCodes;
-import strafford_SOM_PKG.straff_SOM_Examples.products.ProductExample;
+import strafford_SOM_PKG.straff_SOM_Examples.products.Straff_ProductExample;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.base.Straff_SOMExampleManager;
 
 public class Straff_SOMProductManager extends Straff_SOMExampleManager {
 		//maps of product arrays, with key for each map being either jpg or jp
-	private TreeMap<Integer, ArrayList<ProductExample>> productsByJpg, productsByJp;
+	private TreeMap<Integer, ArrayList<Straff_ProductExample>> productsByJpg, productsByJp;
 	//products don't validate
 	public Straff_SOMProductManager(SOM_MapManager _mapMgr, String _exName, String _longExampleName) {		
 		super(_mapMgr,  _exName, _longExampleName, false);		//doesn't validate - assumes all products have some valid data and so will never be bad
-		productsByJpg = new TreeMap<Integer, ArrayList<ProductExample>>();
-		productsByJp = new TreeMap<Integer, ArrayList<ProductExample>>();
+		productsByJpg = new TreeMap<Integer, ArrayList<Straff_ProductExample>>();
+		productsByJp = new TreeMap<Integer, ArrayList<Straff_ProductExample>>();
 	}//ctor
 
 	//specific reset functionality for these type of examples
@@ -25,7 +25,7 @@ public class Straff_SOMProductManager extends Straff_SOMExampleManager {
 	protected void reset_Priv() {
 		productsByJpg.clear();
 		productsByJp.clear();
-		ProductExample.initAllStaticProdData();
+		Straff_ProductExample.initAllStaticProdData();
 	}//reset_Priv	
 	
 	///no validation performed for true prospects - all are welcome
@@ -33,9 +33,9 @@ public class Straff_SOMProductManager extends Straff_SOMExampleManager {
 	protected void validateAndAddExToArray(ArrayList<SOM_Example> tmpList, SOM_Example ex) {	tmpList.add(ex);}
 	@Override
 	//add example from map to array without validation
-	protected SOM_Example[] noValidateBuildExampleArray() {	return (ProductExample[])exampleMap.values().toArray(new ProductExample[0]);};	
+	protected SOM_Example[] noValidateBuildExampleArray() {	return (Straff_ProductExample[])exampleMap.values().toArray(new Straff_ProductExample[0]);};	
 	@Override
-	protected SOM_Example[] castArray(ArrayList<SOM_Example> tmpList) {	return (ProductExample[])(tmpList.toArray(new ProductExample[0]));}
+	protected SOM_Example[] castArray(ArrayList<SOM_Example> tmpList) {	return (Straff_ProductExample[])(tmpList.toArray(new Straff_ProductExample[0]));}
 	@Override
 	//after example array has been built, and specific funcitonality for these types of examples - nothing for products goes here
 	protected void buildExampleArrayEnd_Priv(boolean validate) {}
@@ -63,13 +63,13 @@ public class Straff_SOMProductManager extends Straff_SOMExampleManager {
 	//add constructed product example to maps holding products keyed by their constituent jps and jpgs
 	public void addProductToJPProductMaps(SOM_Example exRaw) {
 		//add to jp and jpg trees
-		ProductExample ex = (ProductExample)exRaw;
+		Straff_ProductExample ex = (Straff_ProductExample)exRaw;
 		HashSet<Integer> jpgs = new HashSet<Integer>();
 		HashSet<Integer> exProdJps = ex.getAllProdJPs();
 		//add products to jp-keyed map
 		for (Integer jp : exProdJps) {
-			ArrayList<ProductExample> exList = productsByJp.get(jp);
-			if(exList==null) {exList = new ArrayList<ProductExample>();}
+			ArrayList<Straff_ProductExample> exList = productsByJp.get(jp);
+			if(exList==null) {exList = new ArrayList<Straff_ProductExample>();}
 			exList.add(ex);
 			productsByJp.put(jp, exList);
 			Integer jpg = jpJpgrpMon.getJpgFromJp(jp);
@@ -79,8 +79,8 @@ public class Straff_SOMProductManager extends Straff_SOMExampleManager {
 		//msgObj.dispMessage("StraffSOMMapManager","addProductToJPProductMaps","Size of jpgs : " + jpgs.size() + ".", MsgCodes.warning1);
 		for (Integer jpg : jpgs) {
 			//msgObj.dispMessage("StraffSOMMapManager","addProductToJPProductMaps","Get JPG : " + jpg +".", MsgCodes.warning1);
-			ArrayList<ProductExample> exList = productsByJpg.get(jpg);
-			if(exList==null) {exList = new ArrayList<ProductExample>();}
+			ArrayList<Straff_ProductExample> exList = productsByJpg.get(jpg);
+			if(exList==null) {exList = new ArrayList<Straff_ProductExample>();}
 			exList.add(ex);
 			productsByJpg.put(jpg, exList);	
 		}
@@ -102,7 +102,7 @@ public class Straff_SOMProductManager extends Straff_SOMExampleManager {
 			String str = csvLoadRes[j];
 			int pos = str.indexOf(',');
 			String oid = str.substring(0, pos);
-			ProductExample ex = new ProductExample((Straff_SOMMapManager)mapMgr, oid, str);
+			Straff_ProductExample ex = new Straff_ProductExample((Straff_SOMMapManager)mapMgr, oid, str);
 			exampleMap.put(oid, ex);			
 		}
 		setAllDataLoaded();
@@ -120,7 +120,7 @@ public class Straff_SOMProductManager extends Straff_SOMExampleManager {
 			
 			String[] saveDestFNamePrefixAra = projConfigData.buildPreProccedDataCSVFNames_Save("productMapSrcData");
 			ArrayList<String> csvResTmp = new ArrayList<String>();		
-			ProductExample ex1 = (ProductExample) exampleMap.get(exampleMap.firstKey());
+			Straff_ProductExample ex1 = (Straff_ProductExample) exampleMap.get(exampleMap.firstKey());
 			String hdrStr = ex1.getRawDescColNamesForCSV();
 			csvResTmp.add( hdrStr);	
 			for (SOM_Example ex : exampleMap.values()) {			
@@ -161,13 +161,13 @@ public class Straff_SOMProductManager extends Straff_SOMExampleManager {
 	//display the region of the map expected to be impacted by the products serving the passed jp 
 	public void drawProductRegion(my_procApplet pa, int prodJpIDX, double maxDist, int distType) {
 		pa.pushMatrix();pa.pushStyle();
-		ArrayList<ProductExample> prodsToShow = productsByJp.get(jpJpgrpMon.getProdJpByIdx(prodJpIDX));
+		ArrayList<Straff_ProductExample> prodsToShow = productsByJp.get(jpJpgrpMon.getProdJpByIdx(prodJpIDX));
 		if(curProdJPIdx != prodJpIDX) {
 			curProdJPIdx = prodJpIDX;
 			dispProdJPDataFrame = 0;
 			curProdTimer = 0;
 		}
-		ProductExample ex = prodsToShow.get(dispProdJPDataFrame);
+		Straff_ProductExample ex = prodsToShow.get(dispProdJPDataFrame);
 		ex.drawMeLinkedToBMU(pa, 5.0f,ex.OID);		
 		ex.drawProdMapExtent(pa, distType, prodsToShow.size(), maxDist);
 		++curProdTimer;
@@ -181,8 +181,8 @@ public class Straff_SOMProductManager extends Straff_SOMExampleManager {
 	//draw all product nodes with max vals corresponding to current JPIDX
 	public void drawProductNodes(my_procApplet pa, int prodJpIDX, boolean showJPorJPG) {
 		pa.pushMatrix();pa.pushStyle();
-		ArrayList<ProductExample> prodsToShow = (showJPorJPG ? productsByJp.get(jpJpgrpMon.getProdJpByIdx(prodJpIDX)) :  productsByJpg.get(jpJpgrpMon.getProdJpGrpByIdx(prodJpIDX)));
-		for(ProductExample ex : prodsToShow) {			ex.drawMeLinkedToBMU(pa, 5.0f,ex.OID);		}		
+		ArrayList<Straff_ProductExample> prodsToShow = (showJPorJPG ? productsByJp.get(jpJpgrpMon.getProdJpByIdx(prodJpIDX)) :  productsByJpg.get(jpJpgrpMon.getProdJpGrpByIdx(prodJpIDX)));
+		for(Straff_ProductExample ex : prodsToShow) {			ex.drawMeLinkedToBMU(pa, 5.0f,ex.OID);		}		
 		pa.popStyle();pa.popMatrix();
 	}//drawProductNodes	
 

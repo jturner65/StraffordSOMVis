@@ -12,7 +12,7 @@ import base_Utils_Objects.*;
 import base_Utils_Objects.io.MessageObject;
 import base_Utils_Objects.io.MsgCodes;
 import strafford_SOM_PKG.straff_RawDataHandling.Straff_SOMRawDataLdrCnvrtr;
-import strafford_SOM_PKG.straff_RawDataHandling.raw_data.BaseRawData;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.Straff_BaseRawData;
 
 /**
 * this class will load, and manage, the appropriate files containing 
@@ -78,8 +78,8 @@ public abstract class Straff_RawDataLoader implements Callable<Boolean> {
 		thdIDX = _thdIDX;
 	}//setLoadData
 	
-	public ArrayList<BaseRawData> execLoad(){	
-		ArrayList<BaseRawData> dataObjs = new ArrayList<BaseRawData>();
+	public ArrayList<Straff_BaseRawData> execLoad(){	
+		ArrayList<Straff_BaseRawData> dataObjs = new ArrayList<Straff_BaseRawData>();
 		if (isFileLoader) {
 			msgObj.dispMessage("StraffordDataLoader","execLoad","File Load Started for "+fileNameAndPath, MsgCodes.info5);
 			streamCSVDataAndBuildStructs(dataObjs, fileNameAndPath);
@@ -92,10 +92,10 @@ public abstract class Straff_RawDataLoader implements Callable<Boolean> {
 	}//execLoad
 	
 	//parse string into data object, which will then construct training/testing data for som map
-	protected abstract BaseRawData parseStringToObj(String[] strAra, String jsonStr, boolean hasJSON);	
-	private void streamCSVDataAndBuildStructs(ArrayList<BaseRawData> dAra, String fileNameAndPath) {try {_strmCSVFileBuildObjs(dAra,fileNameAndPath);} catch (Exception e) {e.printStackTrace();}}
+	protected abstract Straff_BaseRawData parseStringToObj(String[] strAra, String jsonStr, boolean hasJSON);	
+	private void streamCSVDataAndBuildStructs(ArrayList<Straff_BaseRawData> dAra, String fileNameAndPath) {try {_strmCSVFileBuildObjs(dAra,fileNameAndPath);} catch (Exception e) {e.printStackTrace();}}
 	//stream read the csv file and build the data objects
-	private void _strmCSVFileBuildObjs(ArrayList<BaseRawData> dAra, String fileNameAndPath) throws IOException {
+	private void _strmCSVFileBuildObjs(ArrayList<Straff_BaseRawData> dAra, String fileNameAndPath) throws IOException {
 		msgObj.dispMessage("StraffordDataLoader","streamCSVDataAndBuildStructs","Start loading "+ fileNameAndPath, MsgCodes.info5);
 		FileInputStream inputStream = null;
 		Scanner sc = null;
@@ -153,8 +153,8 @@ public abstract class Straff_RawDataLoader implements Callable<Boolean> {
 		msgObj.dispMessage("StraffordDataLoader","streamCSVDataAndBuildStructs","Finished loading "+ fileNameAndPath + " With "+badEntries+" bad/missing json entries and " + dAra.size() + " good records.", MsgCodes.info5);
 	}//loadFileContents
 
-	private void addObjToDAra(ArrayList<BaseRawData> dAra, String[] vals, String jsonStr, boolean hasJson) {
-        BaseRawData obj = parseStringToObj(vals, jsonStr, hasJson);
+	private void addObjToDAra(ArrayList<Straff_BaseRawData> dAra, String[] vals, String jsonStr, boolean hasJson) {
+        Straff_BaseRawData obj = parseStringToObj(vals, jsonStr, hasJson);
         if (obj.isBadRec) {
         	if(debug) {msgObj.dispMessage("StraffordDataLoader","addObjToDAra","" +destAraDataKey+ " : " + obj.toString() + " is a useless record due to " + obj.getWhyBadRed() + ".  Record is Ignored.", MsgCodes.info3);}
         } else {
@@ -166,11 +166,11 @@ public abstract class Straff_RawDataLoader implements Callable<Boolean> {
 	public Boolean call() throws Exception {	
 		msgObj.dispMessage("StraffordDataLoader","call() : ","Start loading "+ fileNameAndPath, MsgCodes.info5);
 		//execute load, take load results and add to mapData.rawDataArrays
-		ArrayList<BaseRawData> dataObjs = execLoad();
+		ArrayList<Straff_BaseRawData> dataObjs = execLoad();
 		//synched because some data types might have multiple source files that attempt to write to array at same time
 		//get existing record list, if present, and aggregate - need to block on this!
 		synchronized(destAraDataKey){
-			ArrayList<BaseRawData> existAra = rawDataLdr.rawDataArrays.get(destAraDataKey);
+			ArrayList<Straff_BaseRawData> existAra = rawDataLdr.rawDataArrays.get(destAraDataKey);
 			//put in destAraDataKey of  mapData.rawDataArrays
 			if(existAra != null) {			dataObjs.addAll(existAra);		}	
 			rawDataLdr.rawDataArrays.put(destAraDataKey, dataObjs);

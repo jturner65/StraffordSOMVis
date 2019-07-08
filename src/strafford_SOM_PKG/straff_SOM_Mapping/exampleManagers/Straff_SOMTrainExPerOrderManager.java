@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import base_SOM_Objects.SOM_MapManager;
 import base_SOM_Objects.som_examples.SOM_ExDataType;
 import base_SOM_Objects.som_examples.SOM_Example;
-import strafford_SOM_PKG.straff_SOM_Examples.prospects.CustProspectExample;
+import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_CustProspectExample;
 import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.base.Straff_SOMCustPrspctManager_Base;
 
 /**
@@ -17,20 +17,20 @@ import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.base.Straff_SOMCustP
 public class Straff_SOMTrainExPerOrderManager extends Straff_SOMCustPrspctManager_Base  {
 	//a reference to the array holding the customer prospect examples; 
 	//this is necessary because the actual examples managed by this mapper are the individual per-order examples
-	private CustProspectExample[] custProspectExamples;
+	private Straff_CustProspectExample[] custProspectExamples;
 	
 	public Straff_SOMTrainExPerOrderManager(SOM_MapManager _mapMgr, String _exName, String _longExampleName, boolean _shouldValidate) {super(_mapMgr, _exName, _longExampleName + " per Order examples.", _shouldValidate);}
 	//specific reset functionality for these type of examples
 	@Override
 	protected final void reset_Priv() {
 		mapMgr.resetTrainDataAras();
-		custProspectExamples = new CustProspectExample[0];
+		custProspectExamples = new Straff_CustProspectExample[0];
 	}//reset_Priv
 
 	//this treats every customer's order as an individual example
 	@Override
 	protected final void validateAndAddExToArray(ArrayList<SOM_Example> tmpList, SOM_Example ex) {
-		if(!ex.isBadExample()) {	tmpList.addAll(((CustProspectExample) ex).getSingleOrderTrainingExamples());}
+		if(!ex.isBadExample()) {	tmpList.addAll(((Straff_CustProspectExample) ex).getSingleOrderTrainingExamples());}
 	}//validateAndAddEx
 	
 	@Override
@@ -38,8 +38,8 @@ public class Straff_SOMTrainExPerOrderManager extends Straff_SOMCustPrspctManage
 	protected final SOM_Example[] noValidateBuildExampleArray() {
 		ArrayList<SOM_Example> tmpList = new ArrayList<SOM_Example>();
 		//example map always holds individual customer prospect examples
-		for (String key : exampleMap.keySet()) {tmpList.addAll(((CustProspectExample) exampleMap.get(key)).getSingleOrderTrainingExamples());}	
-		return tmpList.toArray(new CustProspectExample[0]);
+		for (String key : exampleMap.keySet()) {tmpList.addAll(((Straff_CustProspectExample) exampleMap.get(key)).getSingleOrderTrainingExamples());}	
+		return tmpList.toArray(new Straff_CustProspectExample[0]);
 	}
 	
 	@Override
@@ -57,9 +57,9 @@ public class Straff_SOMTrainExPerOrderManager extends Straff_SOMCustPrspctManage
 				SOM_Example ex = exampleMap.get(key);
 				if(!ex.isBadExample()) {tmpList.add(ex);}	
 			}			
-			custProspectExamples = tmpList.toArray(new CustProspectExample[0]);
+			custProspectExamples = tmpList.toArray(new Straff_CustProspectExample[0]);
 		} 
-		else {	custProspectExamples = exampleMap.values().toArray(new CustProspectExample[0]);}		
+		else {	custProspectExamples = exampleMap.values().toArray(new Straff_CustProspectExample[0]);}		
 	}//buildExampleArrayEnd_Priv
 	
 	/**
@@ -69,7 +69,7 @@ public class Straff_SOMTrainExPerOrderManager extends Straff_SOMCustPrspctManage
 	 * @return array of customerProspect examples
 	 */
 	@Override
-	public final CustProspectExample[] getCustProspectExamples() {
+	public final Straff_CustProspectExample[] getCustProspectExamples() {
 		if((null==SOMexampleArray) ||(SOMexampleArray.length==0)) {	buildExampleArray();}
 		return custProspectExamples;
 	}

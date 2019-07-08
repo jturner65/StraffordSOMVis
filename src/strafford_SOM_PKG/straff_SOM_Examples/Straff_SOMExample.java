@@ -10,14 +10,14 @@ import base_SOM_Objects.som_segments.segments.SOM_MappedSegment;
 import base_Utils_Objects.*;
 import base_Utils_Objects.io.MsgCodes;
 import base_Utils_Objects.vectorObjs.Tuple;
-import strafford_SOM_PKG.straff_Features.MonitorJpJpgrp;
+import strafford_SOM_PKG.straff_Features.Straff_MonitorJpJpgrp;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.*;
-import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.events.LinkEventRawToTrainData;
-import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.events.OptEventRawToTrainData;
-import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.events.OrderEventRawToTrainData;
-import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.events.SrcEventRawToTrainData;
+import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.events.Straff_LinkEventRawToTrainData;
+import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.events.Straff_OptEventRawToTrainData;
+import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.events.Straff_OrderEventRawToTrainData;
+import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.events.Straff_SrcEventRawToTrainData;
 import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.events.StraffEvntRawToTrainData;
-import strafford_SOM_PKG.straff_SOM_Examples.prospects.JP_OccurrenceData;
+import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_JP_OccurrenceData;
 import strafford_SOM_PKG.straff_SOM_Mapping.*;
 
 
@@ -42,7 +42,7 @@ public abstract class Straff_SOMExample extends SOM_Example{
 	/**
 	 * reference to jp-jpg mapping/managing object
 	 */
-	protected static MonitorJpJpgrp jpJpgMon;	
+	protected static Straff_MonitorJpJpgrp jpJpgMon;	
 	/**
 	 * all jps in this example that correspond to actual products. products 
 	 * are used for training vectors - these will be used to build feature 

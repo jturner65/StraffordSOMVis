@@ -10,7 +10,7 @@ import base_SOM_Objects.som_examples.SOM_Example;
 import base_SOM_Objects.som_utils.runners.SOM_MapExDataToBMUs_Runner;
 import base_SOM_Objects.som_utils.runners.SOM_SaveExToBMUs_Runner;
 import base_Utils_Objects.io.MsgCodes;
-import strafford_SOM_PKG.straff_SOM_Examples.prospects.TrueProspectExample;
+import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_TrueProspectExample;
 import strafford_SOM_PKG.straff_SOM_Mapping.*;
 
 /**
@@ -143,7 +143,7 @@ public abstract class Straff_SOMProspectManager extends Straff_SOMExampleManager
 				String str = csvLoadRes[j];
 				int pos = str.indexOf(',');
 				String oid = str.substring(0, pos);
-				TrueProspectExample ex = new TrueProspectExample(mapMgr, oid, str);
+				Straff_TrueProspectExample ex = new Straff_TrueProspectExample(mapMgr, oid, str);
 				exampleMap.put(oid, ex);			
 			}
 			setAllDataLoaded();

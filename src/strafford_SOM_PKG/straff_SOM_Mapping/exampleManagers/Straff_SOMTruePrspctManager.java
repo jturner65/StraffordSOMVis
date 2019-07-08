@@ -11,8 +11,8 @@ import base_Utils_Objects.io.MsgCodes;
 import strafford_SOM_PKG.straff_SOM_Mapping.*;
 import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.base.Straff_SOMProspectManager;
 import strafford_SOM_PKG.straff_Features.featureCalc.Straff_WeightCalc;
-import strafford_SOM_PKG.straff_ProcDataHandling.data_loaders.PrscpctCSVDataLoader;
-import strafford_SOM_PKG.straff_SOM_Examples.prospects.TrueProspectExample;
+import strafford_SOM_PKG.straff_ProcDataHandling.data_loaders.Straff_PrscpctCSVDataLoader;
+import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_TrueProspectExample;
 
 public class Straff_SOMTruePrspctManager extends Straff_SOMProspectManager {
 
@@ -27,9 +27,9 @@ public class Straff_SOMTruePrspctManager extends Straff_SOMProspectManager {
 	protected void validateAndAddExToArray(ArrayList<SOM_Example> tmpList, SOM_Example ex) {	if(!ex.isBadExample()) {tmpList.add(ex);}}
 	@Override
 	//add example from map to array without validation
-	protected SOM_Example[] noValidateBuildExampleArray() {	return (TrueProspectExample[])(exampleMap.values().toArray(new TrueProspectExample[0]));};	
+	protected SOM_Example[] noValidateBuildExampleArray() {	return (Straff_TrueProspectExample[])(exampleMap.values().toArray(new Straff_TrueProspectExample[0]));};	
 	@Override
-	protected SOM_Example[] castArray(ArrayList<SOM_Example> tmpList) {	return (TrueProspectExample[])(tmpList.toArray(new TrueProspectExample[0]));}
+	protected SOM_Example[] castArray(ArrayList<SOM_Example> tmpList) {	return (Straff_TrueProspectExample[])(tmpList.toArray(new Straff_TrueProspectExample[0]));}
 	@Override
 	//after example array has been built, and specific funcitonality for these types of examples
 	protected void buildExampleArrayEnd_Priv(boolean validate) {}
@@ -60,12 +60,12 @@ public class Straff_SOMTruePrspctManager extends Straff_SOMProspectManager {
 			msgObj.dispInfoMessage("Straff_SOMTruePrspctMapper","buildPostFtrVecStructs_Priv","\t" + sizeOfCompVec + ",\t" + Straff_WeightCalc.mapOfNonProdFtrVecDims.get(sizeOfCompVec)+ ",\t" +mapOfFtrs.size() + " |\t" + tmp);
 		}
 		
-		msgObj.dispInfoMessage("Straff_SOMTruePrspctMapper","buildPostFtrVecStructs_Priv","" + TrueProspectExample.NumTPWithNoFtrs+ " True Prospect records with no product-jp-related information - max nonprod jps seen : " +TrueProspectExample.maxNumNonProdJps+" | largest comp vector seen : " + Straff_WeightCalc.numNonProdFtrVecDims+".");
+		msgObj.dispInfoMessage("Straff_SOMTruePrspctMapper","buildPostFtrVecStructs_Priv","" + Straff_TrueProspectExample.NumTPWithNoFtrs+ " True Prospect records with no product-jp-related information - max nonprod jps seen : " +Straff_TrueProspectExample.maxNumNonProdJps+" | largest comp vector seen : " + Straff_WeightCalc.numNonProdFtrVecDims+".");
 		
 		dbg_dispFtrVecMinMaxs(Straff_WeightCalc.mapOfTPCompFtrVecMins, Straff_WeightCalc.mapOfTPCompFtrVecMaxs, "Straff_SOMTruePrspctMapper");
 
-		TrueProspectExample.NumTPWithNoFtrs = 0;
-		TrueProspectExample.maxNumNonProdJps =0;
+		Straff_TrueProspectExample.NumTPWithNoFtrs = 0;
+		Straff_TrueProspectExample.maxNumNonProdJps =0;
 		Straff_WeightCalc.numNonProdFtrVecDims= 0;
 		Straff_WeightCalc.mapOfNonProdFtrVecDims.clear();
 		Straff_WeightCalc.mapOfTPNonProdJpsPerSizeNonProdFtrVec.clear();
@@ -88,7 +88,7 @@ public class Straff_SOMTruePrspctManager extends Straff_SOMProspectManager {
 		List<Future<Boolean>> preProcLoadFtrs = new ArrayList<Future<Boolean>>();
 		List<SOM_ExCSVDataLoader> preProcLoaders = new ArrayList<SOM_ExCSVDataLoader>();
 		msgObj.dispMessage("Straff_SOMTruePrspctMapper::"+exampleName,"buildMTLoader","Building " +numPartitions+" " + exampleName+ " data multi-threaded loaders.", MsgCodes.info5);
-		for (int i=0; i<numPartitions;++i) {	preProcLoaders.add(new PrscpctCSVDataLoader(mapMgr, i, loadSrcFNamePrefixAra[0]+"_"+i+".csv",  exampleName+ " Data file " + i +" of " +numPartitions +" loaded",  exampleName+ " Data File " + i +" of " +numPartitions +" Failed to load", exampleMap));}
+		for (int i=0; i<numPartitions;++i) {	preProcLoaders.add(new Straff_PrscpctCSVDataLoader(mapMgr, i, loadSrcFNamePrefixAra[0]+"_"+i+".csv",  exampleName+ " Data file " + i +" of " +numPartitions +" loaded",  exampleName+ " Data File " + i +" of " +numPartitions +" Failed to load", exampleMap));}
 		msgObj.dispMessage("Straff_SOMTruePrspctMapper::"+exampleName,"buildMTLoader","Launching " +numPartitions+" " + exampleName+ " data multi-threaded loaders.", MsgCodes.info5);
 		try {preProcLoadFtrs = th_exec.invokeAll(preProcLoaders);for(Future<Boolean> f: preProcLoadFtrs) { 			f.get(); 		}} catch (Exception e) { e.printStackTrace(); }					
 	}//buildMTLoader
@@ -104,7 +104,7 @@ public class Straff_SOMTruePrspctManager extends Straff_SOMProspectManager {
 				String str = csvLoadRes[j];
 				int pos = str.indexOf(',');
 				String oid = str.substring(0, pos);
-				TrueProspectExample ex = new TrueProspectExample(mapMgr, oid, str);
+				Straff_TrueProspectExample ex = new Straff_TrueProspectExample(mapMgr, oid, str);
 				exampleMap.put(oid, ex);			
 			}
 		}				

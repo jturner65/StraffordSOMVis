@@ -4,12 +4,12 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.TreeMap;
 
-import strafford_SOM_PKG.straff_RawDataHandling.raw_data.BaseRawData;
-import strafford_SOM_PKG.straff_RawDataHandling.raw_data.EventRawData;
-import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.JpgJpDataRecord;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.Straff_BaseRawData;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.Straff_EventRawData;
+import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.Straff_JpgJpDataRecord;
 import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.Straff_RawToTrainData;
-import strafford_SOM_PKG.straff_SOM_Examples.prospects.JP_OccurrenceData;
-import strafford_SOM_PKG.straff_SOM_Examples.prospects.ProspectExample;
+import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_JP_OccurrenceData;
+import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_ProspectExample;
 
 /**
  * this class will hold event data for a single OID for a single date
@@ -23,7 +23,7 @@ public abstract class StraffEvntRawToTrainData extends Straff_RawToTrainData{
 	protected Date eventDate;
 	protected String eventType;	
 	
-	public StraffEvntRawToTrainData(EventRawData ev, String _srcTypeName) {
+	public StraffEvntRawToTrainData(Straff_EventRawData ev, String _srcTypeName) {
 		super(_srcTypeName);
 		eventID = ev.getEventID();//should be the same event type for event ID
 		eventType = ev.getEventType();
@@ -34,13 +34,13 @@ public abstract class StraffEvntRawToTrainData extends Straff_RawToTrainData{
 		super(_srcTypeName);
 		eventID = _evIDStr;//should be the same event type for event ID
 		eventType = _evTypeStr;
-		eventDate = BaseRawData.buildDateFromString(_evDateStr);		
+		eventDate = Straff_BaseRawData.buildDateFromString(_evDateStr);		
 	}//ctor from indiv data	via csv string
 
 	//process JP occurence data for this event
 	//passed is ref to map of all occurrences of jps in this kind of event's data for a specific prospect
-	public void procJPOccForAllJps(ProspectExample ex, TreeMap<Integer, JP_OccurrenceData> jpOccMap, String type, boolean usesOpt, int[] _dbg_numOptAllOccs) {
-		for (JpgJpDataRecord rec : listOfJpgsJps) {
+	public void procJPOccForAllJps(Straff_ProspectExample ex, TreeMap<Integer, Straff_JP_OccurrenceData> jpOccMap, String type, boolean usesOpt, int[] _dbg_numOptAllOccs) {
+		for (Straff_JpgJpDataRecord rec : listOfJpgsJps) {
 			int opt = rec.getOptVal();
 			Integer jpg = rec.getJPG();
 			ArrayList<Integer> jps = rec.getJPlist();
@@ -50,22 +50,22 @@ public abstract class StraffEvntRawToTrainData extends Straff_RawToTrainData{
 				if  (opt <= 0) {//this is negative opt across all records 
 					++_dbg_numOptAllOccs[1];
 					//from here we are processing a positive opt record across all jps
-					JP_OccurrenceData jpOcc = ex.getNegOptAllOccObj();
-					if (jpOcc==null) {jpOcc = new JP_OccurrenceData(-9, -10, usesOpt);}
+					Straff_JP_OccurrenceData jpOcc = ex.getNegOptAllOccObj();
+					if (jpOcc==null) {jpOcc = new Straff_JP_OccurrenceData(-9, -10, usesOpt);}
 					jpOcc.addOccurrence(eventDate, rec.getOptVal());		
 					ex.setNegOptAllOccObj(jpOcc);					
 				} else {		//this is a non-negative opt across all records
 					++_dbg_numOptAllOccs[2];
 					//from here we are processing a positive opt record across all jps
-					JP_OccurrenceData jpOcc = ex.getPosOptAllOccObj();
-					if (jpOcc==null) {jpOcc = new JP_OccurrenceData(-9, -10, usesOpt);}
+					Straff_JP_OccurrenceData jpOcc = ex.getPosOptAllOccObj();
+					if (jpOcc==null) {jpOcc = new Straff_JP_OccurrenceData(-9, -10, usesOpt);}
 					jpOcc.addOccurrence(eventDate, rec.getOptVal());		
 					ex.setPosOptAllOccObj(jpOcc);				
 				}
 			} else {
 				for (Integer jp : jps) {
-					JP_OccurrenceData jpOcc = jpOccMap.get(jp);
-					if (jpOcc==null) {jpOcc = new JP_OccurrenceData(jp, jpg,usesOpt);}
+					Straff_JP_OccurrenceData jpOcc = jpOccMap.get(jp);
+					if (jpOcc==null) {jpOcc = new Straff_JP_OccurrenceData(jp, jpg,usesOpt);}
 					jpOcc.addOccurrence(eventDate, rec.getOptVal());		
 					//add this occurence object to map at idx jp
 					jpOccMap.put(jp, jpOcc);
@@ -76,7 +76,7 @@ public abstract class StraffEvntRawToTrainData extends Straff_RawToTrainData{
 
 	@Override
 	public String buildCSVString() {
-		String res = "EvSt,EvType,"+eventType+",EvID,"+eventID+",EvDt,"+ BaseRawData.buildStringFromDate(eventDate)+",numJPGs,"+listOfJpgsJps.size()+",";	
+		String res = "EvSt,EvType,"+eventType+",EvID,"+eventID+",EvDt,"+ Straff_BaseRawData.buildStringFromDate(eventDate)+",numJPGs,"+listOfJpgsJps.size()+",";	
 		res += buildJPGJP_CSVString();
 		res += "EvEnd,";			
 		return res;		

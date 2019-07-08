@@ -2,7 +2,7 @@ package strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.base;
 
 import base_SOM_Objects.SOM_MapManager;
 import base_SOM_Objects.som_examples.SOM_ExampleManager;
-import strafford_SOM_PKG.straff_Features.MonitorJpJpgrp;
+import strafford_SOM_PKG.straff_Features.Straff_MonitorJpJpgrp;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 /**
  * class to manage mapping for all examples (prospects and products) in Strafford project
@@ -11,7 +11,7 @@ import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
  */
 public abstract class Straff_SOMExampleManager extends SOM_ExampleManager  {
 	//manage all jps and jpgs seen in project
-	public MonitorJpJpgrp jpJpgrpMon;	
+	public Straff_MonitorJpJpgrp jpJpgrpMon;	
 	
 	protected final int preProcDatPartSz;
 

@@ -14,8 +14,8 @@ import base_Utils_Objects.io.MsgCodes;
 import strafford_SOM_PKG.straff_RawDataHandling.data_loaders.Straff_RawDataLoader;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.*;
 import strafford_SOM_PKG.straff_SOM_Examples.Straff_SOMExample;
-import strafford_SOM_PKG.straff_SOM_Examples.products.ProductExample;
-import strafford_SOM_PKG.straff_SOM_Examples.prospects.CustProspectExample;
+import strafford_SOM_PKG.straff_SOM_Examples.products.Straff_ProductExample;
+import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_CustProspectExample;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.*;
 import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.base.Straff_SOMProspectManager;
@@ -67,7 +67,7 @@ public class Straff_SOMRawDataLdrCnvrtr {
 	//classes of data loader objects
 	public Class<Straff_RawDataLoader>[] straffObjLoaders;
 	//destination object to manage arrays of each type of raw data from db
-	public ConcurrentSkipListMap<String, ArrayList<BaseRawData>> rawDataArrays;
+	public ConcurrentSkipListMap<String, ArrayList<Straff_BaseRawData>> rawDataArrays;
 	//for multi-threaded calls to base loader
 	public List<Future<Boolean>> straffDataLdrFtrs;
 	public TreeMap<String, Straff_RawDataLoader>straffDataLoaders;
@@ -96,7 +96,7 @@ public class Straff_SOMRawDataLdrCnvrtr {
 		//straffDataLoaders = new ArrayList<StraffordDataLoader>();
 		straffDataLoaders = new TreeMap<String, Straff_RawDataLoader>();
 		//raw data from csv's/db
-		rawDataArrays = new ConcurrentSkipListMap<String, ArrayList<BaseRawData>>();
+		rawDataArrays = new ConcurrentSkipListMap<String, ArrayList<Straff_BaseRawData>>();
 		//build constructors
 		@SuppressWarnings("rawtypes")
 		Class[] args = new Class[] {boolean.class, String.class};//classes of arguments for loader ctor	
@@ -118,7 +118,7 @@ public class Straff_SOMRawDataLdrCnvrtr {
 	//fromCSVFiles : whether loading data from csv files or from SQL calls
 	//eventsOnly : only use examples with event data to train
 	//append : whether to append to existing data values or to load new data
-	public ConcurrentSkipListMap<String, ArrayList<BaseRawData>> loadAllRawData(boolean fromCSVFiles) {
+	public ConcurrentSkipListMap<String, ArrayList<Straff_BaseRawData>> loadAllRawData(boolean fromCSVFiles) {
 		msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","loadAllRawData","Start loading and processing raw data", MsgCodes.info5);
 		//TODO remove this when SQL support is implemented
 		if(!fromCSVFiles) {
@@ -161,9 +161,9 @@ public class Straff_SOMRawDataLdrCnvrtr {
 			@SuppressWarnings("unchecked")
 			Straff_RawDataLoader loaderObj = (Straff_RawDataLoader) straffObjLoaders[idx].getDeclaredConstructor(args).newInstance(flags[0], fullFileName);
 			loaderObj.setLoadData(this, mapMgr.buildMsgObj(), dataDirTypeName, fullFileName, flags, straffObjFlagIDXs[idx], fidx);
-			ArrayList<BaseRawData> datAra = loaderObj.execLoad();
+			ArrayList<Straff_BaseRawData> datAra = loaderObj.execLoad();
 			if(datAra.size() > 0) {
-				ArrayList<BaseRawData> existAra = rawDataArrays.get(dataDirTypeName);
+				ArrayList<Straff_BaseRawData> existAra = rawDataArrays.get(dataDirTypeName);
 				if(existAra != null) {			datAra.addAll(existAra);			} //merge with existing array
 				rawDataArrays.put(dataDirTypeName, datAra);
 				mapMgr.setFlag(straffObjFlagIDXs[idx], true);			//set flag corresponding to this type of data to be loaded
@@ -179,7 +179,7 @@ public class Straff_SOMRawDataLdrCnvrtr {
 	// process raw data	
 	
 	//process all events into training examples
-	private void procRawEventData(Straff_SOMProspectManager mapper, ConcurrentSkipListMap<String, ArrayList<BaseRawData>> dataArrays, boolean saveBadRecs) {			
+	private void procRawEventData(Straff_SOMProspectManager mapper, ConcurrentSkipListMap<String, ArrayList<Straff_BaseRawData>> dataArrays, boolean saveBadRecs) {			
 		msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","procRawEventData","Start processing raw event data.", MsgCodes.info5);
 		String dataName;
 		int dataTypeIDX;
@@ -187,15 +187,15 @@ public class Straff_SOMRawDataLdrCnvrtr {
 		for (int i = 0; i <straffEventDataIDXs.length;++i) {//for each event
 			dataTypeIDX = straffEventDataIDXs[i];
 			dataName = straffDataDirNames[dataTypeIDX];
-			ArrayList<BaseRawData> events = dataArrays.get(dataName);
+			ArrayList<Straff_BaseRawData> events = dataArrays.get(dataName);
 			//derive event type from file name?
 			String eventType = dataName.split("_")[0];		
 			String eventBadFName = projConfigData.getBadEventFName(dataName);//	
 			ArrayList<String> badEventOIDs = new ArrayList<String>();
 			HashSet<String> uniqueBadEventOIDs = new HashSet<String>();
 			
-			for (BaseRawData obj : events) {
-				CustProspectExample ex = ((CustProspectExample)(mapper.getExample(obj.OID)));			//event has OID referencing prospect/customer record in prospect table
+			for (Straff_BaseRawData obj : events) {
+				Straff_CustProspectExample ex = ((Straff_CustProspectExample)(mapper.getExample(obj.OID)));			//event has OID referencing prospect/customer record in prospect table
 				if (ex == null) {
 					if (saveBadRecs) {//means no prospect object corresponding to the OID in this event
 						badEventOIDs.add(obj.OID);
@@ -219,10 +219,10 @@ public class Straff_SOMRawDataLdrCnvrtr {
 	}//procRawEventData
 	
 	//convert raw tc taggings table data to product examples
-	private void procRawProductData(Straff_SOMProductManager prodMapper, ArrayList<BaseRawData> tcTagRawData) {
+	private void procRawProductData(Straff_SOMProductManager prodMapper, ArrayList<Straff_BaseRawData> tcTagRawData) {
 		msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","procRawProductData","Starting to process Raw Product Data.", MsgCodes.info5);
-		for (BaseRawData tcDat : tcTagRawData) {
-			ProductExample ex = new ProductExample(mapMgr, (TcTagData)tcDat);
+		for (Straff_BaseRawData tcDat : tcTagRawData) {
+			Straff_ProductExample ex = new Straff_ProductExample(mapMgr, (Straff_TcTagData)tcDat);
 			prodMapper.addExampleToMap(ex.OID, ex);
 		}
 		//all product data is loaded
@@ -234,10 +234,10 @@ public class Straff_SOMRawDataLdrCnvrtr {
 	public void procRawLoadedData(Straff_SOMProspectManager prspctMapper, Straff_SOMProductManager prodMapper) {
 		msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","procRawLoadedData","Start Processing all loaded raw data", MsgCodes.info5);
 		//load all prospects from source
-		ArrayList<BaseRawData> prospects = rawDataArrays.get(straffDataDirNames[prspctIDX]);
-		for (BaseRawData prs : prospects) {
+		ArrayList<Straff_BaseRawData> prospects = rawDataArrays.get(straffDataDirNames[prspctIDX]);
+		for (Straff_BaseRawData prs : prospects) {
 			//prospectMap is empty here
-			SOM_Example ex = new CustProspectExample(mapMgr, (ProspectData) prs);
+			SOM_Example ex = new Straff_CustProspectExample(mapMgr, (Straff_ProspectData) prs);
 			prspctMapper.addExampleToMap(ex.OID, ex);
 		}		
 		//add all events to prospects
@@ -254,7 +254,7 @@ public class Straff_SOMRawDataLdrCnvrtr {
 	
 	
 	//show first numToShow elemens of array of BaseRawData, either just to console or to applet window
-	private void dispRawDataAra(ArrayList<BaseRawData> sAra, int numToShow) {
+	private void dispRawDataAra(ArrayList<Straff_BaseRawData> sAra, int numToShow) {
 		if (sAra.size() < numToShow) {numToShow = sAra.size();}
 		for(int i=0;i<numToShow; ++i){msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","dispRawDataAra",sAra.get(i).toString(), MsgCodes.info4);}
 	}	

@@ -6,13 +6,13 @@ import base_SOM_Objects.som_examples.*;
 import base_SOM_Objects.som_ui.SOM_MseOvrDisplay;
 import base_UI_Objects.*;
 import base_Utils_Objects.vectorObjs.myPointf;
-import strafford_SOM_PKG.straff_Features.MonitorJpJpgrp;
+import strafford_SOM_PKG.straff_Features.Straff_MonitorJpJpgrp;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 
 
 //this class is for a simple object to just represent a mouse-over on the visualization of the map
 public class Straff_SOMMseOvrDisp extends SOM_MseOvrDisplay{
-	private MonitorJpJpgrp jpJpgMon;
+	private Straff_MonitorJpJpgrp jpJpgMon;
 		
 	public Straff_SOMMseOvrDisp(Straff_SOMMapManager _map, float _thresh) {
 		super(_map, _thresh);	

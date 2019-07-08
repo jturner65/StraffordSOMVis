@@ -420,9 +420,9 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	@Override
 	protected void setCustMenuBtnNames() {
 		String rplStr = menuLdRawFuncBtnNames[(rawDataSource % menuLdRawFuncBtnNames.length)], baseStr;
-		for(int i=0;i<menuBtnNames[mySideBarMenu.btnAuxFunc1Idx].length-2;++i) {
-			baseStr = (String) menuBtnNames[mySideBarMenu.btnAuxFunc1Idx][i].subSequence(0, menuBtnNames[mySideBarMenu.btnAuxFunc1Idx][i].length()-3);
-			menuBtnNames[mySideBarMenu.btnAuxFunc1Idx][i] = baseStr + rplStr;
+		for(int i=0;i<menuBtnNames[Straff_SOMMapUISideBarMenu.btnAuxFunc1Idx].length-2;++i) {
+			baseStr = (String) menuBtnNames[Straff_SOMMapUISideBarMenu.btnAuxFunc1Idx][i].subSequence(0, menuBtnNames[Straff_SOMMapUISideBarMenu.btnAuxFunc1Idx][i].length()-3);
+			menuBtnNames[Straff_SOMMapUISideBarMenu.btnAuxFunc1Idx][i] = baseStr + rplStr;
 		}
 		//menuBtnNames[mySideBarMenu.btnAuxFunc1Idx][loadRawBtnIDX]=menuLdRawFuncBtnNames[(rawDataSource % menuLdRawFuncBtnNames.length) ];
 		pa.setAllMenuBtnNames(menuBtnNames);	
@@ -532,7 +532,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		msgObj.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Begin requested action", MsgCodes.info4);
 		int btn = curCustBtn[curCustBtnType];
 		switch(curCustBtnType) {
-		case mySideBarMenu.btnAuxFunc1Idx : {//row 1 of menu side bar buttons
+		case Straff_SOMMapUISideBarMenu.btnAuxFunc1Idx : {//row 1 of menu side bar buttons
 			msgObj.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Click Functions 1 in "+name+" : btn : " + btn, MsgCodes.info4);
 			switch(btn){
 				case 0 : {	
@@ -554,7 +554,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 			}	
 			break;}//row 1 of menu side bar buttons
 	
-		case mySideBarMenu.btnAuxFunc2Idx : {//row 2 of menu side bar buttons
+		case Straff_SOMMapUISideBarMenu.btnAuxFunc2Idx : {//row 2 of menu side bar buttons
 			msgObj.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Click Functions 2 in "+name+" : btn : " + btn, MsgCodes.info4);//{"Ld&Bld SOM Data", "Load SOM Config", "Ld & Make Map", "Ld Prebuilt Map"},	//row 2
 			//		{"Train Data","True Prspcts", "Prods", "SOM Cfg", "Func 14"},	//row 2
 
@@ -581,7 +581,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 					break;}	
 			}
 			break;}//row 2 of menu side bar buttons
-		case mySideBarMenu.btnAuxFunc3Idx : {//row 3 of menu side bar buttons
+		case Straff_SOMMapUISideBarMenu.btnAuxFunc3Idx : {//row 3 of menu side bar buttons
 			msgObj.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Click Functions 3 in "+name+" : btn : " + btn, MsgCodes.info4);//{"Ld&Bld SOM Data", "Load SOM Config", "Ld & Make Map", "Ld Prebuilt Map"},	//row 2
 			switch(btn){
 				case 0 : {	
@@ -604,7 +604,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 					break;}	
 			}
 			break;}//row 3 of menu side bar buttons
-		case mySideBarMenu.btnAuxFunc4Idx : {//row 3 of menu side bar buttons
+		case Straff_SOMMapUISideBarMenu.btnAuxFunc4Idx : {//row 3 of menu side bar buttons
 			msgObj.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Click Functions 3 in "+name+" : btn : " + btn, MsgCodes.info4);//{"Ld&Bld SOM Data", "Load SOM Config", "Ld & Make Map", "Ld Prebuilt Map"},	//row 2
 			switch(btn){
 				case 0 :
@@ -622,7 +622,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 					break;}	
 			}
 			break;}//row 3 of menu side bar buttons
-		case mySideBarMenu.btnDBGSelCmpIdx : {//row 4 of menu side bar buttons (debug)	
+		case Straff_SOMMapUISideBarMenu.btnDBGSelCmpIdx : {//row 4 of menu side bar buttons (debug)	
 			msgObj.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Click Debug in "+name+" : btn : " + btn, MsgCodes.info4);
 			//{"All->Bld Map","All Dat To Map", "Func 22", "Func 23", "Prblt Map"},	//row 3
 			switch(btn){
