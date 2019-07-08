@@ -211,34 +211,32 @@ public abstract class ProspectExample extends Straff_SOMExample{
 
 	/**
 	 * set jp(class) and jpgroup(category) segments and probabilities for this example - for prospects only use mapped BMU's segments and probs
-	 * @param Class_Segments
-	 * @param Category_Segments
 	 */
 	@Override
-	public synchronized void setSegmentsAndProbsFromBMU() {
+	public synchronized final void setSegmentsAndProbsFromBMU() {
 		//build this node's segment membership and probabilities based on its BMU
 		//verify not null
-		perJPMapNodeProbMap.clear();		
-		perJPGroupMapNodeProbMap.clear();
+		perClassMapNodeProbMap.clear();		
+		perCategoryMapNodeProbMap.clear();
 		if(isBmuNull()) {	msgObj.dispMessage("prospectExample","setSegmentsAndProbsFromBMU","Error !!! No BMU defined for this prospect example : " + OID + " | Aborting further segment calculations.",MsgCodes.warning2 ); return;	}
 		Tuple<Integer,Integer> bmuCoords = getBMUMapNodeCoord();
-		//set all jp(class)-based map node probabilities
-		ConcurrentSkipListMap<Tuple<Integer,Integer>,Float> jpClassMapNodes;
+		//set all class-based map node probabilities
+		ConcurrentSkipListMap<Tuple<Integer,Integer>,Float> classPerMapNodes;
 		Set<Integer> classKeySet = getBMUClassSegIDs();
-		for(Integer jp : classKeySet) {
-			addClassSegment(jp, getBMUClassSegment(jp));
-			jpClassMapNodes = new ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>();
-			jpClassMapNodes.put(bmuCoords, getBMUProbForClass(jp));
-			perJPMapNodeProbMap.put(jp, jpClassMapNodes);			
+		for(Integer cls : classKeySet) {
+			addClassSegment(cls, getBMUClassSegment(cls));
+			classPerMapNodes = new ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>();
+			classPerMapNodes.put(bmuCoords, getBMUProbForClass(cls));
+			perClassMapNodeProbMap.put(cls, classPerMapNodes);			
 		}
-		//set all jpgroup(category)-based map node probabilities				
-		ConcurrentSkipListMap<Tuple<Integer,Integer>,Float> jpgCatMapNodes;		
+		//set all category-based map node probabilities				
+		ConcurrentSkipListMap<Tuple<Integer,Integer>,Float> catPerMapNodes;		
 		Set<Integer> catKeySet = getBMUCategorySegIDs();
-		for(Integer jpg : catKeySet) {
-			addCategorySegment(jpg, getBMUCategorySegment(jpg));
-			jpgCatMapNodes = new ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>();
-			jpgCatMapNodes.put(bmuCoords, getBMUProbForCategory(jpg));
-			perJPGroupMapNodeProbMap.put(jpg, jpgCatMapNodes);
+		for(Integer cat : catKeySet) {
+			addCategorySegment(cat, getBMUCategorySegment(cat));
+			catPerMapNodes = new ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>();
+			catPerMapNodes.put(bmuCoords, getBMUProbForCategory(cat));
+			perCategoryMapNodeProbMap.put(cat, catPerMapNodes);
 		}		
 	}//setAllMapNodeSegmentsAndProbs
 

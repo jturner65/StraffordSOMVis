@@ -75,40 +75,6 @@ public class ProductExample extends Straff_SOMExample{
 		allMapNodesDists[mapNodeIDX] =  mapNodes;
 	}
 	
-	/**
-	 * set this example's segment membership and probabilities from the mapped bmu - class/category label-driven examples won't use this function
-	 * products use class and category membership and prob of all map nodes, and not BMU - represented on map by segment (collection of map nodes), not bmu
-	 */
-	public void setSegmentsAndProbsFromBMU() {};
-	
-	/**
-	 * set jp(class) and jpgroup(category) segments and probabilities for this example
-	 * @param Class_Segments
-	 * @param Category_Segments
-	 */
-	public synchronized void setSegmentsAndProbsFromAllMapNodes(TreeMap<Integer, SOM_MappedSegment> Class_Segments, TreeMap<Integer, SOM_MappedSegment> Category_Segments) {
-		//set all jp(class)-based map node probabilities
-		perJPMapNodeProbMap.clear();		
-		ConcurrentSkipListMap<Tuple<Integer,Integer>,Float> jpClassMapNodes, tmpJpMapNodes;
-		for(Integer jp : allProdJPs) {
-			jpClassMapNodes = ((Straff_SOMMapManager)mapMgr).getMapNodeJPProbsForJP(jp);
-			tmpJpMapNodes = new ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>();
-			for(Tuple<Integer,Integer> key : jpClassMapNodes.keySet()) {				tmpJpMapNodes.put(key, jpClassMapNodes.get(key));			}
-			perJPMapNodeProbMap.put(jp, tmpJpMapNodes);
-			addClassSegment(jp, Class_Segments.get(jp));
-		}
-		//set all jpgroup(category)-based map node probabilities
-		perJPGroupMapNodeProbMap.clear();
-		ConcurrentSkipListMap<Tuple<Integer,Integer>,Float> jpgClassMapNodes, tmpJpgMapNodes;		
-		for(Integer jpg : allProdJPGroups) {
-			jpgClassMapNodes = ((Straff_SOMMapManager)mapMgr).getMapNodeJPGroupProbsForJPGroup(jpg);
-			tmpJpgMapNodes = new ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>();
-			for(Tuple<Integer,Integer> key : jpgClassMapNodes.keySet()) {				tmpJpgMapNodes.put(key, jpgClassMapNodes.get(key));			}
-			perJPGroupMapNodeProbMap.put(jpg, tmpJpgMapNodes);
-			addCategorySegment(jpg, Category_Segments.get(jpg));
-		}		
-	}//setAllMapNodeSegmentsAndProbs
-	
 	//call this before any data loading that will over-write the existing product examples is performed
 	public static void initAllStaticProdData() {
 		ordrWtAraPerSize = new float[100];	//100 is arbitrary but much more than expected # of jps per product. dont expect a product to have anywhere near this many jps

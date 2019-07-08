@@ -813,10 +813,6 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	
 	public String getNonProdJPGroupSegmentTitleString(int npJpgID) {return "Job Practice, Group Probability, Segment of training data mapped to node possessing Non-product-related JPgroup  : " + npJpgID + " | "+ jpJpgrpMon.getAllJpGrpStrByJpg(npJpgID);}
 
-	
-	public ConcurrentSkipListMap<Tuple<Integer,Integer>, Float> getMapNodeJPProbsForJP(Integer jp){return MapNodeClassProbs.get(jp);}		
-	public ConcurrentSkipListMap<Tuple<Integer,Integer>, Float> getMapNodeJPGroupProbsForJPGroup(Integer jpg){return MapNodeCategoryProbs.get(jpg);}	
-	
 	/**
 	 * return the class labels used for the classification of training examples to 
 	 * their bmus.  bmus then represent a probability distribution of class membership

@@ -62,21 +62,7 @@ public abstract class Straff_SOMExample extends SOM_Example{
 	protected TreeMap<Integer, Float>[] compValFtrDataMaps;
 	public float compValFtrDataMapMag = 0.0f;
 	
-	/**
-	 * probability structure for this prospect - probability of every map node for each 
-	 * jp this example covers, keyed by jp, value is map keyed by mapnode tuple loc, value is 
-	 * probability (ratio of # of orders of key jp mapped to that node over # of all jps mapped 
-	 * to that node)	
-	 */	
-	protected ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>> perJPMapNodeProbMap;
-	/**
-	 * probability structure for this prospect - probability of every map node for each jp group 
-	 * this example covers keyed by jpgroup, value is map keyed by mapnode tuple loc, value is 
-	 * probability (ratio of # of orders of key jpgroup mapped to that node over # of all 
-	 * jpgroups mapped to that node) 
-	 */
-	protected ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>> perJPGroupMapNodeProbMap;
-	
+
 	public Straff_SOMExample(SOM_MapManager _map, SOM_ExDataType _type, String _id) {
 		super(_map, _type, _id);
 		jpJpgMon = ((Straff_SOMMapManager) mapMgr).jpJpgrpMon;
@@ -84,8 +70,6 @@ public abstract class Straff_SOMExample extends SOM_Example{
 		allProdJPGroups = new HashSet<Integer> ();	
 		compValFtrDataMaps = new TreeMap[ftrMapTypeKeysAra.length];
 		for (int i=0;i<compValFtrDataMaps.length;++i) {			compValFtrDataMaps[i] = new TreeMap<Integer, Float>(); 		}	
-		perJPMapNodeProbMap = new ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>>();
-		perJPGroupMapNodeProbMap = new ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>>();
 	}//ctor
 	
 	public Straff_SOMExample(Straff_SOMExample _otr) {
@@ -93,8 +77,6 @@ public abstract class Straff_SOMExample extends SOM_Example{
 		allProdJPs = _otr.allProdJPs;	
 		allProdJPGroups = _otr.allProdJPGroups;
 		compValFtrDataMaps = _otr.compValFtrDataMaps;
-		perJPMapNodeProbMap = _otr.perJPMapNodeProbMap;
-		perJPGroupMapNodeProbMap = _otr.perJPGroupMapNodeProbMap;
 	}//copy ctor
 	//initialize all segment-holding structues
 		
@@ -119,13 +101,19 @@ public abstract class Straff_SOMExample extends SOM_Example{
 	public final HashSet<Integer> getAllProdJPs(){return allProdJPs;}
 	public final HashSet<Integer> getAllProdJPGroups(){return allProdJPGroups;}
 	
-	//probability structure for this prospect/product - probability of every node for each jp this product covers
-	//keyed by jp, value is map keyed by mapnode tuple loc, value is probablity (ratio of # of orders of key jp mapped to that node over # of all jps mapped to that node)
-	public final ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>> getPerJPMapNodeProbMap(){return perJPMapNodeProbMap;};
-	//probability structure for this product - probability of every node for each jp group this product covers
-	//keyed by jpgroup, value is map keyed by mapnode tuple loc, value is probablity (ratio of # of orders of key jpgroup mapped to that node over # of all jpgroups mapped to that node)
-	public final ConcurrentSkipListMap<Integer, ConcurrentSkipListMap<Tuple<Integer,Integer>,Float>> getPerJPGroupMapNodeProbMap(){return perJPGroupMapNodeProbMap;}
-	
+	/**
+	 * Return all the relevant classes found in this example/that this example belongs to
+	 * @return class IDs present in this example
+	 */
+	@Override
+	public final HashSet<Integer> getAllClassIDsForClsSegmentCalc(){return allProdJPs;}
+	/**
+	 * Return all the relevant categories found in this example or that this example belongs to
+	 * @return category IDs present in this example
+	 */
+	@Override
+	public final HashSet<Integer> getAllCategoryIDsForCatSegmentCalc(){return allProdJPGroups;}
+
 	//for mappings from jpProductProbmap
 	
 	//return all jpg/jps in this example record
