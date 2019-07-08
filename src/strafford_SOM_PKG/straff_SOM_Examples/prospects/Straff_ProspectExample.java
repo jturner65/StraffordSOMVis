@@ -10,6 +10,8 @@ import base_SOM_Objects.som_segments.segments.SOM_MappedSegment;
 import base_Utils_Objects.io.MsgCodes;
 import base_Utils_Objects.vectorObjs.Tuple;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.*;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.base.Straff_BaseRawData;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.base.Straff_EventRawData;
 import strafford_SOM_PKG.straff_SOM_Examples.*;
 import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.events.*;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;

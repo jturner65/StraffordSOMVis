@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.TreeMap;
 
-import strafford_SOM_PKG.straff_RawDataHandling.raw_data.Straff_BaseRawData;
-import strafford_SOM_PKG.straff_RawDataHandling.raw_data.Straff_EventRawData;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.base.Straff_BaseRawData;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.base.Straff_EventRawData;
 import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.Straff_JpgJpDataRecord;
 import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.Straff_RawToTrainData;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_JP_OccurrenceData;

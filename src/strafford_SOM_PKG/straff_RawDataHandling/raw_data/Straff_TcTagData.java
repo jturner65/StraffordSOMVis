@@ -6,6 +6,9 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import base_Utils_Objects.io.MessageObject;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.base.Straff_BaseRawData;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.json.Straff_TcTagDescr;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.json.base.Straff_JSONDescr;
 
 // class to describe tc_taggings data - this just consists of two columns of data per record, an id and a jp list
 //note this data is not stored as json in the db
@@ -38,7 +41,7 @@ public class Straff_TcTagData extends Straff_BaseRawData{
   @Override
   public String[] getRelevantExactKeys() {    return relevantExactKeys;    }
   @Override
-  protected JSONDescr buildDescrObjectFromJsonMap(Map<String, Object> jsonMap) {return new TCTagDescr(msgObj, jsonMap,getRelevantExactKeys());}
+  protected Straff_JSONDescr buildDescrObjectFromJsonMap(Map<String, Object> jsonMap) {return new Straff_TcTagDescr(msgObj, jsonMap,getRelevantExactKeys());}
   @Override
   protected String dbgGetCustInfoStr() {    return "";    }    
   @Override

@@ -1,7 +1,7 @@
 package strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.events;
 
-import strafford_SOM_PKG.straff_RawDataHandling.raw_data.Straff_BaseRawData;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.Straff_OptEvent;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.base.Straff_BaseRawData;
 import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.Straff_JpgJpDataRecord;
 
 public class Straff_OptEventRawToTrainData extends StraffEvntRawToTrainData{

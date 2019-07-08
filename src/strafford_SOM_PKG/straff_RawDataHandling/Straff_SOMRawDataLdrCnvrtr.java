@@ -11,8 +11,9 @@ import base_Utils_Objects.*;
 import base_Utils_Objects.io.FileIOManager;
 import base_Utils_Objects.io.MessageObject;
 import base_Utils_Objects.io.MsgCodes;
-import strafford_SOM_PKG.straff_RawDataHandling.data_loaders.Straff_RawDataLoader;
+import strafford_SOM_PKG.straff_RawDataHandling.data_loaders.base.Straff_RawDataLoader;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.*;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.base.Straff_BaseRawData;
 import strafford_SOM_PKG.straff_SOM_Examples.Straff_SOMExample;
 import strafford_SOM_PKG.straff_SOM_Examples.products.Straff_ProductExample;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_CustProspectExample;
@@ -76,7 +77,7 @@ public class Straff_SOMRawDataLdrCnvrtr {
 	public Straff_SOMRawDataLdrCnvrtr(Straff_SOMMapManager _mapMgr, SOM_ProjConfigData _projConfig) {
 		mapMgr=_mapMgr;
 		msgObj = mapMgr.buildMsgObj();
-		fileIO = new FileIOManager(MessageObject.buildMe(),"StraffSOMRawDataLdrCnvrtr");
+		fileIO = new FileIOManager(MessageObject.buildMe(),"Straff_SOMRawDataLdrCnvrtr");
 		projConfigData = _projConfig;
 		th_exec = mapMgr.getTh_Exec();
 		//load all raw data file names based on exploring directory structure for all csv files
@@ -84,7 +85,7 @@ public class Straff_SOMRawDataLdrCnvrtr {
 		try {
 			straffObjLoaders = new Class[straffClassLdrNames.length];//{Class.forName("SOM_Strafford_PKG.ProspectDataLoader"),  Class.forName("SOM_Strafford_PKG.OrderEventDataLoader"),Class.forName("SOM_Strafford_PKG.OptEventDataLoader"),Class.forName("SOM_Strafford_PKG.LinkEventDataLoader")};
 			for (int i=0;i<straffClassLdrNames.length;++i) {straffObjLoaders[i]=(Class<Straff_RawDataLoader>) Class.forName(_baseStraffDataLdrsLoc + straffClassLdrNames[i]);			}
-		} catch (Exception e) {msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","Constructor","Failed to instance straffObjLoader classes : " + e, MsgCodes.error1);	}
+		} catch (Exception e) {msgObj.dispMessage("Straff_SOMRawDataLdrCnvrtr","Constructor","Failed to instance straffObjLoader classes : " + e, MsgCodes.error1);	}
 		//to launch loader callable instances
 		buildStraffDataLoaders();		
 	}//ctor	
@@ -110,7 +111,7 @@ public class Straff_SOMRawDataLdrCnvrtr {
 				}
 			}
 		} catch (Exception e) {	
-			msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","buildStraffDataLoaders","A Null pointer exception here may indicate package name refactoring - class names in straffClassLdrNames must be fully and accurately package-qualified!!", MsgCodes.warning2);
+			msgObj.dispMessage("Straff_SOMRawDataLdrCnvrtr","buildStraffDataLoaders","A Null pointer exception here may indicate package name refactoring - class names in straffClassLdrNames must be fully and accurately package-qualified!!", MsgCodes.warning2);
 			e.printStackTrace();
 		}	
 	}//buildStraffDataLoaders
@@ -119,10 +120,10 @@ public class Straff_SOMRawDataLdrCnvrtr {
 	//eventsOnly : only use examples with event data to train
 	//append : whether to append to existing data values or to load new data
 	public ConcurrentSkipListMap<String, ArrayList<Straff_BaseRawData>> loadAllRawData(boolean fromCSVFiles) {
-		msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","loadAllRawData","Start loading and processing raw data", MsgCodes.info5);
+		msgObj.dispMessage("Straff_SOMRawDataLdrCnvrtr","loadAllRawData","Start loading and processing raw data", MsgCodes.info5);
 		//TODO remove this when SQL support is implemented
 		if(!fromCSVFiles) {
-			msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","loadAllRawData","WARNING : SQL-based raw data queries not yet implemented.  Use CSV-based raw data to build training data set instead", MsgCodes.warning2);
+			msgObj.dispMessage("Straff_SOMRawDataLdrCnvrtr","loadAllRawData","WARNING : SQL-based raw data queries not yet implemented.  Use CSV-based raw data to build training data set instead", MsgCodes.warning2);
 			return null;
 		}
 		boolean canMultiThread=mapMgr.isMTCapable();//this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
@@ -148,7 +149,7 @@ public class Straff_SOMRawDataLdrCnvrtr {
 				}
 			}
 		}
-		msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","loadAllRawData","Finished loading raw data.", MsgCodes.info5);
+		msgObj.dispMessage("Straff_SOMRawDataLdrCnvrtr","loadAllRawData","Finished loading raw data.", MsgCodes.info5);
 		return rawDataArrays;
 	}//loadAllRawData
 	
@@ -180,7 +181,7 @@ public class Straff_SOMRawDataLdrCnvrtr {
 	
 	//process all events into training examples
 	private void procRawEventData(Straff_SOMProspectManager mapper, ConcurrentSkipListMap<String, ArrayList<Straff_BaseRawData>> dataArrays, boolean saveBadRecs) {			
-		msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","procRawEventData","Start processing raw event data.", MsgCodes.info5);
+		msgObj.dispMessage("Straff_SOMRawDataLdrCnvrtr","procRawEventData","Start processing raw event data.", MsgCodes.info5);
 		String dataName;
 		int dataTypeIDX;
 		//only iterate through event records in dataArraysMap
@@ -207,32 +208,32 @@ public class Straff_SOMRawDataLdrCnvrtr {
 	
 			if (saveBadRecs && (badEventOIDs.size() > 0)) {
 				fileIO.saveStrings(eventBadFName, uniqueBadEventOIDs.toArray(new String[0]));		
-				msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","procRawEventData","# of "+eventType+" events without corresponding prospect records : "+badEventOIDs.size() + " out of " +events.size() + " total "+eventType+" events | # Unique bad "+eventType+" event prospect OID refs (missing OIDs in prospect) : "+uniqueBadEventOIDs.size(), MsgCodes.info3);
+				msgObj.dispMessage("Straff_SOMRawDataLdrCnvrtr","procRawEventData","# of "+eventType+" events without corresponding prospect records : "+badEventOIDs.size() + " out of " +events.size() + " total "+eventType+" events | # Unique bad "+eventType+" event prospect OID refs (missing OIDs in prospect) : "+uniqueBadEventOIDs.size(), MsgCodes.info3);
 			} else {
-				msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","procRawEventData","No "+eventType+" events without corresponding prospect records found after processing "+ events.size() +" events.", MsgCodes.info3);				
+				msgObj.dispMessage("Straff_SOMRawDataLdrCnvrtr","procRawEventData","No "+eventType+" events without corresponding prospect records found after processing "+ events.size() +" events.", MsgCodes.info3);				
 			}
 		}//for each event type
 		//all events processed for all prospects
 		mapper.setAllDataLoaded();
 		
-		msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","procRawEventData","Finished processing raw event data.", MsgCodes.info5);
+		msgObj.dispMessage("Straff_SOMRawDataLdrCnvrtr","procRawEventData","Finished processing raw event data.", MsgCodes.info5);
 	}//procRawEventData
 	
 	//convert raw tc taggings table data to product examples
 	private void procRawProductData(Straff_SOMProductManager prodMapper, ArrayList<Straff_BaseRawData> tcTagRawData) {
-		msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","procRawProductData","Starting to process Raw Product Data.", MsgCodes.info5);
+		msgObj.dispMessage("Straff_SOMRawDataLdrCnvrtr","procRawProductData","Starting to process Raw Product Data.", MsgCodes.info5);
 		for (Straff_BaseRawData tcDat : tcTagRawData) {
 			Straff_ProductExample ex = new Straff_ProductExample(mapMgr, (Straff_TcTagData)tcDat);
 			prodMapper.addExampleToMap(ex.OID, ex);
 		}
 		//all product data is loaded
 		prodMapper.setAllDataLoaded();
-		msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","procRawProductData","Finished processing  : " + tcTagRawData.size()+ " raw records.", MsgCodes.info5);		
+		msgObj.dispMessage("Straff_SOMRawDataLdrCnvrtr","procRawProductData","Finished processing  : " + tcTagRawData.size()+ " raw records.", MsgCodes.info5);		
 	}//procRawProductData
 	
 	//this will go through all the prospects and events and build a map of prospectExample keyed by prospect OID and holding all the known data
 	public void procRawLoadedData(Straff_SOMProspectManager prspctMapper, Straff_SOMProductManager prodMapper) {
-		msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","procRawLoadedData","Start Processing all loaded raw data", MsgCodes.info5);
+		msgObj.dispMessage("Straff_SOMRawDataLdrCnvrtr","procRawLoadedData","Start Processing all loaded raw data", MsgCodes.info5);
 		//load all prospects from source
 		ArrayList<Straff_BaseRawData> prospects = rawDataArrays.get(straffDataDirNames[prspctIDX]);
 		for (Straff_BaseRawData prs : prospects) {
@@ -248,7 +249,7 @@ public class Straff_SOMRawDataLdrCnvrtr {
 		mapMgr.jpJpgrpMon.setJpJpgrpNames(rawDataArrays.get(straffDataDirNames[jpDataIDX]),rawDataArrays.get(straffDataDirNames[jpgDataIDX]));		
 		//to free up memory before we build feature weight vectors; get rid of rawDataArrays used to hold original data read from files		
 		rawDataArrays.clear();				
-		msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","procRawLoadedData","Finished processing all loaded data", MsgCodes.info5);
+		msgObj.dispMessage("Straff_SOMRawDataLdrCnvrtr","procRawLoadedData","Finished processing all loaded data", MsgCodes.info5);
 	}//procRawLoadedData	
 	
 	
@@ -256,15 +257,15 @@ public class Straff_SOMRawDataLdrCnvrtr {
 	//show first numToShow elemens of array of BaseRawData, either just to console or to applet window
 	private void dispRawDataAra(ArrayList<Straff_BaseRawData> sAra, int numToShow) {
 		if (sAra.size() < numToShow) {numToShow = sAra.size();}
-		for(int i=0;i<numToShow; ++i){msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","dispRawDataAra",sAra.get(i).toString(), MsgCodes.info4);}
+		for(int i=0;i<numToShow; ++i){msgObj.dispMessage("Straff_SOMRawDataLdrCnvrtr","dispRawDataAra",sAra.get(i).toString(), MsgCodes.info4);}
 	}	
 	
 	public void dbgShowAllRawData() {
 		int numToShow = 10;
 		for (String key : rawDataArrays.keySet()) {
-			msgObj.dispMessage("StraffSOMRawDataLdrCnvrtr","dbgShowAllRawData","Showing first "+ numToShow + " records of data at key " + key, MsgCodes.info4);
+			msgObj.dispMessage("Straff_SOMRawDataLdrCnvrtr","dbgShowAllRawData","Showing first "+ numToShow + " records of data at key " + key, MsgCodes.info4);
 			dispRawDataAra(rawDataArrays.get(key), numToShow);
 		}
 	}//showAllRawData
 	
-}//class StraffSOMRawDataLdrCnvrtr
+}//class Straff_SOMRawDataLdrCnvrtr

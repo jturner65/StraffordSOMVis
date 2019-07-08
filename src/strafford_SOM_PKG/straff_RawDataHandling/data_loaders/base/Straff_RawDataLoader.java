@@ -1,4 +1,4 @@
-package strafford_SOM_PKG.straff_RawDataHandling.data_loaders;
+package strafford_SOM_PKG.straff_RawDataHandling.data_loaders.base;
 
 import java.io.*;
 import java.text.SimpleDateFormat;
@@ -12,7 +12,7 @@ import base_Utils_Objects.*;
 import base_Utils_Objects.io.MessageObject;
 import base_Utils_Objects.io.MsgCodes;
 import strafford_SOM_PKG.straff_RawDataHandling.Straff_SOMRawDataLdrCnvrtr;
-import strafford_SOM_PKG.straff_RawDataHandling.raw_data.Straff_BaseRawData;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.base.Straff_BaseRawData;
 
 /**
 * this class will load, and manage, the appropriate files containing 
@@ -81,12 +81,12 @@ public abstract class Straff_RawDataLoader implements Callable<Boolean> {
 	public ArrayList<Straff_BaseRawData> execLoad(){	
 		ArrayList<Straff_BaseRawData> dataObjs = new ArrayList<Straff_BaseRawData>();
 		if (isFileLoader) {
-			msgObj.dispMessage("StraffordDataLoader","execLoad","File Load Started for "+fileNameAndPath, MsgCodes.info5);
+			msgObj.dispMessage("Straff_RawDataLoader","execLoad","File Load Started for "+fileNameAndPath, MsgCodes.info5);
 			streamCSVDataAndBuildStructs(dataObjs, fileNameAndPath);
-			msgObj.dispMessage("StraffordDataLoader","execLoad","File Load Finished for "+fileNameAndPath, MsgCodes.info5);
+			msgObj.dispMessage("Straff_RawDataLoader","execLoad","File Load Finished for "+fileNameAndPath, MsgCodes.info5);
 		} else {//exec sql load for this file
 			//TODO sql read/load here
-			msgObj.dispMessage("StraffordDataLoader","execLoad","Sql Load NOT IMPLEMENTED using connection info at "+fileNameAndPath, MsgCodes.error1);
+			msgObj.dispMessage("Straff_RawDataLoader","execLoad","Sql Load NOT IMPLEMENTED using connection info at "+fileNameAndPath, MsgCodes.error1);
 		}
 		return dataObjs;
 	}//execLoad
@@ -96,7 +96,7 @@ public abstract class Straff_RawDataLoader implements Callable<Boolean> {
 	private void streamCSVDataAndBuildStructs(ArrayList<Straff_BaseRawData> dAra, String fileNameAndPath) {try {_strmCSVFileBuildObjs(dAra,fileNameAndPath);} catch (Exception e) {e.printStackTrace();}}
 	//stream read the csv file and build the data objects
 	private void _strmCSVFileBuildObjs(ArrayList<Straff_BaseRawData> dAra, String fileNameAndPath) throws IOException {
-		msgObj.dispMessage("StraffordDataLoader","streamCSVDataAndBuildStructs","Start loading "+ fileNameAndPath, MsgCodes.info5);
+		msgObj.dispMessage("Straff_RawDataLoader","streamCSVDataAndBuildStructs","Start loading "+ fileNameAndPath, MsgCodes.info5);
 		FileInputStream inputStream = null;
 		Scanner sc = null;
 	    int line = 1, badEntries = 0;
@@ -105,7 +105,7 @@ public abstract class Straff_RawDataLoader implements Callable<Boolean> {
 		    inputStream = new FileInputStream(fileNameAndPath);
 		    sc = new Scanner(inputStream);
 		    if(!sc.hasNext()) {
-		    	msgObj.dispMessage("StraffordDataLoader","streamCSVDataAndBuildStructs","No data found in "+ fileNameAndPath + " .  Aborting.", MsgCodes.warning1);
+		    	msgObj.dispMessage("Straff_RawDataLoader","streamCSVDataAndBuildStructs","No data found in "+ fileNameAndPath + " .  Aborting.", MsgCodes.warning1);
 			    if (inputStream != null) {inputStream.close();		    }
 			    if (sc != null) { sc.close();		    }
 		    	return;
@@ -119,7 +119,7 @@ public abstract class Straff_RawDataLoader implements Callable<Boolean> {
 		    	if (hasJson) {//jp and other relevant data is stored in payload/descirptor field holding json			    	
 			    	String [] strAras1 = datStr.split("\"\\{");		//split into string holding columns and string holding json 
 			    	if (strAras1.length < 2) {		    		
-				    		if(debug) {msgObj.dispMessage("StraffordDataLoader","streamCSVDataAndBuildStructs","!!!!!!!!!" +destAraDataKey+ " has bad entry at "+line+" lacking required description/payload json : " + datStr, MsgCodes.warning1);}
+				    		if(debug) {msgObj.dispMessage("Straff_RawDataLoader","streamCSVDataAndBuildStructs","!!!!!!!!!" +destAraDataKey+ " has bad entry at "+line+" lacking required description/payload json : " + datStr, MsgCodes.warning1);}
 				    		++badEntries;			    	
 			    	} else {
 			    		String str = strAras1[1];
@@ -134,14 +134,14 @@ public abstract class Straff_RawDataLoader implements Callable<Boolean> {
 		    		//parse 2 entries and remove extraneous quotes - replace quote-comma-quote with apost-comma-apost, get rid of all quotes, then split on apost-comma-apost.  this retains jpg-jp list structure while splitting on columns properly
 			        String[] vals = datStr.replace("\",\"","','").replace("\"","").split("','");
 			        if(vals.length < 2) {
-			        	if(debug) {msgObj.dispMessage("StraffordDataLoader","streamCSVDataAndBuildStructs","!!!!!!!!!" +destAraDataKey+ " has bad entry at "+line+" lacking required jp list : " + datStr, MsgCodes.warning1);}
+			        	if(debug) {msgObj.dispMessage("Straff_RawDataLoader","streamCSVDataAndBuildStructs","!!!!!!!!!" +destAraDataKey+ " has bad entry at "+line+" lacking required jp list : " + datStr, MsgCodes.warning1);}
 			    		++badEntries;			    				        	
 			        } else {
 			        	addObjToDAra(dAra, vals, "", hasJson);
 			        }
 		    	}
 		        ++line;		        
-		        if (line % 100000 == 0) {msgObj.dispMessage("StraffordDataLoader","streamCSVDataAndBuildStructs","" +destAraDataKey+ " Finished line : "+line, MsgCodes.info3); 	}
+		        if (line % 100000 == 0) {msgObj.dispMessage("Straff_RawDataLoader","streamCSVDataAndBuildStructs","" +destAraDataKey+ " Finished line : "+line, MsgCodes.info3); 	}
 		    }
 		    //Scanner suppresses exceptions
 		    if (sc.ioException() != null) { throw sc.ioException(); }
@@ -150,13 +150,13 @@ public abstract class Straff_RawDataLoader implements Callable<Boolean> {
 		    if (inputStream != null) {inputStream.close();		    }
 		    if (sc != null) { sc.close();		    }
 		}
-		msgObj.dispMessage("StraffordDataLoader","streamCSVDataAndBuildStructs","Finished loading "+ fileNameAndPath + " With "+badEntries+" bad/missing json entries and " + dAra.size() + " good records.", MsgCodes.info5);
+		msgObj.dispMessage("Straff_RawDataLoader","streamCSVDataAndBuildStructs","Finished loading "+ fileNameAndPath + " With "+badEntries+" bad/missing json entries and " + dAra.size() + " good records.", MsgCodes.info5);
 	}//loadFileContents
 
 	private void addObjToDAra(ArrayList<Straff_BaseRawData> dAra, String[] vals, String jsonStr, boolean hasJson) {
         Straff_BaseRawData obj = parseStringToObj(vals, jsonStr, hasJson);
         if (obj.isBadRec) {
-        	if(debug) {msgObj.dispMessage("StraffordDataLoader","addObjToDAra","" +destAraDataKey+ " : " + obj.toString() + " is a useless record due to " + obj.getWhyBadRed() + ".  Record is Ignored.", MsgCodes.info3);}
+        	if(debug) {msgObj.dispMessage("Straff_RawDataLoader","addObjToDAra","" +destAraDataKey+ " : " + obj.toString() + " is a useless record due to " + obj.getWhyBadRed() + ".  Record is Ignored.", MsgCodes.info3);}
         } else {
         	dAra.add(obj);
         }		
@@ -164,7 +164,7 @@ public abstract class Straff_RawDataLoader implements Callable<Boolean> {
 	
 	@Override
 	public Boolean call() throws Exception {	
-		msgObj.dispMessage("StraffordDataLoader","call() : ","Start loading "+ fileNameAndPath, MsgCodes.info5);
+		msgObj.dispMessage("Straff_RawDataLoader","call() : ","Start loading "+ fileNameAndPath, MsgCodes.info5);
 		//execute load, take load results and add to mapData.rawDataArrays
 		ArrayList<Straff_BaseRawData> dataObjs = execLoad();
 		//synched because some data types might have multiple source files that attempt to write to array at same time
@@ -181,4 +181,4 @@ public abstract class Straff_RawDataLoader implements Callable<Boolean> {
 		return true;
 	}//call launches this loader - when finished will return true
 		
-}//StraffordDataLoader base class
+}//Straff_RawDataLoader base class

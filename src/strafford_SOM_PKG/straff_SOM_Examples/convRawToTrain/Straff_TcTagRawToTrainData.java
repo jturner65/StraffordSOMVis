@@ -3,8 +3,8 @@ package strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain;
 import java.util.ArrayList;
 import java.util.TreeMap;
 
-import strafford_SOM_PKG.straff_RawDataHandling.raw_data.Straff_BaseRawData;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.Straff_TcTagData;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.base.Straff_BaseRawData;
 
 
 /**

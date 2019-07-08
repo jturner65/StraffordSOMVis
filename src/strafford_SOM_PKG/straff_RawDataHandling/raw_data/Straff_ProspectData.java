@@ -7,6 +7,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import base_Utils_Objects.*;
 import base_Utils_Objects.io.MessageObject;
 import base_Utils_Objects.io.MsgCodes;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.base.Straff_BaseRawData;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.json.Straff_ProspectDescr;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.json.base.Straff_JSONDescr;
 
 public class Straff_ProspectData extends Straff_BaseRawData {
     //these should all be lowercase - these are exact key substrings we wish to match, to keep and use to build training data - all the rest of json data is being tossed
@@ -48,7 +51,7 @@ public class Straff_ProspectData extends Straff_BaseRawData {
     
     //build descriptor object from json map
     @Override
-    protected JSONDescr buildDescrObjectFromJsonMap(Map<String, Object> jsonMap) {return new ProspectDescr(msgObj, jsonMap,getRelevantExactKeys());    }    
+    protected Straff_JSONDescr buildDescrObjectFromJsonMap(Map<String, Object> jsonMap) {return new Straff_ProspectDescr(msgObj, jsonMap,getRelevantExactKeys());    }    
     //return prospect objects' relevant query keys for json
     @Override
     public String[] getRelevantExactKeys() {        return relevantExactKeys;    }    

@@ -1,4 +1,4 @@
-package strafford_SOM_PKG.straff_RawDataHandling.raw_data;
+package strafford_SOM_PKG.straff_RawDataHandling.raw_data.base;
 
 import java.util.Date;
 import java.util.Map;
@@ -6,6 +6,8 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import base_Utils_Objects.io.MessageObject;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.json.Straff_EventDescr;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.json.base.Straff_JSONDescr;
 
 ////////////////////////////////
 //event-related raw data.  primary source of training data
@@ -57,7 +59,7 @@ public abstract class Straff_EventRawData extends Straff_BaseRawData {
 	public abstract String getIndivTrainDataForCSV();
 	//build descriptor object from json map
 	@Override
-	protected JSONDescr buildDescrObjectFromJsonMap(Map<String, Object> jsonMap) {return new EventDescr(msgObj, jsonMap,getRelevantExactKeys());    }
+	protected Straff_JSONDescr buildDescrObjectFromJsonMap(Map<String, Object> jsonMap) {return new Straff_EventDescr(msgObj, jsonMap,getRelevantExactKeys());    }
 
 	@Override
 	public String toString() {

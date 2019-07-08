@@ -6,6 +6,9 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import base_Utils_Objects.io.MessageObject;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.base.Straff_BaseRawData;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.json.Straff_JpDescr;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.json.base.Straff_JSONDescr;
 
 ///////////////////
 //job practice-related data - doesn't use much of the functionality in BaseRawData
@@ -36,7 +39,7 @@ public abstract class Straff_JobPracticeData extends Straff_BaseRawData{
 	@Override
 	protected String dbgGetCustInfoStr() {        return "";    }    
 	@Override
-	protected JSONDescr buildDescrObjectFromJsonMap(Map<String, Object> jsonMap) {    return new jobPracDescr(msgObj, jsonMap,getRelevantExactKeys());    }
+	protected Straff_JSONDescr buildDescrObjectFromJsonMap(Map<String, Object> jsonMap) {    return new Straff_JpDescr(msgObj, jsonMap,getRelevantExactKeys());    }
  
 }//class jobPracticeData
 

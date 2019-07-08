@@ -3,6 +3,7 @@ package strafford_SOM_PKG.straff_RawDataHandling.raw_data;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import base_Utils_Objects.io.MessageObject;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.base.Straff_EventRawData;
 
 public class Straff_OrderEvent extends Straff_EventRawData{
 	//these should all be lowercase - these are exact key substrings we wish to match in json, to keep and use to build training data - all the rest of json data is being tossed
