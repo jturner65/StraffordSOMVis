@@ -405,7 +405,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	}//loadAllProspectData	
 	
 	/**
-	 * process all true prospect examples and build Validation data array
+	 * process all true prospect examples and build Validation data array (which may include customer records if training on orders)
 	 */
 	private void procTrueProspectExamples() {
 		getMsgObj().dispMessage("StraffSOMMapManager","procTrueProspectExamples"," Begin initial finalize of true prospects map", MsgCodes.info1);	
@@ -675,12 +675,12 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 			validationData = new SOM_Example[tmpTruePrspctsAra.length + tmpCustPrspctsAra.length];
 			System.arraycopy(tmpTruePrspctsAra, 0, validationData, 0, tmpTruePrspctsAra.length);
 			System.arraycopy(tmpCustPrspctsAra, 0, validationData, tmpTruePrspctsAra.length, tmpCustPrspctsAra.length);		
-			numValidationData = validationData.length;
 		} else {//if using customers to train then only use true prospects as validation
 			//build array of trueProspectData used to map
 			validationData = truePrspctExMapper.buildExampleArray();
 			//this is if orders were used as training data			
 		}		
+		numValidationData = validationData.length;
 	}//buildValidationData() 
 	
 	///////////////////////////
@@ -733,7 +733,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	@Override
 	//once map is built, find bmus on map for each product (target that training examples should map to)
 	protected void setProductBMUs() {
-		setProdDataBMUsRdyToSave(false);
+		setProdDataBMUsMapped(false);
 		getMsgObj().dispMessage("StraffSOMMapManager","setProductBMUs","Start Mapping " +productData.length + " products to best matching units.", MsgCodes.info5);
 		boolean canMultiThread=isMTCapable();//if false this means the current machine only has 1 or 2 available processors, numUsableThreads == # available - 2
 		if(canMultiThread) {
@@ -764,7 +764,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 			getMsgObj().dispMessage("StraffSOMMapManager","setProductBMUs","Finished finding bmus for all product data. Start adding product data to appropriate bmu's list.", MsgCodes.info1);
 			_completeBMUProcessing(productData, SOM_ExDataType.Product, false);		
 		}
-		setProdDataBMUsRdyToSave(true);
+		setProdDataBMUsMapped(true);
 		getMsgObj().dispMessage("StraffSOMMapManager","setProductBMUs","Finished Mapping products to best matching units.", MsgCodes.info5);
 	}//setProductBMUs
 

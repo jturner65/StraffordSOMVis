@@ -464,7 +464,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	@Override
 	//stuff to draw specific to this instance, before nodes are drawn
 	protected void drawMapRectangle_Indiv(int curImgNum) {
-		if(getPrivFlags(mapDrawTruePspctIDX)){			((Straff_SOMMapManager) mapMgr).drawTruPrspctData(pa);}
+		if(getPrivFlags(mapDrawTruePspctIDX)){			mapMgr.drawValidationData(pa);}
 		boolean notDrawAnalysis = !(getPrivFlags(mapDrawCustAnalysisVisIDX) || getPrivFlags(mapDrawTPAnalysisVisIDX));
 		//not drawing any analysis currently
 		if (notDrawAnalysis && (mseOvrData != null)){	drawMseOverData();}//draw mouse-over info if not showing calc analysis				

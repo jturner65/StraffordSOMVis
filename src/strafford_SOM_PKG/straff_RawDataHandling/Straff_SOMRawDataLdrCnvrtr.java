@@ -61,7 +61,7 @@ public class Straff_SOMRawDataLdrCnvrtr {
 	private static final String _baseStraffDataLdrsLoc = "strafford_SOM_PKG.straff_RawDataHandling.data_loaders.";
 	//list of class names used to build array of object loaders
 	private static final String[] straffClassLdrNames = new String[] {
-			"ProspectDataLoader","OrderEventDataLoader","OptEventDataLoader","LinkEventDataLoader","SourceEventDataLoader","TcTagDataLoader", "JpDataLoader", "JpgrpDataLoader"
+			"Straff_ProspectDataLoader","Straff_OrderEventDataLoader","Straff_OptEventDataLoader","Straff_LinkEventDataLoader","Straff_SourceEventDataLoader","Straff_TcTagDataLoader", "Straff_JpDataLoader", "Straff_JpgrpDataLoader"
 		};	
 	
 	//classes of data loader objects
