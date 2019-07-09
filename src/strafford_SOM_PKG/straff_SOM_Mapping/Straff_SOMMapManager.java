@@ -50,12 +50,6 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 			
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	//data descriptions
-	//array of keys for exampleDataMappers map - one per type of data
-	protected final String[] exampleDataMapperKeys = new String[] {	"custProspect","trueProspect","product"};
-	protected static final int 
-		custPrspctIDX = 0,
-		truePrspctIDX = 1,
-		productIDX = 2;
 	
 	//ref to cust prspct mapper
 	private Straff_SOMCustPrspctManager_Base custPrspctExMapper;
@@ -612,20 +606,17 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 		getMsgObj().dispMessage("Straff_SOMMapManager","buildTestTrainFromInput","Finished Building Input, Test, Train, Product data arrays.  Product data size : " +productData.length +".", MsgCodes.info5);
 	}//buildTestTrainFromInput
 	
-	//return a map of descriptive quantities and their values, for the SOM Execution human-readable report
+	/**
+	 * augment a map of application-specific descriptive quantities and their values, for the SOM Execution human-readable report
+	 * @param res map already created holding exampleDataMappers create time
+	 */
 	@Override
-	public TreeMap<String, String> getSOMExecInfo(){
-		TreeMap<String, String> res = new TreeMap<String, String>();		
-		for(String key : exampleDataMapperKeys) {
-			SOM_ExampleManager mapper = exampleDataMappers.get(key);
-			res.put(mapper.longExampleName + " date and time of creation/pre-processing", mapper.dateAndTimeOfDataCreation());		
-		}
+	protected void getSOMExecInfo_Indiv(TreeMap<String, String> res){
 		res.put("Number of training (product-present) jps", ""+jpJpgrpMon.getNumTrainFtrs());
 		res.put("Training Data JPs (in feature idx order)\n", jpJpgrpMon.getFtrJpsAsCSV()+"\n");
-		res.put("Total number of jps seen across all prospects and products", ""+jpJpgrpMon.getNumAllJpsFtrs());
+		res.put("Total number of jps seen across all prospects and products", ""+jpJpgrpMon.getNumAllJpsFtrs());		
+	}
 
-		return res;		
-	}//getSOMExecInfo
 	
 	//this will set the current jp->jpg data maps based on examples in passed prospect data map and current products
 	//This must be performed after all examples are loaded and finalized but before the feature vectors are calculated
@@ -642,7 +633,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	}//setJPDataFromProspectData	
 	
 	protected void _finalizeAllMappersBeforeFtrCalc() {
-		getMsgObj().dispMessage("Straff_SOMMapManager","_finalizeProsProdJpJPGMon","Begin finalize of main customer prospect map to aggregate all JPs and (potentially) determine which records are valid training examples", MsgCodes.info1);
+		getMsgObj().dispInfoMessage("Straff_SOMMapManager","_finalizeProsProdJpJPGMon","Begin finalize of all example data, preparing each example for feature calculation.");
 		//finalize customers before feature calcs
 		custPrspctExMapper.finalizeAllExamples();
 		//finalize true prospects before feature calcs
@@ -650,12 +641,11 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 		//finalize products before feature calcs
 		prodExMapper.finalizeAllExamples();		
 	
-		getMsgObj().dispMessage("Straff_SOMMapManager","_finalizeProsProdJpJPGMon","Begin setJPDataFromExampleData from all examples.", MsgCodes.info1);
+		getMsgObj().dispInfoMessage("Straff_SOMMapManager","_finalizeProsProdJpJPGMon","Finished finalize of all example data, preparing each example for feature calculation");
+		getMsgObj().dispInfoMessage("Straff_SOMMapManager","_finalizeProsProdJpJPGMon","Begin setJPDataFromExampleData from all examples.");
 		//we need the jp-jpg counts and relationships dictated by the data by here.
 		_setJPDataFromExampleData(custPrspctExMapper);
-		
-		getMsgObj().dispMessage("Straff_SOMMapManager","_finalizeProsProdJpJPGMon","Finished setJPDataFromExampleData from all examples.", MsgCodes.info1);
-		getMsgObj().dispMessage("Straff_SOMMapManager","_finalizeProsProdJpJPGMon","Finished finalize of main customer prospect map to aggregate all JPs and (potentially) determine which records are valid training examples", MsgCodes.info1);
+		getMsgObj().dispInfoMessage("Straff_SOMMapManager","_finalizeProsProdJpJPGMon","Finished setJPDataFromExampleData from all examples.");
 	}//_finalizeAllMappersBeforeFtrCalc
 
 	/**
