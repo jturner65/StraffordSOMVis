@@ -9,14 +9,14 @@ import base_SOM_Objects.som_examples.SOM_Example;
 import base_SOM_Objects.som_fileIO.SOM_ExCSVDataLoader;
 import base_Utils_Objects.io.MsgCodes;
 import strafford_SOM_PKG.straff_SOM_Mapping.*;
-import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.base.Straff_SOMProspectManager;
+import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.base.Straff_SOMExampleManager;
 import strafford_SOM_PKG.straff_Features.featureCalc.Straff_WeightCalc;
 import strafford_SOM_PKG.straff_ProcDataHandling.data_loaders.Straff_PrscpctCSVDataLoader;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_TrueProspectExample;
 
-public class Straff_SOMTruePrspctManager extends Straff_SOMProspectManager {
+public class Straff_SOMTruePrspctManager extends Straff_SOMExampleManager {
 
-	public Straff_SOMTruePrspctManager(SOM_MapManager _mapMgr, String _exName, String _longExampleName) {		super(_mapMgr, _exName, _longExampleName,true);	}//need to validate - useless to map examples that have no corresponding data/are "Bad"
+	public Straff_SOMTruePrspctManager(SOM_MapManager _mapMgr, String _exName, String _longExampleName) {		super(_mapMgr, _exName, _longExampleName,new boolean[] {true, false});	}//need to validate - useless to map examples that have no corresponding data/are "Bad"
 	
 	//specific reset functionality for these type of examples
 	@Override
@@ -135,6 +135,9 @@ public class Straff_SOMTruePrspctManager extends Straff_SOMProspectManager {
 		if(!isExampleArrayBuilt()) {		buildExampleArray();	}	//incase example array has not yet been built
 		msgObj.dispInfoMessage("Straff_SOMTruePrspctManager","getExToSave","Size of exToSaveBMUs : " + SOMexampleArray.length);
 		return SOMexampleArray;
-	};
+	}
+
+	@Override
+	protected SOM_Example buildSingleExample(String _oid, String _str) {		return new Straff_TrueProspectExample(mapMgr, _oid, _str);	};
 
 }//class Straff_SOMTruePrspctMapper

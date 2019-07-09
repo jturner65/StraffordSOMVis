@@ -16,7 +16,7 @@ public class Straff_SOMProductManager extends Straff_SOMExampleManager {
 	private TreeMap<Integer, ArrayList<Straff_ProductExample>> productsByJpg, productsByJp;
 	//products don't validate
 	public Straff_SOMProductManager(SOM_MapManager _mapMgr, String _exName, String _longExampleName) {		
-		super(_mapMgr,  _exName, _longExampleName, false);		//doesn't validate - assumes all products have some valid data and so will never be bad
+		super(_mapMgr,  _exName, _longExampleName, new boolean[] {false, true});		//doesn't validate - assumes all products have some valid data and so will never be bad
 		productsByJpg = new TreeMap<Integer, ArrayList<Straff_ProductExample>>();
 		productsByJp = new TreeMap<Integer, ArrayList<Straff_ProductExample>>();
 	}//ctor
@@ -183,6 +183,9 @@ public class Straff_SOMProductManager extends Straff_SOMExampleManager {
 		//for(ProductExample ex : productData) {ex.drawMeLinkedToBMU(pa, 5.0f,ex.OID);}		
 		pa.popStyle();pa.popMatrix();
 	}//drawProductNodes
+
+	@Override
+	protected SOM_Example buildSingleExample(String _oid, String _str) {		return new Straff_ProductExample((Straff_SOMMapManager)mapMgr, _oid, _str);}
 
 
 

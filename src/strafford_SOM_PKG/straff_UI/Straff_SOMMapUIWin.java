@@ -161,9 +161,9 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	@Override
 	protected void initMeIndiv() {
 		//based on width of map
-		analysisHt = (SOM_mapDims[1]*.45f);
+		analysisHt = (mapMgr.getMapHeight()*.45f);
 		//for single jp detail display
-		analysisPerJPWidth = (SOM_mapDims[0]*.1f);
+		analysisPerJPWidth = (mapMgr.getMapWidth()*.1f);
 		//default to having calc objects display analysis on ftrs 
 		setPrivFlags(mapDrawCalcFtrOrAllVisIDX, true);
 		//default to showing right side bar menu
@@ -179,7 +179,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		
 	@Override
 	//SOM_mapDims is built by base class initMe
-	protected SOM_MapManager buildMapMgr() {
+	protected SOM_MapManager buildMapMgr(float[] SOM_mapDims) {
 		//SOM_mapDims : start x and y and dimensions of full map visualization as function of visible window size;
 		//including strings for default directories specific to current project setup and Strafford
 		TreeMap<String, Object> _argsMap = new TreeMap<String,Object>();
@@ -194,7 +194,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	@Override
 	protected void setVisScreenDimsPriv_Indiv() {
 		//now build calc analysis offset struct
-		calcAnalysisLocs = new float[] {(SOM_mapLoc[0]+SOM_mapDims[0])*calcScale + xOff,(SOM_mapLoc[1]+SOM_mapDims[1])*calcScale + 10.0f};
+		calcAnalysisLocs = new float[] {(SOM_mapLoc[0]+mapMgr.getMapWidth())*calcScale + xOff,(SOM_mapLoc[1]+mapMgr.getMapHeight())*calcScale + 10.0f};
 		setAnalysisDimWidth();		
 	}
 	

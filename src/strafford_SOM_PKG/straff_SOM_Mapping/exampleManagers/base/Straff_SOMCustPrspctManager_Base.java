@@ -15,9 +15,9 @@ import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
  * base class to manage customer prospects - instanced by either per-customer training example manager or per-order training example manager.
  * @author john
  */
-public abstract class Straff_SOMCustPrspctManager_Base extends Straff_SOMProspectManager {
+public abstract class Straff_SOMCustPrspctManager_Base extends Straff_SOMExampleManager {
 
-	public Straff_SOMCustPrspctManager_Base(SOM_MapManager _mapMgr, String _exName, String _longExampleName, boolean _shouldValidate) {		super(_mapMgr, _exName, _longExampleName, _shouldValidate);	}//ctor
+	public Straff_SOMCustPrspctManager_Base(SOM_MapManager _mapMgr, String _exName, String _longExampleName, boolean _shouldValidate) {		super(_mapMgr, _exName, _longExampleName, new boolean[] {_shouldValidate, true});	}//ctor
 	
 	/**
 	 * display debug information regarding customer order counts seen
@@ -124,6 +124,9 @@ public abstract class Straff_SOMCustPrspctManager_Base extends Straff_SOMProspec
 		}
 	}//buildSTLoader
 	
+	@Override
+	protected final SOM_Example buildSingleExample(String _oid, String _str) {	return new Straff_CustProspectExample(mapMgr, _oid, _str);}
+
 
 	/**
 	 * return array of examples to save their bmus - called from saveExampleBMUMappings in Straff_SOMExampleManager
