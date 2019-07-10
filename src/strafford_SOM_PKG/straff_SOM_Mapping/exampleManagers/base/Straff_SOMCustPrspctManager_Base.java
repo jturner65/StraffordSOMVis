@@ -7,9 +7,9 @@ import base_SOM_Objects.SOM_MapManager;
 import base_SOM_Objects.som_examples.SOM_Example;
 import base_SOM_Objects.som_fileIO.SOM_ExCSVDataLoader;
 import strafford_SOM_PKG.straff_Features.featureCalc.Straff_WeightCalc;
-import strafford_SOM_PKG.straff_ProcDataHandling.data_loaders.Straff_CustCSVDataLoader;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_CustProspectExample;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
+import strafford_SOM_PKG.straff_SOM_Mapping.procData_loaders.Straff_CustCSVDataLoader;
 
 /**
  * base class to manage customer prospects - instanced by either per-customer training example manager or per-order training example manager.

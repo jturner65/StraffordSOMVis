@@ -10,8 +10,8 @@ import base_SOM_Objects.som_fileIO.SOM_ExCSVDataLoader;
 import base_Utils_Objects.io.MsgCodes;
 import strafford_SOM_PKG.straff_SOM_Mapping.*;
 import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.base.Straff_SOMExampleManager;
+import strafford_SOM_PKG.straff_SOM_Mapping.procData_loaders.Straff_PrscpctCSVDataLoader;
 import strafford_SOM_PKG.straff_Features.featureCalc.Straff_WeightCalc;
-import strafford_SOM_PKG.straff_ProcDataHandling.data_loaders.Straff_PrscpctCSVDataLoader;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_TrueProspectExample;
 
 public class Straff_SOMTruePrspctManager extends Straff_SOMExampleManager {

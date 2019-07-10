@@ -1,4 +1,4 @@
-package strafford_SOM_PKG.straff_ProcDataHandling.data_loaders;
+package strafford_SOM_PKG.straff_SOM_Mapping.procData_loaders;
 
 import java.util.concurrent.ConcurrentSkipListMap;
 
