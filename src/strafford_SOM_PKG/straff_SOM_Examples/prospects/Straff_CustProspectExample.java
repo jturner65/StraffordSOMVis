@@ -219,8 +219,12 @@ public class Straff_CustProspectExample extends Straff_ProspectExample {
 
 	public static int NumBadExamplesAfterFtrsBuilt = 0;
 	public static int NumBadExampleOrdersAfterFtrsBuilt = 0;
-
-	private final void updateStaticVars(TreeMap<Integer, Straff_JP_OccurrenceData> map) {
+	
+	/**
+	 * debug/reporting tool.  Will impede move to MT if ever desired
+	 * @param map
+	 */
+	private final void updateStaticVarsWithBadExamples(TreeMap<Integer, Straff_JP_OccurrenceData> map) {
 		++NumBadExamplesAfterFtrsBuilt;
 		NumBadExampleOrdersAfterFtrsBuilt += map.size();
 		dbg_addBadOrderCountToTTLMap(map);
@@ -239,7 +243,7 @@ public class Straff_CustProspectExample extends Straff_ProspectExample {
 			// calculate actual training data
 			if (!isBadExample()) {			buildDateBasedOccsAndTrainingFtrData();	} 
 			else {
-				updateStaticVars(map);
+				updateStaticVarsWithBadExamples(map);
 				mostRecentOrderCounts = new TreeMap<Tuple<Integer, Integer>, Integer>();
 			} // if bad then won't contribute any training data - shouldn't be used to train!!!
 			
@@ -332,8 +336,8 @@ public class Straff_CustProspectExample extends Straff_ProspectExample {
 
 	@Override
 	public final void setIsTrainingDataIDX_Priv() {
-		type = isTrainingData ? SOM_ExDataType.Training : SOM_ExDataType.Testing;
-		nodeClrs = mapMgr.getClrFillStrkTxtAra(type);
+		exampleDataType = isTrainingData ? SOM_ExDataType.Training : SOM_ExDataType.Testing;
+		nodeClrs = mapMgr.getClrFillStrkTxtAra(exampleDataType);
 	}// setIsTrainingDataIDX
 
 	// column names for raw descriptorCSV output

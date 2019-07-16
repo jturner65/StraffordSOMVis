@@ -50,7 +50,7 @@ public class Straff_TrueProspectExample extends Straff_ProspectExample{
 	public Straff_TrueProspectExample(Straff_ProspectExample ex) {
 		super(ex);		
 		//set this type
-		type = SOM_ExDataType.Validation;
+		exampleDataType = SOM_ExDataType.Validation;
 		//provide shallow copy of jpOcc struct - only copying passed event type key values
 		JpOccurrences = ex.copyJPOccStruct(jpOccTypeKeys);		
 		//provide shallow copy of jpOcc struct - only copying passed event type key values
