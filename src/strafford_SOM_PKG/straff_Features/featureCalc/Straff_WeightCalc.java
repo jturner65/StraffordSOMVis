@@ -45,7 +45,7 @@ public class Straff_WeightCalc {
 	
 	//hold relevant quantities for each jp calculation across all data; IDX 0 is for ftr vec calc, idx 1 is for all jps
 	//idx 0 is for ftr vector calculation; idx 1 will be for alternate comparator vector calc
-	private dataBoundArray[] bndsAra;
+	private Straff_DataBoundMonitor[] bndsAra;
 	public static final int
 		bndAra_ProdJPsIDX = 0,			//jps used for training (correspond to jps with products) - this is from ftr vector calcs
 		bndAra_AllJPsIDX = 1;			//all jps in system, including those jps who do not have any products - this is from -comparator- calcs
@@ -176,9 +176,9 @@ public class Straff_WeightCalc {
 	//first key is 0==training ftr jps; 1==all jps;
 	//second key is type of bound; 3rd key is jp
 	private void initBnds() {	
-		bndsAra = new dataBoundArray[numJPInBndTypes];
+		bndsAra = new Straff_DataBoundMonitor[numJPInBndTypes];
 		int[] numFtrs = new int[] {jpJpgMon.getNumTrainFtrs(),jpJpgMon.getNumAllJpsFtrs()}; 
-		for (int j=0;j<bndsAra.length;++j) {bndsAra[j] = new dataBoundArray(numFtrs[j]);}
+		for (int j=0;j<bndsAra.length;++j) {bndsAra[j] = new Straff_DataBoundMonitor(numExamplTypeObjs, numFtrs[j]);}
 	}//initBnds() 	
 	
 	//get mins/diffs for ftr vals per ftr jp and for all vals per all jps
@@ -523,93 +523,4 @@ public class Straff_WeightCalc {
 	}//toString
 	
 }//StraffWeightCalc
-
-
-/**
- * this class will manage a single data bound multi-dim array, consisting of 
- * per-jp arrays for min, max, diff, count, etc.
- * idxs are as follows : 1st idx is what type of examples are being aggregated; 2nd idx is min/max/diff, etc; last example is jp idx in source data (ironically this is going ot 
- * @author john
- *
- */
-class dataBoundArray{	
-	private Float[][][] bndsAra;
-
-	//first dim of bndsAra
-	//separates calculations based on whether calc is done on a customer example, or on a true prospect example
-	public static final int 
-		custCalcObjIDX 		= 0,		//type of calc : this is data aggregated off of customer data (has prior order events and possibly other events deemed relevant) - this corresponds to training data source records
-		tpCalcObjIDX 		= 1,		//type of calc : this is data from true prospect, who lack prior orders and possibly other event behavior
-		trainCalcObjIDX		= 2,		//type of calc : actual training data, based on date of orders - 1 or more of these examples will be synthesized for each customer prospect
-		ttlOfAllCalcIDX		= 3;		//aggregate totals across all types
-	public static final int numExamplTypeObjs = 4;
-	//2nd dim of bndsAra
-	//meaning of each idx in bndsAra 1st dimension 
-	private static final int 
-			minBndIDX = 0,					//mins for each feature
-			maxBndIDX = 1,					//maxs for each feature
-			countBndIDX = 2,				//count of entries for each feature
-			diffBndIDX = 3; 				//max-min for each feature
-	private static final int numBndTypes = 4;	
-	//set initial values to properly initialize bnds ara
-	private static final float[] initBnd = new float[] {1000000000.0f,-1000000000.0f, 0.0f, 0.0f};//min, max, count, diff
-
-	//# of individaul elements per bound type - 3rd dim of bndsAra
-	public final int numElems;
-	
-	public dataBoundArray(int _numElems) {
-		numElems = _numElems;
-		bndsAra = new Float[numExamplTypeObjs][][];
-		for (int i=0;i<bndsAra.length;++i) {
-			bndsAra[i] = new Float[numBndTypes][];
-			for (int j=0;j<bndsAra[i].length;++j) {	bndsAra[i][j]=fastCopyAra(numElems, initBnd[j]);	}	
-		}
-	}//ctor
-	private Float[] fastCopyAra(int len, float val) {
-		Float[] res = new Float[len];
-		res[0]=val;	
-		for (int i = 1; i < len; i += i) {System.arraycopy(res, 0, res, i, ((len - i) < i) ? (len - i) : i);}
-		return res;
-	}//fastCopyAra
-	
-	//check if value is in bnds array for particular jp, otherwise modify bnd
-	public void checkValInBnds(Integer typeIDX, Integer destIDX, float val) {
-		if (val < bndsAra[typeIDX][minBndIDX][destIDX]) {bndsAra[typeIDX][minBndIDX][destIDX]=val;bndsAra[typeIDX][diffBndIDX][destIDX] = bndsAra[typeIDX][maxBndIDX][destIDX]-bndsAra[typeIDX][minBndIDX][destIDX]; checkInAllBounds( destIDX, val);}
-		if (val > bndsAra[typeIDX][maxBndIDX][destIDX]) {bndsAra[typeIDX][maxBndIDX][destIDX]=val;bndsAra[typeIDX][diffBndIDX][destIDX] = bndsAra[typeIDX][maxBndIDX][destIDX]-bndsAra[typeIDX][minBndIDX][destIDX]; checkInAllBounds( destIDX, val);}
-	}
-	//manages mins, maxs, diffs of all calc types (customers, validation, training examples
-	private void checkInAllBounds(Integer destIDX, float val) {
-		if (val < bndsAra[ttlOfAllCalcIDX][minBndIDX][destIDX]) {bndsAra[ttlOfAllCalcIDX][minBndIDX][destIDX]=val;bndsAra[ttlOfAllCalcIDX][diffBndIDX][destIDX] = bndsAra[ttlOfAllCalcIDX][maxBndIDX][destIDX]-bndsAra[ttlOfAllCalcIDX][minBndIDX][destIDX]; }
-		if (val > bndsAra[ttlOfAllCalcIDX][maxBndIDX][destIDX]) {bndsAra[ttlOfAllCalcIDX][maxBndIDX][destIDX]=val;bndsAra[ttlOfAllCalcIDX][diffBndIDX][destIDX] = bndsAra[ttlOfAllCalcIDX][maxBndIDX][destIDX]-bndsAra[ttlOfAllCalcIDX][minBndIDX][destIDX];}
-	}
-		
-	//get mins/diffs for ftr vals per ftr jp and for all vals per all jps
-	public Float[] getMinBndsAra() {return bndsAra[ttlOfAllCalcIDX][minBndIDX];}
-	public Float[] getMaxBndsAra() {return bndsAra[ttlOfAllCalcIDX][maxBndIDX];}
-	public Float[] getDiffBndsAra() {return bndsAra[ttlOfAllCalcIDX][diffBndIDX];}
-	//aggregate all counts
-	public Float[] getCountBndsAra() {	return bndsAra[ttlOfAllCalcIDX][countBndIDX];}
-	
-	//individual type of data getters/setters
-	public Float[] getMinBndsAra(int typeIDX) {return bndsAra[typeIDX][minBndIDX];}
-	public Float[] getMaxBndsAra(int typeIDX) {return bndsAra[typeIDX][maxBndIDX];}
-	public Float[] getDiffBndsAra(int typeIDX) {return bndsAra[typeIDX][diffBndIDX];}
-	public Float[] getCountBndsAra(int typeIDX) {return bndsAra[typeIDX][countBndIDX];}
-	
-	//increment count of training examples with jp data represented by destIDX, and total calc value seen
-	public void incrBnds(int typeIDX, int destIDX) {
-		synchronized(bndsAra[typeIDX][countBndIDX][destIDX]) {bndsAra[typeIDX][countBndIDX][destIDX] +=1; }
-		synchronized(bndsAra[ttlOfAllCalcIDX][countBndIDX][destIDX]) {bndsAra[ttlOfAllCalcIDX][countBndIDX][destIDX] +=1;}
-	}	
-	
-	public String getDescForIdx(int idx) {
-		return String.format("%6d", (Math.round(bndsAra[ttlOfAllCalcIDX][countBndIDX][idx]))) + "\t| Min val : " +String.format("%6.4f", bndsAra[ttlOfAllCalcIDX][minBndIDX][idx]) + "\t| Max val : " +String.format("%6.4f", bndsAra[ttlOfAllCalcIDX][maxBndIDX][idx]);
-	}
-	public String getDescForIdx(int typeIDX,int idx) {
-		return String.format("%6d", (Math.round(bndsAra[typeIDX][countBndIDX][idx]))) + "\t| Min val : " +String.format("%6.4f", bndsAra[typeIDX][minBndIDX][idx]) + "\t| Max val : " +String.format("%6.4f", bndsAra[typeIDX][maxBndIDX][idx]);
-	}
-	
-}//class dataBoundArray
-
-
 
