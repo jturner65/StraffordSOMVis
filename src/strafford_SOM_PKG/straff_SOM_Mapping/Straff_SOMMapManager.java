@@ -260,7 +260,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	}//dispDebugEventPresenceData
 
 	//necessary processing for true prospects - convert a customer to a true prospect if appropriate?
-	private void _handleTrueProspect(SOM_ExampleManager truePrspctMapper,String OID, Straff_ProspectExample ex) {truePrspctMapper.addExampleToMap(OID,new Straff_TrueProspectExample(ex));	}//handleTrueProspect
+	private void _handleTrueProspect(SOM_ExampleManager truePrspctMapper,Straff_ProspectExample ex) {truePrspctMapper.addExampleToMap(new Straff_TrueProspectExample(ex));	}//handleTrueProspect - retains OID from old ex
 		
 	//this function will take all raw loaded prospects and partition them into customers and true prospects
 	//it determines what the partition/definition is for a "customer" which is used to train the map, and a "true prospect" which is polled against the map to find product membership.
@@ -292,8 +292,8 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 			for (String OID : keySet) {		
 				Straff_ProspectExample ex = (Straff_ProspectExample) tmpProspectMapper.removeExampleFromMap(OID); 
 				if(dispDebugEventMembership) {dbgEventInExample(ex, countsOfBoolResOcc, countsOfBoolResEvt);}
-				if (ex.isTrainablePastCustomer()) {			custPrspctExMapper.addExampleToMap(OID, ex);		} 			//training data - has valid feature vector and past order events
-				else if (ex.isTrueProspect()) {				_handleTrueProspect(truePrspctExMapper,OID, ex);	} 				//no past order events but has valid source event data
+				if (ex.isTrainablePastCustomer()) {			custPrspctExMapper.addExampleToMap(ex);		} 			//training data - has valid feature vector and past order events
+				else if (ex.isTrueProspect()) {				_handleTrueProspect(truePrspctExMapper, ex);	} 				//no past order events but has valid source event data
 				else {//should never happen - example is going nowhere - is neither true prospect or trainable past customer
 					//msgObj.dispMessage("Straff_SOMMapManager","procRawLoadedData->_buildCustomerAndProspectMaps","Raw Rec " + ex.OID + " neither trainable customer nor true prospect.  Ignoring.", MsgCodes.info3);
 					if(ex.hasEventData()) {				++nonCustPrspctRecs;			} else {			++noEventDataPrspctRecs;		}					
@@ -306,8 +306,8 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 			for (String OID : keySet) {		
 				Straff_ProspectExample ex = (Straff_ProspectExample) tmpProspectMapper.removeExampleFromMap(OID);
 				if(dispDebugEventMembership) {dbgEventInExample(ex, countsOfBoolResOcc, countsOfBoolResEvt);}
-				if (ex.hasNonSourceEvents()) {					custPrspctExMapper.addExampleToMap(OID, ex);		} 			//training data - has valid feature vector and any non-source event data
-				else if (ex.hasOnlySourceEvents()) {			_handleTrueProspect(truePrspctExMapper,OID, ex);		} 				//only has source data
+				if (ex.hasNonSourceEvents()) {					custPrspctExMapper.addExampleToMap(ex);		} 			//training data - has valid feature vector and any non-source event data
+				else if (ex.hasOnlySourceEvents()) {			_handleTrueProspect(truePrspctExMapper, ex);		} 				//only has source data
 				else {//should never happen - example is going nowhere - is neither true prospect or trainable past customer
 					//msgObj.dispMessage("Straff_SOMMapManager","procRawLoadedData->_buildCustomerAndProspectMaps","Raw Rec " + ex.OID + " neither trainable customer nor true prospect.  Ignoring.", MsgCodes.info3);
 					if(ex.hasEventData()) {				++nonCustPrspctRecs;			} else {			++noEventDataPrspctRecs;		}					

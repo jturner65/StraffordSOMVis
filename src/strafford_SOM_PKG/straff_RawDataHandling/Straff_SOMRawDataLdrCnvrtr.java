@@ -224,7 +224,7 @@ public class Straff_SOMRawDataLdrCnvrtr {
 		msgObj.dispMessage("Straff_SOMRawDataLdrCnvrtr","procRawProductData","Starting to process Raw Product Data.", MsgCodes.info5);
 		for (Straff_BaseRawData tcDat : tcTagRawData) {
 			Straff_ProductExample ex = new Straff_ProductExample(mapMgr, (Straff_TcTagData)tcDat);
-			prodMapper.addExampleToMap(ex.OID, ex);
+			prodMapper.addExampleToMap(ex);
 		}
 		//all product data is loaded
 		prodMapper.setAllDataLoaded();
@@ -239,7 +239,7 @@ public class Straff_SOMRawDataLdrCnvrtr {
 		for (Straff_BaseRawData prs : prospects) {
 			//prospectMap is empty here
 			SOM_Example ex = new Straff_CustProspectExample(mapMgr, (Straff_ProspectData) prs);
-			prspctMapper.addExampleToMap(ex.OID, ex);
+			prspctMapper.addExampleToMap(ex);
 		}		
 		//add all events to prospects
 		procRawEventData(prspctMapper, rawDataArrays, true);		
