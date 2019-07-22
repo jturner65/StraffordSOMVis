@@ -118,6 +118,17 @@ public abstract class Straff_SOMExample extends SOM_Example{
 	
 	//return all jpg/jps in this example record
 	protected abstract HashSet<Tuple<Integer,Integer>> getSetOfAllJpgJpData();	
+	
+	/**
+	 * return the appropriate string value for the dense training data - should be numeric key value to save in lrn or csv dense file
+	 * Strafford will always use sparse data so this doesn't matter
+	 * @return
+	 */
+	@Override
+	protected String getDenseTrainDataKey() {
+		return OID;
+	}
+
 
 	@Override
 	//build a string describing what a particular feature value is

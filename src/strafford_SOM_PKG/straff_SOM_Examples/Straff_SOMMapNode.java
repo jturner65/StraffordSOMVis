@@ -213,7 +213,15 @@ public class Straff_SOMMapNode extends SOM_MapNode{
 	//called after all features of this kind of object are built
 	public void postFtrVecBuild() {}
 
-
+	/**
+	 * return the appropriate string value for the dense training data - should be numeric key value to save in lrn or csv dense file
+	 * Strafford will always use sparse data so this doesn't matter
+	 * @return
+	 */
+	@Override
+	protected String getDenseTrainDataKey() {
+		return OID;
+	}
 	@Override
 	protected String dispFtrVal(TreeMap<Integer, Float> ftrs, Integer i) {
 		Float ftr = ftrs.get(i);
