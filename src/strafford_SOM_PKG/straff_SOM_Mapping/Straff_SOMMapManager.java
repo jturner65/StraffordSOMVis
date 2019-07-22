@@ -796,7 +796,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	}//saveAllExamplesToSOMMappings	
 
 	@Override
-	public String getFtrWtSegmentTitleString(int ftrCalcType, int ftrIDX) {		
+	public String getFtrWtSegmentTitleString(SOM_FtrDataType ftrCalcType, int ftrIDX) {		
 		String ftrTypeDesc = getDataDescFromInt(ftrCalcType);
 		return "Feature Weight Segment using " + ftrTypeDesc +" examples for ftr idx : " + ftrIDX+ " corresponding to JP :"+ jpJpgrpMon.getFtrJpByIdx(ftrIDX);
 	}

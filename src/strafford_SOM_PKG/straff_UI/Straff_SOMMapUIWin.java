@@ -512,11 +512,11 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 				((Straff_SOMMapManager) mapMgr).drawAnalysisAllJps(pa, analysisHt, analysisAllJPBarWidth, curAllJPToShowIDX, curCalcAnalysisSrcDataTypeIDX);
 				
 			} else if(curCalcAnalysisJPTypeIDX == Straff_WeightCalc.bndAra_ProdJPsIDX)  {		
-				((Straff_SOMMapManager) mapMgr).drawAnalysisOneJp_Ftr(pa,analysisHt, analysisPerJPWidth,curMapImgIDX, curCalcAnalysisSrcDataTypeIDX);	
+				((Straff_SOMMapManager) mapMgr).drawAnalysisOneJp_Ftr(pa,analysisHt, analysisPerJPWidth,curProdToShowIDX, curCalcAnalysisSrcDataTypeIDX);	
 				pa.popStyle();pa.popMatrix();			
 				pa.pushMatrix();pa.pushStyle();
 				pa.translate(rectDim[0]+5,calcAnalysisLocs[1],0.0f);					
-				((Straff_SOMMapManager) mapMgr).drawAnalysisFtrJps(pa, analysisHt, analysisAllJPBarWidth, curMapImgIDX, curCalcAnalysisSrcDataTypeIDX);				
+				((Straff_SOMMapManager) mapMgr).drawAnalysisFtrJps(pa, analysisHt, analysisAllJPBarWidth, curProdToShowIDX, curCalcAnalysisSrcDataTypeIDX);				
 			}			
 			
 			pa.popStyle();pa.popMatrix();

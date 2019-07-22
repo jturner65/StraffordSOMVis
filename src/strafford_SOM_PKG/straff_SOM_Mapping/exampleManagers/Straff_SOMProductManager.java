@@ -62,7 +62,7 @@ public class Straff_SOMProductManager extends Straff_SOMExampleManager {
 
 	
 	//add constructed product example to maps holding products keyed by their constituent jps and jpgs
-	public void addProductToJPProductMaps(SOM_Example exRaw) {
+	private void addProductToJPProductMaps(SOM_Example exRaw) {
 		//add to jp and jpg trees
 		Straff_ProductExample ex = (Straff_ProductExample)exRaw;
 		HashSet<Integer> jpgs = new HashSet<Integer>();
