@@ -270,8 +270,6 @@ public class Straff_ProductExample extends Straff_SOMExample{
 	////////////////////////
 	// end old functionality for mapping
 	
-
-	
 	//take loaded data and convert to output data
 	@Override
 	protected void buildFeaturesMap() {

@@ -4,6 +4,7 @@ import java.util.*;
 
 import base_SOM_Objects.SOM_MapManager;
 import base_SOM_Objects.som_examples.*;
+import base_Utils_Objects.vectorObjs.Tuple;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.*;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.base.Straff_BaseRawData;
 import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.events.StraffEvntRawToTrainData;

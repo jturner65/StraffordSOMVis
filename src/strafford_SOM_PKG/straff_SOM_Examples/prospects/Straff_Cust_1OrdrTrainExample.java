@@ -32,7 +32,7 @@ public class Straff_Cust_1OrdrTrainExample extends Straff_CustProspectExample{
 		owner=_owner; 
 		//orderOnDateOcc = _order;
 		orderDate = _order.evntDate;
-		mostRecentOrderCounts = _order.getOccurrenceCounts();
+		this.setCatClassCountsForExample(_order.getOccurrenceCounts());
 		//build occ structure, as if calling finalizeBuildBeforeFtrCalc
 		buildOccStructFromDateEvents(navigableMap);
 	}//ctor
