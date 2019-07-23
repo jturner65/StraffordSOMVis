@@ -138,7 +138,7 @@ public abstract class Straff_ProspectExample extends Straff_SOMExample{
 	
 	//instancing class needs to have this
 	protected void initObjsData(boolean makeEventsByData) {
-		rad = 3.0f;			//for display
+		mapDrawRad = 3.0f;			//for display
 		//occurrence structures - keyed by type, then by JP
 		JpOccurrences = new TreeMap<String, TreeMap<Integer, Straff_JP_OccurrenceData>> ();
 		eventsByDateMap = (makeEventsByData ? new TreeMap<String, TreeMap<Date, TreeMap<Integer, StraffEvntRawToTrainData>>>() : null);

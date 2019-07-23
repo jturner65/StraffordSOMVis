@@ -62,7 +62,7 @@ public class Straff_ProductExample extends Straff_SOMExample{
 	//initialize structures to manage product examples
 	private void initProdBMUMaps() {
 		prodClr = mapMgr.getRndClr();
-		rad = 3.0f;
+		mapDrawRad = 3.0f;
 		prodClr[3]=255;
 		allMapNodesDists = new TreeMap[numFtrCompVals];
 		for (Integer i=0; i<numFtrCompVals;++i) {			allMapNodesDists[i] = new TreeMap<Double,ArrayList<SOM_MapNode>>();		}

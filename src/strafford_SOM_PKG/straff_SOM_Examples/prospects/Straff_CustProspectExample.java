@@ -337,7 +337,7 @@ public class Straff_CustProspectExample extends Straff_ProspectExample {
 	@Override
 	public final void setIsTrainingDataIDX_Priv() {
 		exampleDataType = isTrainingData ? SOM_ExDataType.Training : SOM_ExDataType.Testing;
-		nodeClrs = mapMgr.getClrFillStrkTxtAra(exampleDataType);
+		setMapNodeClrs(mapMgr.getClrFillStrkTxtAra(exampleDataType));
 	}// setIsTrainingDataIDX
 
 	// column names for raw descriptorCSV output
