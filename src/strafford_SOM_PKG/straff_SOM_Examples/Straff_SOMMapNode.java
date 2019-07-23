@@ -58,16 +58,21 @@ public class Straff_SOMMapNode extends SOM_MapNode{
 	//manage instancing map node handling - specifically, handle using 2ndary features as node markers (like a product tag or a class)
 	//in other words, this takes the passed example's "class" in our case all the order jps, and assigns them to this node
 	protected void addTrainingExToBMUs_Priv(double dist, SOM_Example ex) {
-		TreeMap<Tuple<Integer, Integer>, Integer> trainExOrderCounts = ((Straff_CustProspectExample)ex).getOrderCountsForExample();
-		//for each jpg-jp used in training example, assign 
-		//TreeMap<Integer, Integer> jpCountsAtJpGrp, npJpCountsAtJpGrp;
-		for (Tuple<Integer, Integer> jpgJp : trainExOrderCounts.keySet()) {
-			Integer jpg = jpgJp.x, jp = jpgJp.y;
-			Float numOrders = 1.0f*trainExOrderCounts.get(jpgJp);	
-			Float newCount = getClassSegManager().addSegDataFromTrainingEx(new Integer[] {jp}, numOrders, "_JPCount_JP_", "JP Orders present for jp :");
-			//newcount includes existing counts in this node, so needs to be used to map to category as well
-			Float dummy = getCategorySegManager().addSegDataFromTrainingEx(new Integer[] {jpg,jp}, newCount, "_JPGroupCount_JPG_", "JPGroup Orders present for jpg :");
-		}		
+		//following promoted to base map node class
+//		//keyed by tuple of category/class (category == null if not used), value is count of class in example
+//		TreeMap<Tuple<Integer, Integer>, Integer> trainExCatClassCounts = ex.getCatClassCountsForExample();
+//		//for each category-class used in training example, assign segments
+//
+//		for (Tuple<Integer, Integer> catClass : trainExCatClassCounts.keySet()) {
+//			Integer cat = catClass.x, cls = catClass.y;
+//			//# of examples of class in training example
+//			Float numClassInEx = 1.0f*trainExCatClassCounts.get(catClass);	
+//			Float newCount = getClassSegManager().addSegDataFromTrainingEx(new Integer[] {cls}, numClassInEx, getClassSegName(), getClassSegDesc());
+//			//newcount includes existing counts in this node, so needs to be used to map to category as well
+//			if(null!=cat) {
+//				Float dummy = getCategorySegManager().addSegDataFromTrainingEx(new Integer[] {cat,cls}, newCount, getCategorySegName(), getCategorySegDesc());
+//			}
+//		}		
 		//now build structure for non-prod jps and jpgroups-based segments
 		HashSet<Tuple<Integer,Integer>> nonProdJpgJps = ((Straff_ProspectExample) ex).getNonProdJpgJps();
 		//if(nonProdJpgJps.size() > 0) {System.out.println("# of nonprodjpgpjps for node : " + ex.OID+" | "+nonProdJpgJps.size());}
@@ -79,6 +84,33 @@ public class Straff_SOMMapNode extends SOM_MapNode{
 		}
 		
 	}//addTrainingExToBMUs_Priv	
+	/**
+	 * get salient name prefix for class segment for the objects mapped to this bmu
+	 * @return
+	 */
+	@Override
+	public final String getClassSegName() {return "_JPCount_JP_";}
+	/**
+	 * get salient descriptions for class segment for the objects mapped to this bmu
+	 * @return
+	 */
+	@Override
+	public final String getClassSegDesc() {return "JP Orders present for jp :";}
+	
+	/**
+	 * get salient name prefix for category segment for the objects mapped to this bmu
+	 * @return
+	 */
+	@Override
+	public final String getCategorySegName() {return "_JPGroupCount_JPG_";}
+	/**
+	 * get salient descriptions for category segment for the objects mapped to this bmu
+	 * @return
+	 */
+	@Override
+	public final String getCategorySegDesc() {return "JPGroup Orders present for jpg :";}
+	
+	
 
 	@Override
 	//assign relevant info to this map node from neighboring map node(s) to cover for this node not having any training examples assigned
@@ -228,5 +260,6 @@ public class Straff_SOMMapNode extends SOM_MapNode{
 		int jp = jpJpgMon.getFtrJpByIdx(i);
 		return "jp : " + jp + " | idx : " + i + " | val : " + String.format("%1.4g",  ftr) + " || ";
 	}
+
 
 }//SOMMapNodeExample

@@ -45,9 +45,9 @@ public class Straff_CustProspectExample extends Straff_ProspectExample {
 	// the actual feature vector will be used by the customer for comparisons to
 	// products etc.
 	private TreeMap<String, Straff_Cust_1OrdrTrainExample> mapOfSingleOrderTrainingExamples;
-	// map holding count of orders on most recent date - these will be used as a
-	// class for the bmu node if this example is used as a training example
-	public TreeMap<Tuple<Integer, Integer>, Integer> mostRecentOrderCounts;
+//	// map holding count of orders on most recent date - these will be used as a
+//	// class for the bmu node if this example is used as a training example
+//	public TreeMap<Tuple<Integer, Integer>, Integer> mostRecentOrderCounts;
 
 	// build this object based on prospectData object from raw data
 	public Straff_CustProspectExample(SOM_MapManager _map, Straff_ProspectData _prspctData) {	super(_map, SOM_ExDataType.Training, _prspctData);}// prospectData ctor
@@ -193,7 +193,7 @@ public class Straff_CustProspectExample extends Straff_ProspectExample {
 			Straff_Cust_1OrdrTrainExample ex = new Straff_Cust_1OrdrTrainExample(this, OID + "_" + String.format("%3d", exID++), orderOcc, dateEventOccurrences.headMap(orderDate, true));// true: includes events ondate
 			mapOfSingleOrderTrainingExamples.put(ex.OID, ex);
 		}
-		mostRecentOrderCounts = dateOrderEventOccs.lastEntry().getValue().getOccurrenceCounts();
+		this.setCatClassCountsForExample(dateOrderEventOccs.lastEntry().getValue().getOccurrenceCounts());
 	}// buildDateBasedOccsAndTrainFtrData
 
 	@Override
@@ -211,11 +211,6 @@ public class Straff_CustProspectExample extends Straff_ProspectExample {
 	public final TreeMap<String, Straff_Cust_1OrdrTrainExample> getMapOfSingleOrderTrainingExamples() {return mapOfSingleOrderTrainingExamples;}
 	// to return all single order training examples in an array to build input array
 	public final Collection<Straff_Cust_1OrdrTrainExample> getSingleOrderTrainingExamples() {return mapOfSingleOrderTrainingExamples.values();}
-
-	// return a map keyed by jpg,jp tuple, with value being counts of orders of this
-	// jp/jpg on this date - these will be used as a class for the bmu node
-	// THIS IS ONLY USED WHEN THIS EXAMPLE IS A TRAINING EXAMPLE
-	public TreeMap<Tuple<Integer, Integer>, Integer> getOrderCountsForExample() {	return mostRecentOrderCounts;}
 
 	public static int NumBadExamplesAfterFtrsBuilt = 0;
 	public static int NumBadExampleOrdersAfterFtrsBuilt = 0;
@@ -244,7 +239,7 @@ public class Straff_CustProspectExample extends Straff_ProspectExample {
 			if (!isBadExample()) {			buildDateBasedOccsAndTrainingFtrData();	} 
 			else {
 				updateStaticVarsWithBadExamples(map);
-				mostRecentOrderCounts = new TreeMap<Tuple<Integer, Integer>, Integer>();
+				this.initCatClassCountsForExample();//mostRecentOrderCounts = new TreeMap<Tuple<Integer, Integer>, Integer>();
 			} // if bad then won't contribute any training data - shouldn't be used to train!!!
 			
 		} else {		ftrMaps[ftrMapTypeKey].clear();	}
