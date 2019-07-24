@@ -56,35 +56,9 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	
 	//public final int numGUIObjs = numSOMBaseGUIObjs + 4;
 	
-	//types of data that can be used for calc analysis 
-	private int curCalcAnalysisSrcDataTypeIDX = Straff_WeightCalc.bndAra_AllJPsIDX;
-	private int curCalcAnalysisJPTypeIDX = Straff_WeightCalc.bndAra_AllJPsIDX;
 	
 	//raw data source : 0 == csv, 1 == sql
 	private int rawDataSource;
-	//max sq_distance to display map nodes as under influence/influencing certain products
-	private double prodZoneDistThresh;
-	//////////////////////////////
-	//map drawing 	draw/interaction variables
-	//start location of SOM image - stX, stY, and dimensions of SOM image - width, height; locations to put calc analysis visualizations
-	public float[] calcAnalysisLocs;	
-	//to draw analysis results
-	private float calcScale = .5f;
-	//set analysisHt equal to be around 1/2 SOM_mapDims height
-	private float analysisHt, analysisAllJPBarWidth, analysisPerJPWidth;
-	//other PImage maps set in base class
-	//array of per jpg map wts - equally weighted all jps within jpg
-	private PImage[] mapPerJpgWtImgs;
-	
-	//which product is being shown by single-product display visualizations, as index in list of jps of products
-	private int curProdToShowIDX;
-	//which jp is currently being investigated of -all- jps
-	private int curAllJPToShowIDX;
-	
-	//which nonprod jp to show (for data which support showing non-prod jps
-	private int curNonProdJPToShowIDX;
-	//which nonprod jpg to show (for data which support showing non-prod jpgroups
-	private int curNonProdJPGroupToShowIDX;
 		
 	/////////
 	//custom debug/function ui button names -empty will do nothing
@@ -161,20 +135,20 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	@Override
 	protected void initMeIndiv() {
 		//based on width of map
-		analysisHt = (mapMgr.getMapHeight()*.45f);
+		((Straff_SOMMapManager) mapMgr).setAnalysisHt((mapMgr.getMapHeight()*.45f));
 		//for single jp detail display
-		analysisPerJPWidth = (mapMgr.getMapWidth()*.1f);
+		((Straff_SOMMapManager) mapMgr).setAnalysisPerJPWidth((mapMgr.getMapWidth()*.1f));
 		//default to having calc objects display analysis on ftrs 
 		setPrivFlags(mapDrawCalcFtrOrAllVisIDX, true);
 		//default to showing right side bar menu
 		setFlags(showRightSideMenu, true);	
-		//dataFrmtToUseToTrain = (int)(this.guiObjs[uiTrainDataFrmtIDX].getVal());
-		prodZoneDistThresh = this.guiObjs[uiProdZoneDistThreshIDX].getVal();
+		//dataFrmtToUseToTrain = (int)(this.guiObjs[uiTrainDataFrmtIDX].getVal()); 
+		((Straff_SOMMapManager) mapMgr).setProdZoneDistThresh(this.guiObjs[uiProdZoneDistThreshIDX].getVal());
 		rawDataSource = (int)(this.guiObjs[uiRawDataSourceIDX].getVal());
 
 		//moved from mapMgr ctor, to remove dependence on papplet in that object
 		pa.setAllMenuBtnNames(menuBtnNames);	
-		initMapAras(1, 1);
+		mapMgr.initMapAras(1, 1);
 	}//initMeIndiv()
 		
 	@Override
@@ -194,33 +168,24 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	@Override
 	protected void setVisScreenDimsPriv_Indiv() {
 		//now build calc analysis offset struct
-		calcAnalysisLocs = new float[] {(SOM_mapLoc[0]+mapMgr.getMapWidth())*calcScale + xOff,(SOM_mapLoc[1]+mapMgr.getMapHeight())*calcScale + 10.0f};
-		setAnalysisDimWidth();		
+		((Straff_SOMMapManager) mapMgr).setCalcAnalysisLocs();
+		((Straff_SOMMapManager) mapMgr).setAnalysisAllJPBarWidth(curVisScrDims[0]);		
 	}
 	
-	//per jp bar width ~= total width / # of jps
-	protected void setAnalysisDimWidth() {
-		analysisAllJPBarWidth = (curVisScrDims[0]/(1.0f+((Straff_SOMMapManager) mapMgr).numFtrsToShowForCalcAnalysis(curCalcAnalysisJPTypeIDX)))*.98f;	
-	}
+//	//per jp bar width ~= total width / # of jps
+//	protected void setAnalysisDimWidth() {
+//		((Straff_SOMMapManager) mapMgr).setAnalysisAllJPBarWidth(curVisScrDims[0]);	
+//	}
 	
-	//called from SOMMapUIWin base on initMapAras - this instances 2ndary maps/other instance-specific maps
-	@Override
-	protected void initMapArasIndiv(int w, int h, int format, int num2ndryMaps) {
-		curAllJPToShowIDX = 0;
-		mapPerJpgWtImgs = new PImage[num2ndryMaps];
-		for(int i=0;i<mapPerJpgWtImgs.length;++i) {
-			mapPerJpgWtImgs[i] = pa.createImage(w, h, format);
-		}	
-	}//instance-specific init 
-		
+
 	@Override
 	protected void setPrivFlagsIndiv(int idx, boolean val) {
 		switch (idx) {//special actions for each flag
 			case mapDrawTruePspctIDX	: {//draw true prospect examples
 				break;}		
 			case mapDrawCalcFtrOrAllVisIDX : {
-				curCalcAnalysisJPTypeIDX = (val ? Straff_WeightCalc.bndAra_ProdJPsIDX : Straff_WeightCalc.bndAra_AllJPsIDX);		
-				setAnalysisDimWidth();
+				((Straff_SOMMapManager) mapMgr).setCurCalcAnalysisJPTypeIDX((val ? Straff_WeightCalc.bndAra_ProdJPsIDX : Straff_WeightCalc.bndAra_AllJPsIDX));		
+				((Straff_SOMMapManager) mapMgr).setAnalysisAllJPBarWidth(curVisScrDims[0]);	
 				break;}			
 			
 			case mapDrawNonProdJPSegIDX			: {//draw segments defined by non-product jps owned by training examples that mapped to each bmu
@@ -232,9 +197,8 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 				if (val) {//if setting to true then aggregate data
 					setPrivFlags(mapDrawTPAnalysisVisIDX, false);
 					setPrivFlags(mapDrawTrainDataAnalysisVisIDX, false);					
-					curCalcAnalysisSrcDataTypeIDX= Straff_WeightCalc.custCalcObjIDX;
-					((Straff_SOMMapManager) mapMgr).processCalcAnalysis(curCalcAnalysisSrcDataTypeIDX);	
-					setAnalysisDimWidth();
+					((Straff_SOMMapManager) mapMgr).setCurCalcAnalysisSrcDataTypeIDX(Straff_WeightCalc.custCalcObjIDX);
+					((Straff_SOMMapManager) mapMgr).setAnalysisAllJPBarWidth(curVisScrDims[0]);	
 				} else {
 					
 				}
@@ -243,9 +207,8 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 				if (val) {//if setting to true then aggregate data
 					setPrivFlags(mapDrawCustAnalysisVisIDX, false);
 					setPrivFlags(mapDrawTrainDataAnalysisVisIDX, false);					
-					curCalcAnalysisSrcDataTypeIDX= Straff_WeightCalc.tpCalcObjIDX;
-					((Straff_SOMMapManager) mapMgr).processCalcAnalysis(curCalcAnalysisSrcDataTypeIDX);	
-					setAnalysisDimWidth();
+					((Straff_SOMMapManager) mapMgr).setCurCalcAnalysisSrcDataTypeIDX(Straff_WeightCalc.tpCalcObjIDX);
+					((Straff_SOMMapManager) mapMgr).setAnalysisAllJPBarWidth(curVisScrDims[0]);	
 				} else {
 					
 				}
@@ -255,9 +218,8 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 				if (val) {//if setting to true then aggregate data
 					setPrivFlags(mapDrawCustAnalysisVisIDX, false);
 					setPrivFlags(mapDrawTPAnalysisVisIDX, false);					
-					curCalcAnalysisSrcDataTypeIDX= Straff_WeightCalc.trainCalcObjIDX;
-					((Straff_SOMMapManager) mapMgr).processCalcAnalysis(curCalcAnalysisSrcDataTypeIDX);	
-					setAnalysisDimWidth();
+					((Straff_SOMMapManager) mapMgr).setCurCalcAnalysisSrcDataTypeIDX(Straff_WeightCalc.trainCalcObjIDX);
+					((Straff_SOMMapManager) mapMgr).setAnalysisAllJPBarWidth(curVisScrDims[0]);	
 				}else {
 					
 				}
@@ -364,8 +326,6 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		//guiObjs[uiAllJpgSeenToDispIDX].setNewMax(jpGrpLen-1);	
 	}//setUI_JPListMaxVals
 	
-	private boolean settingProdJPGFromJp = false, settingProdJPFromJPG = false;
-	
 
 	@Override
 	protected final int getCategoryFromClass(int _curCatIDX, int _classIDX) { return ((Straff_SOMMapManager) mapMgr).getUI_JPGrpIdxFromFtrJPIdx(_classIDX, _curCatIDX);}
@@ -394,7 +354,6 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	@Override 
 	//handle instance-specific UI components
 	protected void setUIWinValsIndiv(int UIidx) {
-		//if(!(settingJPGFromJp || settingProdJPGFromJp || settingClassFromCategory || settingProdJPFromJPG)) {msgObj.dispInfoMessage("SOM WIN","setUIWinVals","Idx to set  : " + UIidx);}
 		switch(UIidx){
 			case uiRawDataSourceIDX  : {//source of raw data
 				rawDataSource = (int)(this.guiObjs[uiRawDataSourceIDX].getVal());
@@ -403,14 +362,14 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 				msgObj.dispMessage("mySOMMapUIWin","setUIWinVals","uiRawDataSourceIDX : rawDataSource set to : " + rawDataSource, MsgCodes.info1);
 				break;}					
 			case uiProdJPToDispIDX : {//product to display, for product influence zones
-				curProdToShowIDX = (int)guiObjs[uiProdJPToDispIDX].getVal();				
+				((Straff_SOMMapManager) mapMgr).setCurProdToShowIDX((int)guiObjs[uiProdJPToDispIDX].getVal());				
 				break;}
 			case uiProdZoneDistThreshIDX : {//max distance for a node to be considered a part of a product's "region" of influence		
-				prodZoneDistThresh = this.guiObjs[uiProdZoneDistThreshIDX].getVal();			
+				((Straff_SOMMapManager) mapMgr).setProdZoneDistThresh(this.guiObjs[uiProdZoneDistThreshIDX].getVal());			
 				break;}
 	
 			case uiAllJpSeenToDispIDX		: {
-				curAllJPToShowIDX = (int)guiObjs[uiAllJpSeenToDispIDX].getVal();
+				((Straff_SOMMapManager) mapMgr).setCurAllJPToShowIDX((int)guiObjs[uiAllJpSeenToDispIDX].getVal());
 				break;}	
 		}		
 	}//setUIWinValsIndiv
@@ -448,7 +407,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	protected void drawRightSideInfoBarPriv(float modAmtMillis) {
 		pa.pushMatrix();pa.pushStyle();
 		//display current simulation variables - call sim world through sim exec
-		mapMgr.drawResultBar(pa, yOff, curPreBuiltMapIDX);
+		mapMgr.drawResultBar(pa, yOff);
 		pa.popStyle();pa.popMatrix();					
 	}//drawOnScreenStuff
 	
@@ -461,70 +420,42 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		//checking flag to execute if true
 		if(getPrivFlags(procTruProspectsIDX)){	((Straff_SOMMapManager) mapMgr).buildAndSaveTrueProspectReport();setPrivFlags(procTruProspectsIDX,false);	}			
 	}
-	@Override
-	//stuff to draw specific to this instance, before nodes are drawn
-	protected void drawMapRectangle_Indiv(int curImgNum) {
-		if(getPrivFlags(mapDrawTruePspctIDX)){			mapMgr.drawValidationData(pa);}
-		boolean notDrawAnalysis = !(getPrivFlags(mapDrawCustAnalysisVisIDX) || getPrivFlags(mapDrawTPAnalysisVisIDX));
-		//not drawing any analysis currently
-		if (notDrawAnalysis && (mseOvrData != null)){	drawMseOverData();}//draw mouse-over info if not showing calc analysis				
-		
-		if (getPrivFlags( mapDrawCurProdFtrBMUZoneIDX)){		((Straff_SOMMapManager) mapMgr).drawProductRegion(pa,curProdToShowIDX,prodZoneDistThresh);}
-	}//drawMapRectangleIndiv
-	/**
-	 * draw instance-specific per-ftr map display
-	 */
-	@Override
-	protected void drawPerFtrMap_Indiv() {
-		if(getPrivFlags(mapDrawPrdctFtrBMUsIDX)){				((Straff_SOMMapManager) mapMgr).drawProductNodes(pa, curMapImgIDX, true);}
-		if(getPrivFlags(mapDrawNonProdJPSegIDX)) {	 			((Straff_SOMMapManager) mapMgr).drawNonProdJpSegments(pa,curAllJPToShowIDX);	}		
-		if(getPrivFlags(mapDrawNonProdJPGroupSegIDX)) { 		((Straff_SOMMapManager) mapMgr).drawNonProdJPGroupSegments(pa,curAllJPToShowIDX);	}	
-	}
-	
-	@Override
-	/**
-	 * Instancing class-specific segments to render during UMatrix display
-	 */
-	protected void drawSegmentsUMatrixDispIndiv() {
-		if(getPrivFlags(mapDrawNonProdJPSegIDX)) {	 			((Straff_SOMMapManager) mapMgr).drawAllNonProdJpSegments(pa);}
-		if(getPrivFlags(mapDrawNonProdJPGroupSegIDX)) { 		((Straff_SOMMapManager) mapMgr).drawAllNonProdJPGroupSegments(pa);}
-		if(getPrivFlags(mapDrawPrdctFtrBMUsIDX)){				((Straff_SOMMapManager) mapMgr).drawAllProductNodes(pa);}
-	}	
+
 	
 	@Override
 	protected void drawMapIndiv() {		
-		if (getPrivFlags(mapDrawCustAnalysisVisIDX)){	_drawAnalysis(custExCalcedIDX, mapDrawCustAnalysisVisIDX);	} 
-		else if (getPrivFlags(mapDrawTPAnalysisVisIDX)){_drawAnalysis(tpExCalcedIDX, mapDrawTPAnalysisVisIDX);}
-		else if (getPrivFlags(mapDrawTrainDataAnalysisVisIDX)) {_drawAnalysis(trainExCalcedIDX, mapDrawTrainDataAnalysisVisIDX);}
+		if (getPrivFlags(mapDrawCustAnalysisVisIDX)){	((Straff_SOMMapManager) mapMgr)._drawAnalysis(pa,custExCalcedIDX, mapDrawCustAnalysisVisIDX);	} 
+		else if (getPrivFlags(mapDrawTPAnalysisVisIDX)){((Straff_SOMMapManager) mapMgr)._drawAnalysis(pa,tpExCalcedIDX, mapDrawTPAnalysisVisIDX);}
+		else if (getPrivFlags(mapDrawTrainDataAnalysisVisIDX)) {((Straff_SOMMapManager) mapMgr)._drawAnalysis(pa,trainExCalcedIDX, mapDrawTrainDataAnalysisVisIDX);}
 	}	
 	
-	private void _drawAnalysis(int exCalcedIDX, int mapDrawAnalysisIDX) {
-		if (getPrivFlags(exCalcedIDX)){	
-			//determine what kind of jps are being displayed 
-			//int curJPIdx = ( ? curMapImgIDX : curAllJPToShowIDX);
-			pa.pushMatrix();pa.pushStyle();	
-			pa.translate(calcAnalysisLocs[0],SOM_mapLoc[1]*calcScale + 10,0.0f);			
-			if(curCalcAnalysisJPTypeIDX == Straff_WeightCalc.bndAra_AllJPsIDX) {		//choose between displaying calc analysis of training feature jps or all jps
-				((Straff_SOMMapManager) mapMgr).drawAnalysisOneJp_All(pa,analysisHt, analysisPerJPWidth,curAllJPToShowIDX, curCalcAnalysisSrcDataTypeIDX);	
-				pa.popStyle();pa.popMatrix();			
-				pa.pushMatrix();pa.pushStyle();
-				pa.translate(rectDim[0]+5,calcAnalysisLocs[1],0.0f);					
-				((Straff_SOMMapManager) mapMgr).drawAnalysisAllJps(pa, analysisHt, analysisAllJPBarWidth, curAllJPToShowIDX, curCalcAnalysisSrcDataTypeIDX);
-				
-			} else if(curCalcAnalysisJPTypeIDX == Straff_WeightCalc.bndAra_ProdJPsIDX)  {		
-				((Straff_SOMMapManager) mapMgr).drawAnalysisOneJp_Ftr(pa,analysisHt, analysisPerJPWidth,curProdToShowIDX, curCalcAnalysisSrcDataTypeIDX);	
-				pa.popStyle();pa.popMatrix();			
-				pa.pushMatrix();pa.pushStyle();
-				pa.translate(rectDim[0]+5,calcAnalysisLocs[1],0.0f);					
-				((Straff_SOMMapManager) mapMgr).drawAnalysisFtrJps(pa, analysisHt, analysisAllJPBarWidth, curProdToShowIDX, curCalcAnalysisSrcDataTypeIDX);				
-			}			
-			
-			pa.popStyle();pa.popMatrix();
-			pa.scale(calcScale);				//scale here so that if we are drawing calc analysis, ftr map image will be shrunk
-		} else {
-			setPrivFlags(mapDrawAnalysisIDX, false);
-		}
-	}//_drawAnalysis
+//	private void _drawAnalysis(int exCalcedIDX, int mapDrawAnalysisIDX) {
+//		if (getPrivFlags(exCalcedIDX)){	
+//			//determine what kind of jps are being displayed 
+//			//int curJPIdx = ( ? curMapImgIDX : curAllJPToShowIDX);
+//			pa.pushMatrix();pa.pushStyle();	
+//			pa.translate(calcAnalysisLocs[0],SOM_mapLoc[1]*calcScale + 10,0.0f);			
+//			if(curCalcAnalysisJPTypeIDX == Straff_WeightCalc.bndAra_AllJPsIDX) {		//choose between displaying calc analysis of training feature jps or all jps
+//				((Straff_SOMMapManager) mapMgr).drawAnalysisOneJp_All(pa,analysisHt, analysisPerJPWidth,curAllJPToShowIDX, curCalcAnalysisSrcDataTypeIDX);	
+//				pa.popStyle();pa.popMatrix();			
+//				pa.pushMatrix();pa.pushStyle();
+//				pa.translate(rectDim[0]+5,calcAnalysisLocs[1],0.0f);					
+//				((Straff_SOMMapManager) mapMgr).drawAnalysisAllJps(pa, analysisHt, analysisAllJPBarWidth, curAllJPToShowIDX, curCalcAnalysisSrcDataTypeIDX);
+//				
+//			} else if(curCalcAnalysisJPTypeIDX == Straff_WeightCalc.bndAra_ProdJPsIDX)  {		
+//				((Straff_SOMMapManager) mapMgr).drawAnalysisOneJp_Ftr(pa,analysisHt, analysisPerJPWidth,curProdToShowIDX, curCalcAnalysisSrcDataTypeIDX);	
+//				pa.popStyle();pa.popMatrix();			
+//				pa.pushMatrix();pa.pushStyle();
+//				pa.translate(rectDim[0]+5,calcAnalysisLocs[1],0.0f);					
+//				((Straff_SOMMapManager) mapMgr).drawAnalysisFtrJps(pa, analysisHt, analysisAllJPBarWidth, curProdToShowIDX, curCalcAnalysisSrcDataTypeIDX);				
+//			}			
+//			
+//			pa.popStyle();pa.popMatrix();
+//			pa.scale(calcScale);				//scale here so that if we are drawing calc analysis, ftr map image will be shrunk
+//		} else {
+//			setPrivFlags(mapDrawAnalysisIDX, false);
+//		}
+//	}//_drawAnalysis
 		
 	//if launching threads for custom functions or debug, need to remove resetButtonState call in function below and call resetButtonState (with slow proc==true) when thread ends
 	@Override
@@ -611,7 +542,8 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 				case 1 : 
 				case 2 : 
 				case 3 : {//load all training data, default map config, and build map
-					curPreBuiltMapIDX = btn;
+					int curPreBuiltMapIDX = btn;
+					mapMgr.setCurPreBuiltMapIDX(curPreBuiltMapIDX);
 					uiVals[uiMapPreBuiltDirIDX] = this.guiObjs[uiMapPreBuiltDirIDX].setVal(curPreBuiltMapIDX);
 					mapMgr.loadPretrainedExistingMap(btn, true);//runs in thread, button state reset there
 					resetButtonState();

@@ -14,7 +14,7 @@ import base_UI_Objects.*;
 import base_Utils_Objects.io.MessageObject;
 import base_Utils_Objects.io.MsgCodes;
 import base_Utils_Objects.vectorObjs.Tuple;
-
+import processing.core.PImage;
 import strafford_SOM_PKG.straff_Features.*;
 import strafford_SOM_PKG.straff_Features.featureCalc.Straff_WeightCalc;
 
@@ -105,7 +105,37 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	
 	//////////////////////////////
 	//# of records to save in preproc data csvs
-	public static final int preProcDatPartSz = 50000;	
+	public static final int preProcDatPartSz = 50000;
+	
+	//////////////////////////////
+	// map image drawing/building variables - only should be accessed/relevant if win != null
+	//////////////////////////////
+	//map drawing 	draw/interaction variables
+	//max sq_distance to display map nodes as under influence/influencing certain products
+	private double prodZoneDistThresh;
+	//start location of SOM image - stX, stY, and dimensions of SOM image - width, height; locations to put calc analysis visualizations
+	private float[] calcAnalysisLocs;	
+	//to draw analysis results
+	public final float calcScale = .5f;
+	//set analysisHt equal to be around 1/2 SOM_mapDims height
+	private float analysisHt, analysisAllJPBarWidth, analysisPerJPWidth;
+	//other PImage maps set in base class
+	//array of per jpg map wts - equally weighted all jps within jpg
+	private PImage[] mapPerJpgWtImgs;
+	
+	//which product is being shown by single-product display visualizations, as index in list of jps of products
+	private int curProdToShowIDX;
+	//which jp is currently being investigated of -all- jps
+	private int curAllJPToShowIDX;
+	
+	//which nonprod jp to show (for data which support showing non-prod jps
+	private int curNonProdJPToShowIDX;
+	//which nonprod jpg to show (for data which support showing non-prod jpgroups
+	private int curNonProdJPGroupToShowIDX;
+
+	//types of data that can be used for calc analysis 
+	private int curCalcAnalysisSrcDataTypeIDX = Straff_WeightCalc.bndAra_AllJPsIDX;
+	private int curCalcAnalysisJPTypeIDX = Straff_WeightCalc.bndAra_AllJPsIDX;
 	
 	private Straff_SOMMapManager(Straff_SOMMapUIWin _win, float[] _dims, TreeMap<String, Object> _argsMap) {
 		super(_win,_dims, _argsMap);	
@@ -919,9 +949,77 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	
 
 	/////////////////////////////////////////
-	//drawing and graphics methods - these must check if win and/or pa exist, or else except win or pa as passed arguments, to manage when this code is executed without UI
+	//map building, drawing and graphics methods - these must check if win and/or pa exist, or else except win or pa as passed arguments, to manage when this code is executed without UI
+	//called from SOMMapUIWin base on initMapAras - this instances 2ndary maps/other instance-specific maps
+	@Override
+	protected void initMapArasIndiv(int w, int h, int format, int num2ndryMaps) {
+		curAllJPToShowIDX = 0;
+		mapPerJpgWtImgs = new PImage[num2ndryMaps];
+		for(int i=0;i<mapPerJpgWtImgs.length;++i) {
+			mapPerJpgWtImgs[i] = win.pa.createImage(w, h, format);
+		}	
+	}//instance-specific init 
+	
+	
+	public void _drawAnalysis(my_procApplet pa, int exCalcedIDX, int mapDrawAnalysisIDX) {
+		if (win.getPrivFlags(exCalcedIDX)){	
+			//determine what kind of jps are being displayed 
+			//int curJPIdx = ( ? curMapImgIDX : curAllJPToShowIDX);
+			pa.pushMatrix();pa.pushStyle();	
+			pa.translate(calcAnalysisLocs[0],SOM_mapLoc[1]*calcScale + 10,0.0f);			
+			if(curCalcAnalysisJPTypeIDX == Straff_WeightCalc.bndAra_AllJPsIDX) {		//choose between displaying calc analysis of training feature jps or all jps
+				drawAnalysisOneJp_All(pa,analysisHt, analysisPerJPWidth,curAllJPToShowIDX, getCurCalcAnalysisSrcDataTypeIDX());	
+				pa.popStyle();pa.popMatrix();			
+				pa.pushMatrix();pa.pushStyle();
+				pa.translate(win.rectDim[0]+5,calcAnalysisLocs[1],0.0f);					
+				drawAnalysisAllJps(pa, analysisHt, analysisAllJPBarWidth, curAllJPToShowIDX, getCurCalcAnalysisSrcDataTypeIDX());
+				
+			} else if(curCalcAnalysisJPTypeIDX == Straff_WeightCalc.bndAra_ProdJPsIDX)  {		
+				drawAnalysisOneJp_Ftr(pa,analysisHt, analysisPerJPWidth,curProdToShowIDX, getCurCalcAnalysisSrcDataTypeIDX());	
+				pa.popStyle();pa.popMatrix();			
+				pa.pushMatrix();pa.pushStyle();
+				pa.translate(win.rectDim[0]+5,calcAnalysisLocs[1],0.0f);					
+				drawAnalysisFtrJps(pa, analysisHt, analysisAllJPBarWidth, curProdToShowIDX, getCurCalcAnalysisSrcDataTypeIDX());				
+			}			
+			
+			pa.popStyle();pa.popMatrix();
+			pa.scale(calcScale);				//scale here so that if we are drawing calc analysis, ftr map image will be shrunk
+		} else {
+			win.setPrivFlags(mapDrawAnalysisIDX, false);
+		}
+	}//_drawAnalysis
+
+	
+	@Override
+	//stuff to draw specific to this instance, before nodes are drawn
+	protected void drawMapRectangle_Indiv(my_procApplet pa, int curImgNum) {
+		if(win.getPrivFlags(Straff_SOMMapUIWin.mapDrawTruePspctIDX)){			drawValidationData(win.pa);}
+		boolean notDrawAnalysis = !(win.getPrivFlags(Straff_SOMMapUIWin.mapDrawCustAnalysisVisIDX) || win.getPrivFlags(Straff_SOMMapUIWin.mapDrawTPAnalysisVisIDX));
+		//not drawing any analysis currently
+		if (notDrawAnalysis && (mseOvrData != null)){	drawMseOverData(pa);}//draw mouse-over info if not showing calc analysis		 		
+		
+		if (win.getPrivFlags(Straff_SOMMapUIWin.mapDrawCurProdFtrBMUZoneIDX)){		drawProductRegion(pa,curProdToShowIDX,prodZoneDistThresh);}
+	}//drawMapRectangleIndiv
 	/**
-	 * draw boxes around each node representing class-based segments that node 
+	 * draw instance-specific per-ftr map display
+	 */
+	@Override
+	protected void drawPerFtrMap_Indiv(my_procApplet pa) {
+		if(win.getPrivFlags(Straff_SOMMapUIWin.mapDrawPrdctFtrBMUsIDX)){				drawProductNodes(pa, curMapImgIDX, true);}
+		if(win.getPrivFlags(Straff_SOMMapUIWin.mapDrawNonProdJPSegIDX)) {	 			drawNonProdJpSegments(pa,curAllJPToShowIDX);	}		
+		if(win.getPrivFlags(Straff_SOMMapUIWin.mapDrawNonProdJPGroupSegIDX)) { 			drawNonProdJPGroupSegments(pa,curAllJPToShowIDX);	}	
+	}
+	
+	@Override
+	/**
+	 * Instancing class-specific segments to render during UMatrix display
+	 */
+	protected void drawSegmentsUMatrixDispIndiv(my_procApplet pa) {
+		if(win.getPrivFlags(Straff_SOMMapUIWin.mapDrawNonProdJPSegIDX)) {	 			drawAllNonProdJpSegments(pa);}
+		if(win.getPrivFlags(Straff_SOMMapUIWin.mapDrawNonProdJPGroupSegIDX)) { 			drawAllNonProdJPGroupSegments(pa);}
+		if(win.getPrivFlags(Straff_SOMMapUIWin.mapDrawPrdctFtrBMUsIDX)){				drawAllProductNodes(pa);}
+	}	
+	/*(win.getPrivFlags(Straff_SOMMapUIWin.xes around each node representing class-based segments that node 
 	 * belongs to, with color strength proportional to probablity and 
 	 * different colors for each segment
 	 * pass class -label- not class index
@@ -1031,6 +1129,27 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	// end drawing routines
 	//////////////////////////////////////////////////////
 	
+	//win UI-based variables
+	public int getCurProdToShowIDX() {		return curProdToShowIDX;	}
+	public void setCurProdToShowIDX(int curProdToShowIDX) {		this.curProdToShowIDX = curProdToShowIDX;	}
+	public double getProdZoneDistThresh() {		return prodZoneDistThresh;	}
+	public void setProdZoneDistThresh(double prodZoneDistThresh) {		this.prodZoneDistThresh = prodZoneDistThresh;	}
+	public int getCurAllJPToShowIDX() {		return curAllJPToShowIDX;	}
+	public void setCurAllJPToShowIDX(int curAllJPToShowIDX) {		this.curAllJPToShowIDX = curAllJPToShowIDX;	}
+	public float getAnalysisHt() {		return analysisHt;	}
+	public void setAnalysisHt(float analysisHt) {		this.analysisHt = analysisHt;	}
+	public float getAnalysisPerJPWidth() {		return analysisPerJPWidth;	}
+	public void setAnalysisPerJPWidth(float analysisPerJPWidth) {		this.analysisPerJPWidth = analysisPerJPWidth;	}	
+	public float[] getCalcAnalysisLocs() {		return calcAnalysisLocs;	}
+	//locs for calc analysis output
+	public void setCalcAnalysisLocs() {		this.calcAnalysisLocs = new float[] {(SOM_mapLoc[0]+mapDims[0])* calcScale + 20.0f,(SOM_mapLoc[1]+mapDims[1])*calcScale + 10.0f};}	
+	public float getAnalysisAllJPBarWidth() {return analysisAllJPBarWidth;}
+	/**
+	 * set calc analysis display width based on width of current display
+	 * @param currentVisScrWidth current width of screen, determined by whether right sidebar is shown or not
+	 */
+	public void setAnalysisAllJPBarWidth(float currentVisScrWidth) {	analysisAllJPBarWidth = (currentVisScrWidth/(1.0f+numFtrsToShowForCalcAnalysis(curCalcAnalysisJPTypeIDX)))*.98f;}
+		
 	@Override
 	//build the example that represents the data where the mouse is
 	protected final SOM_MseOvrDisplay buildMseOverExample() {return new Straff_SOMMseOvrDisp(this,0.0f);}
@@ -1060,7 +1179,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 
 	public boolean isFtrCalcDone(int idx) {return (ftrCalcObj != null) && ftrCalcObj.calcAnalysisIsReady(idx);}		
 	//called to process analysis data
-	public void processCalcAnalysis(int _type) {	if (ftrCalcObj != null) {ftrCalcObj.finalizeCalcAnalysis(_type);} else {getMsgObj().dispInfoMessage("Straff_SOMMapManager","processCalcAnalysis", "ftrCalcObj == null! attempting to disp res for type : " + _type);}}
+	public void processCalcAnalysis() {	if (ftrCalcObj != null) {ftrCalcObj.finalizeCalcAnalysis(curCalcAnalysisSrcDataTypeIDX);} else {getMsgObj().dispInfoMessage("Straff_SOMMapManager","processCalcAnalysis", "ftrCalcObj == null! attempting to disp res for type : " + curCalcAnalysisSrcDataTypeIDX);}}
 	//return # of features for calc analysis type being displayed
 	public int numFtrsToShowForCalcAnalysis(int _type) { 
 		switch(_type) {
@@ -1152,5 +1271,24 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 		String res = super.toString();
 		return res;
 	}
-	
+
+	public int getCurCalcAnalysisJPTypeIDX() {
+		return curCalcAnalysisJPTypeIDX;
+	}
+
+	public void setCurCalcAnalysisJPTypeIDX(int curCalcAnalysisJPTypeIDX) {
+		this.curCalcAnalysisJPTypeIDX = curCalcAnalysisJPTypeIDX;
+	}
+
+	public int getCurCalcAnalysisSrcDataTypeIDX() {
+		return curCalcAnalysisSrcDataTypeIDX;
+	}
+
+	public void setCurCalcAnalysisSrcDataTypeIDX(int curCalcAnalysisSrcDataTypeIDX) {
+		this.curCalcAnalysisSrcDataTypeIDX = curCalcAnalysisSrcDataTypeIDX;
+		processCalcAnalysis();	
+	}
+
+
+
 }//Straff_SOMMapManager
