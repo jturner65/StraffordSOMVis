@@ -200,7 +200,7 @@ public class Straff_CustProspectExample extends Straff_ProspectExample {
 	// standardize this feature vector - across each feature, set value to be
 	// between 0 and 1
 	protected final void buildStdFtrsMap() {
-		if (allNonZeroFtrIDXs.size() > 0) {	calcStdFtrVector(ftrMaps[ftrMapTypeKey], ftrMaps[stdFtrMapTypeKey], mapMgr.getTrainFtrMins(),mapMgr.getTrainFtrDiffs());} 
+		if (allNonZeroFtrIDXs.size() > 0) {	calcStdFtrVector(ftrMaps[rawftrMapTypeKey], ftrMaps[stdFtrMapTypeKey], mapMgr.getTrainFtrMins(),mapMgr.getTrainFtrDiffs());} 
 		else {			clearFtrMap(stdFtrMapTypeKey);		} // ftrMaps[stdFtrMapTypeKey].clear();}
 		if ((mapOfSingleOrderTrainingExamples != null) && (mapOfSingleOrderTrainingExamples.size() > 0)) {
 			for (Straff_Cust_1OrdrTrainExample ex : mapOfSingleOrderTrainingExamples.values()) {			ex.buildAfterAllFtrVecsBuiltStructs();		}
@@ -232,8 +232,8 @@ public class Straff_CustProspectExample extends Straff_ProspectExample {
 			TreeMap<Integer, Straff_JP_OccurrenceData> map = JpOccurrences.get("orders");
 			// this is to monitor order counts - purely debug/informational
 			dbg_addOrderCountToTTLMap(map);
-			clearFtrMap(ftrMapTypeKey);//
-			((Straff_SOMMapManager) mapMgr).ftrCalcObj.calcCustFtrDataVec(this, allProdJPs, ftrMaps[ftrMapTypeKey],JpOccurrences);
+			clearFtrMap(rawftrMapTypeKey);//
+			((Straff_SOMMapManager) mapMgr).ftrCalcObj.calcCustFtrDataVec(this, allProdJPs, ftrMaps[rawftrMapTypeKey],JpOccurrences);
 			// if is good training data, then build date-based occurrence structs and
 			// calculate actual training data
 			if (!isBadExample()) {			buildDateBasedOccsAndTrainingFtrData();	} 
@@ -242,7 +242,7 @@ public class Straff_CustProspectExample extends Straff_ProspectExample {
 				this.initCatClassCountsForExample();//mostRecentOrderCounts = new TreeMap<Tuple<Integer, Integer>, Integer>();
 			} // if bad then won't contribute any training data - shouldn't be used to train!!!
 			
-		} else {		ftrMaps[ftrMapTypeKey].clear();	}
+		} else {		ftrMaps[rawftrMapTypeKey].clear();	}
 	}// buildFeaturesMap
 
 	// this will build the training-ftr configured vector contribution for this
@@ -251,7 +251,7 @@ public class Straff_CustProspectExample extends Straff_ProspectExample {
 	// then be used as the unmodified features of the True prospect records sharing
 	// the non-prod jps
 	public final void buildNonProdJpFtrVec() {
-		if (nonProdJpgJps.size() > 0) {((Straff_SOMMapManager) mapMgr).ftrCalcObj.buildCustNonProdFtrVecs(this, ftrMaps[ftrMapTypeKey],nonProdJpgJps, JpOccurrences.get("sources"));}
+		if (nonProdJpgJps.size() > 0) {((Straff_SOMMapManager) mapMgr).ftrCalcObj.buildCustNonProdFtrVecs(this, ftrMaps[rawftrMapTypeKey],nonProdJpgJps, JpOccurrences.get("sources"));}
 	}
 
 	@Override

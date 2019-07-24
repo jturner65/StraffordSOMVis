@@ -392,12 +392,12 @@ public abstract class Straff_ProspectExample extends Straff_SOMExample{
 		//build prod and non-prod jpgroup data here	
 		clearCompValMaps();
 		if(nonProdJpgJps.size() > 0) {
-			((Straff_SOMMapManager)mapMgr).ftrCalcObj.calcNonProdJpTrainFtrContribVec(this, nonProdJpgJps,compValFtrDataMaps[ftrMapTypeKey], JpOccurrences.get("sources"));
+			((Straff_SOMMapManager)mapMgr).ftrCalcObj.calcNonProdJpTrainFtrContribVec(this, nonProdJpgJps,compValFtrDataMaps[rawftrMapTypeKey], JpOccurrences.get("sources"));
 			//build normalized and standardized comparison vector also
 			if(compValFtrDataMapMag != 0.0) {
-				for(Integer key : compValFtrDataMaps[ftrMapTypeKey].keySet()) {	compValFtrDataMaps[normFtrMapTypeKey].put(key,  compValFtrDataMaps[ftrMapTypeKey].get(key)/compValFtrDataMapMag);}	
+				for(Integer key : compValFtrDataMaps[rawftrMapTypeKey].keySet()) {	compValFtrDataMaps[normFtrMapTypeKey].put(key,  compValFtrDataMaps[rawftrMapTypeKey].get(key)/compValFtrDataMapMag);}	
 				//use training example history to build std vector
-				calcStdFtrVector(compValFtrDataMaps[ftrMapTypeKey],  compValFtrDataMaps[stdFtrMapTypeKey], mapMgr.getTrainFtrMins(), mapMgr.getTrainFtrDiffs());
+				calcStdFtrVector(compValFtrDataMaps[rawftrMapTypeKey],  compValFtrDataMaps[stdFtrMapTypeKey], mapMgr.getTrainFtrMins(), mapMgr.getTrainFtrDiffs());
 			}			
 		} 
 	}//calcComValMaps()

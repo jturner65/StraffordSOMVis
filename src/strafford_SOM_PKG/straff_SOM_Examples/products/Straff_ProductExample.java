@@ -273,7 +273,7 @@ public class Straff_ProductExample extends Straff_SOMExample{
 	//take loaded data and convert to output data
 	@Override
 	protected void buildFeaturesMap() {
-		clearFtrMap(ftrMapTypeKey);//ftrMaps[ftrMapTypeKey].clear();	
+		clearFtrMap(rawftrMapTypeKey);//ftrMaps[ftrMapTypeKey].clear();	
 		//order map gives order value of each jp - provide multiplier for higher vs lower priority jps
 		TreeMap<Integer, Integer> orderMap = trainPrdctData.getJPOrderMap();
 		int numJPs = orderMap.size();
@@ -283,7 +283,7 @@ public class Straff_ProductExample extends Straff_SOMExample{
 		}
 		if(numJPs == 1) {
 			Integer ftrIDX = allNonZeroFtrIDXs.get(0);
-			ftrMaps[ftrMapTypeKey].put(ftrIDX, 1.0f);
+			ftrMaps[rawftrMapTypeKey].put(ftrIDX, 1.0f);
 			setFtrMinMax(ftrIDX, 1.0f);
 			this.ftrVecMag = 1.0f;			
 		} else {//more than 1 jp for this product
@@ -291,7 +291,7 @@ public class Straff_ProductExample extends Straff_SOMExample{
 			for (Integer IDX : allNonZeroFtrIDXs) {
 				Integer jp = jpJpgMon.getFtrJpByIdx(IDX);
 				val = (numJPs - orderMap.get(jp))/denom;
-				ftrMaps[ftrMapTypeKey].put(IDX,val);
+				ftrMaps[rawftrMapTypeKey].put(IDX,val);
 				setFtrMinMax(IDX, val);
 				ttlVal += val;
 			}	
@@ -302,7 +302,7 @@ public class Straff_ProductExample extends Straff_SOMExample{
 	@Override
 	protected void buildStdFtrsMap() {
 		clearFtrMap(stdFtrMapTypeKey);//ftrMaps[stdFtrMapTypeKey].clear();
-		for (Integer IDX : ftrMaps[ftrMapTypeKey].keySet()) {ftrMaps[stdFtrMapTypeKey].put(IDX,ftrMaps[ftrMapTypeKey].get(IDX));}//since features are all weighted to sum to 1, can expect ftrmap == strdizedmap
+		for (Integer IDX : ftrMaps[rawftrMapTypeKey].keySet()) {ftrMaps[stdFtrMapTypeKey].put(IDX,ftrMaps[rawftrMapTypeKey].get(IDX));}//since features are all weighted to sum to 1, can expect ftrmap == strdizedmap
 		setFlag(stdFtrsBuiltIDX,true);
 	}//buildStdFtrsMap
 	
@@ -325,7 +325,7 @@ public class Straff_ProductExample extends Straff_SOMExample{
 	public String toString(){
 		String res = "Example OID# : "+OID;
 		if(null!=mapLoc){res+="Location on SOM map : " + mapLoc.toStrBrf();}
-		if (mapMgr.getNumTrainFtrs() > 0) {			res += "\n\tFeature Val(s) : " + dispFtrMapVals(ftrMapTypeKey);		} 
+		if (mapMgr.getNumTrainFtrs() > 0) {			res += "\n\tFeature Val(s) : " + dispFtrMapVals(rawftrMapTypeKey);		} 
 		else {								res += "No Features for this product example";		}
 		return res;
 	}

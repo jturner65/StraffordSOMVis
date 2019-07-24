@@ -31,9 +31,9 @@ public class Straff_SOMMapNode extends SOM_MapNode{
 	//this manages the segment functionality for the category segments, which are collections of similar classes in a hierarchy
 	protected SOM_MapNodeSegMgr nonProdJPGroupSegManager;	
 
-	public Straff_SOMMapNode(SOM_MapManager _map, Tuple<Integer,Integer> _mapNode, float[] _ftrs) {		super(_map, _mapNode, _ftrs);	}//ctor w/float ftrs
+	public Straff_SOMMapNode(SOM_MapManager _map, Tuple<Integer,Integer> _mapNode, SOM_FtrDataType _ftrTypeUsedToTrain, float[] _ftrs) {		super(_map, _mapNode, _ftrTypeUsedToTrain, _ftrs);	}//ctor w/float ftrs
 	//build a map node from a string array of features
-	public Straff_SOMMapNode(SOM_MapManager _map,Tuple<Integer,Integer> _mapNode, String[] _strftrs) {	super(_map, _mapNode, _strftrs);  }//ctor w/str ftrs	
+	public Straff_SOMMapNode(SOM_MapManager _map,Tuple<Integer,Integer> _mapNode, SOM_FtrDataType _ftrTypeUsedToTrain, String[] _strftrs) {	super(_map, _mapNode,_ftrTypeUsedToTrain, _strftrs);  }//ctor w/str ftrs	
 
 	@Override
 	/**
@@ -123,7 +123,6 @@ public class Straff_SOMMapNode extends SOM_MapNode{
 
 	}//addMapNodeExToBMUs_Priv
 
-
 	///////////////////
 	// non-prod-jp-based segment data
 	
@@ -210,32 +209,11 @@ public class Straff_SOMMapNode extends SOM_MapNode{
 	//draw category segment contribution - collection of classes
 	public final void drawMeNonProdJpGroupSegClr(my_procApplet p, Integer category) { nonProdJPGroupSegManager.drawMeSegClr(p, category);}//drawMeFtrWtSegClr
 	
-	
-//	@Override
-//	//called by SOMDataLoader - these are standardized based on data mins and diffs seen in -map nodes- feature data, not in training data
-//	public void buildStdFtrsMapFromFtrData_MapNode(float[] minsAra, float[] diffsAra) {
-//		clearFtrMap(stdFtrMapTypeKey);
-//		if (ftrMaps[ftrMapTypeKey].size() > 0) {
-//			for(Integer destIDX : ftrMaps[ftrMapTypeKey].keySet()) {
-//				Float lb = minsAra[destIDX], diff = diffsAra[destIDX];
-//				float val = 0.0f;
-//				if (diff==0) {//same min and max
-//					if (lb > 0) {	val = 1.0f;}//only a single value same min and max-> set feature value to 1.0
-//					else {val= 0.0f;}
-//				} else {				val = (ftrMaps[ftrMapTypeKey].get(destIDX)-lb)/diff;				}
-//				ftrMaps[stdFtrMapTypeKey].put(destIDX,val);
-//			}//for each non-zero feature
-//		}
-//		//just set the comparator vector array == to the actual feature vector array
-//		buildCompFtrVector(0.0f);
-//		setFlag(stdFtrsBuiltIDX,true);
-//	}//buildStdFtrsMap_MapNode
-	
 	//by here ftrs for this map node have been built
 	@Override
 	protected void buildAllNonZeroFtrIDXs() {
 		allNonZeroFtrIDXs = new ArrayList<Integer>();
-		for(Integer idx : ftrMaps[ftrMapTypeKey].keySet()) {		allNonZeroFtrIDXs.add(idx);	}
+		for(Integer idx : ftrMaps[rawftrMapTypeKey].keySet()) {		allNonZeroFtrIDXs.add(idx);	}
 	}//buildAllNonZeroFtrIDXs
 	
 	//called after the features and normed features of this example are built

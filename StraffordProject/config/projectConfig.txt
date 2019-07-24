@@ -112,7 +112,7 @@ useSparseTestingData,"true"
 #
 #	specify map directories containing prebuilt maps - default is first listed unless otherwise specified below
 #	add as many entries as desired, all using same prefix "preBuiltMapDir"
-#	UI currently will allow interaction with first 4
+#	UI currently will allow button interaction with first 4
 preBuiltMapDir,"StraffSOM_2019_06_18_13_06"
 preBuiltMapDir,"StraffSOM_2019_06_20_11_22"
 preBuiltMapDir,"StraffSOM_2019_06_20_11_34"

@@ -79,9 +79,9 @@ public class Straff_Cust_1OrdrTrainExample extends Straff_CustProspectExample{
 	protected void buildFeaturesMap() {
 		//access calc object for this 	
 		if (allProdJPs.size() > 0) {
-			clearFtrMap(ftrMapTypeKey);//
-			((Straff_SOMMapManager)mapMgr).ftrCalcObj.calcTrainingFtrDataVec(this,allProdJPs, ftrMaps[ftrMapTypeKey],orderDate, JpOccurrences);				
-		} else {ftrMaps[ftrMapTypeKey].clear();}
+			clearFtrMap(rawftrMapTypeKey);//
+			((Straff_SOMMapManager)mapMgr).ftrCalcObj.calcTrainingFtrDataVec(this,allProdJPs, ftrMaps[rawftrMapTypeKey],orderDate, JpOccurrences);				
+		} else {ftrMaps[rawftrMapTypeKey].clear();}
 	}//buildFeaturesMap
 	
 	@Override

@@ -723,7 +723,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	}//initMapNodesPriv
 	@Override
 	//build a map node that is formatted specifically for this project
-	public SOM_MapNode buildMapNode(Tuple<Integer,Integer>mapLoc, String[] tkns) {return new Straff_SOMMapNode(this,mapLoc, tkns);}	
+	public SOM_MapNode buildMapNode(Tuple<Integer,Integer>mapLoc, SOM_FtrDataType _ftrTypeUsedToTrain, String[] tkns) {return new Straff_SOMMapNode(this,mapLoc,_ftrTypeUsedToTrain, tkns);}	
 	
 	///////////////////////////
 	// end build and manage mapNodes 
