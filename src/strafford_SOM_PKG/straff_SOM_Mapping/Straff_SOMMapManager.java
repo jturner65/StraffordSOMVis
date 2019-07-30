@@ -14,6 +14,7 @@ import base_UI_Objects.*;
 import base_Utils_Objects.io.MessageObject;
 import base_Utils_Objects.io.MsgCodes;
 import base_Utils_Objects.vectorObjs.Tuple;
+import base_Utils_Objects.vectorObjs.myPointf;
 import processing.core.PImage;
 import strafford_SOM_PKG.straff_Features.*;
 import strafford_SOM_PKG.straff_Features.featureCalc.Straff_WeightCalc;
@@ -960,6 +961,17 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 		}	
 	}//instance-specific init 
 	
+	/**
+	 * Strafford-specific SOM mouse over value display - TODO
+	 */
+	@Override
+	protected final SOM_MseOvrDisplay getDataPointAtLoc_Priv(float x, float y, float sensitivity, myPointf locPt) {
+		SOM_MseOvrDisplay dp; 
+		SOM_MapNode nearestNode = getMapNodeByCoords(new Tuple<Integer,Integer> ((int)(x+.5f), (int)(y+.5f)));
+		dp = setMseDataExampleNodeName(locPt,nearestNode,sensitivity);
+		
+		return dp;
+	}
 	
 	public void _drawAnalysis(my_procApplet pa, int exCalcedIDX, int mapDrawAnalysisIDX) {
 		if (win.getPrivFlags(exCalcedIDX)){	
@@ -994,11 +1006,11 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	//stuff to draw specific to this instance, before nodes are drawn
 	protected void drawMapRectangle_Indiv(my_procApplet pa, int curImgNum) {
 		if(win.getPrivFlags(Straff_SOMMapUIWin.mapDrawTruePspctIDX)){			drawValidationData(win.pa);}
-		boolean notDrawAnalysis = !(win.getPrivFlags(Straff_SOMMapUIWin.mapDrawCustAnalysisVisIDX) || win.getPrivFlags(Straff_SOMMapUIWin.mapDrawTPAnalysisVisIDX));
-		//not drawing any analysis currently
-		if (notDrawAnalysis && (mseOvrData != null)){	drawMseOverData(pa);}//draw mouse-over info if not showing calc analysis		 		
 		
 		if (win.getPrivFlags(Straff_SOMMapUIWin.mapDrawCurProdFtrBMUZoneIDX)){		drawProductRegion(pa,curProdToShowIDX,prodZoneDistThresh);}
+		//not drawing any analysis currently
+		boolean notDrawAnalysis = !(win.getPrivFlags(Straff_SOMMapUIWin.mapDrawCustAnalysisVisIDX) || win.getPrivFlags(Straff_SOMMapUIWin.mapDrawTPAnalysisVisIDX));
+		if (notDrawAnalysis && (mseOvrData != null)){	drawMseOverData(pa);}//draw mouse-over info if not showing calc analysis		 		
 	}//drawMapRectangleIndiv
 	/**
 	 * draw instance-specific per-ftr map display
