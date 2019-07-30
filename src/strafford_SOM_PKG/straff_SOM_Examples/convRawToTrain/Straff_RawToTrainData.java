@@ -2,7 +2,6 @@ package strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain;
 
 import java.util.*;
 
-import base_Utils_Objects.*;
 import base_Utils_Objects.io.MessageObject;
 import base_Utils_Objects.io.MsgCodes;
 import base_Utils_Objects.vectorObjs.Tuple;

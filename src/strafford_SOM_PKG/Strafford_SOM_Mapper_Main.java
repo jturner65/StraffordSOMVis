@@ -7,9 +7,7 @@ import java.io.File;
 import java.util.TreeMap;
 
 import net.sourceforge.argparse4j.*;
-import net.sourceforge.argparse4j.impl.*;
 import net.sourceforge.argparse4j.inf.*;
-import base_SOM_Objects.som_utils.SOM_ProjConfigData;
 import base_Utils_Objects.io.MessageObject;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 
@@ -56,7 +54,10 @@ public class Strafford_SOM_Mapper_Main {
 			return;}
 		case 1 :{		//build map using values specified in map config
 			//this will load training data and build map
-			boolean success = mapMgr.loadTrainDataMapConfigAndBuildMap(false);			
+			boolean success = mapMgr.loadTrainDataMapConfigAndBuildMap(false);		
+			if(!success) {
+				msgObj.dispInfoMessage("SOM_Strafford_Main", "execSOMProc","Failure in attempting to load training data and specified map configuration");
+			}
 			return;}
 		case 2 :{
 			/**
@@ -117,6 +118,7 @@ public class Strafford_SOM_Mapper_Main {
 	 * @param args
 	 */
 	public static void main(String[] args) {
+		@SuppressWarnings("unused")
 		Strafford_SOM_Mapper_Main mainObj = new Strafford_SOM_Mapper_Main(args);
 
 	}//main

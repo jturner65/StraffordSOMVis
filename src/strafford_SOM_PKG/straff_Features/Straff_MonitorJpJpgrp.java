@@ -3,7 +3,6 @@ package strafford_SOM_PKG.straff_Features;
 import java.util.*; 
 import java.util.concurrent.ConcurrentSkipListMap;
 
-import base_SOM_Objects.som_examples.*;
 import base_SOM_Objects.*;
 import base_Utils_Objects.io.FileIOManager;
 import base_Utils_Objects.io.MessageObject;
@@ -12,7 +11,6 @@ import base_Utils_Objects.vectorObjs.Tuple;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.*;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.base.Straff_BaseRawData;
 import strafford_SOM_PKG.straff_SOM_Examples.Straff_EvtDataType;
-import strafford_SOM_PKG.straff_SOM_Examples.Straff_SOMExample;
 import strafford_SOM_PKG.straff_SOM_Examples.products.Straff_ProductExample;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_ProspectExample;
 
@@ -90,6 +88,7 @@ public class Straff_MonitorJpJpgrp {
 		msgObj.dispMessage("MonitorJpJpgrp","setJPDataFromExampleData","State after init : " + this.toString(), MsgCodes.info1);
 		
 		//rebuild all jp->jpg mappings based on customer and prospect data
+		@SuppressWarnings("unchecked")
 		HashSet<Tuple<Integer,Integer>>[] tmpSetJpsJpgs = new HashSet[typeOfJpStrs.length];
 		for(int i=0;i<tmpSetJpsJpgs.length;++i) {	tmpSetJpsJpgs[i]= new HashSet<Tuple<Integer,Integer>>();}
 		
@@ -330,7 +329,7 @@ public class Straff_MonitorJpJpgrp {
 		
 		//reference to ids and counts of all jps seen in source event records
 		HashMap<Straff_EvtDataType, TreeMap<Integer, Integer>> jpPerEventSeenCount = allObj.getJpPerEventSeenCount();
-		TreeMap<Integer, TreeSet <Integer>> jpgsToJps = allObj.getJpgsToJps();
+		//TreeMap<Integer, TreeSet <Integer>> jpgsToJps = allObj.getJpgsToJps();
 		TreeMap<Integer, Integer> jpsToJpgs = allObj.getJpsToJpgs();
 		//map from jp to idx in array
 		Integer[] jpgrpsByIdx = allObj.getJpGrpByIdx();
@@ -540,6 +539,7 @@ abstract class JP_JPG_Data{
 	}//copyRawNames
 	
 	//add example data to aggregators
+	@SuppressWarnings("rawtypes")
 	public abstract void buildJpPresentMaps(ConcurrentSkipListMap mapObj,HashSet<Tuple<Integer,Integer>> tmpSetIndivJpsJpgs,HashSet<Tuple<Integer,Integer>> tmpSetAllJpsJpgs);
 	
 	//build jp-to-jpgroup and jpgroup-to-jp relational structures
@@ -771,9 +771,9 @@ abstract class JP_JPG_Data{
 		init();//clear everything out
 		jpNamesRaw = new TreeMap<Integer, String>();	
 		jpGrpNamesRaw = new TreeMap<Integer, String>();
-		HashSet<Integer> tmpProdJpgrs = new HashSet<Integer>();
+		//HashSet<Integer> tmpProdJpgrs = new HashSet<Integer>();
 		String[] csvLoadRes = fileIO.loadFileIntoStringAra(fileName, "MonitorJpJpgrp file loaded", "MonitorJpJpgrp File Failed to load");
-		int numJps = 0, numJpgs = 0;
+		//int numJps = 0, numJpgs = 0;
 		boolean isProd = false;
 		int numEventTypes = Straff_EvtDataType.getNumVals();
 		for(int i=0;i<csvLoadRes.length;++i) {
@@ -903,6 +903,7 @@ class allJP_JPG_Data extends JP_JPG_Data{
 	
 	public allJP_JPG_Data(Straff_MonitorJpJpgrp _mon, String _type) {super(_mon, _type);}
 	
+	@SuppressWarnings("rawtypes")
 	@Override
 	//this object will aggregate data based on prspctJP_JPG_Data and productJP_JPG_Data objects
 	public void buildJpPresentMaps(ConcurrentSkipListMap mapObj, HashSet<Tuple<Integer,Integer>> tmpSetProdJpsJpgs,HashSet<Tuple<Integer,Integer>> tmpSetAllJpsJpgs) {}
@@ -946,6 +947,7 @@ class prspctJP_JPG_Data extends JP_JPG_Data{
 	public prspctJP_JPG_Data(Straff_MonitorJpJpgrp _mon, String _type) {super(_mon, _type);}
 	
 	//find counts of each kind of event reference for each jp per prospect - multiple orders by same prospect will still come up on 1 count
+	@SuppressWarnings("rawtypes")
 	@Override
 	public void buildJpPresentMaps(ConcurrentSkipListMap mapObj, HashSet<Tuple<Integer,Integer>> tmpSetPrspctJpsJpgs,HashSet<Tuple<Integer,Integer>> tmpSetAllJpsJpgs) {
 		int numEventTypes = Straff_EvtDataType.getNumVals();
@@ -955,7 +957,8 @@ class prspctJP_JPG_Data extends JP_JPG_Data{
 		for (Straff_ProspectExample ex : map.values()) {
 			HashSet<Tuple<Integer,Integer>> tmpExSet = ex.getSetOfAllJpgJpData(); //tmpExSet is set of all jps/jpgs in ex
 			for (Tuple<Integer,Integer> jpgJp : tmpExSet) {
-				Integer jpg = jpgJp.x, jp=jpgJp.y;
+				Integer //jpg = jpgJp.x, 
+						jp=jpgJp.y;
 				incrJPCounts(jp, jpSeenCount);
 				//idxs : 0==if in an order; 1==if in an opt, 2 == if is in link, 3==if in source event, 4 if in any non-source event (denotes action by customer),5 if in any event including source
 				boolean[] recMmbrship = ex.hasJP(jp);
@@ -973,6 +976,7 @@ class productJP_JPG_Data extends JP_JPG_Data{
 
 	public productJP_JPG_Data(Straff_MonitorJpJpgrp _mon, String _type) {super(_mon, _type);}
 
+	@SuppressWarnings("rawtypes")
 	@Override
 	public void buildJpPresentMaps(ConcurrentSkipListMap mapObj, HashSet<Tuple<Integer,Integer>> tmpSetProdJpsJpgs,HashSet<Tuple<Integer,Integer>> tmpSetAllJpsJpgs) {
 		//add all jps-jpgs from product data - will have data not seen in prospects	
@@ -983,7 +987,8 @@ class productJP_JPG_Data extends JP_JPG_Data{
 			HashSet<Tuple<Integer,Integer>> tmpExSet = ex.getSetOfAllJpgJpData(); //tmpExSet is set of all jps/jpgs in ex
 			for (Tuple<Integer,Integer> jpgJp : tmpExSet) {
 				//only do the following if we wish to add these values to the map
-				Integer jpg = jpgJp.x, jp=jpgJp.y;
+				Integer //jpg = jpgJp.x, 
+						jp=jpgJp.y;
 				incrJPCounts(jp, jpSeenCount);
 				tmpSetProdJpsJpgs.add(jpgJp);
 				tmpSetAllJpsJpgs.add(new Tuple<Integer, Integer>(jpgJp));

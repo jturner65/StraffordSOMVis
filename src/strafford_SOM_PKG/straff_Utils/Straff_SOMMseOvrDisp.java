@@ -4,8 +4,6 @@ import java.util.*;
 
 import base_SOM_Objects.som_examples.*;
 import base_SOM_Objects.som_ui.SOM_MseOvrDisplay;
-import base_UI_Objects.*;
-import base_Utils_Objects.vectorObjs.myPointf;
 import strafford_SOM_PKG.straff_Features.Straff_MonitorJpJpgrp;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 

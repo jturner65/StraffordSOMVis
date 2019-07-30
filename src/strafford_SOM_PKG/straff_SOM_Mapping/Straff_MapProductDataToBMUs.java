@@ -1,12 +1,10 @@
 package strafford_SOM_PKG.straff_SOM_Mapping;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.TreeMap;
 
 import base_SOM_Objects.*;
 import base_SOM_Objects.som_examples.*;
-import base_SOM_Objects.som_segments.segments.SOM_MappedSegment;
 import base_SOM_Objects.som_utils.*;
 import base_Utils_Objects.io.MsgCodes;
 import strafford_SOM_PKG.straff_SOM_Examples.products.Straff_ProductExample;

@@ -7,7 +7,6 @@ import base_SOM_Objects.som_examples.SOM_Example;
 import base_UI_Objects.my_procApplet;
 import base_Utils_Objects.io.MsgCodes;
 import strafford_SOM_PKG.straff_SOM_Examples.products.Straff_ProductExample;
-import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_TrueProspectExample;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.base.Straff_SOMExampleManager;
 

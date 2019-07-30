@@ -7,14 +7,12 @@ import java.util.concurrent.Future;
 
 import base_SOM_Objects.som_examples.*;
 import base_SOM_Objects.som_utils.SOM_ProjConfigData;
-import base_Utils_Objects.*;
 import base_Utils_Objects.io.FileIOManager;
 import base_Utils_Objects.io.MessageObject;
 import base_Utils_Objects.io.MsgCodes;
 import strafford_SOM_PKG.straff_RawDataHandling.data_loaders.base.Straff_RawDataLoader;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.*;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.base.Straff_BaseRawData;
-import strafford_SOM_PKG.straff_SOM_Examples.Straff_SOMExample;
 import strafford_SOM_PKG.straff_SOM_Examples.products.Straff_ProductExample;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_CustProspectExample;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
@@ -74,6 +72,7 @@ public class Straff_SOMRawDataLdrCnvrtr {
 	public TreeMap<String, Straff_RawDataLoader>straffDataLoaders;
 	//executor
 	private ExecutorService th_exec;
+	@SuppressWarnings("unchecked")
 	public Straff_SOMRawDataLdrCnvrtr(Straff_SOMMapManager _mapMgr, SOM_ProjConfigData _projConfig) {
 		mapMgr=_mapMgr;
 		msgObj = mapMgr.buildMsgObj();
@@ -159,7 +158,6 @@ public class Straff_SOMRawDataLdrCnvrtr {
 		@SuppressWarnings("rawtypes")
 		Class[] args = new Class[] {boolean.class, String.class};//classes of arguments for loader ctor		
 		try {
-			@SuppressWarnings("unchecked")
 			Straff_RawDataLoader loaderObj = (Straff_RawDataLoader) straffObjLoaders[idx].getDeclaredConstructor(args).newInstance(flags[0], fullFileName);
 			loaderObj.setLoadData(this, mapMgr.buildMsgObj(), dataDirTypeName, fullFileName, flags, straffObjFlagIDXs[idx], fidx);
 			ArrayList<Straff_BaseRawData> datAra = loaderObj.execLoad();

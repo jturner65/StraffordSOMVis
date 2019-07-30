@@ -7,16 +7,10 @@ import base_SOM_Objects.som_examples.*;
 import base_SOM_Objects.som_segments.SOM_MapNodeCategorySegMgr;
 import base_SOM_Objects.som_segments.SOM_MapNodeClassSegMgr;
 import base_SOM_Objects.som_segments.SOM_MapNodeSegMgr;
-import base_SOM_Objects.som_segments.segmentData.SOM_MapNodeSegmentData;
 import base_SOM_Objects.som_segments.segments.SOM_MappedSegment;
-import base_SOM_Objects.som_segments.segments.SOM_CategorySegment;
-import base_SOM_Objects.som_segments.segments.SOM_ClassSegment;
-import base_SOM_Objects.som_segments.segments.SOM_FtrWtSegment;
 import base_UI_Objects.my_procApplet;
-import base_Utils_Objects.*;
 import base_Utils_Objects.vectorObjs.Tuple;
 import strafford_SOM_PKG.straff_Features.Straff_MonitorJpJpgrp;
-import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_CustProspectExample;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_ProspectExample;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 
@@ -80,7 +74,8 @@ public class Straff_SOMMapNode extends SOM_MapNode{
 			Integer npJpg = npJpgJp.x, npJp = npJpgJp.y;
 			//System.out.println("\t nonprodjpgpjps jp : " +npJp+" | non prod jpgroup :  "+npJpg);
 			Float newCount = nonProdJPSegManager.addSegDataFromTrainingEx(new Integer[] {npJp}, 1.0f, "_NonProd_JPCount_JP_", "Non Prod JP present in examples :");
-			Float dummy = nonProdJPGroupSegManager.addSegDataFromTrainingEx(new Integer[] {npJpg,npJp}, newCount, "_NonProd_JPGroupCount_JPG_", "Non Prod JPGroup present in examples :");
+			//Float dummy = 
+			nonProdJPGroupSegManager.addSegDataFromTrainingEx(new Integer[] {npJpg,npJp}, newCount, "_NonProd_JPGroupCount_JPG_", "Non Prod JPGroup present in examples :");
 		}
 		
 	}//addTrainingExToBMUs_Priv	
