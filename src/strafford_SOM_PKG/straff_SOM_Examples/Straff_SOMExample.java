@@ -1,23 +1,12 @@
 package strafford_SOM_PKG.straff_SOM_Examples;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentSkipListMap;
 
 import base_SOM_Objects.*;
 import base_SOM_Objects.som_examples.*;
-import base_SOM_Objects.som_segments.segmentData.SOM_MapNodeSegmentData;
-import base_SOM_Objects.som_segments.segments.SOM_MappedSegment;
-import base_Utils_Objects.*;
 import base_Utils_Objects.io.MsgCodes;
 import base_Utils_Objects.vectorObjs.Tuple;
 import strafford_SOM_PKG.straff_Features.Straff_MonitorJpJpgrp;
-import strafford_SOM_PKG.straff_RawDataHandling.raw_data.*;
-import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.events.Straff_LinkEventRawToTrainData;
-import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.events.Straff_OptEventRawToTrainData;
-import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.events.Straff_OrderEventRawToTrainData;
-import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.events.Straff_SrcEventRawToTrainData;
-import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.events.StraffEvntRawToTrainData;
-import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_JP_OccurrenceData;
 import strafford_SOM_PKG.straff_SOM_Mapping.*;
 
 
@@ -63,6 +52,7 @@ public abstract class Straff_SOMExample extends SOM_Example{
 	public float compValFtrDataMapMag = 0.0f;
 	
 
+	@SuppressWarnings("unchecked")
 	public Straff_SOMExample(SOM_MapManager _map, SOM_ExDataType _type, String _id) {
 		super(_map, _type, _id);
 		jpJpgMon = ((Straff_SOMMapManager) mapMgr).jpJpgrpMon;

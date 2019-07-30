@@ -11,6 +11,7 @@ import base_SOM_Objects.som_ui.win_disp_ui.SOM_UIToMapCom;
 import base_SOM_Objects.som_utils.SOM_ProjConfigData;
 
 import base_UI_Objects.*;
+import base_UI_Objects.windowUI.myDispWindow;
 import base_Utils_Objects.io.MessageObject;
 import base_Utils_Objects.io.MsgCodes;
 import base_Utils_Objects.vectorObjs.Tuple;
@@ -129,10 +130,10 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	//which jp is currently being investigated of -all- jps
 	private int curAllJPToShowIDX;
 	
-	//which nonprod jp to show (for data which support showing non-prod jps
-	private int curNonProdJPToShowIDX;
-	//which nonprod jpg to show (for data which support showing non-prod jpgroups
-	private int curNonProdJPGroupToShowIDX;
+//	//which nonprod jp to show (for data which support showing non-prod jps
+//	private int curNonProdJPToShowIDX;
+//	//which nonprod jpg to show (for data which support showing non-prod jpgroups
+//	private int curNonProdJPGroupToShowIDX;
 
 	//types of data that can be used for calc analysis 
 	private int curCalcAnalysisSrcDataTypeIDX = Straff_WeightCalc.bndAra_AllJPsIDX;
@@ -657,6 +658,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 		jpJpgrpMon.setJPDataFromExampleData(custMapper, truePrspctExMapper, prodExMapper);		
 		setNumTrainFtrs(jpJpgrpMon.getNumTrainFtrs()); 
 		numTtlJps = jpJpgrpMon.getNumAllJpsFtrs();
+		getMsgObj().dispInfoMessage("Straff_SOMMapManager","_setJPDataFromExampleData","Total # of JPs referenced : "+ numTtlJps);
 		//rebuild calc object since feature terrain might have changed 
 		String calcFullFileName = ((Straff_SOMProjConfig)projConfigData).getFullCalcInfoFileName(); 
 		//make/remake calc object - reads from calcFullFileName data file
@@ -944,9 +946,9 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 		//saveNonProdJpGroup_BMUReport();
 	}
 	//save non-prod-jp segment information
-	private void saveNonProdJp_BMUReport(){		_saveSegmentReports(nonProdJP_Segments,projConfigData.getSegmentFileNamePrefix("nonprod_jps",""));}
+	protected void saveNonProdJp_BMUReport(){		_saveSegmentReports(nonProdJP_Segments,projConfigData.getSegmentFileNamePrefix("nonprod_jps",""));}
 	//save non-prod-jpgroup segment information
-	private void saveNonProdJpGroup_BMUReport(){		_saveSegmentReports(nonProdJpGroup_Segments,projConfigData.getSegmentFileNamePrefix("nonprod_jpgroups",""));}
+	protected void saveNonProdJpGroup_BMUReport(){		_saveSegmentReports(nonProdJpGroup_Segments,projConfigData.getSegmentFileNamePrefix("nonprod_jpgroups",""));}
 	
 
 	/////////////////////////////////////////
@@ -957,7 +959,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 		curAllJPToShowIDX = 0;
 		mapPerJpgWtImgs = new PImage[num2ndryMaps];
 		for(int i=0;i<mapPerJpgWtImgs.length;++i) {
-			mapPerJpgWtImgs[i] = win.pa.createImage(w, h, format);
+			mapPerJpgWtImgs[i] = myDispWindow.pa.createImage(w, h, format);
 		}	
 	}//instance-specific init 
 	
@@ -972,7 +974,18 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 		
 		return dp;
 	}
-	
+	/**
+	 * instancing application should determine whether we want to display features sorted in magnitude order, or sorted in idx order
+	 * @param ptrLoc
+	 * @param ftrs
+	 * @param sens
+	 * @return
+	 */
+	@Override
+	public final SOM_MseOvrDisplay setMseDataExampleFtrs(myPointf ptrLoc, TreeMap<Integer, Float> ftrs, float sens) {
+		return this.setMseDataExampleFtrs_WtSorted(ptrLoc, ftrs, sens);
+	}
+
 	public void _drawAnalysis(my_procApplet pa, int exCalcedIDX, int mapDrawAnalysisIDX) {
 		if (win.getPrivFlags(exCalcedIDX)){	
 			//determine what kind of jps are being displayed 
@@ -1005,7 +1018,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	@Override
 	//stuff to draw specific to this instance, before nodes are drawn
 	protected void drawMapRectangle_Indiv(my_procApplet pa, int curImgNum) {
-		if(win.getPrivFlags(Straff_SOMMapUIWin.mapDrawTruePspctIDX)){			drawValidationData(win.pa);}
+		if(win.getPrivFlags(Straff_SOMMapUIWin.mapDrawTruePspctIDX)){			drawValidationData(myDispWindow.pa);}
 		
 		if (win.getPrivFlags(Straff_SOMMapUIWin.mapDrawCurProdFtrBMUZoneIDX)){		drawProductRegion(pa,curProdToShowIDX,prodZoneDistThresh);}
 		//not drawing any analysis currently
@@ -1109,7 +1122,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	
 	@Override
 	protected float getPreBuiltMapInfoDetail(my_procApplet pa, String[] str, int idx, float yOff, boolean isLoaded) {
-		int clrIDX = (isLoaded ? pa.gui_Yellow : pa.gui_White);
+		int clrIDX = (isLoaded ? IRenderInterface.gui_Yellow : IRenderInterface.gui_White);
 		pa.showOffsetText(0,clrIDX,"Weight Calc Used for this map : ");
 		yOff += sideBarYDisp;
 		pa.translate(10.0f, sideBarYDisp, 0.0f);

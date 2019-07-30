@@ -6,7 +6,6 @@ import java.util.regex.Pattern;
 
 import base_SOM_Objects.*;
 import base_SOM_Objects.som_examples.*;
-import base_SOM_Objects.som_segments.segments.SOM_MappedSegment;
 import base_Utils_Objects.io.MsgCodes;
 import base_Utils_Objects.vectorObjs.Tuple;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.*;
@@ -246,7 +245,10 @@ public abstract class Straff_ProspectExample extends Straff_SOMExample{
 	//return # of values in data map
 	protected final int getSizeOfDataMap(TreeMap<Date, TreeMap<Integer, StraffEvntRawToTrainData>> map) {
 		int res = 0;
-		for (Date date : map.keySet()) {for (Integer eid :  map.get(date).keySet()) {res+=1;}	}	
+		for (Date date : map.keySet()) {
+			res+=map.get(date).size();
+			//for (Integer eid :  map.get(date).keySet()) {res+=1;}	
+		}	
 		return res;
 	}
 	protected abstract String[] getEventMapTypeKeys();

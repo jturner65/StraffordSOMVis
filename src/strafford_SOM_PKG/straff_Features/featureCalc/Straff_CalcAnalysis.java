@@ -2,6 +2,7 @@ package strafford_SOM_PKG.straff_Features.featureCalc;
 
 import java.util.ArrayList;
 
+import base_UI_Objects.IRenderInterface;
 import base_UI_Objects.my_procApplet;
 
 //this class will hold analysis information for calculations to more clearly understand the results of the current calc object
@@ -54,13 +55,13 @@ public class Straff_CalcAnalysis{//per JPWeightEquation analysis of data
 		eq=_eq;reset();
 		jpIDXara=_jpIDX;
 		dispIDXAra = new int[] {jpIDXara[0]%5,jpIDXara[1]%5} ;
-		legendSizes=new float[eq.numEqs];
-		for(int i=0;i<eq.numEqs;++i) {legendSizes[i]= 1.0f/eq.numEqs;}
+		legendSizes=new float[Straff_JPWeightEquation.numEqs];
+		for(int i=0;i<Straff_JPWeightEquation.numEqs;++i) {legendSizes[i]= 1.0f/Straff_JPWeightEquation.numEqs;}
 	}//ctor
 	//reset this calc analysis object
 	public synchronized void reset() {
-		vals = new float[eq.numEqs];
-		eqTypeCount = new int[eq.numEqs];
+		vals = new float[Straff_JPWeightEquation.numEqs];
+		eqTypeCount = new int[Straff_JPWeightEquation.numEqs];
 		valSq = new float[vals.length];
 		workSpace = new float[vals.length];
 		legendDatStrAra = new String[vals.length];
@@ -123,7 +124,7 @@ public class Straff_CalcAnalysis{//per JPWeightEquation analysis of data
 			analysisCalcStats[stdIDX][i] = (float) Math.sqrt((valSq[i]/numExamplesNoOptOut) - (analysisCalcStats[meanIDX][i]*analysisCalcStats[meanIDX][i]));//E[X^2] - E[X]^2
 			analysisCalcStats[stdOptIDX][i] = (float) Math.sqrt((valSq[i]/numExamplesWithJP) - (analysisCalcStats[meanOptIDX][i]*analysisCalcStats[meanOptIDX][i]));		
 			perCompMuStd += "|Mu:"+String.format("%.5f",analysisCalcStats[meanIDX][i])+"|Std:"+String.format("%.5f",analysisCalcStats[stdIDX][i]);			
-			legendDatStrAra[i] = eq.calcNames[i] + " : "+ eqTypeCount[i]+" exmpls.";			
+			legendDatStrAra[i] = Straff_JPWeightEquation.calcNames[i] + " : "+ eqTypeCount[i]+" exmpls.";			
 		}
 		for (int i=0;i<analysisCalcStats.length;++i) {
 			ttlCalcStats_Vis[i]=0.0f;
@@ -157,19 +158,19 @@ public class Straff_CalcAnalysis{//per JPWeightEquation analysis of data
 		p.pushMatrix();p.pushStyle();
 		float rCompHeight, rYSt = 0.0f;
 		for(int i =0;i<analysisCalcStats[ratioIDX].length;++i) {
-			p.setColorValFill(p.gui_LightRed+i, 255);
+			p.setColorValFill(IRenderInterface.gui_LightRed+i, 255);
 			rCompHeight = height * analysisCalcStats[ratioIDX][i];
 			p.rect(0.0f, rYSt, width, rCompHeight);
 			rYSt+=rCompHeight;
 		}
 		if (selected) {
-			p.setColorValFill(p.gui_White, 100);
+			p.setColorValFill(IRenderInterface.gui_White, 100);
 			p.rect(-1.0f, -1.0f, width+2, height+2);
 		} 
 
 		p.translate(0.0f, height+txtYOff, 0.0f);
 		p.translate(0.0f, dispIDXAra[eqDispType]*txtYOff, 0.0f);
-		p.showOffsetText2D(0.0f, p.gui_White, ""+eq.jp);
+		p.showOffsetText2D(0.0f, IRenderInterface.gui_White, ""+eq.jp);
 		p.popStyle();p.popMatrix();	
 	}//drawFtrVec
 	
@@ -177,13 +178,13 @@ public class Straff_CalcAnalysis{//per JPWeightEquation analysis of data
 	protected void drawDetailFtrVec(my_procApplet p, float height, float width, float[] vals, float denom, String valTtl, String[] dispStrAra, String[] valDesc) {
 		p.pushMatrix();p.pushStyle();
 			p.translate(0.0f, txtYOff, 0.0f);
-			p.showOffsetText2D(0.0f, p.gui_White, valTtl);
+			p.showOffsetText2D(0.0f, IRenderInterface.gui_White, valTtl);
 			p.translate(0.0f, txtYOff, 0.0f);
 			p.pushMatrix();p.pushStyle();
 				float rCompHeight, rYSt = 0.0f, htMult = height/denom;
 				for(int i =0;i<vals.length;++i) {
 					if (vals[i] > 0.0f) {
-						p.setColorValFill(p.gui_LightRed+i, 255);
+						p.setColorValFill(IRenderInterface.gui_LightRed+i, 255);
 						rCompHeight = htMult * vals[i];
 						p.rect(0.0f, rYSt, width, rCompHeight);
 						rYSt+=rCompHeight;
@@ -197,7 +198,7 @@ public class Straff_CalcAnalysis{//per JPWeightEquation analysis of data
 						rCompHeight = htMult * vals[i];
 						p.pushMatrix();p.pushStyle();
 						p.translate(10.0f, rYSt+(rCompHeight/2.0f)+5, 0.0f);
-						if(null!= dispStrAra[i]) {			p.showOffsetText2D(0.0f, p.gui_Black, dispStrAra[i]);}
+						if(null!= dispStrAra[i]) {			p.showOffsetText2D(0.0f, IRenderInterface.gui_Black, dispStrAra[i]);}
 						p.popStyle();p.popMatrix();
 						rYSt+=rCompHeight;
 					}
@@ -206,7 +207,7 @@ public class Straff_CalcAnalysis{//per JPWeightEquation analysis of data
 			p.translate(0.0f, height+txtYOff, 0.0f);
 			if(valDesc != null) {
 				for(String s : valDesc) {
-					p.showOffsetText2D(0.0f, p.gui_White, s);
+					p.showOffsetText2D(0.0f, IRenderInterface.gui_White, s);
 					p.translate(0.0f, txtYOff, 0.0f);
 				}
 			}
@@ -219,7 +220,7 @@ public class Straff_CalcAnalysis{//per JPWeightEquation analysis of data
 	public void drawIndivFtrVec(my_procApplet p, float height, float width){
 		p.pushMatrix();p.pushStyle();
 		//title here?
-		p.showOffsetText2D(0.0f, p.gui_White, "Calc Values for ftr idx : " +jpIDXara[0] +"," +jpIDXara[1]+ " jp "+eq.jp + " : " + eq.jpName);//p.drawText("Calc Values for ftr idx : " +eq.jpIdx + " jp "+eq.jp, 0, 0, 0, p.gui_White);
+		p.showOffsetText2D(0.0f, IRenderInterface.gui_White, "Calc Values for ftr idx : " +jpIDXara[0] +"," +jpIDXara[1]+ " jp "+eq.jp + " : " + eq.jpName);//p.drawText("Calc Values for ftr idx : " +eq.jpIdx + " jp "+eq.jp, 0, 0, 0, p.gui_White);
 		p.translate(0.0f, txtYOff, 0.0f);
 		for(int i=0;i<analysisCalcStats.length;++i) {
 			drawDetailFtrVec(p,height,width, analysisCalcStats[i], ttlCalcStats_Vis[i], calcStatTitles[i], analysisCalcValStrs[i], calcStatDispDetail[i]);

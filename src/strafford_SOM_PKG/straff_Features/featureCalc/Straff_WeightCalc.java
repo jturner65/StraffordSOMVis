@@ -1,13 +1,10 @@
 package strafford_SOM_PKG.straff_Features.featureCalc;
 
 import java.util.*;
-import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentSkipListMap;
 
-import base_SOM_Objects.SOM_MapManager;
 import base_SOM_Objects.som_utils.SOM_ProjConfigData;
 import base_UI_Objects.*;
-import base_Utils_Objects.*;
 import base_Utils_Objects.io.FileIOManager;
 import base_Utils_Objects.io.MessageObject;
 import base_Utils_Objects.io.MsgCodes;

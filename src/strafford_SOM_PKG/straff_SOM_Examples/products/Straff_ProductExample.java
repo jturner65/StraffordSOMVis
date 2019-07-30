@@ -1,20 +1,16 @@
 package strafford_SOM_PKG.straff_SOM_Examples.products;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentSkipListMap;
 
 import base_SOM_Objects.som_examples.SOM_ExDataType;
 import base_SOM_Objects.som_examples.SOM_Example;
 import base_SOM_Objects.som_examples.SOM_MapNode;
-import base_SOM_Objects.som_segments.segmentData.SOM_MapNodeSegmentData;
-import base_SOM_Objects.som_segments.segments.SOM_MappedSegment;
 import base_UI_Objects.my_procApplet;
 import base_Utils_Objects.io.MsgCodes;
 import base_Utils_Objects.vectorObjs.Tuple;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.Straff_TcTagData;
 import strafford_SOM_PKG.straff_SOM_Examples.Straff_SOMExample;
 import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.Straff_TcTagRawToTrainData;
-import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_ProspectExample;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 
 
@@ -60,6 +56,7 @@ public class Straff_ProductExample extends Straff_SOMExample{
 	}//copy ctor
 	
 	//initialize structures to manage product examples
+	@SuppressWarnings("unchecked")
 	private void initProdBMUMaps() {
 		prodClr = mapMgr.getRndClr();
 		mapDrawRad = 3.0f;

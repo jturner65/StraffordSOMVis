@@ -9,7 +9,6 @@ import base_UI_Objects.*;
 import base_Utils_Objects.io.MsgCodes;
 import base_Utils_Objects.vectorObjs.myPoint;
 import base_Utils_Objects.vectorObjs.myVector;
-import processing.core.PImage;
 import strafford_SOM_PKG.straff_Features.featureCalc.Straff_WeightCalc;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 
@@ -69,7 +68,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		{"Map 1","Map 2","Map 3","Map 4"},
 		{"Raw","Proced","JpJpg","MapDat","---"}	
 	};
-	private final String[] dfltPreBltMapNames = {"Map 1","Map 2","Map 3","Map 4"};
+	//private final String[] dfltPreBltMapNames = {"Map 1","Map 2","Map 3","Map 4"};
 	//used to switch button name for 1st button to reflect whether performing csv-based load of raw data or sql query
 	private String[] menuLdRawFuncBtnNames = new String[] {"CSV", "SQL"};	
 	

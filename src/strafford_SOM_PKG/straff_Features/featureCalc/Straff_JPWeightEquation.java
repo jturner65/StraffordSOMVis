@@ -9,7 +9,6 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import base_SOM_Objects.SOM_MapManager;
 import base_UI_Objects.my_procApplet;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_JP_OccurrenceData;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_ProspectExample;
@@ -256,8 +255,8 @@ public class Straff_JPWeightEquation {
 	
 	//string rep of this calc
 	public String toString() {
-		int jpFtrIDX = jpIDXs[calcObj.bndAra_ProdJPsIDX];
-		int jpAllIDX = jpIDXs[calcObj.bndAra_AllJPsIDX];
+		int jpFtrIDX = jpIDXs[Straff_WeightCalc.bndAra_ProdJPsIDX];
+		int jpAllIDX = jpIDXs[Straff_WeightCalc.bndAra_AllJPsIDX];
 		String jpAllBuffer = (jpAllIDX >=100) ? "" : (jpAllIDX >=10) ? " " : "  ";//to align output 
 		String res = "JP : "+ String.format("%3d", jp) + " JPs["+jpAllIDX+"]" + jpAllBuffer;
 		if(jpFtrIDX >= 0) {
