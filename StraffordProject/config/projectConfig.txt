@@ -106,6 +106,12 @@ useSparseTrainingData,"true"
 #
 useSparseTestingData,"true"
 #
+#	min value used for standardized/scaled feature mapping/proposal
+stdFtr_destMin,"0.0f"
+#
+#	diff (max - min) value used for standardized/scaled feature mapping/proposal
+stdFtr_destDiff,"1.0f"
+#
 #	default feature type used to train in this project
 ftrTypeUsedToTrainStr,"stdFtrs"
 #
