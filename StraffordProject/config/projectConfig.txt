@@ -106,6 +106,8 @@ useSparseTrainingData,"true"
 #
 useSparseTestingData,"true"
 #
+#	default feature type used to train in this project
+ftrTypeUsedToTrainStr,"stdFtrs"
 #
 #Directory for prebuilt map : 
 #all the following use the new data as of 5/1/19
