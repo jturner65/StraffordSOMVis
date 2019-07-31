@@ -139,8 +139,8 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	private int curCalcAnalysisSrcDataTypeIDX = Straff_WeightCalc.bndAra_AllJPsIDX;
 	private int curCalcAnalysisJPTypeIDX = Straff_WeightCalc.bndAra_AllJPsIDX;
 	
-	private Straff_SOMMapManager(Straff_SOMMapUIWin _win, float[] _dims, TreeMap<String, Object> _argsMap) {
-		super(_win,_dims, _argsMap);	
+	private Straff_SOMMapManager(Straff_SOMMapUIWin _win, TreeMap<String, Object> _argsMap) {
+		super(_win, _argsMap);	
 		//if there's enough ram to run all prospects at once
 		if(_argsMap.get("enoughRamToLoadAllProspects") != null) {enoughRamToLoadAllProspects = (boolean) _argsMap.get("enoughRamToLoadAllProspects");}
 		//object to manage all jps and jpgroups seen in project
@@ -155,7 +155,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	}//ctor	
 	
 	//ctor from non-UI stub main
-	public Straff_SOMMapManager(float[] _dims, TreeMap<String, Object> _argsMap) {this(null,_dims, _argsMap);}		
+	public Straff_SOMMapManager(TreeMap<String, Object> _argsMap) {this(null, _argsMap);}		
 	
 	/**
 	 * build the map of example mappers used to manage all the data the SOM will consume

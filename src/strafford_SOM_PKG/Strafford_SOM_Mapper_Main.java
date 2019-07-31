@@ -24,7 +24,7 @@ public class Strafford_SOM_Mapper_Main {
 	 */
 	public Strafford_SOM_Mapper_Main(String[] args) {
 		//dims should be large enough to make sure map nodes can be mapped to spaces - only used for displaying results and for placing map nodes in "locations" so that distance can be quickly computed
-		float[] _dims = new float[] {834.8f,834.8f};
+		//float[] _dims = new float[] {834.8f,834.8f};
 		//set default directories
 		
 		argParser = buildArgParser();
@@ -38,7 +38,7 @@ public class Strafford_SOM_Mapper_Main {
 
         TreeMap<String, Object> resMap = (TreeMap<String, Object>) res.getAttrs();
 		
-		mapMgr = new Straff_SOMMapManager( _dims, resMap);
+		mapMgr = new Straff_SOMMapManager(resMap);
 		msgObj = mapMgr.buildMsgObj();
 		msgObj.dispInfoMessage("SOM_Strafford_Main", "constructor", "Begin SOM Process Execution");
 		execSOMProc(resMap);

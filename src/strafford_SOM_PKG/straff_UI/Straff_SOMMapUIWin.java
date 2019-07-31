@@ -152,7 +152,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		
 	@Override
 	//SOM_mapDims is built by base class initMe
-	protected SOM_MapManager buildMapMgr(float[] SOM_mapDims) {
+	protected SOM_MapManager buildMapMgr() {
 		//SOM_mapDims : start x and y and dimensions of full map visualization as function of visible window size;
 		//including strings for default directories specific to current project setup and Strafford
 		TreeMap<String, Object> _argsMap = new TreeMap<String,Object>();
@@ -161,7 +161,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		_argsMap.put("dataDir", "StraffordProject" + File.separator);
 		_argsMap.put("logLevel",0);//0 is console alone,1 is log file alone, 2 is both
 		
-		return new Straff_SOMMapManager(SOM_mapDims, _argsMap);
+		return new Straff_SOMMapManager(_argsMap);
 	}
 	
 	@Override
