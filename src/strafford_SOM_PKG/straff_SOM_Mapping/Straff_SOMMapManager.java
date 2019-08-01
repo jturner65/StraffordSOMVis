@@ -15,7 +15,9 @@ import base_UI_Objects.windowUI.myDispWindow;
 import base_Utils_Objects.io.MessageObject;
 import base_Utils_Objects.io.MsgCodes;
 import base_Utils_Objects.vectorObjs.Tuple;
+import base_Utils_Objects.vectorObjs.myPoint;
 import base_Utils_Objects.vectorObjs.myPointf;
+import base_Utils_Objects.vectorObjs.myVector;
 import processing.core.PImage;
 import strafford_SOM_PKG.straff_Features.*;
 import strafford_SOM_PKG.straff_Features.featureCalc.Straff_WeightCalc;
@@ -967,13 +969,29 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	 * Strafford-specific SOM mouse over value display - TODO
 	 */
 	@Override
-	protected final SOM_MseOvrDisplay getDataPointAtLoc_Priv(float x, float y, float sensitivity, myPointf locPt) {
+	protected final SOM_MseOvrDisplay getDataPointAtLoc_Priv(float x, float y, float sensitivity, SOM_MapNode nearestNode, myPointf locPt) {
 		SOM_MseOvrDisplay dp; 
-		SOM_MapNode nearestNode = getMapNodeByCoords(new Tuple<Integer,Integer> ((int)(x+.5f), (int)(y+.5f)));
 		dp = setMseDataExampleNodeName(locPt,nearestNode,sensitivity);
 		
 		return dp;
 	}
+
+	@Override
+	protected boolean checkMouseClick_Indiv(int mouseX, int mouseY, float mapX, float mapY, SOM_MapNode nearestNode,myPoint mseClckInWorld, int btn) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean checkMouseDragMove_Indiv(int mouseX, int mouseY, int pmouseX, int pmouseY, myPoint mouseClickIn3D,myVector mseDragInWorld, int mseBtn) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	protected void checkMouseRelease_Indiv() {	}
+	
+	
 	/**
 	 * instancing application should determine whether we want to display features sorted in magnitude order, or sorted in idx order
 	 * @param ptrLoc
@@ -1313,7 +1331,5 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 		this.curCalcAnalysisSrcDataTypeIDX = curCalcAnalysisSrcDataTypeIDX;
 		processCalcAnalysis();	
 	}
-
-
 
 }//Straff_SOMMapManager

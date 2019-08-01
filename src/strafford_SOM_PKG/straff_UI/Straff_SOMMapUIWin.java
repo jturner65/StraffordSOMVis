@@ -591,22 +591,26 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	@Override
 	protected boolean hndlMouseMoveIndiv(int mouseX, int mouseY, myPoint mseClckInWorld){
 		boolean res = false;
-		if(getPrivFlags(mapDataLoadedIDX)){ res = chkMouseOvr(mouseX, mouseY);	}
+		if(getPrivFlags(mapDataLoadedIDX)){ res = checkMouseOvr(mouseX, mouseY);	}
 		return res;
 	}	
 	@Override
 	protected boolean hndlMouseClickIndiv(int mouseX, int mouseY, myPoint mseClckInWorld, int mseBtn) {
 		boolean mod = false;			
+		if(getPrivFlags(mapDataLoadedIDX)){ mod = this.checkMouseClick(mouseX, mouseY, mseClckInWorld, mseBtn);}
 		if(mod) {return mod;}
 		else {return checkUIButtons(mouseX, mouseY);}
 	}
 	@Override
 	protected boolean hndlMouseDragIndiv(int mouseX, int mouseY,int pmouseX, int pmouseY, myPoint mouseClickIn3D, myVector mseDragInWorld, int mseBtn) {
-		boolean mod = false;		
+		boolean mod = false;	
+		if(getPrivFlags(mapDataLoadedIDX)){ mod = this.checkMouseDragMove(mouseX, mouseY, pmouseX, pmouseY, mouseClickIn3D, mseDragInWorld, mseBtn);}				
 		return mod;
 	}
 	@Override
-	protected void hndlMouseRelIndiv() {	}	
+	protected void hndlMouseRelIndiv() {
+		if(getPrivFlags(mapDataLoadedIDX)){ this.checkMouseRelease();}		
+	}	
 
 	@Override
 	public String toString(){
