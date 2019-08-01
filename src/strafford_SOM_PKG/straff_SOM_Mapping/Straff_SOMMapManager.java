@@ -975,11 +975,12 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 		
 		return dp;
 	}
-
+	
 	@Override
-	protected boolean checkMouseClick_Indiv(int mouseX, int mouseY, float mapX, float mapY, SOM_MapNode nearestNode,myPoint mseClckInWorld, int btn) {
+	//in base class function, clicking on map selects or deselects the closest node
+	protected boolean checkMouseClick_Indiv(int mouseX, int mouseY, float mapX, float mapY, SOM_MapNode nearestNode,myPoint mseClckInWorld, int btn, boolean _wasSelNotDeSel) {
 		// TODO Auto-generated method stub
-		return false;
+		return _wasSelNotDeSel;
 	}
 
 	@Override
