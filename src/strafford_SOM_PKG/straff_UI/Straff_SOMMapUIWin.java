@@ -5,6 +5,7 @@ import java.util.*;
 
 import base_SOM_Objects.*;
 import base_SOM_Objects.som_ui.win_disp_ui.SOM_MapUIWin;
+import base_SOM_Objects.som_ui.win_disp_ui.SOM_MseOvrDispTypeVals;
 import base_UI_Objects.*;
 import base_Utils_Objects.io.MsgCodes;
 import base_Utils_Objects.vectorObjs.myPoint;
@@ -70,7 +71,9 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	};
 	//private final String[] dfltPreBltMapNames = {"Map 1","Map 2","Map 3","Map 4"};
 	//used to switch button name for 1st button to reflect whether performing csv-based load of raw data or sql query
-	private String[] menuLdRawFuncBtnNames = new String[] {"CSV", "SQL"};	
+	private String[] menuLdRawFuncBtnNames = new String[] {"CSV", "SQL"};
+	
+	public static final String[] MseOvrLblsAra = new String[]{"Loc","Dist","Pop","Ftr","JP","JPGrp","None"};
 	
 	public Straff_SOMMapUIWin(my_procApplet _p, String _n, int _flagIdx, int[] fc, int[] sc, float[] rd, float[] rdClosed, String _winTxt, boolean _canDrawTraj) {
 		super(_p, _n, _flagIdx, fc, sc, rd, rdClosed, _winTxt, _canDrawTraj);
@@ -358,7 +361,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 				rawDataSource = (int)(this.guiObjs[uiRawDataSourceIDX].getVal());
 				//change button display
 				setCustMenuBtnNames();
-				msgObj.dispMessage("mySOMMapUIWin","setUIWinVals","uiRawDataSourceIDX : rawDataSource set to : " + rawDataSource, MsgCodes.info1);
+				msgObj.dispMessage("Straff_SOMMapUIWin","setUIWinVals","uiRawDataSourceIDX : rawDataSource set to : " + rawDataSource, MsgCodes.info1);
 				break;}					
 			case uiProdJPToDispIDX : {//product to display, for product influence zones
 				((Straff_SOMMapManager) mapMgr).setCurProdToShowIDX((int)guiObjs[uiProdJPToDispIDX].getVal());				
@@ -378,9 +381,9 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	@Override
 	protected void setCustMenuBtnNames() {
 		String rplStr = menuLdRawFuncBtnNames[(rawDataSource % menuLdRawFuncBtnNames.length)], baseStr;
-		for(int i=0;i<menuBtnNames[Straff_SOMMapUISideBarMenu.btnAuxFunc1Idx].length-2;++i) {
-			baseStr = (String) menuBtnNames[Straff_SOMMapUISideBarMenu.btnAuxFunc1Idx][i].subSequence(0, menuBtnNames[Straff_SOMMapUISideBarMenu.btnAuxFunc1Idx][i].length()-3);
-			menuBtnNames[Straff_SOMMapUISideBarMenu.btnAuxFunc1Idx][i] = baseStr + rplStr;
+		for(int i=0;i<menuBtnNames[0].length-2;++i) {
+			baseStr = (String) menuBtnNames[0][i].subSequence(0, menuBtnNames[0][i].length()-3);
+			menuBtnNames[0][i] = baseStr + rplStr;
 		}
 		//menuBtnNames[mySideBarMenu.btnAuxFunc1Idx][loadRawBtnIDX]=menuLdRawFuncBtnNames[(rawDataSource % menuLdRawFuncBtnNames.length) ];
 		pa.setAllMenuBtnNames(menuBtnNames);	
@@ -458,12 +461,12 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		
 	//if launching threads for custom functions or debug, need to remove resetButtonState call in function below and call resetButtonState (with slow proc==true) when thread ends
 	@Override
-	protected void launchMenuBtnHndlr() {
-		msgObj.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Begin requested action", MsgCodes.info4);
-		int btn = curCustBtn[curCustBtnType];
-		switch(curCustBtnType) {
-		case Straff_SOMMapUISideBarMenu.btnAuxFunc1Idx : {//row 1 of menu side bar buttons
-			msgObj.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Click Functions 1 in "+name+" : btn : " + btn, MsgCodes.info4);
+	protected void launchMenuBtnHndlr(int funcRow, int btn)  {
+		msgObj.dispMessage("Straff_SOMMapUIWin","launchMenuBtnHndlr","Begin requested action", MsgCodes.info4);
+		//int btn = curCustBtn[curCustBtnType];
+		switch(funcRow) {
+		case 0 : {//row 1 of menu side bar buttons
+			msgObj.dispMessage("Straff_SOMMapUIWin","launchMenuBtnHndlr","Click Functions 1 in "+name+" : btn : " + btn, MsgCodes.info4);
 			switch(btn){
 				case 0 : {	
 					//load all data from raw local csvs or sql from db
@@ -479,13 +482,13 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 					resetButtonState();
 					break;}
 				default : {
-					msgObj.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Unknown Functions 1 btn : "+btn, MsgCodes.warning2);
+					msgObj.dispMessage("Straff_SOMMapUIWin","launchMenuBtnHndlr","Unknown Functions 1 btn : "+btn, MsgCodes.warning2);
 					break;}
 			}	
-			break;}//row 1 of menu side bar buttons
+			break;}//row 1 of menu side bar buttons 
 	
-		case Straff_SOMMapUISideBarMenu.btnAuxFunc2Idx : {//row 2 of menu side bar buttons
-			msgObj.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Click Functions 2 in "+name+" : btn : " + btn, MsgCodes.info4);//{"Ld&Bld SOM Data", "Load SOM Config", "Ld & Make Map", "Ld Prebuilt Map"},	//row 2
+		case 1 : {//row 2 of menu side bar buttons
+			msgObj.dispMessage("Straff_SOMMapUIWin","launchMenuBtnHndlr","Click Functions 2 in "+name+" : btn : " + btn, MsgCodes.info4);//{"Ld&Bld SOM Data", "Load SOM Config", "Ld & Make Map", "Ld Prebuilt Map"},	//row 2
 			//		{"Train Data","True Prspcts", "Prods", "SOM Cfg", "Func 14"},	//row 2
 
 			switch(btn){
@@ -506,13 +509,13 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 					resetButtonState();
 					break;}
 				default : {
-					msgObj.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Unknown Functions 2 btn : "+btn, MsgCodes.warning2);
+					msgObj.dispMessage("Straff_SOMMapUIWin","launchMenuBtnHndlr","Unknown Functions 2 btn : "+btn, MsgCodes.warning2);
 					resetButtonState();
 					break;}	
 			}
 			break;}//row 2 of menu side bar buttons
-		case Straff_SOMMapUISideBarMenu.btnAuxFunc3Idx : {//row 3 of menu side bar buttons
-			msgObj.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Click Functions 3 in "+name+" : btn : " + btn, MsgCodes.info4);//{"Ld&Bld SOM Data", "Load SOM Config", "Ld & Make Map", "Ld Prebuilt Map"},	//row 2
+		case 2 : {//row 3 of menu side bar buttons
+			msgObj.dispMessage("Straff_SOMMapUIWin","launchMenuBtnHndlr","Click Functions 3 in "+name+" : btn : " + btn, MsgCodes.info4);//{"Ld&Bld SOM Data", "Load SOM Config", "Ld & Make Map", "Ld Prebuilt Map"},	//row 2
 			switch(btn){
 				case 0 : {	
 					mapMgr.loadTrainDataMapConfigAndBuildMap(false);
@@ -529,13 +532,13 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 					resetButtonState();
 					break;}
 				default : {
-					msgObj.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Unknown Functions 3 btn : "+btn, MsgCodes.warning2);
+					msgObj.dispMessage("Straff_SOMMapUIWin","launchMenuBtnHndlr","Unknown Functions 3 btn : "+btn, MsgCodes.warning2);
 					resetButtonState();
 					break;}	
 			}
 			break;}//row 3 of menu side bar buttons
-		case Straff_SOMMapUISideBarMenu.btnAuxFunc4Idx : {//row 3 of menu side bar buttons
-			msgObj.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Click Functions 3 in "+name+" : btn : " + btn, MsgCodes.info4);//{"Ld&Bld SOM Data", "Load SOM Config", "Ld & Make Map", "Ld Prebuilt Map"},	//row 2
+		case 3 : {//row 3 of menu side bar buttons
+			msgObj.dispMessage("Straff_SOMMapUIWin","launchMenuBtnHndlr","Click Functions 3 in "+name+" : btn : " + btn, MsgCodes.info4);//{"Ld&Bld SOM Data", "Load SOM Config", "Ld & Make Map", "Ld Prebuilt Map"},	//row 2
 			switch(btn){
 				case 0 :
 				case 1 : 
@@ -548,44 +551,67 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 					resetButtonState();
 					break;}
 				default : {
-					msgObj.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Unknown Functions 3 btn : "+btn, MsgCodes.warning2);
+					msgObj.dispMessage("Straff_SOMMapUIWin","launchMenuBtnHndlr","Unknown Functions 3 btn : "+btn, MsgCodes.warning2);
 					resetButtonState();
 					break;}	
 			}
 			break;}//row 3 of menu side bar buttons
-		case Straff_SOMMapUISideBarMenu.btnDBGSelCmpIdx : {//row 4 of menu side bar buttons (debug)	
-			msgObj.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Click Debug in "+name+" : btn : " + btn, MsgCodes.info4);
-			//{"All->Bld Map","All Dat To Map", "Func 22", "Func 23", "Prblt Map"},	//row 3
-			switch(btn){
-				case 0 : {	
-					((Straff_SOMMapManager) mapMgr).dbgShowAllRawData();
-					resetButtonState();
-					break;}
-				case 1 : {	
-					((Straff_SOMMapManager) mapMgr).dbgShowUniqueJPsSeen();
-					((Straff_SOMMapManager) mapMgr).dbgShowCalcEqs();
-					resetButtonState();
-					break;}
-				case 2 : {	
-					((Straff_SOMMapManager) mapMgr).dbgShowJpJpgrpData();
-					resetButtonState();
-					break;}
-				case 3 : {//show current mapdat status
-					((Straff_SOMMapManager) mapMgr).dbgShowSOM_MapDat();
-					resetButtonState();
-					break;}
-				case 4 : {						
-					resetButtonState();
-					break;}
-				default : {
-					msgObj.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","Unknown Debug btn : "+btn, MsgCodes.warning2);
-					resetButtonState();
-					break;}
-			}				
-			break;}//row 4 of menu side bar buttons (debug)			
 		}		
-		msgObj.dispMessage("mySOMMapUIWin","launchMenuBtnHndlr","End requested action (multithreaded actions may still be working).", MsgCodes.info4);
+		msgObj.dispMessage("Straff_SOMMapUIWin","launchMenuBtnHndlr","End requested action (multithreaded actions may still be working).", MsgCodes.info4);
 	}//launchMenuBtnHndlr
+	
+	/**
+	 * build SOM_MseOvrDispTypeVals value based on which button was chosen
+	 */
+	@Override
+	protected SOM_MseOvrDispTypeVals handleSideMenuMseOvrDisp_MapBtnToType(int btn, boolean val) {
+		//{"Loc","Dist","Pop","Ftr","JP","JPGrp","None"};
+		switch(btn){
+			case 0 : { return val ? SOM_MseOvrDispTypeVals.mseOvrMapNodeLocIDX : SOM_MseOvrDispTypeVals.mseOvrNoneIDX;} 	//"loc"
+			case 1 : { return val ? SOM_MseOvrDispTypeVals.mseOvrUMatDistIDX : SOM_MseOvrDispTypeVals.mseOvrNoneIDX;} 	//u mat dist
+			case 2 : { return val ? SOM_MseOvrDispTypeVals.mseOvrMapNodePopIDX : SOM_MseOvrDispTypeVals.mseOvrNoneIDX;}  //pop
+			case 3 : { return val ? SOM_MseOvrDispTypeVals.mseOvrFtrIDX : SOM_MseOvrDispTypeVals.mseOvrNoneIDX;}         //ftr
+			case 4 : { return val ? SOM_MseOvrDispTypeVals.mseOvrClassIDX : SOM_MseOvrDispTypeVals.mseOvrNoneIDX;}       //jp
+			case 5 : { return val ? SOM_MseOvrDispTypeVals.mseOvrCatIDX : SOM_MseOvrDispTypeVals.mseOvrNoneIDX;}         //jpgroup
+			case 6 : { return SOM_MseOvrDispTypeVals.mseOvrNoneIDX;}        //none
+			default : { return SOM_MseOvrDispTypeVals.mseOvrOtherIDX;}      //other/custom
+		}
+	}
+
+
+	@Override
+	public final void handleSideMenuDebugSel(int btn, int val) {	
+		msgObj.dispMessage("Straff_SOMMapUIWin","handleSideMenuDebugSel","Click Debug functionality in "+name+" : btn : " + btn, MsgCodes.info4);
+		//{"All->Bld Map","All Dat To Map", "Func 22", "Func 23", "Prblt Map"},	//row 3
+		switch(btn){
+			case 0 : {	
+				((Straff_SOMMapManager) mapMgr).dbgShowAllRawData();
+				resetButtonState();
+				break;}
+			case 1 : {	
+				((Straff_SOMMapManager) mapMgr).dbgShowUniqueJPsSeen();
+				((Straff_SOMMapManager) mapMgr).dbgShowCalcEqs();
+				resetButtonState();
+				break;}
+			case 2 : {	
+				((Straff_SOMMapManager) mapMgr).dbgShowJpJpgrpData();
+				resetButtonState();
+				break;}
+			case 3 : {//show current mapdat status
+				((Straff_SOMMapManager) mapMgr).dbgShowSOM_MapDat();
+				resetButtonState();
+				break;}
+			case 4 : {						
+				resetButtonState();
+				break;}
+			default : {
+				msgObj.dispMessage("Straff_SOMMapUIWin","launchMenuBtnHndlr","Unknown Debug btn : "+btn, MsgCodes.warning2);
+				resetButtonState();
+				break;}
+		}				
+		msgObj.dispMessage("Straff_SOMMapUIWin","handleSideMenuDebugSel","End Debug functionality selection.", MsgCodes.info4);
+	}
+
 	
 	//handle mouseover 
 	@Override
@@ -619,4 +645,4 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	}
 
 
-}//mySOMMapUIWin
+}//Straff_SOMMapUIWin

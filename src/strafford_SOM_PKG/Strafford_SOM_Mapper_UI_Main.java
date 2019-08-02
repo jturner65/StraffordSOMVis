@@ -115,6 +115,15 @@ public class Strafford_SOM_Mapper_UI_Main extends my_procApplet {
 	@Override
 	protected String getPrjNmShrt() {return prjNmShrt;}
 	
+	/**
+	 * present an application-specific array of mouse over btn names 
+	 * for the selection of the desired mouse over text display - if is length 0 or null, will not be displayed
+	 */
+	@Override
+	public String[] getMouseOverSelBtnNames() {
+		// TODO Auto-generated method stub
+		return Straff_SOMMapUIWin.MseOvrLblsAra;
+	}
 	
 	//////////////////////////////////////////////////////
 	/// user interaction
@@ -219,6 +228,7 @@ public class Strafford_SOM_Mapper_UI_Main extends my_procApplet {
 		// TODO Auto-generated method stub
 		return new int[] {255,255,255,alpha};
 	}
-	
+
+
 
 }//class SOM_StraffordMain

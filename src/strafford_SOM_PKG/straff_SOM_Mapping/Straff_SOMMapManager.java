@@ -969,11 +969,8 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	 * Strafford-specific SOM mouse over value display - TODO
 	 */
 	@Override
-	protected final SOM_MseOvrDisplay getDataPointAtLoc_Priv(float x, float y, float sensitivity, SOM_MapNode nearestNode, myPointf locPt) {
-		SOM_MseOvrDisplay dp; 
-		dp = setMseDataExampleNodeName(locPt,nearestNode,sensitivity);
-		
-		return dp;
+	protected final void getDataPointAtLoc_Priv(float x, float y, float sensitivity, SOM_MapNode nearestNode, myPointf locPt,int _uiMseDispData) {
+		setMseDataExampleNodeName(locPt,nearestNode,sensitivity);		
 	}
 	
 	@Override
@@ -1001,8 +998,8 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	 * @return
 	 */
 	@Override
-	public final SOM_MseOvrDisplay setMseDataExampleFtrs(myPointf ptrLoc, TreeMap<Integer, Float> ftrs, float sens) {
-		return this.setMseDataExampleFtrs_WtSorted(ptrLoc, ftrs, sens);
+	public final void setMseDataExampleFtrs(myPointf ptrLoc, TreeMap<Integer, Float> ftrs, float sens) {
+		setMseDataExampleFtrs_WtSorted(ptrLoc, ftrs, sens);
 	}
 
 	public void _drawAnalysis(my_procApplet pa, int exCalcedIDX, int mapDrawAnalysisIDX) {
@@ -1042,7 +1039,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 		if (win.getPrivFlags(Straff_SOMMapUIWin.mapDrawCurProdFtrBMUZoneIDX)){		drawProductRegion(pa,curProdToShowIDX,prodZoneDistThresh);}
 		//not drawing any analysis currently
 		boolean notDrawAnalysis = !(win.getPrivFlags(Straff_SOMMapUIWin.mapDrawCustAnalysisVisIDX) || win.getPrivFlags(Straff_SOMMapUIWin.mapDrawTPAnalysisVisIDX));
-		if (notDrawAnalysis && (mseOvrData != null)){	drawMseOverData(pa);}//draw mouse-over info if not showing calc analysis		 		
+		if (notDrawAnalysis ){	drawMseOverData(pa);}//draw mouse-over info if not showing calc analysis		 		
 	}//drawMapRectangleIndiv
 	/**
 	 * draw instance-specific per-ftr map display
