@@ -1046,7 +1046,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	 */
 	@Override
 	protected void drawPerFtrMap_Indiv(my_procApplet pa) {
-		if(win.getPrivFlags(Straff_SOMMapUIWin.mapDrawPrdctFtrBMUsIDX)){				drawProductNodes(pa, curMapImgIDX, true);}
+		if(win.getPrivFlags(Straff_SOMMapUIWin.mapDrawPrdctFtrBMUsIDX)){				drawProductNodes(pa, curFtrMapImgIDX, true);}
 		if(win.getPrivFlags(Straff_SOMMapUIWin.mapDrawNonProdJPSegIDX)) {	 			drawNonProdJpSegments(pa,curAllJPToShowIDX);	}		
 		if(win.getPrivFlags(Straff_SOMMapUIWin.mapDrawNonProdJPGroupSegIDX)) { 			drawNonProdJPGroupSegments(pa,curAllJPToShowIDX);	}	
 	}

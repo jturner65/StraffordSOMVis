@@ -271,16 +271,17 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	 * 			the 4th element is boolean array of {treat as int, has list values, value is sent to owning window}
 	 * @param tmpListObjVals treemap keyed by object IDX and value is list of strings of values for all UI list select objects
 	 */
-	protected final void setupGUIObjsArasIndiv(ArrayList<Object[]> tmpUIObjArray, TreeMap<Integer, String[]> tmpListObjVals) {	
+	@Override
+	protected final void setupGUIObjsAras_Indiv(TreeMap<Integer,Object[]> tmpUIObjArray, TreeMap<Integer, String[]> tmpListObjVals) {	
 		//per object entry : object array of {min,max,mod},stVal,lbl,bool ara
 		tmpListObjVals.put(uiRawDataSourceIDX,new String[] {"Prebuilt CSV Files","Data Tables Via SQL"});
 		tmpListObjVals.put(uiProdJPToDispIDX, new String[] {"Unknown"}); 
 		tmpListObjVals.put(uiAllJpSeenToDispIDX, new String[] {"Unknown"});
 		
-		tmpUIObjArray.add(new Object[] {new double[]{0.0, tmpListObjVals.get(uiRawDataSourceIDX).length-1, 1}, 0.0, "Raw Data Source", new boolean []{true, true, true}});		//uiRawDataSourceIDX
-		tmpUIObjArray.add(new Object[] {new double[]{0.0, 260, 1.0}, 0.0, "Product JP to Show", new boolean []{true, true, true}});			//uiProdJPToDispIDX	
-		tmpUIObjArray.add(new Object[] {new double[]{0.0, 5, .01}, 0.99, "Prod Max Sq Dist", new boolean []{false, false, true}});		//uiProdZoneDistThreshIDX	
-		tmpUIObjArray.add(new Object[] {new double[]{0.0, 260, 1.0}, 0.0, "All JP to Show (Calc Analysis)", new boolean []{true, true, true}});			//uiAllJpSeenToDispIDX	
+		tmpUIObjArray.put(uiRawDataSourceIDX,new Object[] {new double[]{0.0, tmpListObjVals.get(uiRawDataSourceIDX).length-1, 1}, 0.0, "Raw Data Source", new boolean []{true, true, true}});		//uiRawDataSourceIDX
+		tmpUIObjArray.put(uiProdJPToDispIDX,new Object[] {new double[]{0.0, 260, 1.0}, 0.0, "Product JP to Show", new boolean []{true, true, true}});			//uiProdJPToDispIDX	
+		tmpUIObjArray.put(uiProdZoneDistThreshIDX,new Object[] {new double[]{0.0, 5, .01}, 0.99, "Prod Max Sq Dist", new boolean []{false, false, true}});		//uiProdZoneDistThreshIDX	
+		tmpUIObjArray.put(uiAllJpSeenToDispIDX,new Object[] {new double[]{0.0, 260, 1.0}, 0.0, "All JP to Show (Calc Analysis)", new boolean []{true, true, true}});			//uiAllJpSeenToDispIDX	
 
 	}//setupGUIObjsArasIndiv
 	
@@ -403,15 +404,6 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	@Override
 	protected void drawOnScreenStuffPriv(float modAmtMillis) {}
 
-	@Override
-	//draw 2d constructs over 3d area on screen - draws behind left menu section
-	//modAmtMillis is in milliseconds
-	protected void drawRightSideInfoBarPriv(float modAmtMillis) {
-		pa.pushMatrix();pa.pushStyle();
-		//display current simulation variables - call sim world through sim exec
-		mapMgr.drawResultBar(pa, yOff);
-		pa.popStyle();pa.popMatrix();					
-	}//drawOnScreenStuff
 	
 	@Override
 	//set flags that should be set on each frame - these are set at beginning of frame draw

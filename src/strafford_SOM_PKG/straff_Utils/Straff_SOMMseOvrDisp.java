@@ -44,8 +44,17 @@ public class Straff_SOMMseOvrDisp extends SOM_MseOvrDisplay{
 	/**
 	 * instancing-specific initialization called for every data change for mouse object
 	 */
+	@Override
 	protected void initAll_Indiv() {jpJpgMon = ((Straff_SOMMapManager)mapMgr).jpJpgrpMon;}
-
-
+	/**
+	 * instancing-specific finalizing called after every mouse-over data process
+	 */
+	@Override
+	protected void finalizeMseLblDatCtor_Indiv(ArrayList<String> _mseLblDat, int longestLine) {	}
+	/**
+	 * instancing-specific clearing called when mouse over display is cleared
+	 */
+	@Override
+	protected void clearMseDat_Indiv() {	}
 
 }//Straff_SOMMseOvrDisp
