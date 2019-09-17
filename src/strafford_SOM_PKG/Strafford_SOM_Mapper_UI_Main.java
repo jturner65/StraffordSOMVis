@@ -82,7 +82,7 @@ public class Strafford_SOM_Mapper_UI_Main extends my_procApplet {
 		buildInitMenuWin(showUIMenu);
 		//menu bar init
 		int wIdx = dispMenuIDX,fIdx=showUIMenu;
-		dispWinFrames[wIdx] = new Straff_SOMMapUISideBarMenu(this, winTitles[wIdx], fIdx, winFillClrs[wIdx], winStrkClrs[wIdx], winRectDimOpen[wIdx], winRectDimClose[wIdx], winDescr[wIdx],dispWinFlags[wIdx][dispCanDrawInWinIDX]);	
+		dispWinFrames[wIdx] = new Straff_SOMMapUISideBarMenu(this, winTitles[wIdx], fIdx, winFillClrs[wIdx], winStrkClrs[wIdx], winRectDimOpen[wIdx], winRectDimClose[wIdx], winDescr[wIdx]);	
 		//instanced window dimensions when open and closed - only showing 1 open at a time
 		float[] _dimOpen  =  new float[]{menuWidth, 0, getWidth()-menuWidth, getHeight()}, _dimClosed  =  new float[]{menuWidth, 0, hideWinWidth, getHeight()};	
 		//(int _winIDX, float[] _dimOpen, float[] _dimClosed, String _ttl, String _desc, 
@@ -91,7 +91,7 @@ public class Strafford_SOM_Mapper_UI_Main extends my_procApplet {
 				//int[] _fill, int[] _strk, int _trajFill, int _trajStrk)
 				new boolean[] {false,false,false,false}, new int[]{50,40,20,255},new int[]{255,255,255,255},new int[] {120,120,120,255},new int[]{50,40,20,255}); 		
 		wIdx = dispSOMMapIDX; fIdx=showSOMMapUI;
-		dispWinFrames[wIdx] = new Straff_SOMMapUIWin(this, winTitles[wIdx], fIdx, winFillClrs[wIdx], winStrkClrs[wIdx], winRectDimOpen[wIdx], winRectDimClose[wIdx], winDescr[wIdx],dispWinFlags[wIdx][dispCanDrawInWinIDX]);		
+		dispWinFrames[wIdx] = new Straff_SOMMapUIWin(this, winTitles[wIdx], fIdx, winFillClrs[wIdx], winStrkClrs[wIdx], winRectDimOpen[wIdx], winRectDimClose[wIdx], winDescr[wIdx]);		
 		//specify windows that cannot be shown simultaneously here
 		initXORWins(new int[]{showSOMMapUI},new int[]{dispSOMMapIDX});
 	}//	initVisOnce_Priv

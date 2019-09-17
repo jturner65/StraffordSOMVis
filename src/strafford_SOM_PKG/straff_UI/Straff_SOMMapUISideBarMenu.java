@@ -10,8 +10,8 @@ import base_UI_Objects.windowUI.BaseBarMenu;
  */
 public class Straff_SOMMapUISideBarMenu extends BaseBarMenu {
 
-	public Straff_SOMMapUISideBarMenu(my_procApplet _p, String _n, int _flagIdx, int[] fc, int[] sc, float[] rd, float[] rdClosed, String _winTxt, boolean _canDrawTraj) {
-		super(_p, _n, _flagIdx, fc, sc, rd, rdClosed, _winTxt, _canDrawTraj);
+	public Straff_SOMMapUISideBarMenu(my_procApplet _p, String _n, int _flagIdx, int[] fc, int[] sc, float[] rd, float[] rdClosed, String _winTxt) {
+		super(_p, _n, _flagIdx, fc, sc, rd, rdClosed, _winTxt);
 	}
 
 	@Override

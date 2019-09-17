@@ -75,9 +75,9 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	
 	public static final String[] MseOvrLblsAra = new String[]{"Loc","Dist","Pop","Ftr","JP","JPGrp","None"};
 	
-	public Straff_SOMMapUIWin(my_procApplet _p, String _n, int _flagIdx, int[] fc, int[] sc, float[] rd, float[] rdClosed, String _winTxt, boolean _canDrawTraj) {
-		super(_p, _n, _flagIdx, fc, sc, rd, rdClosed, _winTxt, _canDrawTraj);
-		super.initThisWin(_canDrawTraj, true, false);
+	public Straff_SOMMapUIWin(my_procApplet _p, String _n, int _flagIdx, int[] fc, int[] sc, float[] rd, float[] rdClosed, String _winTxt) {
+		super(_p, _n, _flagIdx, fc, sc, rd, rdClosed, _winTxt);
+		super.initThisWin(false);
 	}//ctor
 	
 	/**
@@ -343,8 +343,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	 * @return
 	 */
 	@Override
-	protected final int getClassLabelFromIDX(int _idx) {	return ((Straff_SOMMapManager) mapMgr).getFtrJpByIdx(_idx);	}
-	
+	protected final int getClassLabelFromIDX(int _idx) {	return ((Straff_SOMMapManager) mapMgr).getFtrJpByIdx(_idx);	}	
 	
 	/**
 	 * return category label from index - will be instance specific
@@ -375,8 +374,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 				((Straff_SOMMapManager) mapMgr).setCurAllJPToShowIDX((int)guiObjs[uiAllJpSeenToDispIDX].getVal());
 				break;}	
 		}		
-	}//setUIWinValsIndiv
-	
+	}//setUIWinValsIndiv	
 	
 	//modify menu buttons to display whether using CSV or SQL to access raw data
 	@Override
@@ -403,7 +401,6 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	protected void stopMe() {}		
 	@Override
 	protected void drawOnScreenStuffPriv(float modAmtMillis) {}
-
 	
 	@Override
 	//set flags that should be set on each frame - these are set at beginning of frame draw
@@ -414,7 +411,6 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		//checking flag to execute if true
 		if(getPrivFlags(procTruProspectsIDX)){	((Straff_SOMMapManager) mapMgr).buildAndSaveTrueProspectReport();setPrivFlags(procTruProspectsIDX,false);	}			
 	}
-
 	
 	@Override
 	protected void drawMapIndiv() {		
@@ -422,34 +418,6 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		else if (getPrivFlags(mapDrawTPAnalysisVisIDX)){((Straff_SOMMapManager) mapMgr)._drawAnalysis(pa,tpExCalcedIDX, mapDrawTPAnalysisVisIDX);}
 		else if (getPrivFlags(mapDrawTrainDataAnalysisVisIDX)) {((Straff_SOMMapManager) mapMgr)._drawAnalysis(pa,trainExCalcedIDX, mapDrawTrainDataAnalysisVisIDX);}
 	}	
-	
-//	private void _drawAnalysis(int exCalcedIDX, int mapDrawAnalysisIDX) {
-//		if (getPrivFlags(exCalcedIDX)){	
-//			//determine what kind of jps are being displayed 
-//			//int curJPIdx = ( ? curMapImgIDX : curAllJPToShowIDX);
-//			pa.pushMatrix();pa.pushStyle();	
-//			pa.translate(calcAnalysisLocs[0],SOM_mapLoc[1]*calcScale + 10,0.0f);			
-//			if(curCalcAnalysisJPTypeIDX == Straff_WeightCalc.bndAra_AllJPsIDX) {		//choose between displaying calc analysis of training feature jps or all jps
-//				((Straff_SOMMapManager) mapMgr).drawAnalysisOneJp_All(pa,analysisHt, analysisPerJPWidth,curAllJPToShowIDX, curCalcAnalysisSrcDataTypeIDX);	
-//				pa.popStyle();pa.popMatrix();			
-//				pa.pushMatrix();pa.pushStyle();
-//				pa.translate(rectDim[0]+5,calcAnalysisLocs[1],0.0f);					
-//				((Straff_SOMMapManager) mapMgr).drawAnalysisAllJps(pa, analysisHt, analysisAllJPBarWidth, curAllJPToShowIDX, curCalcAnalysisSrcDataTypeIDX);
-//				
-//			} else if(curCalcAnalysisJPTypeIDX == Straff_WeightCalc.bndAra_ProdJPsIDX)  {		
-//				((Straff_SOMMapManager) mapMgr).drawAnalysisOneJp_Ftr(pa,analysisHt, analysisPerJPWidth,curProdToShowIDX, curCalcAnalysisSrcDataTypeIDX);	
-//				pa.popStyle();pa.popMatrix();			
-//				pa.pushMatrix();pa.pushStyle();
-//				pa.translate(rectDim[0]+5,calcAnalysisLocs[1],0.0f);					
-//				((Straff_SOMMapManager) mapMgr).drawAnalysisFtrJps(pa, analysisHt, analysisAllJPBarWidth, curProdToShowIDX, curCalcAnalysisSrcDataTypeIDX);				
-//			}			
-//			
-//			pa.popStyle();pa.popMatrix();
-//			pa.scale(calcScale);				//scale here so that if we are drawing calc analysis, ftr map image will be shrunk
-//		} else {
-//			setPrivFlags(mapDrawAnalysisIDX, false);
-//		}
-//	}//_drawAnalysis
 		
 	//if launching threads for custom functions or debug, need to remove resetButtonState call in function below and call resetButtonState (with slow proc==true) when thread ends
 	@Override
