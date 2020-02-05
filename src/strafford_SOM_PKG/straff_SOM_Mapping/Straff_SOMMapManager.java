@@ -11,7 +11,7 @@ import base_SOM_Objects.som_ui.win_disp_ui.SOM_UIToMapCom;
 import base_SOM_Objects.som_utils.SOM_ProjConfigData;
 
 import base_UI_Objects.*;
-import base_UI_Objects.windowUI.myDispWindow;
+import base_UI_Objects.windowUI.base.myDispWindow;
 import base_Utils_Objects.io.MessageObject;
 import base_Utils_Objects.io.MsgCodes;
 import base_Utils_Objects.vectorObjs.Tuple;

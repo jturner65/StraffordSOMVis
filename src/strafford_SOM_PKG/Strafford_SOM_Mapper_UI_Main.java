@@ -2,9 +2,8 @@ package strafford_SOM_PKG;
 
 
 import base_UI_Objects.*;
-import base_UI_Objects.windowUI.myDispWindow;
+import base_UI_Objects.windowUI.base.myDispWindow;
 import strafford_SOM_PKG.straff_UI.Straff_SOMMapUIWin;
-import strafford_SOM_PKG.straff_UI.Straff_SOMMapUISideBarMenu;
 /**
  * Testbed to visually inspect and verify results from Strafford prospect mapping to a SOM
  * 
@@ -15,7 +14,6 @@ public class Strafford_SOM_Mapper_UI_Main extends my_procApplet {
 	//project-specific variables
 	private String prjNmLong = "Testbed for development of Strafford Prospects SOM", prjNmShrt = "SOM_Strafford";
 				
-	private int[] visFlags;
 	private final int
 		showUIMenu = 0,
 		showSOMMapUI = 1;
@@ -36,15 +34,20 @@ public class Strafford_SOM_Mapper_UI_Main extends my_procApplet {
 	//appletArgs = array of single string holding  <pkgname>.<classname> of this class
 	public static void main(String[] passedArgs) {		
 		String[] appletArgs = new String[] { "strafford_SOM_PKG.Strafford_SOM_Mapper_UI_Main" };
-		my_procApplet.main(appletArgs, passedArgs);
+		my_procApplet._invokedMain(appletArgs, passedArgs);
 	}//main	
 	
+
 	/**
-	 * This will return the desired dimensions of the application, to be called in setup
-	 * @return int[] { desired application window width, desired application window height}
+	 * whether or not we want to restrict window size on widescreen monitors
+	 * 
+	 * @return 0 - use monitor size regardless
+	 * 			1 - use smaller dim to be determine window 
+	 * 			2+ - TBD
 	 */
 	@Override
-	protected int[] getDesiredAppDims() {return new int[] {(int)(getDisplayWidth()*.95f), (int)(getDisplayHeight()*.92f)};}
+	protected int setAppWindowDimRestrictions() {	return 1;}	
+	
 	
 	//instance-specific setup code
 	@Override
@@ -82,7 +85,7 @@ public class Strafford_SOM_Mapper_UI_Main extends my_procApplet {
 		buildInitMenuWin(showUIMenu);
 		//menu bar init
 		int wIdx = dispMenuIDX,fIdx=showUIMenu;
-		dispWinFrames[wIdx] = new Straff_SOMMapUISideBarMenu(this, winTitles[wIdx], fIdx, winFillClrs[wIdx], winStrkClrs[wIdx], winRectDimOpen[wIdx], winRectDimClose[wIdx], winDescr[wIdx]);	
+		dispWinFrames[wIdx] = buildSideBarMenu(wIdx, fIdx, new String[]{"Raw Data Conversion/Processing","Load Post Proc Data","Console Exec Testing","Load Prebuilt Maps"}, new int[] {3,4,4,4}, 5, false, true);//new Straff_SOMMapUISideBarMenu(this, winTitles[wIdx], fIdx, winFillClrs[wIdx], winStrkClrs[wIdx], winRectDimOpen[wIdx], winRectDimClose[wIdx], winDescr[wIdx]);	
 		//instanced window dimensions when open and closed - only showing 1 open at a time
 		float[] _dimOpen  =  new float[]{menuWidth, 0, getWidth()-menuWidth, getHeight()}, _dimClosed  =  new float[]{menuWidth, 0, hideWinWidth, getHeight()};	
 		//(int _winIDX, float[] _dimOpen, float[] _dimClosed, String _ttl, String _desc, 
@@ -190,33 +193,24 @@ public class Strafford_SOM_Mapper_UI_Main extends my_procApplet {
 	//////////////////////////////////////////
 	/// graphics and base functionality utilities and variables
 	//////////////////////////////////////////
+	
+	/**
+	 * return the number of visible window flags for this application
+	 * @return
+	 */
 	@Override
-		//init boolean state machine flags for program
-	public void initVisFlags(){
-		visFlags = new int[1 + numVisFlags/32];for(int i =0; i<numVisFlags;++i){forceVisFlag(i,false);}	
-		((Straff_SOMMapUISideBarMenu)dispWinFrames[dispMenuIDX]).initPFlagColors();			//init sidebar window flags
-	}		
+	public int getNumVisFlags() {return numVisFlags;}
 	@Override
 	//address all flag-setting here, so that if any special cases need to be addressed they can be
-	public void setVisFlag(int idx, boolean val ){
-		int flIDX = idx/32, mask = 1<<(idx%32);
-		visFlags[flIDX] = (val ?  visFlags[flIDX] | mask : visFlags[flIDX] & ~mask);
+	protected void setVisFlag_Indiv(int idx, boolean val ){
 		switch (idx){
 			case showUIMenu 	    : { dispWinFrames[dispMenuIDX].setFlags(myDispWindow.showIDX,val);    break;}											//whether or not to show the main ui window (sidebar)			
 			case showSOMMapUI		: {setWinFlagsXOR(dispSOMMapIDX, val); break;}
 			default : {break;}
 		}
 	}//setFlags  
-	@Override
-	//get vis flag
-	public boolean getVisFlag(int idx){int bitLoc = 1<<(idx%32);return (visFlags[idx/32] & bitLoc) == bitLoc;}	
-	@Override
-	public void forceVisFlag(int idx, boolean val) {
-		int flIDX = idx/32, mask = 1<<(idx%32);
-		visFlags[flIDX] = (val ?  visFlags[flIDX] | mask : visFlags[flIDX] & ~mask);
-		//doesn't perform any other ops - to prevent 
-	}
-	
+
+
 	/**
 	 * any instancing-class-specific colors - colorVal set to be higher than IRenderInterface.gui_OffWhite
 	 * @param colorVal
@@ -229,6 +223,11 @@ public class Strafford_SOM_Mapper_UI_Main extends my_procApplet {
 		return new int[] {255,255,255,alpha};
 	}
 
+	@Override
+	protected void setSmoothing() {
+		noSmooth();
+		
+	}
 
 
 }//class SOM_StraffordMain

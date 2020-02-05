@@ -605,5 +605,11 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		return res;
 	}
 
+	@Override
+	protected void setInitValsForPrivFlags_Indiv() {
+		// TODO Auto-generated method stub
+		
+	}
+
 
 }//Straff_SOMMapUIWin
