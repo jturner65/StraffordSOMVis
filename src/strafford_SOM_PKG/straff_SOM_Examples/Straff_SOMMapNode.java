@@ -1,15 +1,20 @@
 package strafford_SOM_PKG.straff_SOM_Examples;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.TreeMap;
 
-import base_SOM_Objects.*;
-import base_SOM_Objects.som_examples.*;
+import base_Math_Objects.vectorObjs.tuples.Tuple;
+import base_SOM_Objects.SOM_MapManager;
+import base_SOM_Objects.som_examples.SOM_Example;
+import base_SOM_Objects.som_examples.SOM_FtrDataType;
+import base_SOM_Objects.som_examples.SOM_MapNode;
 import base_SOM_Objects.som_segments.SOM_MapNodeCategorySegMgr;
 import base_SOM_Objects.som_segments.SOM_MapNodeClassSegMgr;
 import base_SOM_Objects.som_segments.SOM_MapNodeSegMgr;
 import base_SOM_Objects.som_segments.segments.SOM_MappedSegment;
 import base_UI_Objects.my_procApplet;
-import base_Utils_Objects.vectorObjs.Tuple;
 import strafford_SOM_PKG.straff_Features.Straff_MonitorJpJpgrp;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_ProspectExample;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;

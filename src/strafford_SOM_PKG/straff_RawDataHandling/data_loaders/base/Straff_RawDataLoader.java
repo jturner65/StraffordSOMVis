@@ -1,10 +1,12 @@
 package strafford_SOM_PKG.straff_RawDataHandling.data_loaders.base;
 
-import java.io.*;
-import java.util.*;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Scanner;
 import java.util.concurrent.Callable;
 
-import com.fasterxml.jackson.databind.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import base_Utils_Objects.io.MessageObject;
 import base_Utils_Objects.io.MsgCodes;

@@ -1,41 +1,51 @@
 package strafford_SOM_PKG.straff_SOM_Mapping;
 
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.Future;
 
-import base_SOM_Objects.*;
-import base_SOM_Objects.som_examples.*;
+import base_Math_Objects.vectorObjs.doubles.myPoint;
+import base_Math_Objects.vectorObjs.doubles.myVector;
+import base_Math_Objects.vectorObjs.floats.myPointf;
+import base_Math_Objects.vectorObjs.tuples.Tuple;
+import base_SOM_Objects.SOM_MapManager;
+import base_SOM_Objects.som_examples.SOM_ExDataType;
+import base_SOM_Objects.som_examples.SOM_Example;
+import base_SOM_Objects.som_examples.SOM_ExampleManager;
+import base_SOM_Objects.som_examples.SOM_FtrDataType;
+import base_SOM_Objects.som_examples.SOM_MapNode;
 import base_SOM_Objects.som_segments.segments.SOM_MappedSegment;
 import base_SOM_Objects.som_ui.SOM_MseOvrDisplay;
 import base_SOM_Objects.som_ui.win_disp_ui.SOM_UIToMapCom;
 import base_SOM_Objects.som_utils.SOM_ProjConfigData;
-
-import base_UI_Objects.*;
+import base_JavaProjTools_IRender.base_Render_Interface.IRenderInterface;
+import base_UI_Objects.my_procApplet;
 import base_UI_Objects.windowUI.base.myDispWindow;
 import base_Utils_Objects.io.MessageObject;
 import base_Utils_Objects.io.MsgCodes;
-import base_Utils_Objects.vectorObjs.Tuple;
-import base_Utils_Objects.vectorObjs.myPoint;
-import base_Utils_Objects.vectorObjs.myPointf;
-import base_Utils_Objects.vectorObjs.myVector;
 import processing.core.PImage;
-import strafford_SOM_PKG.straff_Features.*;
+import strafford_SOM_PKG.straff_Features.Straff_MonitorJpJpgrp;
 import strafford_SOM_PKG.straff_Features.featureCalc.Straff_WeightCalc;
-
 import strafford_SOM_PKG.straff_RawDataHandling.Straff_SOMRawDataLdrCnvrtr;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.base.Straff_BaseRawData;
-import strafford_SOM_PKG.straff_SOM_Examples.*;
+import strafford_SOM_PKG.straff_SOM_Examples.Straff_SOMMapNode;
 import strafford_SOM_PKG.straff_SOM_Examples.products.Straff_ProductExample;
-import strafford_SOM_PKG.straff_SOM_Examples.prospects.*;
-
-import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.*;
+import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_CustProspectExample;
+import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_ProspectExample;
+import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_TrueProspectExample;
+import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.Straff_SOMProductManager;
+import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.Straff_SOMTrainExPerCustManager;
+import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.Straff_SOMTrainExPerOrderManager;
+import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.Straff_SOMTruePrspctManager;
 import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.base.Straff_SOMCustPrspctManager_Base;
-
 import strafford_SOM_PKG.straff_SOM_Segments.Straff_SOM_NonProdJPClassSegment;
 import strafford_SOM_PKG.straff_SOM_Segments.Straff_SOM_NonProdJPGCatSegment;
-
 import strafford_SOM_PKG.straff_UI.Straff_SOMMapUIWin;
-
 import strafford_SOM_PKG.straff_Utils.Straff_SOMMseOvrDisp;
 import strafford_SOM_PKG.straff_Utils.Straff_SOMProjConfig;
 

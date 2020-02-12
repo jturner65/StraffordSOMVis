@@ -1,7 +1,7 @@
 package strafford_SOM_PKG;
 
 
-import base_UI_Objects.*;
+import base_UI_Objects.my_procApplet;
 import base_UI_Objects.windowUI.base.myDispWindow;
 import strafford_SOM_PKG.straff_UI.Straff_SOMMapUIWin;
 /**

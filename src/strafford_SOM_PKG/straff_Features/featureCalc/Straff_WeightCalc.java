@@ -1,14 +1,18 @@
 package strafford_SOM_PKG.straff_Features.featureCalc;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import base_SOM_Objects.som_utils.SOM_ProjConfigData;
-import base_UI_Objects.*;
+import base_UI_Objects.my_procApplet;
 import base_Utils_Objects.io.FileIOManager;
 import base_Utils_Objects.io.MessageObject;
 import base_Utils_Objects.io.MsgCodes;
-import base_Utils_Objects.vectorObjs.Tuple;
+import base_Math_Objects.vectorObjs.tuples.Tuple;
 import strafford_SOM_PKG.straff_Features.Straff_MonitorJpJpgrp;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_JP_OccurrenceData;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_ProspectExample;

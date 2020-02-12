@@ -1,6 +1,7 @@
 package strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.Future;
 
@@ -8,11 +9,11 @@ import base_SOM_Objects.SOM_MapManager;
 import base_SOM_Objects.som_examples.SOM_Example;
 import base_SOM_Objects.som_fileIO.SOM_ExCSVDataLoader;
 import base_Utils_Objects.io.MsgCodes;
-import strafford_SOM_PKG.straff_SOM_Mapping.*;
-import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.base.Straff_SOMExampleManager;
-import strafford_SOM_PKG.straff_SOM_Mapping.procData_loaders.Straff_PrscpctCSVDataLoader;
 import strafford_SOM_PKG.straff_Features.featureCalc.Straff_WeightCalc;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_TrueProspectExample;
+import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
+import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.base.Straff_SOMExampleManager;
+import strafford_SOM_PKG.straff_SOM_Mapping.procData_loaders.Straff_PrscpctCSVDataLoader;
 
 public class Straff_SOMTruePrspctManager extends Straff_SOMExampleManager {
 

@@ -1,7 +1,10 @@
 package strafford_SOM_PKG.straff_RawDataHandling.raw_data.base;
 
-import java.text.*;
-import java.util.*;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Map;
+import java.util.TreeMap;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;

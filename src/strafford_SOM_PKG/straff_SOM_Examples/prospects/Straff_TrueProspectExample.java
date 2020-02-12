@@ -1,10 +1,13 @@
 package strafford_SOM_PKG.straff_SOM_Examples.prospects;
 
-import java.util.*;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.TreeMap;
 
 import base_SOM_Objects.SOM_MapManager;
-import base_SOM_Objects.som_examples.*;
-import strafford_SOM_PKG.straff_RawDataHandling.raw_data.*;
+import base_SOM_Objects.som_examples.SOM_ExDataType;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.Straff_ProspectData;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.base.Straff_BaseRawData;
 import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.events.StraffEvntRawToTrainData;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;

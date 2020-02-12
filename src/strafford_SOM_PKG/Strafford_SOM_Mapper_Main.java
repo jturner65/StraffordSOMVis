@@ -6,9 +6,11 @@ package strafford_SOM_PKG;
 import java.io.File;
 import java.util.TreeMap;
 
-import net.sourceforge.argparse4j.*;
-import net.sourceforge.argparse4j.inf.*;
 import base_Utils_Objects.io.MessageObject;
+import net.sourceforge.argparse4j.ArgumentParsers;
+import net.sourceforge.argparse4j.inf.ArgumentParser;
+import net.sourceforge.argparse4j.inf.ArgumentParserException;
+import net.sourceforge.argparse4j.inf.Namespace;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 
 /**

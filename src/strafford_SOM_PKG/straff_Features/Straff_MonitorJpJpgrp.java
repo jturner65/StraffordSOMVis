@@ -1,21 +1,26 @@
 package strafford_SOM_PKG.straff_Features;
 
-import java.util.*; 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentSkipListMap;
 
-import base_SOM_Objects.*;
+import base_SOM_Objects.SOM_MapManager;
 import base_Utils_Objects.io.FileIOManager;
 import base_Utils_Objects.io.MessageObject;
 import base_Utils_Objects.io.MsgCodes;
-import base_Utils_Objects.vectorObjs.Tuple;
-import strafford_SOM_PKG.straff_RawDataHandling.raw_data.*;
+import base_Math_Objects.vectorObjs.tuples.Tuple;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.Straff_JobPracticeData;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.base.Straff_BaseRawData;
 import strafford_SOM_PKG.straff_SOM_Examples.Straff_EvtDataType;
 import strafford_SOM_PKG.straff_SOM_Examples.products.Straff_ProductExample;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_ProspectExample;
-
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
-import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.*;
+import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.Straff_SOMProductManager;
+import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.Straff_SOMTruePrspctManager;
 import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.base.Straff_SOMCustPrspctManager_Base;
 
 //this class will monitor presence and counts of jpgroups and jps

@@ -1,8 +1,10 @@
 package strafford_SOM_PKG.straff_Utils;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.TreeMap;
 
-import base_SOM_Objects.som_examples.*;
+import base_SOM_Objects.som_examples.SOM_ExDataType;
+import base_SOM_Objects.som_examples.SOM_MapNode;
 import base_SOM_Objects.som_ui.SOM_MseOvrDisplay;
 import strafford_SOM_PKG.straff_Features.Straff_MonitorJpJpgrp;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;

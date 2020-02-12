@@ -4,7 +4,7 @@ import java.util.Date;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import base_Utils_Objects.vectorObjs.Tuple;
+import base_Math_Objects.vectorObjs.tuples.Tuple;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 
 /**

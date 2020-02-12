@@ -1,22 +1,26 @@
 package strafford_SOM_PKG.straff_RawDataHandling;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-import base_SOM_Objects.som_examples.*;
+import base_SOM_Objects.som_examples.SOM_Example;
 import base_SOM_Objects.som_utils.SOM_ProjConfigData;
 import base_Utils_Objects.io.FileIOManager;
 import base_Utils_Objects.io.MessageObject;
 import base_Utils_Objects.io.MsgCodes;
 import strafford_SOM_PKG.straff_RawDataHandling.data_loaders.base.Straff_RawDataLoader;
-import strafford_SOM_PKG.straff_RawDataHandling.raw_data.*;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.Straff_ProspectData;
+import strafford_SOM_PKG.straff_RawDataHandling.raw_data.Straff_TcTagData;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.base.Straff_BaseRawData;
 import strafford_SOM_PKG.straff_SOM_Examples.products.Straff_ProductExample;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_CustProspectExample;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
-import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.*;
+import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.Straff_SOMProductManager;
 import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.base.Straff_SOMExampleManager;
 
 /**

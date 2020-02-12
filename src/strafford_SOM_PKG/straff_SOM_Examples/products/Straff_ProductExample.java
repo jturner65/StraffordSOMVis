@@ -1,13 +1,17 @@
 package strafford_SOM_PKG.straff_SOM_Examples.products;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.NavigableMap;
+import java.util.TreeMap;
 
 import base_SOM_Objects.som_examples.SOM_ExDataType;
 import base_SOM_Objects.som_examples.SOM_Example;
 import base_SOM_Objects.som_examples.SOM_MapNode;
 import base_UI_Objects.my_procApplet;
 import base_Utils_Objects.io.MsgCodes;
-import base_Utils_Objects.vectorObjs.Tuple;
+import base_Math_Objects.vectorObjs.tuples.Tuple;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.Straff_TcTagData;
 import strafford_SOM_PKG.straff_SOM_Examples.Straff_SOMExample;
 import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.Straff_TcTagRawToTrainData;

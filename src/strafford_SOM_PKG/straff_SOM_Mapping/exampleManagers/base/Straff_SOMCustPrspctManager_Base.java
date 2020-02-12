@@ -1,6 +1,7 @@
 package strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.base;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Future;
 
 import base_SOM_Objects.SOM_MapManager;

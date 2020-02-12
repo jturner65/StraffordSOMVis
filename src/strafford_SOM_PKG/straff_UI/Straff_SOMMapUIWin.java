@@ -1,15 +1,16 @@
 package strafford_SOM_PKG.straff_UI;
 
 import java.io.File;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.TreeMap;
 
-import base_SOM_Objects.*;
+import base_Math_Objects.vectorObjs.doubles.myPoint;
+import base_Math_Objects.vectorObjs.doubles.myVector;
+import base_SOM_Objects.SOM_MapManager;
 import base_SOM_Objects.som_ui.win_disp_ui.SOM_MapUIWin;
 import base_SOM_Objects.som_ui.win_disp_ui.SOM_MseOvrDispTypeVals;
-import base_UI_Objects.*;
+import base_UI_Objects.my_procApplet;
 import base_Utils_Objects.io.MsgCodes;
-import base_Utils_Objects.vectorObjs.myPoint;
-import base_Utils_Objects.vectorObjs.myVector;
 import strafford_SOM_PKG.straff_Features.featureCalc.Straff_WeightCalc;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 

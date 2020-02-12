@@ -1,6 +1,8 @@
 package strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.TreeMap;
 
 import base_SOM_Objects.SOM_MapManager;
 import base_SOM_Objects.som_examples.SOM_Example;

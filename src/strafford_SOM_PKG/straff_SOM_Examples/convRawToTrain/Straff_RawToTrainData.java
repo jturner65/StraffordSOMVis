@@ -1,10 +1,13 @@
 package strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.TreeMap;
 
 import base_Utils_Objects.io.MessageObject;
 import base_Utils_Objects.io.MsgCodes;
-import base_Utils_Objects.vectorObjs.Tuple;
+import base_Math_Objects.vectorObjs.tuples.Tuple;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.base.Straff_BaseRawData;
 
 /**
