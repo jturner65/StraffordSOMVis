@@ -1,6 +1,7 @@
 package strafford_SOM_PKG;
 
 
+import base_UI_Objects.GUI_AppManager;
 import base_UI_Objects.my_procApplet;
 import base_UI_Objects.windowUI.base.myDispWindow;
 import strafford_SOM_PKG.straff_UI.Straff_SOMMapUIWin;
@@ -10,7 +11,7 @@ import strafford_SOM_PKG.straff_UI.Straff_SOMMapUIWin;
  * John Turner
  * 
  */
-public class Strafford_SOM_Mapper_UI_Main extends my_procApplet {
+public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 	//project-specific variables
 	private String prjNmLong = "Testbed for development of Strafford Prospects SOM", prjNmShrt = "SOM_Strafford";
 				
@@ -33,8 +34,8 @@ public class Strafford_SOM_Mapper_UI_Main extends my_procApplet {
 	//needs main to run project - do not modify this code in any way
 	//appletArgs = array of single string holding  <pkgname>.<classname> of this class
 	public static void main(String[] passedArgs) {		
-		String[] appletArgs = new String[] { "strafford_SOM_PKG.Strafford_SOM_Mapper_UI_Main" };
-		my_procApplet._invokedMain(appletArgs, passedArgs);
+		Strafford_SOM_Mapper_UI_Main me = new Strafford_SOM_Mapper_UI_Main();
+		my_procApplet._invokedMain(me, passedArgs);
 	}//main	
 	
 
@@ -47,6 +48,9 @@ public class Strafford_SOM_Mapper_UI_Main extends my_procApplet {
 	 */
 	@Override
 	protected int setAppWindowDimRestrictions() {	return 1;}	
+
+	@Override
+	protected void setSmoothing() {		pa.setSmoothing(0);		}
 	
 	
 	//instance-specific setup code
@@ -55,14 +59,14 @@ public class Strafford_SOM_Mapper_UI_Main extends my_procApplet {
 	
 	@Override
 	protected void setBkgrnd(){
-		background(bground[0],bground[1],bground[2],bground[3]);		
+		((my_procApplet)pa).background(bground[0],bground[1],bground[2],bground[3]);		
 	}//setBkgrnd
 
 	/**
 	 * determine which main flags to show at upper left of menu 
 	 */
 	@Override
-	protected void initMainFlags_Priv() {
+	protected void initMainFlags_Indiv() {
 		setMainFlagToShow_debugMode(false);
 		setMainFlagToShow_saveAnim(true); 
 		setMainFlagToShow_runSim(false);
@@ -72,9 +76,9 @@ public class Strafford_SOM_Mapper_UI_Main extends my_procApplet {
 	
 	@Override
 	//build windows here
-	protected void initVisOnce_Priv() {
+	protected void initVisOnce_Indiv() {
 		showInfo = true;
-		drawnTrajEditWidth = 10;
+		//drawnTrajEditWidth = 10;
 		//includes 1 for menu window (never < 1) - always have same # of visFlags as myDispWindows
 		int numWins = numVisFlags;		
 		//titles and descs, need to be set before sidebar menu is defined
@@ -87,21 +91,21 @@ public class Strafford_SOM_Mapper_UI_Main extends my_procApplet {
 		int wIdx = dispMenuIDX,fIdx=showUIMenu;
 		dispWinFrames[wIdx] = buildSideBarMenu(wIdx, fIdx, new String[]{"Raw Data Conversion/Processing","Load Post Proc Data","Console Exec Testing","Load Prebuilt Maps"}, new int[] {3,4,4,4}, 5, false, true);//new Straff_SOMMapUISideBarMenu(this, winTitles[wIdx], fIdx, winFillClrs[wIdx], winStrkClrs[wIdx], winRectDimOpen[wIdx], winRectDimClose[wIdx], winDescr[wIdx]);	
 		//instanced window dimensions when open and closed - only showing 1 open at a time
-		float[] _dimOpen  =  new float[]{menuWidth, 0, getWidth()-menuWidth, getHeight()}, _dimClosed  =  new float[]{menuWidth, 0, hideWinWidth, getHeight()};	
+		float[] _dimOpen  =  new float[]{menuWidth, 0, pa.getWidth()-menuWidth, pa.getHeight()}, _dimClosed  =  new float[]{menuWidth, 0, hideWinWidth, pa.getHeight()};	
 		//(int _winIDX, float[] _dimOpen, float[] _dimClosed, String _ttl, String _desc, 
 		setInitDispWinVals(dispSOMMapIDX, _dimOpen, _dimClosed,
 				//boolean[] _dispFlags : idxs : 0 : canDrawInWin; 1 : canShow3dbox; 2 : canMoveView; 3 : dispWinIs3d
 				//int[] _fill, int[] _strk, int _trajFill, int _trajStrk)
 				new boolean[] {false,false,false,false}, new int[]{50,40,20,255},new int[]{255,255,255,255},new int[] {120,120,120,255},new int[]{50,40,20,255}); 		
 		wIdx = dispSOMMapIDX; fIdx=showSOMMapUI;
-		dispWinFrames[wIdx] = new Straff_SOMMapUIWin(this, winTitles[wIdx], fIdx, winFillClrs[wIdx], winStrkClrs[wIdx], winRectDimOpen[wIdx], winRectDimClose[wIdx], winDescr[wIdx]);		
+		dispWinFrames[wIdx] = new Straff_SOMMapUIWin(pa, this, winTitles[wIdx], fIdx, winFillClrs[wIdx], winStrkClrs[wIdx], winRectDimOpen[wIdx], winRectDimClose[wIdx], winDescr[wIdx]);		
 		//specify windows that cannot be shown simultaneously here
 		initXORWins(new int[]{showSOMMapUI},new int[]{dispSOMMapIDX});
 	}//	initVisOnce_Priv
 	
 	@Override
 	//called from base class, once at start of program after vis init is called - set initial windows to show - always show UI Menu
-	protected void initOnce_Priv(){
+	protected void initOnce_Indiv(){
 		//which objects to initially show
 		setVisFlag(showUIMenu, true);					//show input UI menu	
 		setVisFlag(showSOMMapUI, true);
@@ -147,7 +151,7 @@ public class Strafford_SOM_Mapper_UI_Main extends my_procApplet {
 			case 'a' :
 			case 'A' : {toggleSaveAnim();break;}						//start/stop saving every frame for making into animation
 			case 's' :
-			case 'S' : {saveSS(prjNmShrt);break;}//save picture of current image			
+			case 'S' : {break;}//{saveSS(prjNmShrt);break;}//save picture of current image			
 			default : {	}
 		}//switch	
 		
@@ -218,16 +222,8 @@ public class Strafford_SOM_Mapper_UI_Main extends my_procApplet {
 	 * @return
 	 */
 	@Override
-	protected int[] getClr_Custom(int colorVal, int alpha) {
-		// TODO Auto-generated method stub
-		return new int[] {255,255,255,alpha};
-	}
+	public int[] getClr_Custom(int colorVal, int alpha) {	return new int[] {255,255,255,alpha};}
 
-	@Override
-	protected void setSmoothing() {
-		noSmooth();
-		
-	}
 
 
 }//class SOM_StraffordMain

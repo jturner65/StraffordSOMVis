@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeMap;
 
+import base_JavaProjTools_IRender.base_Render_Interface.IRenderInterface;
 import base_Math_Objects.vectorObjs.tuples.Tuple;
 import base_SOM_Objects.SOM_MapManager;
 import base_SOM_Objects.som_examples.SOM_Example;
@@ -14,7 +15,6 @@ import base_SOM_Objects.som_segments.SOM_MapNodeCategorySegMgr;
 import base_SOM_Objects.som_segments.SOM_MapNodeClassSegMgr;
 import base_SOM_Objects.som_segments.SOM_MapNodeSegMgr;
 import base_SOM_Objects.som_segments.segments.SOM_MappedSegment;
-import base_UI_Objects.my_procApplet;
 import strafford_SOM_PKG.straff_Features.Straff_MonitorJpJpgrp;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_ProspectExample;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
@@ -204,10 +204,10 @@ public class Straff_SOMMapNode extends SOM_MapNode{
 	
 	
 	//draw class pop segment contribution 
-	public final void drawMeNonProdJPSegClr(my_procApplet p, Integer cls) {nonProdJPSegManager.drawMeSegClr(p,  cls);	}//drawMeFtrWtSegClr
+	public final void drawMeNonProdJPSegClr(IRenderInterface p, Integer cls) {nonProdJPSegManager.drawMeSegClr(p,  cls);	}//drawMeFtrWtSegClr
 	
 	//draw category segment contribution - collection of classes
-	public final void drawMeNonProdJpGroupSegClr(my_procApplet p, Integer category) { nonProdJPGroupSegManager.drawMeSegClr(p, category);}//drawMeFtrWtSegClr
+	public final void drawMeNonProdJpGroupSegClr(IRenderInterface p, Integer category) { nonProdJPGroupSegManager.drawMeSegClr(p, category);}//drawMeFtrWtSegClr
 	
 	//by here ftrs for this map node have been built
 	@Override

@@ -4,9 +4,9 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.TreeMap;
 
+import base_JavaProjTools_IRender.base_Render_Interface.IRenderInterface;
 import base_SOM_Objects.SOM_MapManager;
 import base_SOM_Objects.som_examples.SOM_Example;
-import base_UI_Objects.my_procApplet;
 import base_Utils_Objects.io.MsgCodes;
 import strafford_SOM_PKG.straff_SOM_Examples.products.Straff_ProductExample;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
@@ -139,8 +139,8 @@ public class Straff_SOMProductManager extends Straff_SOMExampleManager {
 	
 	private static int dispProdJPDataFrame = 0, curProdJPIdx = -1, curProdTimer = 0;
 	//display the region of the map expected to be impacted by the products serving the passed jp 
-	public void drawProductRegion(my_procApplet pa, int prodJpIDX, double maxDist, int distType) {
-		pa.pushMatrix();pa.pushStyle();
+	public void drawProductRegion(IRenderInterface pa, int prodJpIDX, double maxDist, int distType) {
+		pa.pushMatState();
 		ArrayList<Straff_ProductExample> prodsToShow = productsByJp.get(jpJpgrpMon.getProdJpByIdx(prodJpIDX));
 		//msgObj.dispInfoMessage("Straff_SOMProductMapper","drawProductRegion","# prods to show for prod Jp IDX : " + prodJpIDX + " : "+ prodsToShow.size());
 		if(curProdJPIdx != prodJpIDX) {
@@ -156,21 +156,21 @@ public class Straff_SOMProductManager extends Straff_SOMExampleManager {
 			curProdTimer = 0;
 			dispProdJPDataFrame = (dispProdJPDataFrame + 1) % prodsToShow.size();
 		}
-		pa.popStyle();pa.popMatrix();	
+		pa.popMatState();	
 	}//drawProductRegion
 	
 	//draw all product nodes with max vals corresponding to current JPIDX
-	public void drawProductNodes(my_procApplet pa, int prodJpIDX, boolean showJPorJPG) {
-		pa.pushMatrix();pa.pushStyle();
+	public void drawProductNodes(IRenderInterface pa, int prodJpIDX, boolean showJPorJPG) {
+		pa.pushMatState();
 		ArrayList<Straff_ProductExample> prodsToShow = (showJPorJPG ? productsByJp.get(jpJpgrpMon.getProdJpByIdx(prodJpIDX)) :  productsByJpg.get(jpJpgrpMon.getProdJpGrpByIdx(prodJpIDX)));
 		for(Straff_ProductExample ex : prodsToShow) {			ex.drawMeLinkedToBMU(pa, 5.0f,ex.OID);		}		
-		pa.popStyle();pa.popMatrix();
+		pa.popMatState();
 	}//drawProductNodes	
 
 	private static int dispProdDataFrame = 0, numDispProdDataFrames = 20, framesPerDisp = 0, maxFramesPerDisp = 10;
 	//show all products
-	public void drawAllProductNodes(my_procApplet pa) {
-		pa.pushMatrix();pa.pushStyle();
+	public void drawAllProductNodes(IRenderInterface pa) {
+		pa.pushMatState();
 		if (SOMexampleArray.length-numDispProdDataFrames <=  0 ) {	for(int i=0;i<SOMexampleArray.length;++i){		SOMexampleArray[i].drawMeMap(pa);	}} 
 		else {
 			for(int i=dispProdDataFrame;i<SOMexampleArray.length-numDispProdDataFrames;i+=numDispProdDataFrames){		SOMexampleArray[i].drawMeMap(pa);	}
@@ -182,7 +182,7 @@ public class Straff_SOMProductManager extends Straff_SOMExampleManager {
 			}
 		}
 		//for(ProductExample ex : productData) {ex.drawMeLinkedToBMU(pa, 5.0f,ex.OID);}		
-		pa.popStyle();pa.popMatrix();
+		pa.popMatState();
 	}//drawProductNodes
 
 	@Override

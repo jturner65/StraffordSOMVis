@@ -24,10 +24,10 @@ import base_SOM_Objects.som_ui.SOM_MseOvrDisplay;
 import base_SOM_Objects.som_ui.win_disp_ui.SOM_UIToMapCom;
 import base_SOM_Objects.som_utils.SOM_ProjConfigData;
 import base_JavaProjTools_IRender.base_Render_Interface.IRenderInterface;
-import base_UI_Objects.my_procApplet;
 import base_UI_Objects.windowUI.base.myDispWindow;
 import base_Utils_Objects.io.MessageObject;
 import base_Utils_Objects.io.MsgCodes;
+import processing.core.PApplet;
 import processing.core.PImage;
 import strafford_SOM_PKG.straff_Features.Straff_MonitorJpJpgrp;
 import strafford_SOM_PKG.straff_Features.featureCalc.Straff_WeightCalc;
@@ -971,7 +971,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 		curAllJPToShowIDX = 0;
 		mapPerJpgWtImgs = new PImage[num2ndryMaps];
 		for(int i=0;i<mapPerJpgWtImgs.length;++i) {
-			mapPerJpgWtImgs[i] = myDispWindow.pa.createImage(w, h, format);
+			mapPerJpgWtImgs[i] = ((PApplet) myDispWindow.pa).createImage(w, h, format);
 		}	
 	}//instance-specific init 
 	
@@ -1012,28 +1012,28 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 		setMseDataExampleFtrs_WtSorted(ptrLoc, ftrs, sens);
 	}
 
-	public void _drawAnalysis(my_procApplet pa, int exCalcedIDX, int mapDrawAnalysisIDX) {
+	public void _drawAnalysis(IRenderInterface pa, int exCalcedIDX, int mapDrawAnalysisIDX) {
 		if (win.getPrivFlags(exCalcedIDX)){	
 			//determine what kind of jps are being displayed 
 			//int curJPIdx = ( ? curMapImgIDX : curAllJPToShowIDX);
-			pa.pushMatrix();pa.pushStyle();	
+			pa.pushMatState();
 			pa.translate(calcAnalysisLocs[0],SOM_mapLoc[1]*calcScale + 10,0.0f);			
 			if(curCalcAnalysisJPTypeIDX == Straff_WeightCalc.bndAra_AllJPsIDX) {		//choose between displaying calc analysis of training feature jps or all jps
 				drawAnalysisOneJp_All(pa,analysisHt, analysisPerJPWidth,curAllJPToShowIDX, getCurCalcAnalysisSrcDataTypeIDX());	
-				pa.popStyle();pa.popMatrix();			
-				pa.pushMatrix();pa.pushStyle();
+				pa.popMatState();			
+				pa.pushMatState();
 				pa.translate(win.rectDim[0]+5,calcAnalysisLocs[1],0.0f);					
 				drawAnalysisAllJps(pa, analysisHt, analysisAllJPBarWidth, curAllJPToShowIDX, getCurCalcAnalysisSrcDataTypeIDX());
 				
 			} else if(curCalcAnalysisJPTypeIDX == Straff_WeightCalc.bndAra_ProdJPsIDX)  {		
 				drawAnalysisOneJp_Ftr(pa,analysisHt, analysisPerJPWidth,curProdToShowIDX, getCurCalcAnalysisSrcDataTypeIDX());	
-				pa.popStyle();pa.popMatrix();			
-				pa.pushMatrix();pa.pushStyle();
+				pa.popMatState();			
+				pa.pushMatState();
 				pa.translate(win.rectDim[0]+5,calcAnalysisLocs[1],0.0f);					
 				drawAnalysisFtrJps(pa, analysisHt, analysisAllJPBarWidth, curProdToShowIDX, getCurCalcAnalysisSrcDataTypeIDX());				
 			}			
 			
-			pa.popStyle();pa.popMatrix();
+			pa.popMatState();
 			pa.scale(calcScale);				//scale here so that if we are drawing calc analysis, ftr map image will be shrunk
 		} else {
 			win.setPrivFlags(mapDrawAnalysisIDX, false);
@@ -1043,7 +1043,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	
 	@Override
 	//stuff to draw specific to this instance, before nodes are drawn
-	protected void drawMapRectangle_Indiv(my_procApplet pa, int curImgNum) {
+	protected void drawMapRectangle_Indiv(IRenderInterface pa, int curImgNum) {
 		if(win.getPrivFlags(Straff_SOMMapUIWin.mapDrawTruePspctIDX)){			drawValidationData(myDispWindow.pa);}
 		
 		if (win.getPrivFlags(Straff_SOMMapUIWin.mapDrawCurProdFtrBMUZoneIDX)){		drawProductRegion(pa,curProdToShowIDX,prodZoneDistThresh);}
@@ -1055,7 +1055,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	 * draw instance-specific per-ftr map display
 	 */
 	@Override
-	protected void drawPerFtrMap_Indiv(my_procApplet pa) {
+	protected void drawPerFtrMap_Indiv(IRenderInterface pa) {
 		if(win.getPrivFlags(Straff_SOMMapUIWin.mapDrawPrdctFtrBMUsIDX)){				drawProductNodes(pa, curFtrMapImgIDX, true);}
 		if(win.getPrivFlags(Straff_SOMMapUIWin.mapDrawNonProdJPSegIDX)) {	 			drawNonProdJpSegments(pa,curAllJPToShowIDX);	}		
 		if(win.getPrivFlags(Straff_SOMMapUIWin.mapDrawNonProdJPGroupSegIDX)) { 			drawNonProdJPGroupSegments(pa,curAllJPToShowIDX);	}	
@@ -1065,7 +1065,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	/**
 	 * Instancing class-specific segments to render during UMatrix display
 	 */
-	protected void drawSegmentsUMatrixDispIndiv(my_procApplet pa) {
+	protected void drawSegmentsUMatrixDispIndiv(IRenderInterface pa) {
 		if(win.getPrivFlags(Straff_SOMMapUIWin.mapDrawNonProdJPSegIDX)) {	 			drawAllNonProdJpSegments(pa);}
 		if(win.getPrivFlags(Straff_SOMMapUIWin.mapDrawNonProdJPGroupSegIDX)) { 			drawAllNonProdJPGroupSegments(pa);}
 		if(win.getPrivFlags(Straff_SOMMapUIWin.mapDrawPrdctFtrBMUsIDX)){				drawAllProductNodes(pa);}
@@ -1077,15 +1077,15 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	 * @param pa
 	 * @param classLabel - label corresponding to class to be displayed
 	 */
-	public void drawNonProdJpSegments(my_procApplet pa, int nonProdJpLabel) {
+	public void drawNonProdJpSegments(IRenderInterface pa, int nonProdJpLabel) {
 		//Integer jpg = jpJpgrpMon.getFtrJpGroupByIdx(curJPGroupIdx);
 		Collection<SOM_MapNode> mapNodes = MapNodesWithMappedNonProdJPs.get(nonProdJpLabel);
 		if(null==mapNodes) {return;}
-		pa.pushMatrix();pa.pushStyle();
+		pa.pushMatState();
 		for (SOM_MapNode node : mapNodes) {		((Straff_SOMMapNode)node).drawMeNonProdJPSegClr(pa, nonProdJpLabel);}				
-		pa.popStyle();pa.popMatrix();
+		pa.popMatState();
 	}
-	public final void drawAllNonProdJpSegments(my_procApplet pa) {	
+	public final void drawAllNonProdJpSegments(IRenderInterface pa) {	
 		//getMsgObj().dispMessage("Straff_SOMMapManager","drawAllNonProdJpSegments","Drawing "+nonProdJP_Segments.size()+" nonprod jp segments", MsgCodes.info5);
 		for(Integer key : nonProdJP_Segments.keySet()) {	drawNonProdJpSegments(pa,key);}	}
 
@@ -1098,61 +1098,65 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	 * @param classLabel - label corresponding to class to be displayed
 	 */
 	
-	public final void drawNonProdJPGroupSegments(my_procApplet pa, int npJpGroupLabel) {
+	public final void drawNonProdJPGroupSegments(IRenderInterface pa, int npJpGroupLabel) {
 		Collection<SOM_MapNode> mapNodes = MapNodesWithMappedNonProdJpGroup.get(npJpGroupLabel);
 		if(null==mapNodes) {return;}
-		pa.pushMatrix();pa.pushStyle();
+		pa.pushMatState();
 		for (SOM_MapNode node : mapNodes) {		((Straff_SOMMapNode)node).drawMeNonProdJpGroupSegClr(pa, npJpGroupLabel);}				
-		pa.popStyle();pa.popMatrix();
+		pa.popMatState();
 	}
-	public final void drawAllNonProdJPGroupSegments(my_procApplet pa) {	for(Integer key : nonProdJpGroup_Segments.keySet()) {	drawNonProdJPGroupSegments(pa,key);}	} 
+	public final void drawAllNonProdJPGroupSegments(IRenderInterface pa) {	for(Integer key : nonProdJpGroup_Segments.keySet()) {	drawNonProdJPGroupSegments(pa,key);}	} 
 	
 	//draw all product nodes with max vals corresponding to current JPIDX
-	public void drawProductNodes(my_procApplet pa, int prodJpIDX, boolean showJPorJPG) {
+	public void drawProductNodes(IRenderInterface pa, int prodJpIDX, boolean showJPorJPG) {
 		prodExMapper.drawProductNodes(pa, prodJpIDX,showJPorJPG);
 	}//drawProductNodes	
 
 	//show all products
-	public void drawAllProductNodes(my_procApplet pa) {
+	public void drawAllProductNodes(IRenderInterface pa) {
 		prodExMapper.drawAllProductNodes(pa);
 	}//drawProductNodes
 	
-	public void drawAnalysisAllJps(my_procApplet pa, float ht, float barWidth, int curJPIdx,int calcIDX) {
-		pa.pushMatrix();pa.pushStyle();
+	public void drawAnalysisAllJps(IRenderInterface pa, float ht, float barWidth, int curJPIdx,int calcIDX) {
+		pa.pushMatState();
 		ftrCalcObj.drawAllCalcRes(pa, ht, barWidth, curJPIdx, calcIDX);
-		pa.popStyle();pa.popMatrix();
+		pa.popMatState();
 	}//drawAnalysisAllJps
 	
-	public void drawAnalysisFtrJps(my_procApplet pa, float ht, float barWidth, int curJPIdx,int calcIDX) {
-		pa.pushMatrix();pa.pushStyle();
+	public void drawAnalysisFtrJps(IRenderInterface pa, float ht, float barWidth, int curJPIdx,int calcIDX) {
+		pa.pushMatState();
 		ftrCalcObj.drawFtrCalcRes(pa, ht, barWidth, curJPIdx, calcIDX);
-		pa.popStyle();pa.popMatrix();
+		pa.popMatState();
 	}//drawAnalysisAllJps
 	
 	//draw analysis results for all jps, including those that are not product-based/training features
-	public void drawAnalysisOneJp_All(my_procApplet pa,  float ht, float width, int curJPIdx,int calcIDX) {
-		pa.pushMatrix();pa.pushStyle();
+	public void drawAnalysisOneJp_All(IRenderInterface pa,  float ht, float width, int curJPIdx,int calcIDX) {
+		pa.pushMatState();
 		ftrCalcObj.drawSingleFtr(pa, ht, width,jpJpgrpMon.getAllJpByIdx(curJPIdx),calcIDX);		//Enable analysis 
-		pa.popStyle();pa.popMatrix();
+		pa.popMatState();
 	}//drawAnalysisOneFtrJp	
 	
-	public void drawAnalysisOneJp_Ftr(my_procApplet pa,  float ht, float width, int curJPIdx,int calcIDX) {
-		pa.pushMatrix();pa.pushStyle();
+	public void drawAnalysisOneJp_Ftr(IRenderInterface pa,  float ht, float width, int curJPIdx,int calcIDX) {
+		pa.pushMatState();
 		ftrCalcObj.drawSingleFtr(pa, ht, width,jpJpgrpMon.getFtrJpByIdx(curJPIdx),calcIDX);		//Enable analysis 
-		pa.popStyle();pa.popMatrix();
+		pa.popMatState();
 	}//drawAnalysisOneFtrJp	
 		//which product feature calcs to use to determine prod distance
 	private int getProdDistType() {return (getFlag(mapExclProdZeroFtrIDX) ? Straff_ProductExample.SharedFtrsIDX : Straff_ProductExample.AllFtrsIDX);}
 		//display the region of the map expected to be impacted by the products serving the passed jp 
-	public void drawProductRegion(my_procApplet pa, int prodJpIDX, double maxDist) {	prodExMapper.drawProductRegion(pa,prodJpIDX, maxDist, getProdDistType());}//drawProductRegion
-	
+	public void drawProductRegion(IRenderInterface pa, int prodJpIDX, double maxDist) {	prodExMapper.drawProductRegion(pa,prodJpIDX, maxDist, getProdDistType());}//drawProductRegion
+
+	public void showOffsetText(IRenderInterface pa, float d, int tclr, String txt){
+		pa.setColorValFill(tclr, 255);pa.setColorValStroke(tclr, 255);
+		pa.showText(txt, d, d,d); 
+	}	
 	@Override
-	protected float getPreBuiltMapInfoDetail(my_procApplet pa, String[] str, int idx, float yOff, boolean isLoaded) {
+	protected float getPreBuiltMapInfoDetail(IRenderInterface pa, String[] str, int idx, float yOff, boolean isLoaded) {
 		int clrIDX = (isLoaded ? IRenderInterface.gui_Yellow : IRenderInterface.gui_White);
-		pa.showOffsetText(0,clrIDX,"Weight Calc Used for this map : ");
+		showOffsetText(pa,0,clrIDX,"Weight Calc Used for this map : ");
 		yOff += sideBarYDisp;
 		pa.translate(10.0f, sideBarYDisp, 0.0f);
-		pa.showOffsetText(0,clrIDX,str[str.length-1]);
+		showOffsetText(pa,0,clrIDX,str[str.length-1]);
 		yOff += sideBarYDisp;
 		pa.translate(-10.0f, sideBarYDisp, 0.0f);
 		//add extra space
@@ -1163,16 +1167,16 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	
 	//app-specific drawing routines for side bar
 	@Override
-	protected float drawResultBarPriv1(my_procApplet pa, float yOff){
+	protected float drawResultBarPriv1(IRenderInterface pa, float yOff){
 		
 		return yOff;
 	}
 	@Override
-	protected float drawResultBarPriv2(my_procApplet pa, float yOff){
+	protected float drawResultBarPriv2(IRenderInterface pa, float yOff){
 		return yOff;
 	}
 	@Override
-	protected float drawResultBarPriv3(my_procApplet pa, float yOff){
+	protected float drawResultBarPriv3(IRenderInterface pa, float yOff){
 		return yOff;
 	}
 	

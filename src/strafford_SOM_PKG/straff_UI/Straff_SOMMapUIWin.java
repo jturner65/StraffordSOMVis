@@ -4,12 +4,13 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.TreeMap;
 
+import base_JavaProjTools_IRender.base_Render_Interface.IRenderInterface;
 import base_Math_Objects.vectorObjs.doubles.myPoint;
 import base_Math_Objects.vectorObjs.doubles.myVector;
 import base_SOM_Objects.SOM_MapManager;
 import base_SOM_Objects.som_ui.win_disp_ui.SOM_MapUIWin;
 import base_SOM_Objects.som_ui.win_disp_ui.SOM_MseOvrDispTypeVals;
-import base_UI_Objects.my_procApplet;
+import base_UI_Objects.GUI_AppManager;
 import base_Utils_Objects.io.MsgCodes;
 import strafford_SOM_PKG.straff_Features.featureCalc.Straff_WeightCalc;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
@@ -76,8 +77,8 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	
 	public static final String[] MseOvrLblsAra = new String[]{"Loc","Dist","Pop","Ftr","JP","JPGrp","None"};
 	
-	public Straff_SOMMapUIWin(my_procApplet _p, String _n, int _flagIdx, int[] fc, int[] sc, float[] rd, float[] rdClosed, String _winTxt) {
-		super(_p, _n, _flagIdx, fc, sc, rd, rdClosed, _winTxt);
+	public Straff_SOMMapUIWin(IRenderInterface _p, GUI_AppManager _AppMgr, String _n, int _flagIdx, int[] fc, int[] sc, float[] rd, float[] rdClosed, String _winTxt) {
+		super(_p,_AppMgr, _n, _flagIdx, fc, sc, rd, rdClosed, _winTxt);
 		super.initThisWin(false);
 	}//ctor
 	
@@ -150,7 +151,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		rawDataSource = (int)(this.guiObjs[uiRawDataSourceIDX].getVal());
 
 		//moved from mapMgr ctor, to remove dependence on papplet in that object
-		pa.setAllMenuBtnNames(menuBtnNames);	
+		AppMgr.setAllMenuBtnNames(menuBtnNames);	
 		mapMgr.initMapAras(1, 1);
 	}//initMeIndiv()
 		
@@ -386,7 +387,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 			menuBtnNames[0][i] = baseStr + rplStr;
 		}
 		//menuBtnNames[mySideBarMenu.btnAuxFunc1Idx][loadRawBtnIDX]=menuLdRawFuncBtnNames[(rawDataSource % menuLdRawFuncBtnNames.length) ];
-		pa.setAllMenuBtnNames(menuBtnNames);	
+		AppMgr.setAllMenuBtnNames(menuBtnNames);	
 	}//setCustMenuBtnNames
 	
 	@Override

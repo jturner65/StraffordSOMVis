@@ -7,8 +7,8 @@ import java.util.HashSet;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
+import base_JavaProjTools_IRender.base_Render_Interface.IRenderInterface;
 import base_SOM_Objects.som_utils.SOM_ProjConfigData;
-import base_UI_Objects.my_procApplet;
 import base_Utils_Objects.io.FileIOManager;
 import base_Utils_Objects.io.MessageObject;
 import base_Utils_Objects.io.MsgCodes;
@@ -421,27 +421,27 @@ public class Straff_WeightCalc {
 	// calc analysis display routines	
 	
 	//draw res of all calcs as single rectangle of height ht and width barWidth*num eqs
-	public void drawAllCalcRes(my_procApplet p, float ht, float barWidth, int curJPIdx,int _exampleType) {_drawCalcRes(p, ht, barWidth,curJPIdx,_exampleType, bndAra_AllJPsIDX, allEqs);}//draw analysis res for each graphically	
+	public void drawAllCalcRes(IRenderInterface p, float ht, float barWidth, int curJPIdx,int _exampleType) {_drawCalcRes(p, ht, barWidth,curJPIdx,_exampleType, bndAra_AllJPsIDX, allEqs);}//draw analysis res for each graphically	
 	//draw only ftr JP calc res
-	public void drawFtrCalcRes(my_procApplet p, float ht, float barWidth, int curJPIdx,int _exampleType) {_drawCalcRes(p, ht, barWidth,curJPIdx,_exampleType, bndAra_ProdJPsIDX, ftrEqs);}//draw analysis res for each graphically
+	public void drawFtrCalcRes(IRenderInterface p, float ht, float barWidth, int curJPIdx,int _exampleType) {_drawCalcRes(p, ht, barWidth,curJPIdx,_exampleType, bndAra_ProdJPsIDX, ftrEqs);}//draw analysis res for each graphically
 	
-	private void _drawCalcRes(my_procApplet p, float ht, float barWidth, int curJPIdx,int _exampleType, int _jpType, TreeMap<Integer, Straff_JPWeightEquation> _eqMap) {
-		p.pushMatrix();p.pushStyle();		
+	private void _drawCalcRes(IRenderInterface p, float ht, float barWidth, int curJPIdx,int _exampleType, int _jpType, TreeMap<Integer, Straff_JPWeightEquation> _eqMap) {
+		p.pushMatState();		
 		for(Straff_JPWeightEquation jpEq:_eqMap.values()) {	//only draw eqs that calculated actual feature values (jps found in products)
 			//draw bar
 			jpEq.drawFtrVec(p, ht, barWidth, jpEq.jpIDXs[_jpType]==curJPIdx,_jpType,_exampleType);
 			//move over for next bar
 			p.translate(barWidth, 0.0f, 0.0f);
 		}
-		p.popStyle();p.popMatrix();	
+		p.popMatState();	
 	}//_drawCalcRes
 	
 	//draw single detailed feature eq detailed analysis
-	public void drawSingleFtr(my_procApplet p, float ht, float width, Integer jp,int _exampleType) {
-		p.pushMatrix();p.pushStyle();		
+	public void drawSingleFtr(IRenderInterface p, float ht, float width, Integer jp,int _exampleType) {
+		p.pushMatState();		
 		//draw detailed analysis
 		allEqs.get(jp).drawIndivFtrVec(p, ht, width,_exampleType);
-		p.popStyle();p.popMatrix();			
+		p.popMatState();			
 	}//drawSingleFtr
 	
 	/////////////////////////////////////	

@@ -6,10 +6,10 @@ import java.util.HashSet;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 
+import base_JavaProjTools_IRender.base_Render_Interface.IRenderInterface;
 import base_SOM_Objects.som_examples.SOM_ExDataType;
 import base_SOM_Objects.som_examples.SOM_Example;
 import base_SOM_Objects.som_examples.SOM_MapNode;
-import base_UI_Objects.my_procApplet;
 import base_Utils_Objects.io.MsgCodes;
 import base_Math_Objects.vectorObjs.tuples.Tuple;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.Straff_TcTagData;
@@ -310,8 +310,8 @@ public class Straff_ProductExample extends Straff_SOMExample{
 	/////////////////////////
 	// draw code
 	//draw all map nodes this product exerts influence on, with color alpha reflecting inverse distance, above threshold value set when nodesToDraw map was built
-	public void drawProdMapExtent(my_procApplet p, int distType, int numProds, double _maxDist) {
-		p.pushMatrix();p.pushStyle();		
+	public void drawProdMapExtent(IRenderInterface p, int distType, int numProds, double _maxDist) {
+		p.pushMatState();		
 		NavigableMap<Double, ArrayList<SOM_MapNode>> subMap = allMapNodesDists[distType].headMap(_maxDist, true);
 		//float mult = 255.0f/(numProds);//with multiple products maybe scale each product individually by total #?
 		for (Double dist : subMap.keySet()) {
@@ -319,7 +319,7 @@ public class Straff_ProductExample extends Straff_SOMExample{
 			prodClr[3]=(int) ((1-(dist/_maxDist))*255);
 			for (SOM_MapNode n : nodeList) {			n.drawMeProdBoxClr(p, prodClr);		}
 		}
-		p.popStyle();p.popMatrix();		
+		p.popMatState();	
 	}//drawProdMapExtent
 	
 	@Override
