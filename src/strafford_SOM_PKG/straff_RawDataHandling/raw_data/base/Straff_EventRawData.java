@@ -5,7 +5,7 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import base_Utils_Objects.io.MessageObject;
+import base_Utils_Objects.io.messaging.MessageObject;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.json.Straff_EventDescr;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.json.base.Straff_JSONDescr;
 

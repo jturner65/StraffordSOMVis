@@ -10,8 +10,8 @@ import java.util.concurrent.ConcurrentSkipListMap;
 
 import base_SOM_Objects.SOM_MapManager;
 import base_Utils_Objects.io.FileIOManager;
-import base_Utils_Objects.io.MessageObject;
-import base_Utils_Objects.io.MsgCodes;
+import base_Utils_Objects.io.messaging.MessageObject;
+import base_Utils_Objects.io.messaging.MsgCodes;
 import base_Math_Objects.vectorObjs.tuples.Tuple;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.Straff_JobPracticeData;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.base.Straff_BaseRawData;

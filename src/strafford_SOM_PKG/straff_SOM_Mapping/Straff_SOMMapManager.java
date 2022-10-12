@@ -25,8 +25,8 @@ import base_SOM_Objects.som_ui.win_disp_ui.SOM_UIToMapCom;
 import base_SOM_Objects.som_utils.SOM_ProjConfigData;
 import base_JavaProjTools_IRender.base_Render_Interface.IRenderInterface;
 import base_UI_Objects.windowUI.base.myDispWindow;
-import base_Utils_Objects.io.MessageObject;
-import base_Utils_Objects.io.MsgCodes;
+import base_Utils_Objects.io.messaging.MessageObject;
+import base_Utils_Objects.io.messaging.MsgCodes;
 import processing.core.PApplet;
 import processing.core.PImage;
 import strafford_SOM_PKG.straff_Features.Straff_MonitorJpJpgrp;
@@ -166,6 +166,11 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 		setFlag(mapProdsToBMUsIDX, true);
 	}//ctor	
 	
+	/**
+	 * Any instancing-class-specific functionality for after MapUIWindow is set
+	 */
+	@Override
+	protected final void setPADispWinDataIndiv() {}
 	//ctor from non-UI stub main
 	public Straff_SOMMapManager(TreeMap<String, Object> _argsMap) {this(null, _argsMap);}		
 	

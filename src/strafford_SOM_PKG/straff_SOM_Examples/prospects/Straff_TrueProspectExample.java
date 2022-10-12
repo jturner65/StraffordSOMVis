@@ -100,9 +100,9 @@ public class Straff_TrueProspectExample extends Straff_ProspectExample{
 	protected void buildFeaturesMap() {	//TODO do we wish to modify this for prospects?  probably
 		//access calc object
 		if (allProdJPs.size() > 0) {//getting from orders should yield empty list, might yield null - has no order occurrences by definition	
-			clearFtrMap(rawftrMapTypeKey);//		
-			((Straff_SOMMapManager)mapMgr).ftrCalcObj.calcTruePrspctFtrVec(this,allProdJPs,ftrMaps[rawftrMapTypeKey], JpOccurrences);			
-		} else {ftrMaps[rawftrMapTypeKey].clear(); }
+			clearFtrMap(unNormFtrMapTypeKey);//		
+			((Straff_SOMMapManager)mapMgr).ftrCalcObj.calcTruePrspctFtrVec(this,allProdJPs,ftrMaps[unNormFtrMapTypeKey], JpOccurrences);			
+		} else {ftrMaps[unNormFtrMapTypeKey].clear(); }
 		//now, if there's a non-null posOptAllEventObj then for all jps who haven't gotten an opt conribution to calculation, add positive opt-all result
 	}//buildFeaturesMap		
 
@@ -145,10 +145,10 @@ public class Straff_TrueProspectExample extends Straff_ProspectExample{
 	}//buildCompFtrVector
 	@Override
 	//standardize this feature vector - across each feature, set value to be between 0 and 1
-	protected final void buildStdFtrsMap() {		
-		if (allNonZeroFtrIDXs.size() > 0) {calcStdFtrVector(ftrMaps[rawftrMapTypeKey],ftrMaps[stdFtrMapTypeKey], mapMgr.getTrainFtrMins(), mapMgr.getTrainFtrDiffs());}
-		else {ftrMaps[stdFtrMapTypeKey].clear();}
-		setFlag(stdFtrsBuiltIDX,true);
+	protected final void buildPerFtrNormMap() {		
+		if (allNonZeroFtrIDXs.size() > 0) {calcPerFtrNormVector(ftrMaps[unNormFtrMapTypeKey],ftrMaps[perFtrNormMapTypeKey], mapMgr.getTrainFtrMins(), mapMgr.getTrainFtrDiffs());}
+		else {ftrMaps[perFtrNormMapTypeKey].clear();}
+		setFlag(perFtrNormBuiltIDX,true);
 	}//buildStdFtrsMap
 	
 	//this will return the training label(s) of this example - true prospects by definition do not have any labels - no past orders

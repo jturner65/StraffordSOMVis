@@ -213,7 +213,7 @@ public class Straff_SOMMapNode extends SOM_MapNode{
 	@Override
 	protected void buildAllNonZeroFtrIDXs() {
 		allNonZeroFtrIDXs = new ArrayList<Integer>();
-		for(Integer idx : ftrMaps[rawftrMapTypeKey].keySet()) {		allNonZeroFtrIDXs.add(idx);	}
+		for(Integer idx : ftrMaps[unNormFtrMapTypeKey].keySet()) {		allNonZeroFtrIDXs.add(idx);	}
 	}//buildAllNonZeroFtrIDXs
 	
 	//called after the features and normed features of this example are built

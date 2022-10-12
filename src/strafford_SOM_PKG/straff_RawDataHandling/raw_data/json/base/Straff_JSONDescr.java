@@ -5,8 +5,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
-import base_Utils_Objects.io.MessageObject;
-import base_Utils_Objects.io.MsgCodes;
+import base_Utils_Objects.io.messaging.MessageObject;
+import base_Utils_Objects.io.messaging.MsgCodes;
 
 /**
  * class to hold a data structure and functions that will parse the json descriptor

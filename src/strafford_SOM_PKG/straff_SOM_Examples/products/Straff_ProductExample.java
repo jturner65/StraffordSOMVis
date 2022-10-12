@@ -10,7 +10,7 @@ import base_JavaProjTools_IRender.base_Render_Interface.IRenderInterface;
 import base_SOM_Objects.som_examples.SOM_ExDataType;
 import base_SOM_Objects.som_examples.SOM_Example;
 import base_SOM_Objects.som_examples.SOM_MapNode;
-import base_Utils_Objects.io.MsgCodes;
+import base_Utils_Objects.io.messaging.MsgCodes;
 import base_Math_Objects.vectorObjs.tuples.Tuple;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.Straff_TcTagData;
 import strafford_SOM_PKG.straff_SOM_Examples.Straff_SOMExample;
@@ -274,7 +274,7 @@ public class Straff_ProductExample extends Straff_SOMExample{
 	//take loaded data and convert to output data
 	@Override
 	protected void buildFeaturesMap() {
-		clearFtrMap(rawftrMapTypeKey);//ftrMaps[ftrMapTypeKey].clear();	
+		clearFtrMap(unNormFtrMapTypeKey);//ftrMaps[ftrMapTypeKey].clear();	
 		//order map gives order value of each jp - provide multiplier for higher vs lower priority jps
 		TreeMap<Integer, Integer> orderMap = trainPrdctData.getJPOrderMap();
 		int numJPs = orderMap.size();
@@ -284,7 +284,7 @@ public class Straff_ProductExample extends Straff_SOMExample{
 		}
 		if(numJPs == 1) {
 			Integer ftrIDX = allNonZeroFtrIDXs.get(0);
-			ftrMaps[rawftrMapTypeKey].put(ftrIDX, 1.0f);
+			ftrMaps[unNormFtrMapTypeKey].put(ftrIDX, 1.0f);
 			setFtrMinMax(ftrIDX, 1.0f);
 			this.ftrVecMag = 1.0f;			
 		} else {//more than 1 jp for this product
@@ -292,7 +292,7 @@ public class Straff_ProductExample extends Straff_SOMExample{
 			for (Integer IDX : allNonZeroFtrIDXs) {
 				Integer jp = jpJpgMon.getFtrJpByIdx(IDX);
 				val = (numJPs - orderMap.get(jp))/denom;
-				ftrMaps[rawftrMapTypeKey].put(IDX,val);
+				ftrMaps[unNormFtrMapTypeKey].put(IDX,val);
 				setFtrMinMax(IDX, val);
 				ttlVal += val;
 			}	
@@ -301,10 +301,10 @@ public class Straff_ProductExample extends Straff_SOMExample{
 	}//buildFeaturesMap
 
 	@Override
-	protected void buildStdFtrsMap() {
-		clearFtrMap(stdFtrMapTypeKey);//ftrMaps[stdFtrMapTypeKey].clear();
-		for (Integer IDX : ftrMaps[rawftrMapTypeKey].keySet()) {ftrMaps[stdFtrMapTypeKey].put(IDX,ftrMaps[rawftrMapTypeKey].get(IDX));}//since features are all weighted to sum to 1, can expect ftrmap == strdizedmap
-		setFlag(stdFtrsBuiltIDX,true);
+	protected void buildPerFtrNormMap() {
+		clearFtrMap(perFtrNormMapTypeKey);//ftrMaps[perFtrNormMapTypeKey].clear();
+		for (Integer IDX : ftrMaps[unNormFtrMapTypeKey].keySet()) {ftrMaps[perFtrNormMapTypeKey].put(IDX,ftrMaps[unNormFtrMapTypeKey].get(IDX));}//since features are all weighted to sum to 1, can expect ftrmap == strdizedmap
+		setFlag(perFtrNormBuiltIDX,true);
 	}//buildStdFtrsMap
 	
 	/////////////////////////
@@ -326,7 +326,7 @@ public class Straff_ProductExample extends Straff_SOMExample{
 	public String toString(){
 		String res = "Example OID# : "+OID;
 		if(null!=mapLoc){res+="Location on SOM map : " + mapLoc.toStrBrf();}
-		if (mapMgr.getNumTrainFtrs() > 0) {			res += "\n\tFeature Val(s) : " + dispFtrMapVals(rawftrMapTypeKey);		} 
+		if (mapMgr.getNumTrainFtrs() > 0) {			res += "\n\tFeature Val(s) : " + dispFtrMapVals(unNormFtrMapTypeKey);		} 
 		else {								res += "No Features for this product example";		}
 		return res;
 	}

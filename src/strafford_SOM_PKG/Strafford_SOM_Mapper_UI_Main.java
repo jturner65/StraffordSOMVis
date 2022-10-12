@@ -25,7 +25,11 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 																		//set array of vector values (sceneFcsVals) based on application
 	//private boolean cyclModCmp;										//comparison every draw of cycleModDraw			
 	private final int[] bground = new int[]{244,244,244,255};		//bground color	
-
+	
+	/**
+	 * Labels for buttons that describe what mouse-over on the SOM displays
+	 */
+	public static final String[] MseOvrLblsAra = new String[]{"Loc","Dist","Pop","Ftr","JP","JPGrp","None"};
 ///////////////
 //CODE STARTS
 ///////////////	
@@ -37,7 +41,10 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 		Strafford_SOM_Mapper_UI_Main me = new Strafford_SOM_Mapper_UI_Main();
 		my_procApplet._invokedMain(me, passedArgs);
 	}//main	
-	
+
+	@Override
+	protected void setRuntimeArgsVals(String[] _passedArgs) {
+	}
 
 	/**
 	 * whether or not we want to restrict window size on widescreen monitors
@@ -55,7 +62,7 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 	
 	//instance-specific setup code
 	@Override
-	protected void setup_indiv() {setBkgrnd();}	
+	protected void setup_Indiv() {setBkgrnd();}	
 	
 	@Override
 	protected void setBkgrnd(){
@@ -76,7 +83,7 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 	
 	@Override
 	//build windows here
-	protected void initVisOnce_Indiv() {
+	protected void initAllDispWindows() {
 		showInfo = true;
 		//drawnTrajEditWidth = 10;
 		//includes 1 for menu window (never < 1) - always have same # of visFlags as myDispWindows
@@ -89,7 +96,18 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 		buildInitMenuWin(showUIMenu);
 		//menu bar init
 		int wIdx = dispMenuIDX,fIdx=showUIMenu;
-		dispWinFrames[wIdx] = buildSideBarMenu(wIdx, fIdx, new String[]{"Raw Data Conversion/Processing","Load Post Proc Data","Console Exec Testing","Load Prebuilt Maps"}, new int[] {3,4,4,4}, 5, false, true);//new Straff_SOMMapUISideBarMenu(this, winTitles[wIdx], fIdx, winFillClrs[wIdx], winStrkClrs[wIdx], winRectDimOpen[wIdx], winRectDimClose[wIdx], winDescr[wIdx]);	
+		String[] menuBtnTitles = new String[]{"Raw Data Conversion/Processing","Load Post Proc Data","Console Exec Testing","Load Prebuilt Maps"};
+
+		String[][] menuBtnNames = new String[][] {	//each must have literals for every button defined in side bar menu, or ignored
+			{"Load All Raw ---", "---","Recalc Features"},	//row 1
+			{"Train Data","True Prspcts", "Prods", "SOM Cfg"},	//row 2
+			{"Train->Bld Map","Map All Data", "---", "---"},	//row 3
+			{"Map 1","Map 2","Map 3","Map 4"},
+			{"Raw","Proced","JpJpg","MapDat","---"}	
+		};
+		String[] dbgBtnNames = new String[] {"Debug 0","Debug 1","Debug 2","Debug 3","Debug 4"};
+		
+		dispWinFrames[wIdx] = buildSideBarMenu(wIdx, fIdx, menuBtnTitles, menuBtnNames, dbgBtnNames, false, true);//new Straff_SOMMapUISideBarMenu(this, winTitles[wIdx], fIdx, winFillClrs[wIdx], winStrkClrs[wIdx], winRectDimOpen[wIdx], winRectDimClose[wIdx], winDescr[wIdx]);	
 		//instanced window dimensions when open and closed - only showing 1 open at a time
 		float[] _dimOpen  =  new float[]{menuWidth, 0, pa.getWidth()-menuWidth, pa.getHeight()}, _dimClosed  =  new float[]{menuWidth, 0, hideWinWidth, pa.getHeight()};	
 		//(int _winIDX, float[] _dimOpen, float[] _dimClosed, String _ttl, String _desc, 
@@ -123,13 +141,20 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 	protected String getPrjNmShrt() {return prjNmShrt;}
 	
 	/**
+	 * Individual extending Application Manager post-drawMe functions
+	 * @param modAmtMillis
+	 * @param is3DDraw
+	 */
+	@Override
+	protected void drawMePost_Indiv(float modAmtMillis, boolean is3DDraw) {}
+	
+	/**
 	 * present an application-specific array of mouse over btn names 
 	 * for the selection of the desired mouse over text display - if is length 0 or null, will not be displayed
 	 */
 	@Override
 	public String[] getMouseOverSelBtnNames() {
-		// TODO Auto-generated method stub
-		return Straff_SOMMapUIWin.MseOvrLblsAra;
+		return MseOvrLblsAra;
 	}
 	
 	//////////////////////////////////////////////////////

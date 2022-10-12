@@ -6,7 +6,7 @@ package strafford_SOM_PKG;
 import java.io.File;
 import java.util.TreeMap;
 
-import base_Utils_Objects.io.MessageObject;
+import base_Utils_Objects.io.messaging.MessageObject;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;

@@ -6,7 +6,7 @@ import java.util.TreeMap;
 import base_SOM_Objects.SOM_MapManager;
 import base_SOM_Objects.som_examples.SOM_MapNode;
 import base_SOM_Objects.som_utils.SOM_MapDataToBMUs;
-import base_Utils_Objects.io.MsgCodes;
+import base_Utils_Objects.io.messaging.MsgCodes;
 import strafford_SOM_PKG.straff_SOM_Examples.products.Straff_ProductExample;
 
 /**

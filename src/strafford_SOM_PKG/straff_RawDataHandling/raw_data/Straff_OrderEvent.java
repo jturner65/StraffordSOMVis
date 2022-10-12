@@ -2,7 +2,7 @@ package strafford_SOM_PKG.straff_RawDataHandling.raw_data;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import base_Utils_Objects.io.MessageObject;
+import base_Utils_Objects.io.messaging.MessageObject;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.base.Straff_EventRawData;
 
 public class Straff_OrderEvent extends Straff_EventRawData{
