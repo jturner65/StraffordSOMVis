@@ -353,32 +353,60 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	@Override
 	protected final int getCategoryLabelFromIDX(int _idx) {	return ((Straff_SOMMapManager) mapMgr).getFtrJpGroupByIdx(_idx);}
 	
-	@Override 
-	//handle instance-specific UI components
-	protected void setUIWinValsIndiv(int UIidx) {
+//	@Override 
+//	//handle instance-specific UI components
+//	protected void setUIWinValsIndiv(int UIidx) {
+//		switch(UIidx){
+//			case uiRawDataSourceIDX  : {//source of raw data
+//				rawDataSource = (int)(this.guiObjs[uiRawDataSourceIDX].getVal());
+//				//change button display
+//				setCustMenuBtnNames();
+//				msgObj.dispMessage(className,"setUIWinVals","uiRawDataSourceIDX : rawDataSource set to : " + rawDataSource, MsgCodes.info1);
+//				break;}					
+//			case uiProdJPToDispIDX : {//product to display, for product influence zones
+//				((Straff_SOMMapManager) mapMgr).setCurProdToShowIDX((int)guiObjs[uiProdJPToDispIDX].getVal());				
+//				break;}
+//			case uiProdZoneDistThreshIDX : {//max distance for a node to be considered a part of a product's "region" of influence		
+//				((Straff_SOMMapManager) mapMgr).setProdZoneDistThresh(this.guiObjs[uiProdZoneDistThreshIDX].getVal());			
+//				break;}
+//	
+//			case uiAllJpSeenToDispIDX		: {
+//				((Straff_SOMMapManager) mapMgr).setCurAllJPToShowIDX((int)guiObjs[uiAllJpSeenToDispIDX].getVal());
+//				break;}	
+//		}		
+//	}//setUIWinValsIndiv	
+	@Override
+	protected boolean setUI_IntValsCustom_Indiv(int UIidx, int ival, int oldVal) {
 		switch(UIidx){
 			case uiRawDataSourceIDX  : {//source of raw data
-				rawDataSource = (int)(this.guiObjs[uiRawDataSourceIDX].getVal());
+				rawDataSource = ival;
 				//change button display
-				setCustMenuBtnNames();
+				setCustMenuBtnLabels();
 				msgObj.dispMessage(className,"setUIWinVals","uiRawDataSourceIDX : rawDataSource set to : " + rawDataSource, MsgCodes.info1);
-				break;}					
+				return true;}					
 			case uiProdJPToDispIDX : {//product to display, for product influence zones
-				((Straff_SOMMapManager) mapMgr).setCurProdToShowIDX((int)guiObjs[uiProdJPToDispIDX].getVal());				
-				break;}
-			case uiProdZoneDistThreshIDX : {//max distance for a node to be considered a part of a product's "region" of influence		
-				((Straff_SOMMapManager) mapMgr).setProdZoneDistThresh(this.guiObjs[uiProdZoneDistThreshIDX].getVal());			
-				break;}
-	
+				((Straff_SOMMapManager) mapMgr).setCurProdToShowIDX(ival);				
+				return true;}
 			case uiAllJpSeenToDispIDX		: {
-				((Straff_SOMMapManager) mapMgr).setCurAllJPToShowIDX((int)guiObjs[uiAllJpSeenToDispIDX].getVal());
-				break;}	
+				((Straff_SOMMapManager) mapMgr).setCurAllJPToShowIDX(ival);
+				return true;}	
 		}		
-	}//setUIWinValsIndiv	
-	
+		return false;
+	}
+
+	@Override
+	protected boolean setUI_FloatValsCustom_Indiv(int UIidx, float val, float oldVal) {
+			switch(UIidx){
+			case uiProdZoneDistThreshIDX : {//max distance for a node to be considered a part of a product's "region" of influence		
+				((Straff_SOMMapManager) mapMgr).setProdZoneDistThresh(val);			
+				break;}
+			}
+		return false;
+	}	
+		
 	//modify menu buttons to display whether using CSV or SQL to access raw data
 	@Override
-	protected void setCustMenuBtnNames() {
+	protected void setCustMenuBtnLabels() {
 		String rplStr = menuLdRawFuncBtnNames[(rawDataSource % menuLdRawFuncBtnNames.length)], baseStr;
 		for(int i=0;i<menuBtnNames[0].length-2;++i) {
 			baseStr = (String) menuBtnNames[0][i].subSequence(0, menuBtnNames[0][i].length()-3);
@@ -506,7 +534,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 				case 3 : {//load all training data, default map config, and build map
 					int curPreBuiltMapIDX = btn;
 					mapMgr.setCurPreBuiltMapIDX(curPreBuiltMapIDX);
-					uiVals[uiMapPreBuiltDirIDX] = this.guiObjs[uiMapPreBuiltDirIDX].setVal(curPreBuiltMapIDX);
+					uiUpdateData.setIntValue(uiMapPreBuiltDirIDX, (int) this.guiObjs[uiMapPreBuiltDirIDX].setVal(curPreBuiltMapIDX));
 					mapMgr.loadPretrainedExistingMap(btn, true);//runs in thread, button state reset there
 					resetButtonState();
 					break;}

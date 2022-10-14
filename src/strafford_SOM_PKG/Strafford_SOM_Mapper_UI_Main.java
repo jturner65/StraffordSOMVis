@@ -153,7 +153,7 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 	 * for the selection of the desired mouse over text display - if is length 0 or null, will not be displayed
 	 */
 	@Override
-	public String[] getMouseOverSelBtnNames() {
+	public String[] getMouseOverSelBtnLabels() {
 		return MseOvrLblsAra;
 	}
 	
