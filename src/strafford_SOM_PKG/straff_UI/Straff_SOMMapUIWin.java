@@ -261,15 +261,18 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	}//setPrivFlags_LockCatForClassSegs
 	
 	/**
-	 * Instancing class-specific (application driven) UI objects should be defined
-	 * in this function.  Add an entry to tmpBtnNamesArray for each button, in the order 
-	 * they are to be displayed
-	 * @param tmpUIObjArray array list of Object arrays, where in each object array : 
-	 * 			the first element double array of min/max/mod values
-	 * 			the 2nd element is starting value
-	 * 			the 3rd elem is label for object
-	 * 			the 4th element is boolean array of {treat as int, has list values, value is sent to owning window}
-	 * @param tmpListObjVals treemap keyed by object IDX and value is list of strings of values for all UI list select objects
+	 * Instancing class-specific (application driven) UI objects to be shown in left side bar menu 
+	 * for this window.  This is the first child class function called by initThisWin
+	 * @param tmpUIObjArray : map of object data, keyed by UI object idx, with array values being :                    
+	 *           the first element double array of min/max/mod values                                                   
+	 *           the 2nd element is starting value                                                                      
+	 *           the 3rd elem is label for object                                                                       
+	 *           the 4th element is object type (GUIObj_Type enum)
+	 *           the 5th element is boolean array of : (unspecified values default to false)
+	 *           	{value is sent to owning window, 
+	 *           	value is sent on any modifications (while being modified, not just on release), 
+	 *           	changes to value must be explicitly sent to consumer (are not automatically sent)}    
+	 * @param tmpListObjVals : map of list object possible selection values
 	 */
 	@Override
 	protected final void setupGUIObjsAras_Indiv(TreeMap<Integer,Object[]> tmpUIObjArray, TreeMap<Integer, String[]> tmpListObjVals) {	
@@ -447,10 +450,15 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		else if (getPrivFlags(mapDrawTrainDataAnalysisVisIDX)) {((Straff_SOMMapManager) mapMgr)._drawAnalysis(pa,trainExCalcedIDX, mapDrawTrainDataAnalysisVisIDX);}
 	}	
 		
-	//if launching threads for custom functions or debug, need to remove resetButtonState call in function below and call resetButtonState (with slow proc==true) when thread ends
+	/**
+	 * type is row of buttons (1st idx in curCustBtn array) 2nd idx is btn
+	 * @param funcRow idx for button row
+	 * @param btn idx for button within row (column)
+	 * @param label label for this button (for display purposes)
+	 */
 	@Override
-	protected void launchMenuBtnHndlr(int funcRow, int btn)  {
-		msgObj.dispMessage(className,"launchMenuBtnHndlr","Begin requested action", MsgCodes.info4);
+	protected final void launchMenuBtnHndlr(int funcRow, int btn, String label){
+		msgObj.dispMessage(className, "launchMenuBtnHndlr", "Begin requested action : Click '" + label +"' (Row:"+(funcRow+1)+"|Col:"+btn+") in " + name, MsgCodes.info4);
 		//int btn = curCustBtn[curCustBtnType];
 		switch(funcRow) {
 		case 0 : {//row 1 of menu side bar buttons
