@@ -13,6 +13,7 @@ import base_SOM_Objects.som_ui.win_disp_ui.SOM_MseOvrDispTypeVals;
 import base_UI_Objects.GUI_AppManager;
 import base_UI_Objects.windowUI.uiObjs.GUIObj_Type;
 import base_Utils_Objects.io.messaging.MsgCodes;
+import base_UI_Objects.windowUI.uiObjs.myGUIObj_List;
 import strafford_SOM_PKG.straff_Features.featureCalc.Straff_WeightCalc;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 
@@ -314,7 +315,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		setUI_ClassListVals(classVals);
 		setUI_CategoryListVals(categoryVals);
 		//set product list values
-		this.guiObjs[uiProdJPToDispIDX].setListVals(prodVals);
+		((myGUIObj_List) guiObjs[uiProdJPToDispIDX]).setListVals(prodVals);
 		//in super class
 		setClass_UIObj(false);
 	}//setUI_JPListMaxVals
@@ -328,7 +329,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	public void setUI_JPAllSeenListVals(String[] jpGrpVals, String[] jpVals) {
 		//refresh max size of guiobj - heavy handed, these values won't change often, and this is called -every draw frame-.
 		//guiObjs[uiAllJpSeenToDispIDX].setNewMax(jpLen-1);
-		guiObjs[uiAllJpSeenToDispIDX].setListVals(jpVals);
+		((myGUIObj_List) guiObjs[uiAllJpSeenToDispIDX]).setListVals(jpVals);
 		//guiObjs[uiAllJpgSeenToDispIDX].setNewMax(jpGrpLen-1);	
 	}//setUI_JPListMaxVals
 	
