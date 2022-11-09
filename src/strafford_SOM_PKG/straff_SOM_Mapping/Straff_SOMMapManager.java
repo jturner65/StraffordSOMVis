@@ -23,8 +23,8 @@ import base_SOM_Objects.som_segments.segments.SOM_MappedSegment;
 import base_SOM_Objects.som_ui.SOM_MseOvrDisplay;
 import base_SOM_Objects.som_ui.win_disp_ui.SOM_UIToMapCom;
 import base_SOM_Objects.som_utils.SOM_ProjConfigData;
+import base_UI_Objects.windowUI.base.Base_DispWindow;
 import base_JavaProjTools_IRender.base_Render_Interface.IRenderInterface;
-import base_UI_Objects.windowUI.base.myDispWindow;
 import base_Utils_Objects.io.messaging.MessageObject;
 import base_Utils_Objects.io.messaging.MsgCodes;
 import processing.core.PApplet;
@@ -976,7 +976,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 		curAllJPToShowIDX = 0;
 		mapPerJpgWtImgs = new PImage[num2ndryMaps];
 		for(int i=0;i<mapPerJpgWtImgs.length;++i) {
-			mapPerJpgWtImgs[i] = ((PApplet) myDispWindow.pa).createImage(w, h, format);
+			mapPerJpgWtImgs[i] = ((PApplet) Base_DispWindow.pa).createImage(w, h, format);
 		}	
 	}//instance-specific init 
 	
@@ -1049,7 +1049,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	@Override
 	//stuff to draw specific to this instance, before nodes are drawn
 	protected void drawMapRectangle_Indiv(IRenderInterface pa, int curImgNum) {
-		if(win.getPrivFlags(Straff_SOMMapUIWin.mapDrawTruePspctIDX)){			drawValidationData(myDispWindow.pa);}
+		if(win.getPrivFlags(Straff_SOMMapUIWin.mapDrawTruePspctIDX)){			drawValidationData(Base_DispWindow.pa);}
 		
 		if (win.getPrivFlags(Straff_SOMMapUIWin.mapDrawCurProdFtrBMUZoneIDX)){		drawProductRegion(pa,curProdToShowIDX,prodZoneDistThresh);}
 		//not drawing any analysis currently

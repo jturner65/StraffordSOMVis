@@ -3,7 +3,7 @@ package strafford_SOM_PKG;
 
 import base_UI_Objects.GUI_AppManager;
 import base_UI_Objects.my_procApplet;
-import base_UI_Objects.windowUI.base.myDispWindow;
+import base_UI_Objects.windowUI.base.Base_DispWindow;
 import strafford_SOM_PKG.straff_UI.Straff_SOMMapUIWin;
 /**
  * Testbed to visually inspect and verify results from Strafford prospect mapping to a SOM
@@ -233,7 +233,7 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 	//address all flag-setting here, so that if any special cases need to be addressed they can be
 	protected void setVisFlag_Indiv(int idx, boolean val ){
 		switch (idx){
-			case showUIMenu 	    : { dispWinFrames[dispMenuIDX].setFlags(myDispWindow.showIDX,val);    break;}											//whether or not to show the main ui window (sidebar)			
+			case showUIMenu 	    : { dispWinFrames[dispMenuIDX].setFlags(Base_DispWindow.showIDX,val);    break;}											//whether or not to show the main ui window (sidebar)			
 			case showSOMMapUI		: {setWinFlagsXOR(dispSOMMapIDX, val); break;}
 			default : {break;}
 		}
