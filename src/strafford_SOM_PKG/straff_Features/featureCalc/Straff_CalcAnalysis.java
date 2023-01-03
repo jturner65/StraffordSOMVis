@@ -2,7 +2,7 @@ package strafford_SOM_PKG.straff_Features.featureCalc;
 
 import java.util.ArrayList;
 
-import base_JavaProjTools_IRender.base_Render_Interface.IRenderInterface;
+import base_Render_Interface.IRenderInterface;
 //import base_UI_Objects.my_procApplet;
 
 //this class will hold analysis information for calculations to more clearly understand the results of the current calc object

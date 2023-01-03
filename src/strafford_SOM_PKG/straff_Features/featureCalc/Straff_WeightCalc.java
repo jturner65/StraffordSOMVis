@@ -7,7 +7,7 @@ import java.util.HashSet;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
-import base_JavaProjTools_IRender.base_Render_Interface.IRenderInterface;
+import base_Render_Interface.IRenderInterface;
 import base_SOM_Objects.som_utils.SOM_ProjConfigData;
 import base_Utils_Objects.io.FileIOManager;
 import base_Utils_Objects.io.messaging.MessageObject;

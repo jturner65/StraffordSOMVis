@@ -9,7 +9,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
-import base_JavaProjTools_IRender.base_Render_Interface.IRenderInterface;
+import base_Render_Interface.IRenderInterface;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_JP_OccurrenceData;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_ProspectExample;
 

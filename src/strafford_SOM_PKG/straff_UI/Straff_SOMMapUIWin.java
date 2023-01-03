@@ -4,7 +4,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.TreeMap;
 
-import base_JavaProjTools_IRender.base_Render_Interface.IRenderInterface;
+import base_Render_Interface.IRenderInterface;
 import base_Math_Objects.vectorObjs.doubles.myPoint;
 import base_Math_Objects.vectorObjs.doubles.myVector;
 import base_SOM_Objects.SOM_MapManager;

@@ -24,7 +24,7 @@ import base_SOM_Objects.som_ui.SOM_MseOvrDisplay;
 import base_SOM_Objects.som_ui.win_disp_ui.SOM_UIToMapCom;
 import base_SOM_Objects.som_utils.SOM_ProjConfigData;
 import base_UI_Objects.windowUI.base.Base_DispWindow;
-import base_JavaProjTools_IRender.base_Render_Interface.IRenderInterface;
+import base_Render_Interface.IRenderInterface;
 import base_Utils_Objects.io.messaging.MessageObject;
 import base_Utils_Objects.io.messaging.MsgCodes;
 import processing.core.PApplet;
@@ -1322,7 +1322,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	public void dbgDispProductWtSpans() {
 		//debug - display spans of weights of all features in products
 		String[] prodExVals = Straff_ProductExample.getMinMaxDists();
-		getMsgObj().dispMessageAra(prodExVals,"Straff_SOMMapManager", "SOMMapManager::finishSOMExampleBuild : spans of all product ftrs seen", 1, MsgCodes.info1);		
+		getMsgObj().dispMessageAra("Straff_SOMMapManager", "SOMMapManager::finishSOMExampleBuild : spans of all product ftrs seen",prodExVals, 1, MsgCodes.info1);		
 	}//dbgDispProductWtSpans()
 	
 
