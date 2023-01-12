@@ -4,7 +4,7 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-17"/>
 	<classpathentry kind="src" path="data"/>
 	<classpathentry kind="lib" path="libs/argparse/argparse4j-0.8.1-javadoc.jar"/>
-	<classpathentry kind="lib" path="libs/argparse/argparse4j-0.8.1.jar"/>
+	<classpathentry kind="lib" path="libs/argparse/argparse4j-0.8.1.jar" sourcepath="libs/argparse/argparse4j-0.8.1.jar"/>
 	<classpathentry kind="lib" path="libs/jackson/jackson-annotations-2.9.7-javadoc.jar"/>
 	<classpathentry kind="lib" path="libs/jackson/jackson-annotations-2.9.7.jar"/>
 	<classpathentry kind="lib" path="libs/jackson/jackson-core-2.9.7-javadoc.jar"/>

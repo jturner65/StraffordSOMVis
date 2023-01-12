@@ -1,6 +1,10 @@
 package strafford_SOM_PKG;
 
 
+import java.io.File;
+import java.util.Map;
+import java.util.TreeMap;
+
 import base_UI_Objects.GUI_AppManager;
 import base_UI_Objects.my_procApplet;
 import base_UI_Objects.windowUI.base.Base_DispWindow;
@@ -13,7 +17,10 @@ import strafford_SOM_PKG.straff_UI.Straff_SOMMapUIWin;
  */
 public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 	//project-specific variables
-	private String prjNmLong = "Testbed for development of Strafford Prospects SOM", prjNmShrt = "SOM_Strafford";
+
+	private final String prjNmShrt = "SOM_Strafford";
+	private final String prjNmLong = "Testbed for development of Strafford Prospects SOM";	
+	private final String projDesc = "UI-enabled testing platform to preprocess raw customer, prospect and product data, train a self organizing map on the customers and use the map to draw suggest likely products for customers and prospects.";
 				
 	private final int
 		showUIMenu = 0,
@@ -39,11 +46,21 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 	//appletArgs = array of single string holding  <pkgname>.<classname> of this class
 	public static void main(String[] passedArgs) {		
 		Strafford_SOM_Mapper_UI_Main me = new Strafford_SOM_Mapper_UI_Main();
-		my_procApplet._invokedMain(me, passedArgs);
+		Strafford_SOM_Mapper_UI_Main.invokeProcessingMain(me, passedArgs);
 	}//main	
-
+	public Strafford_SOM_Mapper_UI_Main() {super();}
+	/**
+	 * Set various relevant runtime arguments in argsMap
+	 * @param _passedArgs command-line arguments
+	 */
 	@Override
-	protected void setRuntimeArgsVals(String[] _passedArgs) {
+	protected TreeMap<String,Object> setRuntimeArgsVals(Map<String, Object> _passedArgsMap) {
+		TreeMap<String, Object> argsMap = new TreeMap<String, Object>();
+		//provide default values used by SOM program
+		argsMap.put("configDir", "StraffordProject" + File.separator+"config" + File.separator);
+		argsMap.put("dataDir", "StraffordProject" + File.separator);
+		argsMap.put("logLevel",2);//0 is console alone,1 is log file alone, 2 is both
+		return argsMap;
 	}
 
 	/**
@@ -58,6 +75,13 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 
 	@Override
 	protected void setSmoothing() {		pa.setSmoothing(0);		}
+
+	@Override
+	public String getPrjNmLong() {return prjNmLong;}
+	@Override
+	public String getPrjNmShrt() {return prjNmShrt;}
+	@Override
+	public String getPrjDescr() {return projDesc;}
 	
 	
 	//instance-specific setup code
@@ -135,10 +159,6 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 	@Override
 	protected void initVisProg_Indiv() {}		
 
-	@Override
-	protected String getPrjNmLong() {return prjNmLong;}
-	@Override
-	protected String getPrjNmShrt() {return prjNmShrt;}
 	
 	/**
 	 * Individual extending Application Manager post-drawMe functions
@@ -248,7 +268,5 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 	 */
 	@Override
 	public int[] getClr_Custom(int colorVal, int alpha) {	return new int[] {255,255,255,alpha};}
-
-
 
 }//class SOM_StraffordMain
