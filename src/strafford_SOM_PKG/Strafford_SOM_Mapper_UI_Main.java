@@ -97,12 +97,12 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 	 * determine which main flags to show at upper left of menu 
 	 */
 	@Override
-	protected void initMainFlags_Indiv() {
-		setMainFlagToShow_debugMode(false);
-		setMainFlagToShow_saveAnim(true); 
-		setMainFlagToShow_runSim(false);
-		setMainFlagToShow_singleStep(false);
-		setMainFlagToShow_showRtSideMenu(true);
+	protected void initBaseFlags_Indiv() {
+		setBaseFlagToShow_debugMode(false);
+		setBaseFlagToShow_saveAnim(true); 
+		setBaseFlagToShow_runSim(false);
+		setBaseFlagToShow_singleStep(false);
+		setBaseFlagToShow_showRtSideMenu(true);
 	}
 	
 	@Override
@@ -117,7 +117,10 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 				_winDescr = new String[] {"", "Visualize Prospect SOM Node Mapping"};
 		initWins(numWins,_winTitles, _winDescr);
 		//call for menu window
-		buildInitMenuWin(showUIMenu);
+		buildInitMenuWin();
+		//instanced window dimensions when open and closed - only showing 1 open at a time
+		float[] _dimOpen  = getDefaultWinDimOpen(), 
+				_dimClosed  = getDefaultWinDimClosed();	
 		//menu bar init
 		int wIdx = dispMenuIDX,fIdx=showUIMenu;
 		String[] menuBtnTitles = new String[]{"Raw Data Conversion/Processing","Load Post Proc Data","Console Exec Testing","Load Prebuilt Maps"};
@@ -129,11 +132,9 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 			{"Map 1","Map 2","Map 3","Map 4"},
 			{"Raw","Proced","JpJpg","MapDat","---"}	
 		};
-		String[] dbgBtnNames = new String[] {"Debug 0","Debug 1","Debug 2","Debug 3","Debug 4"};
-		
+		String[] dbgBtnNames = new String[] {"Debug 0","Debug 1","Debug 2","Debug 3","Debug 4"};	
 		dispWinFrames[wIdx] = buildSideBarMenu(wIdx, fIdx, menuBtnTitles, menuBtnNames, dbgBtnNames, false, true);//new Straff_SOMMapUISideBarMenu(this, winTitles[wIdx], fIdx, winFillClrs[wIdx], winStrkClrs[wIdx], winRectDimOpen[wIdx], winRectDimClose[wIdx], winDescr[wIdx]);	
-		//instanced window dimensions when open and closed - only showing 1 open at a time
-		float[] _dimOpen  =  new float[]{menuWidth, 0, pa.getWidth()-menuWidth, pa.getHeight()}, _dimClosed  =  new float[]{menuWidth, 0, hideWinWidth, pa.getHeight()};	
+
 		//(int _winIDX, float[] _dimOpen, float[] _dimClosed, String _ttl, String _desc, 
 		setInitDispWinVals(dispSOMMapIDX, _dimOpen, _dimClosed,
 				//boolean[] _dispFlags : idxs : 0 : canDrawInWin; 1 : canShow3dbox; 2 : canMoveView; 3 : dispWinIs3d

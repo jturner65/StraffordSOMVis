@@ -6,8 +6,8 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.TreeMap;
 
-import base_Utils_Objects.AppManager.Console_AppManager;
-import base_Utils_Objects.AppManager.argParse.cmdLineArgs.base.Base_CmdLineArg;
+import base_Utils_Objects.appManager.Console_AppManager;
+import base_Utils_Objects.appManager.argParse.cmdLineArgs.base.Base_CmdLineArg;
 import base_Utils_Objects.io.messaging.MessageObject;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 
