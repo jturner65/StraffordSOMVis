@@ -2,6 +2,7 @@ package strafford_SOM_PKG.straff_Utils;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.TreeMap;
 
 import base_SOM_Objects.SOM_MapManager;
@@ -15,7 +16,7 @@ public class Straff_SOMProjConfig extends SOM_ProjConfigData {
 	//file name to use to save strafford-specific SOM config data
 	private final String custStraffSOMConfigDataFileName= "Strafford_SOM_CustomMapTrainData.txt";
 
-	public Straff_SOMProjConfig(SOM_MapManager _mapMgr, TreeMap<String, Object> _argsMap) {super(_mapMgr, _argsMap);}
+	public Straff_SOMProjConfig(SOM_MapManager _mapMgr, Map<String, Object> _argsMap) {super(_mapMgr, _argsMap);}
 
 	//get location for raw data files
 	//baseDirName : directory/file type name

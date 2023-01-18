@@ -3,8 +3,7 @@ package strafford_SOM_PKG;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.HashMap;
 
 import base_Utils_Objects.appManager.Console_AppManager;
 import base_Utils_Objects.appManager.argParse.cmdLineArgs.base.Base_CmdLineArg;
@@ -32,7 +31,7 @@ public class Strafford_SOM_Mapper_Main extends Console_AppManager {
 	}//main
 	
 	public void initExec() {
-		TreeMap<String, Object> argsMap = getArgsMap();
+		HashMap<String, Object> argsMap = getArgsMap();
 		mapMgr = new Straff_SOMMapManager(argsMap);
 		msgObj = mapMgr.buildMsgObj();
 		msgObj.dispInfoMessage("SOM_Strafford_Main", "constructor", "Begin SOM Process Execution");
@@ -40,7 +39,7 @@ public class Strafford_SOM_Mapper_Main extends Console_AppManager {
 		msgObj.dispInfoMessage("SOM_Strafford_Main", "constructor", "Finished SOM Process Execution");			
 	}
 	
-	private void execSOMProc(TreeMap<String, Object> resMap) {
+	private void execSOMProc(HashMap<String, Object> resMap) {
 		Integer exec = (Integer) resMap.get("exec");
 		switch(exec) {
 		case 0 :{		//preprocess raw data and save
@@ -107,9 +106,9 @@ public class Strafford_SOM_Mapper_Main extends Console_AppManager {
 	}
 
 	@Override
-	protected TreeMap<String, Object> setRuntimeArgsVals(Map<String, Object> _passedArgsMap) {
+	protected HashMap<String, Object> setRuntimeArgsVals(HashMap<String, Object> _passedArgsMap) {
 		//Not overriding any args
-		return (TreeMap<String, Object>) _passedArgsMap;
+		return _passedArgsMap;
 	}
 
 	/**

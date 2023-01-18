@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -151,7 +152,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	private int curCalcAnalysisSrcDataTypeIDX = Straff_WeightCalc.bndAra_AllJPsIDX;
 	private int curCalcAnalysisJPTypeIDX = Straff_WeightCalc.bndAra_AllJPsIDX;
 	
-	private Straff_SOMMapManager(Straff_SOMMapUIWin _win, TreeMap<String, Object> _argsMap) {
+	private Straff_SOMMapManager(Straff_SOMMapUIWin _win, Map<String, Object> _argsMap) {
 		super(_win, _argsMap);	
 		//if there's enough ram to run all prospects at once
 		if(_argsMap.get("enoughRamToLoadAllProspects") != null) {enoughRamToLoadAllProspects = (boolean) _argsMap.get("enoughRamToLoadAllProspects");}
@@ -172,7 +173,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	@Override
 	protected final void setPADispWinDataIndiv() {}
 	//ctor from non-UI stub main
-	public Straff_SOMMapManager(TreeMap<String, Object> _argsMap) {this(null, _argsMap);}		
+	public Straff_SOMMapManager(Map<String, Object> _argsMap) {this(null, _argsMap);}		
 	
 	/**
 	 * build the map of example mappers used to manage all the data the SOM will consume
@@ -207,7 +208,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	 * build instance-specific project file configuration 
 	 */
 	@Override
-	protected SOM_ProjConfigData buildProjConfigData(TreeMap<String, Object> _argsMap) {				return new Straff_SOMProjConfig(this,_argsMap);	}
+	protected SOM_ProjConfigData buildProjConfigData(Map<String, Object> _argsMap) {				return new Straff_SOMProjConfig(this,_argsMap);	}
 	
 	/**
 	 * build an interface to manage communications between UI and SOM map dat

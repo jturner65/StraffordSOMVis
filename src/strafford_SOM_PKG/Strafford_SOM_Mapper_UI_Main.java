@@ -1,9 +1,7 @@
 package strafford_SOM_PKG;
 
-
 import java.io.File;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.HashMap;
 
 import base_UI_Objects.GUI_AppManager;
 import base_UI_Objects.my_procApplet;
@@ -54,8 +52,8 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 	 * @param _passedArgs command-line arguments
 	 */
 	@Override
-	protected TreeMap<String,Object> setRuntimeArgsVals(Map<String, Object> _passedArgsMap) {
-		TreeMap<String, Object> argsMap = new TreeMap<String, Object>();
+	protected HashMap<String,Object> setRuntimeArgsVals(HashMap<String, Object> _passedArgsMap) {
+		HashMap<String, Object> argsMap = new HashMap<String, Object>();
 		//provide default values used by SOM program
 		argsMap.put("configDir", "StraffordProject" + File.separator+"config" + File.separator);
 		argsMap.put("dataDir", "StraffordProject" + File.separator);
@@ -157,8 +155,6 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 	@Override
 	//called multiple times, whenever re-initing
 	protected void initProgram_Indiv(){	}//initProgram	
-	@Override
-	protected void initVisProg_Indiv() {}		
 
 	
 	/**

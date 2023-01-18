@@ -20,7 +20,7 @@ import strafford_SOM_PKG.straff_RawDataHandling.raw_data.base.Straff_BaseRawData
  */
 public abstract class Straff_RawToTrainData{
 	//object for managing logging and informational/error messages
-	private static final MessageObject msgObj = MessageObject.buildMe();
+	private static final MessageObject msgObj = MessageObject.getInstance();
 	protected static final String jpgrpStTag = "JPG_St,", jpgrpEndTag = "JPG_End,";
 	//magic value for opt key field in map, to use for non-opt records. 
 	protected static final int FauxOptVal = 3;

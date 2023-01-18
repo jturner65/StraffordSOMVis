@@ -80,7 +80,7 @@ public class Straff_SOMRawDataLdrCnvrtr {
 	public Straff_SOMRawDataLdrCnvrtr(Straff_SOMMapManager _mapMgr, SOM_ProjConfigData _projConfig) {
 		mapMgr=_mapMgr;
 		msgObj = mapMgr.buildMsgObj();
-		fileIO = new FileIOManager(MessageObject.buildMe(),"Straff_SOMRawDataLdrCnvrtr");
+		fileIO = new FileIOManager(msgObj,"Straff_SOMRawDataLdrCnvrtr");
 		projConfigData = _projConfig;
 		th_exec = mapMgr.getTh_Exec();
 		//load all raw data file names based on exploring directory structure for all csv files

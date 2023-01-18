@@ -16,6 +16,6 @@ public enum Straff_EvtDataType {
 	public static Straff_EvtDataType getVal(int idx){return map.get(idx);}
 	public static int getNumVals(){return map.size();}						//get # of values in enum
 	@Override
-    public String toString() { return ""+value; }	
+    public String toString() { return ""+this.name()+"("+value+")"; }	
 }//enum EvtDataType
 
