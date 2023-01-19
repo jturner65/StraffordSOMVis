@@ -7,13 +7,13 @@ import java.util.TreeMap;
 
 import base_Render_Interface.IRenderInterface;
 import base_Math_Objects.vectorObjs.tuples.Tuple;
-import base_SOM_Objects.SOM_MapManager;
-import base_SOM_Objects.som_examples.SOM_Example;
-import base_SOM_Objects.som_examples.SOM_FtrDataType;
-import base_SOM_Objects.som_examples.SOM_MapNode;
+import base_SOM_Objects.som_examples.base.SOM_Example;
+import base_SOM_Objects.som_examples.enums.SOM_FtrDataType;
+import base_SOM_Objects.som_managers.SOM_MapManager;
+import base_SOM_Objects.som_mapnodes.base.SOM_MapNode;
 import base_SOM_Objects.som_segments.SOM_MapNodeCategorySegMgr;
 import base_SOM_Objects.som_segments.SOM_MapNodeClassSegMgr;
-import base_SOM_Objects.som_segments.SOM_MapNodeSegMgr;
+import base_SOM_Objects.som_segments.base.SOM_MapNodeSegMgr;
 import base_SOM_Objects.som_segments.segments.SOM_MappedSegment;
 import strafford_SOM_PKG.straff_Features.Straff_MonitorJpJpgrp;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_ProspectExample;

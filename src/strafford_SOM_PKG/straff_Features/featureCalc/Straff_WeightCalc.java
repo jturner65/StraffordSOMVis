@@ -75,7 +75,7 @@ public class Straff_WeightCalc {
 	private static final int[] calcCompleteFlags = new int[] {custCalcAnalysisCompleteIDX,TPCalcAnalysisCompleteIDX,TrainCalcAnalysisCompleteIDX};
 	
 	public Straff_WeightCalc(Straff_SOMMapManager _mapMgr, String _fileNamePrfx, Straff_MonitorJpJpgrp _jpJpgMon) {
-		msgObj = _mapMgr.buildMsgObj();
+		msgObj = MessageObject.getInstance();
 		Calendar nowCal = _mapMgr.getInstancedNow();
 		fileIO = new FileIOManager(msgObj, "StraffWeightCalc");
 		now = nowCal.getTime();

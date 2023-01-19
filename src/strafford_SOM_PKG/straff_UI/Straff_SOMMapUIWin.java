@@ -7,7 +7,7 @@ import java.util.TreeMap;
 import base_Render_Interface.IRenderInterface;
 import base_Math_Objects.vectorObjs.doubles.myPoint;
 import base_Math_Objects.vectorObjs.doubles.myVector;
-import base_SOM_Objects.SOM_MapManager;
+import base_SOM_Objects.som_managers.SOM_MapManager;
 import base_SOM_Objects.som_ui.win_disp_ui.SOM_MapUIWin;
 import base_SOM_Objects.som_ui.win_disp_ui.SOM_MseOvrDispTypeVals;
 import base_UI_Objects.GUI_AppManager;

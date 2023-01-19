@@ -6,10 +6,10 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeMap;
 
-import base_SOM_Objects.SOM_MapManager;
-import base_SOM_Objects.som_examples.SOM_ExDataType;
 import base_Utils_Objects.io.messaging.MsgCodes;
 import base_Math_Objects.vectorObjs.tuples.Tuple;
+import base_SOM_Objects.som_examples.enums.SOM_ExDataType;
+import base_SOM_Objects.som_managers.SOM_MapManager;
 import strafford_SOM_PKG.straff_RawDataHandling.Straff_SOMRawDataLdrCnvrtr;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.Straff_LinkEvent;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.Straff_OptEvent;

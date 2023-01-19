@@ -7,7 +7,6 @@ import java.util.HashMap;
 
 import base_Utils_Objects.appManager.Console_AppManager;
 import base_Utils_Objects.appManager.argParse.cmdLineArgs.base.Base_CmdLineArg;
-import base_Utils_Objects.io.messaging.MessageObject;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 
 /**
@@ -19,7 +18,6 @@ public class Strafford_SOM_Mapper_Main extends Console_AppManager {
 	private final String prjNmLong = "Strafford Customer, Prospect and Product reporting and prediction.";	
 	private final String projDesc = "Preprocess Raw customer, prospect and product data, train a self organizing map on the customers and use the map to draw suggest likely products for customers and prospects.";
 	Straff_SOMMapManager mapMgr;
-	private MessageObject msgObj;
 	/**
 	 * 
 	 */
@@ -33,7 +31,6 @@ public class Strafford_SOM_Mapper_Main extends Console_AppManager {
 	public void initExec() {
 		HashMap<String, Object> argsMap = getArgsMap();
 		mapMgr = new Straff_SOMMapManager(argsMap);
-		msgObj = mapMgr.buildMsgObj();
 		msgObj.dispInfoMessage("SOM_Strafford_Main", "constructor", "Begin SOM Process Execution");
 		execSOMProc(argsMap);
 		msgObj.dispInfoMessage("SOM_Strafford_Main", "constructor", "Finished SOM Process Execution");			

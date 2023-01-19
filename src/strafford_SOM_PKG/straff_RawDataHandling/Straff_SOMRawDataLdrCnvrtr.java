@@ -8,7 +8,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-import base_SOM_Objects.som_examples.SOM_Example;
+import base_SOM_Objects.som_examples.base.SOM_Example;
 import base_SOM_Objects.som_utils.SOM_ProjConfigData;
 import base_Utils_Objects.io.FileIOManager;
 import base_Utils_Objects.io.messaging.MessageObject;
@@ -79,7 +79,7 @@ public class Straff_SOMRawDataLdrCnvrtr {
 	@SuppressWarnings("unchecked")
 	public Straff_SOMRawDataLdrCnvrtr(Straff_SOMMapManager _mapMgr, SOM_ProjConfigData _projConfig) {
 		mapMgr=_mapMgr;
-		msgObj = mapMgr.buildMsgObj();
+		msgObj = MessageObject.getInstance();
 		fileIO = new FileIOManager(msgObj,"Straff_SOMRawDataLdrCnvrtr");
 		projConfigData = _projConfig;
 		th_exec = mapMgr.getTh_Exec();
@@ -137,7 +137,7 @@ public class Straff_SOMRawDataLdrCnvrtr {
 				String[] fileNameAra = straffRawDataFileNames.get(straffDataDirNames[idx]);
 				for (int fidx =0;fidx <fileNameAra.length;++fidx) {
 					String fullFileName = projConfigData.getRawDataLoadInfo(fromCSVFiles,straffDataDirNames[idx],fileNameAra[fidx]);
-					straffDataLoaders.get(fileNameAra[fidx]).setLoadData(this, mapMgr.buildMsgObj(), straffDataDirNames[idx],  fullFileName, flags, straffObjFlagIDXs[idx], fidx);
+					straffDataLoaders.get(fileNameAra[fidx]).setLoadData(this, msgObj, straffDataDirNames[idx],  fullFileName, flags, straffObjFlagIDXs[idx], fidx);
 				}
 			}
 			//blocking on callables for multithreaded
@@ -163,7 +163,7 @@ public class Straff_SOMRawDataLdrCnvrtr {
 		Class[] args = new Class[] {boolean.class, String.class};//classes of arguments for loader ctor		
 		try {
 			Straff_RawDataLoader loaderObj = (Straff_RawDataLoader) straffObjLoaders[idx].getDeclaredConstructor(args).newInstance(flags[0], fullFileName);
-			loaderObj.setLoadData(this, mapMgr.buildMsgObj(), dataDirTypeName, fullFileName, flags, straffObjFlagIDXs[idx], fidx);
+			loaderObj.setLoadData(this, msgObj, dataDirTypeName, fullFileName, flags, straffObjFlagIDXs[idx], fidx);
 			ArrayList<Straff_BaseRawData> datAra = loaderObj.execLoad();
 			if(datAra.size() > 0) {
 				ArrayList<Straff_BaseRawData> existAra = rawDataArrays.get(dataDirTypeName);

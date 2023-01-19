@@ -8,11 +8,11 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentSkipListMap;
 
-import base_SOM_Objects.SOM_MapManager;
 import base_Utils_Objects.io.FileIOManager;
 import base_Utils_Objects.io.messaging.MessageObject;
 import base_Utils_Objects.io.messaging.MsgCodes;
 import base_Math_Objects.vectorObjs.tuples.Tuple;
+import base_SOM_Objects.som_managers.SOM_MapManager;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.Straff_JobPracticeData;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.base.Straff_BaseRawData;
 import strafford_SOM_PKG.straff_SOM_Examples.Straff_EvtDataType;
@@ -51,7 +51,7 @@ public class Straff_MonitorJpJpgrp {
 	private int trainJpJpgKey = productExJpsIDX;
 	
 	public Straff_MonitorJpJpgrp(Straff_SOMMapManager _mapMgr) {
-		mapMgr=_mapMgr;msgObj = mapMgr.buildMsgObj();
+		mapMgr=_mapMgr;msgObj = MessageObject.getInstance();
 		mapOfJPData = new TreeMap<String, JP_JPG_Data>();
 		mapOfJPData.put(typeOfJpStrs[allExJpsIDX], new allJP_JPG_Data(this,typeOfJpStrs[allExJpsIDX]));
 		mapOfJPData.put(typeOfJpStrs[custExJpsIDX], new prspctJP_JPG_Data(this,typeOfJpStrs[custExJpsIDX]));

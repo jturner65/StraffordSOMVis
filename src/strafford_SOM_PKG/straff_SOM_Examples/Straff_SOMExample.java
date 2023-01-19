@@ -5,9 +5,9 @@ import java.util.HashSet;
 import java.util.TreeMap;
 
 import base_Math_Objects.vectorObjs.tuples.Tuple;
-import base_SOM_Objects.SOM_MapManager;
-import base_SOM_Objects.som_examples.SOM_ExDataType;
-import base_SOM_Objects.som_examples.SOM_Example;
+import base_SOM_Objects.som_examples.base.SOM_Example;
+import base_SOM_Objects.som_examples.enums.SOM_ExDataType;
+import base_SOM_Objects.som_managers.SOM_MapManager;
 import base_Utils_Objects.io.messaging.MsgCodes;
 import strafford_SOM_PKG.straff_Features.Straff_MonitorJpJpgrp;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;

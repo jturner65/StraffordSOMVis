@@ -2,8 +2,8 @@ package strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.base;
 
 import java.util.concurrent.ConcurrentSkipListMap;
 
-import base_SOM_Objects.SOM_MapManager;
-import base_SOM_Objects.som_examples.SOM_ExampleManager;
+import base_SOM_Objects.som_managers.SOM_ExampleManager;
+import base_SOM_Objects.som_managers.SOM_MapManager;
 import strafford_SOM_PKG.straff_Features.Straff_MonitorJpJpgrp;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 /**

@@ -4,9 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Future;
 
-import base_SOM_Objects.SOM_MapManager;
-import base_SOM_Objects.som_examples.SOM_Example;
+import base_SOM_Objects.som_examples.base.SOM_Example;
 import base_SOM_Objects.som_fileIO.SOM_ExCSVDataLoader;
+import base_SOM_Objects.som_managers.SOM_MapManager;
 import strafford_SOM_PKG.straff_Features.featureCalc.Straff_WeightCalc;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_CustProspectExample;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;

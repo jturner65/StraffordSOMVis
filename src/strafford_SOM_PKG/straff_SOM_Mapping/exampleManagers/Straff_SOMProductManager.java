@@ -5,8 +5,8 @@ import java.util.HashSet;
 import java.util.TreeMap;
 
 import base_Render_Interface.IRenderInterface;
-import base_SOM_Objects.SOM_MapManager;
-import base_SOM_Objects.som_examples.SOM_Example;
+import base_SOM_Objects.som_examples.base.SOM_Example;
+import base_SOM_Objects.som_managers.SOM_MapManager;
 import base_Utils_Objects.io.messaging.MsgCodes;
 import strafford_SOM_PKG.straff_SOM_Examples.products.Straff_ProductExample;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;

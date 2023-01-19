@@ -14,12 +14,12 @@ import base_Math_Objects.vectorObjs.doubles.myPoint;
 import base_Math_Objects.vectorObjs.doubles.myVector;
 import base_Math_Objects.vectorObjs.floats.myPointf;
 import base_Math_Objects.vectorObjs.tuples.Tuple;
-import base_SOM_Objects.SOM_MapManager;
-import base_SOM_Objects.som_examples.SOM_ExDataType;
-import base_SOM_Objects.som_examples.SOM_Example;
-import base_SOM_Objects.som_examples.SOM_ExampleManager;
-import base_SOM_Objects.som_examples.SOM_FtrDataType;
-import base_SOM_Objects.som_examples.SOM_MapNode;
+import base_SOM_Objects.som_examples.base.SOM_Example;
+import base_SOM_Objects.som_examples.enums.SOM_ExDataType;
+import base_SOM_Objects.som_examples.enums.SOM_FtrDataType;
+import base_SOM_Objects.som_managers.SOM_ExampleManager;
+import base_SOM_Objects.som_managers.SOM_MapManager;
+import base_SOM_Objects.som_mapnodes.base.SOM_MapNode;
 import base_SOM_Objects.som_segments.segments.SOM_MappedSegment;
 import base_SOM_Objects.som_ui.SOM_MseOvrDisplay;
 import base_SOM_Objects.som_ui.win_disp_ui.SOM_UIToMapCom;
@@ -171,7 +171,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	 * Any instancing-class-specific functionality for after MapUIWindow is set
 	 */
 	@Override
-	protected final void setPADispWinDataIndiv() {}
+	protected void setDispWinDataIndiv() {}
 	//ctor from non-UI stub main
 	public Straff_SOMMapManager(Map<String, Object> _argsMap) {this(null, _argsMap);}		
 	
@@ -1349,5 +1349,6 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 		this.curCalcAnalysisSrcDataTypeIDX = curCalcAnalysisSrcDataTypeIDX;
 		processCalcAnalysis();	
 	}
+
 
 }//Straff_SOMMapManager

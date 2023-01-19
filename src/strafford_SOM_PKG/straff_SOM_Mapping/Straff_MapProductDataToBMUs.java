@@ -3,9 +3,9 @@ package strafford_SOM_PKG.straff_SOM_Mapping;
 import java.util.ArrayList;
 import java.util.TreeMap;
 
-import base_SOM_Objects.SOM_MapManager;
-import base_SOM_Objects.som_examples.SOM_MapNode;
-import base_SOM_Objects.som_utils.SOM_MapDataToBMUs;
+import base_SOM_Objects.som_managers.SOM_MapManager;
+import base_SOM_Objects.som_managers.runners.callables.base.SOM_MapDataToBMUs;
+import base_SOM_Objects.som_mapnodes.base.SOM_MapNode;
 import base_Utils_Objects.io.messaging.MsgCodes;
 import strafford_SOM_PKG.straff_SOM_Examples.products.Straff_ProductExample;
 

@@ -2,9 +2,9 @@ package strafford_SOM_PKG.straff_SOM_Mapping.procData_loaders;
 
 import java.util.concurrent.ConcurrentSkipListMap;
 
-import base_SOM_Objects.SOM_MapManager;
-import base_SOM_Objects.som_examples.SOM_Example;
+import base_SOM_Objects.som_examples.base.SOM_Example;
 import base_SOM_Objects.som_fileIO.SOM_ExCSVDataLoader;
+import base_SOM_Objects.som_managers.SOM_MapManager;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_CustProspectExample;
 
 public class Straff_CustCSVDataLoader extends SOM_ExCSVDataLoader{

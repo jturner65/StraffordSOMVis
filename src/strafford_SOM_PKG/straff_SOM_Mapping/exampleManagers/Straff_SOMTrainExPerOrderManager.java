@@ -2,8 +2,8 @@ package strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers;
 
 import java.util.ArrayList;
 
-import base_SOM_Objects.SOM_MapManager;
-import base_SOM_Objects.som_examples.SOM_Example;
+import base_SOM_Objects.som_examples.base.SOM_Example;
+import base_SOM_Objects.som_managers.SOM_MapManager;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_CustProspectExample;
 import strafford_SOM_PKG.straff_SOM_Mapping.exampleManagers.base.Straff_SOMCustPrspctManager_Base;
 
