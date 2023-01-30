@@ -7,6 +7,7 @@ import java.util.HashMap;
 
 import base_Utils_Objects.appManager.Console_AppManager;
 import base_Utils_Objects.appManager.argParse.cmdLineArgs.base.Base_CmdLineArg;
+import base_Utils_Objects.io.messaging.MsgCodes;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 
 /**
@@ -109,6 +110,19 @@ public class Strafford_SOM_Mapper_Main extends Console_AppManager {
 	}
 
 	/**
+	 * Set minimum level of message object console messages to display for this application. If null then all messages displayed
+	 * @return
+	 */
+	@Override
+	protected final MsgCodes getMinConsoleMsgCodes() {return null;}
+	/**
+	 * Set minimum level of message object log messages to save to log for this application. If null then all messages saved to log.
+	 * @return
+	 */
+	@Override
+	protected final MsgCodes getMinLogMsgCodes() {return null;}
+	
+	/**
 	 * @param args
 	 */
 	public static void main(String[] args) {
@@ -117,5 +131,6 @@ public class Strafford_SOM_Mapper_Main extends Console_AppManager {
 		mainObj.initExec();
 
 	}//main
+
 
 }//StraffordSOM

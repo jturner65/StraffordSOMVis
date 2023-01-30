@@ -6,6 +6,7 @@ import java.util.HashMap;
 import base_UI_Objects.GUI_AppManager;
 import base_UI_Objects.my_procApplet;
 import base_UI_Objects.windowUI.base.Base_DispWindow;
+import base_Utils_Objects.io.messaging.MsgCodes;
 import strafford_SOM_PKG.straff_UI.Straff_SOMMapUIWin;
 /**
  * Testbed to visually inspect and verify results from Strafford prospect mapping to a SOM
@@ -80,7 +81,19 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 	public String getPrjNmShrt() {return prjNmShrt;}
 	@Override
 	public String getPrjDescr() {return projDesc;}
-	
+
+	/**
+	 * Set minimum level of message object console messages to display for this application. If null then all messages displayed
+	 * @return
+	 */
+	@Override
+	protected final MsgCodes getMinConsoleMsgCodes() {return null;}
+	/**
+	 * Set minimum level of message object log messages to save to log for this application. If null then all messages saved to log.
+	 * @return
+	 */
+	@Override
+	protected final MsgCodes getMinLogMsgCodes() {return null;}
 	
 	//instance-specific setup code
 	@Override
