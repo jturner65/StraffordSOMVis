@@ -144,8 +144,8 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		((Straff_SOMMapManager) mapMgr).setAnalysisPerJPWidth((mapMgr.getMapWidth()*.1f));
 		//default to having calc objects display analysis on ftrs 
 		setPrivFlags(mapDrawCalcFtrOrAllVisIDX, true);
-		//default to showing right side bar menu
-		setFlags(showRightSideMenu, true);	
+		// capable of using right side menu
+		dispFlags.setDrawRtSideMenu(true);
 		//dataFrmtToUseToTrain = (int)(this.guiObjs[uiTrainDataFrmtIDX].getVal()); 
 		((Straff_SOMMapManager) mapMgr).setProdZoneDistThresh(this.guiObjs[uiProdZoneDistThreshIDX].getVal());
 		rawDataSource = (int)(this.guiObjs[uiRawDataSourceIDX].getVal());
