@@ -143,7 +143,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		//for single jp detail display
 		((Straff_SOMMapManager) mapMgr).setAnalysisPerJPWidth((mapMgr.getMapWidth()*.1f));
 		//default to having calc objects display analysis on ftrs 
-		setPrivFlags(mapDrawCalcFtrOrAllVisIDX, true);
+		privFlags.setFlag(mapDrawCalcFtrOrAllVisIDX, true);
 		// capable of using right side menu
 		dispFlags.setDrawRtSideMenu(true);
 		//dataFrmtToUseToTrain = (int)(this.guiObjs[uiTrainDataFrmtIDX].getVal()); 
@@ -198,8 +198,8 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 			
 			case mapDrawCustAnalysisVisIDX	: {//whether or not to draw feature calc analysis graphs  
 				if (val) {//if setting to true then aggregate data
-					setPrivFlags(mapDrawTPAnalysisVisIDX, false);
-					setPrivFlags(mapDrawTrainDataAnalysisVisIDX, false);					
+					privFlags.setFlag(mapDrawTPAnalysisVisIDX, false);
+					privFlags.setFlag(mapDrawTrainDataAnalysisVisIDX, false);					
 					((Straff_SOMMapManager) mapMgr).setCurCalcAnalysisSrcDataTypeIDX(Straff_WeightCalc.custCalcObjIDX);
 					((Straff_SOMMapManager) mapMgr).setAnalysisAllJPBarWidth(curVisScrDims[0]);	
 				} else {
@@ -208,8 +208,8 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 				break;}
 			case mapDrawTPAnalysisVisIDX	: {//whether or not to draw feature calc analysis graphs  
 				if (val) {//if setting to true then aggregate data
-					setPrivFlags(mapDrawCustAnalysisVisIDX, false);
-					setPrivFlags(mapDrawTrainDataAnalysisVisIDX, false);					
+					privFlags.setFlag(mapDrawCustAnalysisVisIDX, false);
+					privFlags.setFlag(mapDrawTrainDataAnalysisVisIDX, false);					
 					((Straff_SOMMapManager) mapMgr).setCurCalcAnalysisSrcDataTypeIDX(Straff_WeightCalc.tpCalcObjIDX);
 					((Straff_SOMMapManager) mapMgr).setAnalysisAllJPBarWidth(curVisScrDims[0]);	
 				} else {
@@ -219,8 +219,8 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 			
 			case mapDrawTrainDataAnalysisVisIDX : {
 				if (val) {//if setting to true then aggregate data
-					setPrivFlags(mapDrawCustAnalysisVisIDX, false);
-					setPrivFlags(mapDrawTPAnalysisVisIDX, false);					
+					privFlags.setFlag(mapDrawCustAnalysisVisIDX, false);
+					privFlags.setFlag(mapDrawTPAnalysisVisIDX, false);					
 					((Straff_SOMMapManager) mapMgr).setCurCalcAnalysisSrcDataTypeIDX(Straff_WeightCalc.trainCalcObjIDX);
 					((Straff_SOMMapManager) mapMgr).setAnalysisAllJPBarWidth(curVisScrDims[0]);	
 				}else {
@@ -437,18 +437,18 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	@Override
 	//set flags that should be set on each frame - these are set at beginning of frame draw
 	protected void drawSetDispFlags() {
-		setPrivFlags(custExCalcedIDX, ((Straff_SOMMapManager) mapMgr).isFtrCalcDone(Straff_WeightCalc.custCalcObjIDX));
-		setPrivFlags(tpExCalcedIDX, ((Straff_SOMMapManager) mapMgr).isFtrCalcDone(Straff_WeightCalc.tpCalcObjIDX));	
-		setPrivFlags(trainExCalcedIDX,((Straff_SOMMapManager) mapMgr).isFtrCalcDone(Straff_WeightCalc.trainCalcObjIDX));	
+		privFlags.setFlag(custExCalcedIDX, ((Straff_SOMMapManager) mapMgr).isFtrCalcDone(Straff_WeightCalc.custCalcObjIDX));
+		privFlags.setFlag(tpExCalcedIDX, ((Straff_SOMMapManager) mapMgr).isFtrCalcDone(Straff_WeightCalc.tpCalcObjIDX));	
+		privFlags.setFlag(trainExCalcedIDX,((Straff_SOMMapManager) mapMgr).isFtrCalcDone(Straff_WeightCalc.trainCalcObjIDX));	
 		//checking flag to execute if true
-		if(getPrivFlags(procTruProspectsIDX)){	((Straff_SOMMapManager) mapMgr).buildAndSaveTrueProspectReport();setPrivFlags(procTruProspectsIDX,false);	}			
+		if(privFlags.getFlag(procTruProspectsIDX)){	((Straff_SOMMapManager) mapMgr).buildAndSaveTrueProspectReport();privFlags.setFlag(procTruProspectsIDX,false);	}			
 	}
 	
 	@Override
 	protected void drawMapIndiv() {		
-		if (getPrivFlags(mapDrawCustAnalysisVisIDX)){	((Straff_SOMMapManager) mapMgr)._drawAnalysis(pa,custExCalcedIDX, mapDrawCustAnalysisVisIDX);	} 
-		else if (getPrivFlags(mapDrawTPAnalysisVisIDX)){((Straff_SOMMapManager) mapMgr)._drawAnalysis(pa,tpExCalcedIDX, mapDrawTPAnalysisVisIDX);}
-		else if (getPrivFlags(mapDrawTrainDataAnalysisVisIDX)) {((Straff_SOMMapManager) mapMgr)._drawAnalysis(pa,trainExCalcedIDX, mapDrawTrainDataAnalysisVisIDX);}
+		if (privFlags.getFlag(mapDrawCustAnalysisVisIDX)){	((Straff_SOMMapManager) mapMgr)._drawAnalysis(pa,custExCalcedIDX, mapDrawCustAnalysisVisIDX);	} 
+		else if (privFlags.getFlag(mapDrawTPAnalysisVisIDX)){((Straff_SOMMapManager) mapMgr)._drawAnalysis(pa,tpExCalcedIDX, mapDrawTPAnalysisVisIDX);}
+		else if (privFlags.getFlag(mapDrawTrainDataAnalysisVisIDX)) {((Straff_SOMMapManager) mapMgr)._drawAnalysis(pa,trainExCalcedIDX, mapDrawTrainDataAnalysisVisIDX);}
 	}	
 		
 	/**
@@ -466,7 +466,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 			switch(btn){
 				case 0 : {	
 					//load all data from raw local csvs or sql from db
-					((Straff_SOMMapManager) mapMgr).loadAndPreProcAllRawData((rawDataSource==0));//, getPrivFlags(useOnlyEvntsToTrainIDX));
+					((Straff_SOMMapManager) mapMgr).loadAndPreProcAllRawData((rawDataSource==0));//, privFlags.getFlag(useOnlyEvntsToTrainIDX));
 					resetButtonState();
 					break;}
 				case 1 : {	
@@ -638,13 +638,13 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	@Override
 	protected boolean hndlMouseMoveIndiv(int mouseX, int mouseY, myPoint mseClckInWorld){
 		boolean res = false;
-		if(getPrivFlags(mapDataLoadedIDX)){ res = checkMouseOvr(mouseX, mouseY);	}
+		if(privFlags.getFlag(mapDataLoadedIDX)){ res = checkMouseOvr(mouseX, mouseY);	}
 		return res;
 	}	
 	@Override
 	protected boolean hndlMouseClickIndiv(int mouseX, int mouseY, myPoint mseClckInWorld, int mseBtn) {
 		boolean mod = false;			
-		if(getPrivFlags(mapDataLoadedIDX)){ mod = this.checkMouseClick(mouseX, mouseY, mseClckInWorld, mseBtn);}
+		if(privFlags.getFlag(mapDataLoadedIDX)){ mod = this.checkMouseClick(mouseX, mouseY, mseClckInWorld, mseBtn);}
 //		if(mod) {return mod;}
 //		else {return checkUIButtons(mouseX, mouseY);}
 		return mod;
@@ -652,12 +652,12 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	@Override
 	protected boolean hndlMouseDragIndiv(int mouseX, int mouseY,int pmouseX, int pmouseY, myPoint mouseClickIn3D, myVector mseDragInWorld, int mseBtn) {
 		boolean mod = false;	
-		if(getPrivFlags(mapDataLoadedIDX)){ mod = this.checkMouseDragMove(mouseX, mouseY, pmouseX, pmouseY, mouseClickIn3D, mseDragInWorld, mseBtn);}				
+		if(privFlags.getFlag(mapDataLoadedIDX)){ mod = this.checkMouseDragMove(mouseX, mouseY, pmouseX, pmouseY, mouseClickIn3D, mseDragInWorld, mseBtn);}				
 		return mod;
 	}
 	@Override
 	protected void hndlMouseRelIndiv() {
-		if(getPrivFlags(mapDataLoadedIDX)){ this.checkMouseRelease();}		
+		if(privFlags.getFlag(mapDataLoadedIDX)){ this.checkMouseRelease();}		
 	}	
 
 	@Override
