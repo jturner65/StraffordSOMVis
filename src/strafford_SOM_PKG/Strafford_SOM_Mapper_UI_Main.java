@@ -4,7 +4,6 @@ import java.io.File;
 import java.util.HashMap;
 
 import base_UI_Objects.GUI_AppManager;
-import base_UI_Objects.my_procApplet;
 import base_Utils_Objects.io.messaging.MsgCodes;
 import strafford_SOM_PKG.straff_UI.Straff_SOMMapUIWin;
 /**
@@ -19,11 +18,8 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 	private final String prjNmShrt = "SOM_Strafford";
 	private final String prjNmLong = "Testbed for development of Strafford Prospects SOM";	
 	private final String projDesc = "UI-enabled testing platform to preprocess raw customer, prospect and product data, train a self organizing map on the customers and use the map to draw suggest likely products for customers and prospects.";
-				
-	private final int
-		showUIMenu = 0,
-		showSOMMapUI = 1;
-	public final int numVisFlags = 2;
+
+	private static final int numVisWins = 2;
 	
 	//idx's in dispWinFrames for each window - 0 is always left side menu window
 	private static final int	dispSOMMapIDX = 1;	
@@ -70,9 +66,30 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 	 */
 	@Override
 	protected int setAppWindowDimRestrictions() {	return 1;}	
+	/**
+	 * Called in pre-draw initial setup, before first init
+	 * potentially override setup variables on per-project basis.
+	 * Do not use for setting background color or Skybox anymore.
+	 *  	(Current settings in my_procApplet) 	
+	 *  	strokeCap(PROJECT);
+	 *  	textSize(txtSz);
+	 *  	textureMode(NORMAL);			
+	 *  	rectMode(CORNER);	
+	 *  	sphereDetail(4);	 * 
+	 */
+	@Override
+	protected void setupAppDims_Indiv() {}
+	@Override
+	protected boolean getUseSkyboxBKGnd(int winIdx) {	return false;}
+	@Override
+	protected String getSkyboxFilename(int winIdx) {	return "";}
+	@Override
+	protected int[] getBackgroundColor(int winIdx) {return bground;}
+	@Override
+	protected int getNumDispWindows() {	return numVisWins;	}	
 
 	@Override
-	protected void setSmoothing() {		pa.setSmoothing(0);		}
+	protected void setSmoothing() {		ri.setSmoothing(0);		}
 
 	@Override
 	public String getPrjNmLong() {return prjNmLong;}
@@ -93,15 +110,6 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 	 */
 	@Override
 	protected final MsgCodes getMinLogMsgCodes() {return null;}
-	
-	//instance-specific setup code
-	@Override
-	protected void setup_Indiv() {setBkgrnd();}	
-	
-	@Override
-	protected void setBkgrnd(){
-		((my_procApplet)pa).background(bground[0],bground[1],bground[2],bground[3]);		
-	}//setBkgrnd
 
 	/**
 	 * determine which main flags to show at upper left of menu 
@@ -118,21 +126,16 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 	@Override
 	//build windows here
 	protected void initAllDispWindows() {
-		showInfo = true;
-		//drawnTrajEditWidth = 10;
-		//includes 1 for menu window (never < 1) - always have same # of visFlags as myDispWindows
-		int numWins = numVisFlags;		
+		showInfo = true;	
 		//titles and descs, need to be set before sidebar menu is defined
 		String[] _winTitles = new String[]{"","SOM Map UI"},
 				_winDescr = new String[] {"", "Visualize Prospect SOM Node Mapping"};
-		initWins(numWins,_winTitles, _winDescr);
-		//call for menu window
-		buildInitMenuWin();
+		setWinTitlesAndDescs(_winTitles, _winDescr);
+
 		//instanced window dimensions when open and closed - only showing 1 open at a time
 		float[] _dimOpen  = getDefaultWinDimOpen(), 
 				_dimClosed  = getDefaultWinDimClosed();	
 		//menu bar init
-		int wIdx = dispMenuIDX,fIdx=showUIMenu;
 		String[] menuBtnTitles = new String[]{"Raw Data Conversion/Processing","Load Post Proc Data","Console Exec Testing","Load Prebuilt Maps"};
 
 		String[][] menuBtnNames = new String[][] {	//each must have literals for every button defined in side bar menu, or ignored
@@ -143,25 +146,24 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 			{"Raw","Proced","JpJpg","MapDat","---"}	
 		};
 		String[] dbgBtnNames = new String[] {"Debug 0","Debug 1","Debug 2","Debug 3","Debug 4"};	
-		dispWinFrames[wIdx] = buildSideBarMenu(wIdx, fIdx, menuBtnTitles, menuBtnNames, dbgBtnNames, false, true);//new Straff_SOMMapUISideBarMenu(this, winTitles[wIdx], fIdx, winFillClrs[wIdx], winStrkClrs[wIdx], winRectDimOpen[wIdx], winRectDimClose[wIdx], winDescr[wIdx]);	
+		buildSideBarMenu(menuBtnTitles, menuBtnNames, dbgBtnNames, false, true);//new Straff_SOMMapUISideBarMenu(this, winTitles[wIdx], fIdx, winFillClrs[wIdx], winStrkClrs[wIdx], winRectDimOpen[wIdx], winRectDimClose[wIdx], winDescr[wIdx]);	
 
 		//(int _winIDX, float[] _dimOpen, float[] _dimClosed, String _ttl, String _desc, 
 		setInitDispWinVals(dispSOMMapIDX, _dimOpen, _dimClosed,
 				//boolean[] _dispFlags : idxs : 0 : canDrawInWin; 1 : canShow3dbox; 2 : canMoveView; 3 : dispWinIs3d
 				//int[] _fill, int[] _strk, int _trajFill, int _trajStrk)
 				new boolean[] {false,false,false,false}, new int[]{50,40,20,255},new int[]{255,255,255,255},new int[] {120,120,120,255},new int[]{50,40,20,255}); 		
-		wIdx = dispSOMMapIDX; fIdx=showSOMMapUI;
-		dispWinFrames[wIdx] = new Straff_SOMMapUIWin(pa, this, winTitles[wIdx], fIdx, winFillClrs[wIdx], winStrkClrs[wIdx], winRectDimOpen[wIdx], winRectDimClose[wIdx], winDescr[wIdx]);		
+		int wIdx = dispSOMMapIDX;
+		dispWinFrames[wIdx] = new Straff_SOMMapUIWin(ri, this, winTitles[wIdx], wIdx, winFillClrs[wIdx], winStrkClrs[wIdx], winRectDimOpen[wIdx], winRectDimClose[wIdx], winDescr[wIdx]);		
 		//specify windows that cannot be shown simultaneously here
-		initXORWins(new int[]{showSOMMapUI},new int[]{dispSOMMapIDX});
+		initXORWins(new int[]{dispSOMMapIDX},new int[]{dispSOMMapIDX});
 	}//	initVisOnce_Priv
 	
 	@Override
 	//called from base class, once at start of program after vis init is called - set initial windows to show - always show UI Menu
 	protected void initOnce_Indiv(){
 		//which objects to initially show
-		setVisFlag(showUIMenu, true);					//show input UI menu	
-		setVisFlag(showSOMMapUI, true);
+		setVisFlag(dispSOMMapIDX, true);
 	}//	initOnce
 	
 	@Override
@@ -232,19 +234,18 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 		//val is btn state before transition 
 		boolean bVal = (val == 1?  false : true);
 		switch(btn){
-			case 0 : {setVisFlag(showSOMMapUI, bVal);break;}
+			case 0 : {setVisFlag(dispSOMMapIDX, bVal);break;}
 			}
 		}
 	}//handleShowWin
 	
 	@Override
 	//get the ui rect values of the "master" ui region (another window) -> this is so ui objects of one window can be made, clicked, and shown displaced from those of the parent windwo
-	public float[] getUIRectVals(int idx){
+	public float[] getUIRectVals_Indiv(int idx, float[] menuClickDim){
 		//this.pr("In getUIRectVals for idx : " + idx);
 		switch(idx){
-		case dispMenuIDX 		: {return new float[0];}			//idx 0 is parent menu sidebar
-		case dispSOMMapIDX 	: {	return dispWinFrames[dispMenuIDX].uiClkCoords;}
-		default :  return dispWinFrames[dispMenuIDX].uiClkCoords;
+		case dispSOMMapIDX 	: {	return menuClickDim;}
+		default :  return menuClickDim;
 		}
 	}	
 	
@@ -257,13 +258,12 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 	 * @return
 	 */
 	@Override
-	public int getNumVisFlags() {return numVisFlags;}
+	public int getNumVisFlags() {return numVisWins;}
 	@Override
 	//address all flag-setting here, so that if any special cases need to be addressed they can be
 	protected void setVisFlag_Indiv(int idx, boolean val ){
 		switch (idx){
-			case showUIMenu 	: { dispWinFrames[dispMenuIDX].dispFlags.setShowWin(val);    break;}											//whether or not to show the main ui window (sidebar)			
-			case showSOMMapUI		: {setWinFlagsXOR(dispSOMMapIDX, val); break;}
+			case dispSOMMapIDX		: {setWinFlagsXOR(dispSOMMapIDX, val); break;}
 			default : {break;}
 		}
 	}//setFlags  

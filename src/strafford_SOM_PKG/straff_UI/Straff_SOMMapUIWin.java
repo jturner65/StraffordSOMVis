@@ -77,8 +77,8 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	//used to switch button name for 1st button to reflect whether performing csv-based load of raw data or sql query
 	private String[] menuLdRawFuncBtnNames = new String[] {"CSV", "SQL"};
 	
-	public Straff_SOMMapUIWin(IRenderInterface _p, GUI_AppManager _AppMgr, String _n, int _flagIdx, int[] fc, int[] sc, float[] rd, float[] rdClosed, String _winTxt) {
-		super(_p,_AppMgr, _n, _flagIdx, fc, sc, rd, rdClosed, _winTxt);
+	public Straff_SOMMapUIWin(IRenderInterface _p, GUI_AppManager _AppMgr, String _n, int _winIdx, int[] fc, int[] sc, float[] rd, float[] rdClosed, String _winTxt) {
+		super(_p,_AppMgr, _n, _winIdx, fc, sc, rd, rdClosed, _winTxt);
 		super.initThisWin(false);
 	}//ctor
 	
@@ -144,7 +144,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	protected final void initDispFlags_Indiv() {}
 	
 	@Override
-	protected void initMeIndiv() {
+	protected void initMe_Indiv() {
 		//based on width of map
 		((Straff_SOMMapManager) mapMgr).setAnalysisHt((mapMgr.getMapHeight()*.45f));
 		//for single jp detail display
@@ -157,7 +157,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 
 		//moved from mapMgr ctor, to remove dependence on papplet in that object
 		mapMgr.initMapAras(1, 1);
-	}//initMeIndiv()
+	}//initMe_Indiv()
 		
 	@Override
 	//SOM_mapDims is built by base class initMe
@@ -187,7 +187,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	
 
 	@Override
-	protected void setPrivFlagsIndiv(int idx, boolean val) {
+	protected void setPrivFlags_Indiv(int idx, boolean val) {
 		switch (idx) {//special actions for each flag
 			case mapDrawTruePspctIDX	: {//draw true prospect examples
 				break;}		
@@ -364,7 +364,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	
 //	@Override 
 //	//handle instance-specific UI components
-//	protected void setUIWinValsIndiv(int UIidx) {
+//	protected void setUIWinVals_Indiv(int UIidx) {
 //		switch(UIidx){
 //			case uiRawDataSourceIDX  : {//source of raw data
 //				rawDataSource = (int)(this.guiObjs[uiRawDataSourceIDX].getVal());
@@ -426,14 +426,14 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	}//setCustMenuBtnNames
 	
 	@Override
-	public void initDrwnTrajIndiv(){}
+	public void initDrwnTraj_Indiv(){}
 	@Override
 	public void drawCustMenuObjs(float animTimeMod){}
 	@Override
 	protected boolean simMe(float modAmtSec) {return false;}
 	//set camera to custom location - only used if dispFlag set
 	@Override
-	protected void setCameraIndiv(float[] camVals){}
+	protected void setCamera_Indiv(float[] camVals){}
 	@Override
 	protected void stopMe() {}		
 	@Override
@@ -450,7 +450,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	}
 	
 	@Override
-	protected void drawMapIndiv() {		
+	protected void drawMap_Indiv() {		
 		if (privFlags.getFlag(mapDrawCustAnalysisVisIDX)){	((Straff_SOMMapManager) mapMgr)._drawAnalysis(pa,custExCalcedIDX, mapDrawCustAnalysisVisIDX);	} 
 		else if (privFlags.getFlag(mapDrawTPAnalysisVisIDX)){((Straff_SOMMapManager) mapMgr)._drawAnalysis(pa,tpExCalcedIDX, mapDrawTPAnalysisVisIDX);}
 		else if (privFlags.getFlag(mapDrawTrainDataAnalysisVisIDX)) {((Straff_SOMMapManager) mapMgr)._drawAnalysis(pa,trainExCalcedIDX, mapDrawTrainDataAnalysisVisIDX);}
@@ -641,13 +641,13 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	
 	//handle mouseover 
 	@Override
-	protected boolean hndlMouseMoveIndiv(int mouseX, int mouseY, myPoint mseClckInWorld){
+	protected boolean hndlMouseMove_Indiv(int mouseX, int mouseY, myPoint mseClckInWorld){
 		boolean res = false;
 		if(privFlags.getFlag(mapDataLoadedIDX)){ res = checkMouseOvr(mouseX, mouseY);	}
 		return res;
 	}	
 	@Override
-	protected boolean hndlMouseClickIndiv(int mouseX, int mouseY, myPoint mseClckInWorld, int mseBtn) {
+	protected boolean hndlMouseClick_Indiv(int mouseX, int mouseY, myPoint mseClckInWorld, int mseBtn) {
 		boolean mod = false;			
 		if(privFlags.getFlag(mapDataLoadedIDX)){ mod = this.checkMouseClick(mouseX, mouseY, mseClckInWorld, mseBtn);}
 //		if(mod) {return mod;}
@@ -655,13 +655,13 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		return mod;
 	}
 	@Override
-	protected boolean hndlMouseDragIndiv(int mouseX, int mouseY,int pmouseX, int pmouseY, myPoint mouseClickIn3D, myVector mseDragInWorld, int mseBtn) {
+	protected boolean hndlMouseDrag_Indiv(int mouseX, int mouseY,int pmouseX, int pmouseY, myPoint mouseClickIn3D, myVector mseDragInWorld, int mseBtn) {
 		boolean mod = false;	
 		if(privFlags.getFlag(mapDataLoadedIDX)){ mod = this.checkMouseDragMove(mouseX, mouseY, pmouseX, pmouseY, mouseClickIn3D, mseDragInWorld, mseBtn);}				
 		return mod;
 	}
 	@Override
-	protected void hndlMouseRelIndiv() {
+	protected void hndlMouseRel_Indiv() {
 		if(privFlags.getFlag(mapDataLoadedIDX)){ this.checkMouseRelease();}		
 	}	
 
