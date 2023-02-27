@@ -121,6 +121,7 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 		setBaseFlagToShow_runSim(false);
 		setBaseFlagToShow_singleStep(false);
 		setBaseFlagToShow_showRtSideMenu(true);
+		setBaseFlagToShow_showDrawableCanvas(false);
 	}
 	
 	@Override

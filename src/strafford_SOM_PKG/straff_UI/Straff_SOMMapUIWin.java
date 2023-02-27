@@ -13,7 +13,6 @@ import base_SOM_Objects.som_ui.win_disp_ui.SOM_MseOvrDispTypeVals;
 import base_UI_Objects.GUI_AppManager;
 import base_UI_Objects.windowUI.uiObjs.base.GUIObj_Type;
 import base_Utils_Objects.io.messaging.MsgCodes;
-import base_UI_Objects.windowUI.uiObjs.menuObjs.MenuGUIObj_List;
 import strafford_SOM_PKG.straff_Features.featureCalc.Straff_WeightCalc;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
 
@@ -151,9 +150,9 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		((Straff_SOMMapManager) mapMgr).setAnalysisPerJPWidth((mapMgr.getMapWidth()*.1f));
 		//default to having calc objects display analysis on ftrs 
 		privFlags.setFlag(mapDrawCalcFtrOrAllVisIDX, true);
-		//dataFrmtToUseToTrain = (int)(this.guiObjs[uiTrainDataFrmtIDX].getVal()); 
-		((Straff_SOMMapManager) mapMgr).setProdZoneDistThresh(this.guiObjs[uiProdZoneDistThreshIDX].getVal());
-		rawDataSource = (int)(this.guiObjs[uiRawDataSourceIDX].getVal());
+		//dataFrmtToUseToTrain = (int)(this.guiObjs_Numeric[uiTrainDataFrmtIDX].getVal()); 
+		((Straff_SOMMapManager) mapMgr).setProdZoneDistThresh(this.getUIValue(uiProdZoneDistThreshIDX));
+		rawDataSource = (int)(this.getUIValue(uiRawDataSourceIDX));
 
 		//moved from mapMgr ctor, to remove dependence on papplet in that object
 		mapMgr.initMapAras(1, 1);
@@ -320,7 +319,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		setUI_ClassListVals(classVals);
 		setUI_CategoryListVals(categoryVals);
 		//set product list values
-		((MenuGUIObj_List) guiObjs[uiProdJPToDispIDX]).setListVals(prodVals);
+		setAllUIListValues(uiProdJPToDispIDX, prodVals);
 		//in super class
 		setClass_UIObj(false);
 	}//setUI_JPListMaxVals
@@ -333,9 +332,9 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	 */
 	public void setUI_JPAllSeenListVals(String[] jpGrpVals, String[] jpVals) {
 		//refresh max size of guiobj - heavy handed, these values won't change often, and this is called -every draw frame-.
-		//guiObjs[uiAllJpSeenToDispIDX].setNewMax(jpLen-1);
-		((MenuGUIObj_List) guiObjs[uiAllJpSeenToDispIDX]).setListVals(jpVals);
-		//guiObjs[uiAllJpgSeenToDispIDX].setNewMax(jpGrpLen-1);	
+		//guiObjs_Numeric[uiAllJpSeenToDispIDX].setNewMax(jpLen-1);
+		setAllUIListValues(uiAllJpSeenToDispIDX, jpVals);
+		//guiObjs_Numeric[uiAllJpgSeenToDispIDX].setNewMax(jpGrpLen-1);	
 	}//setUI_JPListMaxVals
 	
 
@@ -367,20 +366,20 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 //	protected void setUIWinVals_Indiv(int UIidx) {
 //		switch(UIidx){
 //			case uiRawDataSourceIDX  : {//source of raw data
-//				rawDataSource = (int)(this.guiObjs[uiRawDataSourceIDX].getVal());
+//				rawDataSource = (int)(this.guiObjs_Numeric[uiRawDataSourceIDX].getVal());
 //				//change button display
 //				setCustMenuBtnNames();
 //				msgObj.dispMessage(className,"setUIWinVals","uiRawDataSourceIDX : rawDataSource set to : " + rawDataSource, MsgCodes.info1);
 //				break;}					
 //			case uiProdJPToDispIDX : {//product to display, for product influence zones
-//				((Straff_SOMMapManager) mapMgr).setCurProdToShowIDX((int)guiObjs[uiProdJPToDispIDX].getVal());				
+//				((Straff_SOMMapManager) mapMgr).setCurProdToShowIDX((int)guiObjs_Numeric[uiProdJPToDispIDX].getVal());				
 //				break;}
 //			case uiProdZoneDistThreshIDX : {//max distance for a node to be considered a part of a product's "region" of influence		
-//				((Straff_SOMMapManager) mapMgr).setProdZoneDistThresh(this.guiObjs[uiProdZoneDistThreshIDX].getVal());			
+//				((Straff_SOMMapManager) mapMgr).setProdZoneDistThresh(this.guiObjs_Numeric[uiProdZoneDistThreshIDX].getVal());			
 //				break;}
 //	
 //			case uiAllJpSeenToDispIDX		: {
-//				((Straff_SOMMapManager) mapMgr).setCurAllJPToShowIDX((int)guiObjs[uiAllJpSeenToDispIDX].getVal());
+//				((Straff_SOMMapManager) mapMgr).setCurAllJPToShowIDX((int)guiObjs_Numeric[uiAllJpSeenToDispIDX].getVal());
 //				break;}	
 //		}		
 //	}//setUIWinValsIndiv	
@@ -451,9 +450,9 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	
 	@Override
 	protected void drawMap_Indiv() {		
-		if (privFlags.getFlag(mapDrawCustAnalysisVisIDX)){	((Straff_SOMMapManager) mapMgr)._drawAnalysis(pa,custExCalcedIDX, mapDrawCustAnalysisVisIDX);	} 
-		else if (privFlags.getFlag(mapDrawTPAnalysisVisIDX)){((Straff_SOMMapManager) mapMgr)._drawAnalysis(pa,tpExCalcedIDX, mapDrawTPAnalysisVisIDX);}
-		else if (privFlags.getFlag(mapDrawTrainDataAnalysisVisIDX)) {((Straff_SOMMapManager) mapMgr)._drawAnalysis(pa,trainExCalcedIDX, mapDrawTrainDataAnalysisVisIDX);}
+		if (privFlags.getFlag(mapDrawCustAnalysisVisIDX)){	((Straff_SOMMapManager) mapMgr)._drawAnalysis(ri,custExCalcedIDX, mapDrawCustAnalysisVisIDX);	} 
+		else if (privFlags.getFlag(mapDrawTPAnalysisVisIDX)){((Straff_SOMMapManager) mapMgr)._drawAnalysis(ri,tpExCalcedIDX, mapDrawTPAnalysisVisIDX);}
+		else if (privFlags.getFlag(mapDrawTrainDataAnalysisVisIDX)) {((Straff_SOMMapManager) mapMgr)._drawAnalysis(ri,trainExCalcedIDX, mapDrawTrainDataAnalysisVisIDX);}
 	}	
 		
 	/**
@@ -547,7 +546,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 				case 3 : {//load all training data, default map config, and build map
 					int curPreBuiltMapIDX = btn;
 					mapMgr.setCurPreBuiltMapIDX(curPreBuiltMapIDX);
-					uiUpdateData.setIntValue(uiMapPreBuiltDirIDX, (int) this.guiObjs[uiMapPreBuiltDirIDX].setVal(curPreBuiltMapIDX));
+					uiUpdateData.setIntValue(uiMapPreBuiltDirIDX, (int) this.setNewUIValue(uiMapPreBuiltDirIDX, curPreBuiltMapIDX));
 					mapMgr.loadPretrainedExistingMap(btn, true);//runs in thread, button state reset there
 					resetButtonState();
 					break;}

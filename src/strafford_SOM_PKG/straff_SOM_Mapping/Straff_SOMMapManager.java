@@ -977,7 +977,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 		curAllJPToShowIDX = 0;
 		mapPerJpgWtImgs = new PImage[num2ndryMaps];
 		for(int i=0;i<mapPerJpgWtImgs.length;++i) {
-			mapPerJpgWtImgs[i] = ((PApplet) Base_DispWindow.pa).createImage(w, h, format);
+			mapPerJpgWtImgs[i] = ((PApplet) Base_DispWindow.ri).createImage(w, h, format);
 		}	
 	}//instance-specific init 
 	
@@ -1050,7 +1050,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	@Override
 	//stuff to draw specific to this instance, before nodes are drawn
 	protected void drawMapRectangle_Indiv(IRenderInterface pa, int curImgNum) {
-		if(win.privFlags.getFlag(Straff_SOMMapUIWin.mapDrawTruePspctIDX)){			drawValidationData(Base_DispWindow.pa);}
+		if(win.privFlags.getFlag(Straff_SOMMapUIWin.mapDrawTruePspctIDX)){			drawValidationData(Base_DispWindow.ri);}
 		
 		if (win.privFlags.getFlag(Straff_SOMMapUIWin.mapDrawCurProdFtrBMUZoneIDX)){		drawProductRegion(pa,curProdToShowIDX,prodZoneDistThresh);}
 		//not drawing any analysis currently
