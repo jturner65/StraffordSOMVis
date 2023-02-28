@@ -1028,16 +1028,16 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 				drawAnalysisOneJp_All(pa,analysisHt, analysisPerJPWidth,curAllJPToShowIDX, getCurCalcAnalysisSrcDataTypeIDX());	
 				pa.popMatState();			
 				pa.pushMatState();
-				pa.translate(win.rectDim[0]+5,calcAnalysisLocs[1],0.0f);					
+				pa.translate(win.getRectDim(0)+5,calcAnalysisLocs[1],0.0f);					
 				drawAnalysisAllJps(pa, analysisHt, analysisAllJPBarWidth, curAllJPToShowIDX, getCurCalcAnalysisSrcDataTypeIDX());
 				
 			} else if(curCalcAnalysisJPTypeIDX == Straff_WeightCalc.bndAra_ProdJPsIDX)  {		
 				drawAnalysisOneJp_Ftr(pa,analysisHt, analysisPerJPWidth,curProdToShowIDX, getCurCalcAnalysisSrcDataTypeIDX());	
 				pa.popMatState();			
 				pa.pushMatState();
-				pa.translate(win.rectDim[0]+5,calcAnalysisLocs[1],0.0f);					
+				pa.translate(win.getRectDim(0)+5,calcAnalysisLocs[1],0.0f);					
 				drawAnalysisFtrJps(pa, analysisHt, analysisAllJPBarWidth, curProdToShowIDX, getCurCalcAnalysisSrcDataTypeIDX());				
-			}			
+			}		
 			
 			pa.popMatState();
 			pa.scale(calcScale);				//scale here so that if we are drawing calc analysis, ftr map image will be shrunk

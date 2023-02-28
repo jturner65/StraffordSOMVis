@@ -131,12 +131,10 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 		//titles and descs, need to be set before sidebar menu is defined
 		String[] _winTitles = new String[]{"","SOM Map UI"},
 				_winDescr = new String[] {"", "Visualize Prospect SOM Node Mapping"};
-		setWinTitlesAndDescs(_winTitles, _winDescr);
 
 		//instanced window dimensions when open and closed - only showing 1 open at a time
-		float[] _dimOpen  = getDefaultWinDimOpen(), 
-				_dimClosed  = getDefaultWinDimClosed();	
-		//menu bar init
+		float[][] _floatDims  = new float[][] {getDefaultWinDimOpen(), getDefaultWinDimClosed(), getInitCameraValues()};	
+		//Builds sidebar menu button config - application-wide menu button bar titles and button names
 		String[] menuBtnTitles = new String[]{"Raw Data Conversion/Processing","Load Post Proc Data","Console Exec Testing","Load Prebuilt Maps"};
 
 		String[][] menuBtnNames = new String[][] {	//each must have literals for every button defined in side bar menu, or ignored
@@ -147,15 +145,39 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 			{"Raw","Proced","JpJpg","MapDat","---"}	
 		};
 		String[] dbgBtnNames = new String[] {"Debug 0","Debug 1","Debug 2","Debug 3","Debug 4"};	
-		buildSideBarMenu(menuBtnTitles, menuBtnNames, dbgBtnNames, false, true);//new Straff_SOMMapUISideBarMenu(this, winTitles[wIdx], fIdx, winFillClrs[wIdx], winStrkClrs[wIdx], winRectDimOpen[wIdx], winRectDimClose[wIdx], winDescr[wIdx]);	
+		buildSideBarMenu(_winTitles,menuBtnTitles, menuBtnNames, dbgBtnNames, false, true);//new Straff_SOMMapUISideBarMenu(this, winTitles[wIdx], fIdx, winFillClrs[wIdx], winStrkClrs[wIdx], winRectDimOpen[wIdx], winRectDimClose[wIdx], winDescr[wIdx]);	
 
-		//(int _winIDX, float[] _dimOpen, float[] _dimClosed, String _ttl, String _desc, 
-		setInitDispWinVals(dispSOMMapIDX, _dimOpen, _dimClosed,
-				//boolean[] _dispFlags : idxs : 0 : canDrawInWin; 1 : canShow3dbox; 2 : canMoveView; 3 : dispWinIs3d
-				//int[] _fill, int[] _strk, int _trajFill, int _trajStrk)
-				new boolean[] {false,false,false,false}, new int[]{50,40,20,255},new int[]{255,255,255,255},new int[] {120,120,120,255},new int[]{50,40,20,255}); 		
-		int wIdx = dispSOMMapIDX;
-		dispWinFrames[wIdx] = new Straff_SOMMapUIWin(ri, this, winTitles[wIdx], wIdx, winFillClrs[wIdx], winStrkClrs[wIdx], winRectDimOpen[wIdx], winRectDimClose[wIdx], winDescr[wIdx]);		
+		//define windows
+		/**
+		 *  _winIdx The index in the various window-descriptor arrays for the dispWindow being set
+		 *  _title string title of this window
+		 *  _descr string description of this window
+		 *  _dispFlags Essential flags describing the nature of the dispWindow for idxs : 
+		 * 		0 : dispWinIs3d, 
+		 * 		1 : canDrawInWin; 
+		 * 		2 : canShow3dbox (only supported for 3D); 
+		 * 		3 : canMoveView
+		 *  _floatVals an array holding float arrays for 
+		 * 				rectDimOpen(idx 0),
+		 * 				rectDimClosed(idx 1),
+		 * 				initCameraVals(idx 2)
+		 *  _intClrVals and array holding int arrays for
+		 * 				winFillClr (idx 0),
+		 * 				winStrkClr (idx 1),
+		 * 				winTrajFillClr(idx 2),
+		 * 				winTrajStrkClr(idx 3),
+		 * 				rtSideFillClr(idx 4),
+		 * 				rtSideStrkClr(idx 5)
+		 *  _sceneCenterVal center of scene, for drawing objects (optional)
+		 *  _initSceneFocusVal initial focus target for camera (optional)
+		 */
+		int wIdx = dispSOMMapIDX;		
+		setInitDispWinVals(wIdx, _winTitles[wIdx], _winDescr[wIdx],	new boolean[]{false,false,false,true}, _floatDims,
+				new int[][] {new int[]{50,40,20,255}, new int[]{255,255,255,255},
+					new int[] {120,120,120,255},new int[]{50,40,20,255},
+					new int[]{0,0,0,200},new int[]{255,255,255,255}});
+		
+		dispWinFrames[wIdx] = new Straff_SOMMapUIWin(ri, this, winInitVals[wIdx]);		
 		//specify windows that cannot be shown simultaneously here
 		initXORWins(new int[]{dispSOMMapIDX},new int[]{dispSOMMapIDX});
 	}//	initVisOnce_Priv

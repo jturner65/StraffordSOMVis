@@ -11,6 +11,7 @@ import base_SOM_Objects.som_managers.SOM_MapManager;
 import base_SOM_Objects.som_ui.win_disp_ui.SOM_MapUIWin;
 import base_SOM_Objects.som_ui.win_disp_ui.SOM_MseOvrDispTypeVals;
 import base_UI_Objects.GUI_AppManager;
+import base_UI_Objects.windowUI.base.GUI_AppWinVals;
 import base_UI_Objects.windowUI.uiObjs.base.GUIObj_Type;
 import base_Utils_Objects.io.messaging.MsgCodes;
 import strafford_SOM_PKG.straff_Features.featureCalc.Straff_WeightCalc;
@@ -76,8 +77,8 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	//used to switch button name for 1st button to reflect whether performing csv-based load of raw data or sql query
 	private String[] menuLdRawFuncBtnNames = new String[] {"CSV", "SQL"};
 	
-	public Straff_SOMMapUIWin(IRenderInterface _p, GUI_AppManager _AppMgr, String _n, int _winIdx, int[] fc, int[] sc, float[] rd, float[] rdClosed, String _winTxt) {
-		super(_p,_AppMgr, _n, _winIdx, fc, sc, rd, rdClosed, _winTxt);
+	public Straff_SOMMapUIWin(IRenderInterface _p, GUI_AppManager _AppMgr, GUI_AppWinVals _winInitVals) {
+		super(_p,_AppMgr, _winInitVals);
 		super.initThisWin(false);
 	}//ctor
 	
