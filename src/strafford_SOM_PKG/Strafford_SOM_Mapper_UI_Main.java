@@ -132,7 +132,7 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 		String[] _winTitles = new String[]{"","SOM Map UI"},
 				_winDescr = new String[] {"", "Visualize Prospect SOM Node Mapping"};
 
-		//instanced window dimensions when open and closed - only showing 1 open at a time
+		//instanced window dims when open and closed - only showing 1 open at a time - and init cam vals
 		float[][] _floatDims  = new float[][] {getDefaultWinDimOpen(), getDefaultWinDimClosed(), getInitCameraValues()};	
 		//Builds sidebar menu button config - application-wide menu button bar titles and button names
 		String[] menuBtnTitles = new String[]{"Raw Data Conversion/Processing","Load Post Proc Data","Console Exec Testing","Load Prebuilt Maps"};
@@ -172,7 +172,7 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 		 *  _initSceneFocusVal initial focus target for camera (optional)
 		 */
 		int wIdx = dispSOMMapIDX;		
-		setInitDispWinVals(wIdx, _winTitles[wIdx], _winDescr[wIdx],	new boolean[]{false,false,false,true}, _floatDims,
+		setInitDispWinVals(wIdx, _winTitles[wIdx], _winDescr[wIdx],	getDfltBoolAra(false), _floatDims,
 				new int[][] {new int[]{50,40,20,255}, new int[]{255,255,255,255},
 					new int[] {120,120,120,255},new int[]{50,40,20,255},
 					new int[]{0,0,0,200},new int[]{255,255,255,255}});
