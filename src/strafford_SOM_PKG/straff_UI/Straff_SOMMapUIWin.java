@@ -12,7 +12,6 @@ import base_SOM_Objects.som_ui.win_disp_ui.SOM_MapUIWin;
 import base_SOM_Objects.som_ui.win_disp_ui.SOM_MseOvrDispTypeVals;
 import base_UI_Objects.GUI_AppManager;
 import base_UI_Objects.windowUI.base.GUI_AppWinVals;
-import base_UI_Objects.windowUI.uiObjs.base.base.GUIObj_Type;
 import base_Utils_Objects.io.messaging.MsgCodes;
 import strafford_SOM_PKG.straff_Features.featureCalc.Straff_WeightCalc;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
@@ -287,10 +286,10 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		tmpListObjVals.put(uiProdJPToDispIDX, new String[] {"Unknown"}); 
 		tmpListObjVals.put(uiAllJpSeenToDispIDX, new String[] {"Unknown"});
 		
-		tmpUIObjArray.put(uiRawDataSourceIDX,new Object[] {new double[]{0.0, tmpListObjVals.get(uiRawDataSourceIDX).length-1, 1}, 0.0, "Raw Data Source", GUIObj_Type.ListVal, new boolean[]{true}});		//uiRawDataSourceIDX
-		tmpUIObjArray.put(uiProdJPToDispIDX,new Object[] {new double[]{0.0, 260, 1.0}, 0.0, "Product JP to Show", GUIObj_Type.ListVal, new boolean[]{true}});			//uiProdJPToDispIDX	
-		tmpUIObjArray.put(uiProdZoneDistThreshIDX,new Object[] {new double[]{0.0, 5, .01}, 0.99, "Prod Max Sq Dist", GUIObj_Type.FloatVal, new boolean[]{true}});		//uiProdZoneDistThreshIDX	
-		tmpUIObjArray.put(uiAllJpSeenToDispIDX,new Object[] {new double[]{0.0, 260, 1.0}, 0.0, "All JP to Show (Calc Analysis)", GUIObj_Type.ListVal, new boolean[]{true}});			//uiAllJpSeenToDispIDX	
+		tmpUIObjArray.put(uiRawDataSourceIDX, uiObjInitAra_List(new double[]{0.0, tmpListObjVals.get(uiRawDataSourceIDX).length-1, 1}, 0.0, "Raw Data Source", new boolean[]{true}));		//uiRawDataSourceIDX
+		tmpUIObjArray.put(uiProdJPToDispIDX, uiObjInitAra_List(new double[]{0.0, 260, 1.0}, 0.0, "Product JP to Show", new boolean[]{true}));			//uiProdJPToDispIDX	
+		tmpUIObjArray.put(uiProdZoneDistThreshIDX, uiObjInitAra_Float(new double[]{0.0, 5, .01}, 0.99, "Prod Max Sq Dist", new boolean[]{true}));		//uiProdZoneDistThreshIDX	
+		tmpUIObjArray.put(uiAllJpSeenToDispIDX, uiObjInitAra_List(new double[]{0.0, 260, 1.0}, 0.0, "All JP to Show (Calc Analysis)", new boolean[]{true}));			//uiAllJpSeenToDispIDX	
 
 	}//setupGUIObjsArasIndiv
 	
