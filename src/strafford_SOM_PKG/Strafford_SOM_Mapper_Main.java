@@ -132,5 +132,7 @@ public class Strafford_SOM_Mapper_Main extends Console_AppManager {
 
 	}//main
 
+	@Override
+	protected boolean showMachineData() {return true;}
 
 }//StraffordSOM

@@ -42,7 +42,11 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 		Strafford_SOM_Mapper_UI_Main me = new Strafford_SOM_Mapper_UI_Main();
 		Strafford_SOM_Mapper_UI_Main.invokeProcessingMain(me, passedArgs);
 	}//main	
+
 	public Strafford_SOM_Mapper_UI_Main() {super();}
+
+	@Override
+	protected boolean showMachineData() {return true;}
 	/**
 	 * Set various relevant runtime arguments in argsMap
 	 * @param _passedArgs command-line arguments
