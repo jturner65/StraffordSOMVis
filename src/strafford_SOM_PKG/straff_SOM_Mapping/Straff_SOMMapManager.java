@@ -1019,7 +1019,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	}
 
 	public void _drawAnalysis(IRenderInterface pa, int exCalcedIDX, int mapDrawAnalysisIDX) {
-		if (win.privFlags.getFlag(exCalcedIDX)){	
+		if (win.getPrivFlag(exCalcedIDX)){	
 			//determine what kind of jps are being displayed 
 			//int curJPIdx = ( ? curMapImgIDX : curAllJPToShowIDX);
 			pa.pushMatState();
@@ -1042,7 +1042,7 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 			pa.popMatState();
 			pa.scale(calcScale);				//scale here so that if we are drawing calc analysis, ftr map image will be shrunk
 		} else {
-			win.privFlags.setFlag(mapDrawAnalysisIDX, false);
+			win.setPrivFlag(mapDrawAnalysisIDX, false);
 		}
 	}//_drawAnalysis
 
@@ -1050,11 +1050,11 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	@Override
 	//stuff to draw specific to this instance, before nodes are drawn
 	protected void drawMapRectangle_Indiv(IRenderInterface pa, int curImgNum) {
-		if(win.privFlags.getFlag(Straff_SOMMapUIWin.mapDrawTruePspctIDX)){			drawValidationData(Base_DispWindow.ri);}
+		if(win.getPrivFlag(Straff_SOMMapUIWin.mapDrawTruePspctIDX)){			drawValidationData(Base_DispWindow.ri);}
 		
-		if (win.privFlags.getFlag(Straff_SOMMapUIWin.mapDrawCurProdFtrBMUZoneIDX)){		drawProductRegion(pa,curProdToShowIDX,prodZoneDistThresh);}
+		if (win.getPrivFlag(Straff_SOMMapUIWin.mapDrawCurProdFtrBMUZoneIDX)){		drawProductRegion(pa,curProdToShowIDX,prodZoneDistThresh);}
 		//not drawing any analysis currently
-		boolean notDrawAnalysis = !(win.privFlags.getFlag(Straff_SOMMapUIWin.mapDrawCustAnalysisVisIDX) || win.privFlags.getFlag(Straff_SOMMapUIWin.mapDrawTPAnalysisVisIDX));
+		boolean notDrawAnalysis = !(win.getPrivFlag(Straff_SOMMapUIWin.mapDrawCustAnalysisVisIDX) || win.getPrivFlag(Straff_SOMMapUIWin.mapDrawTPAnalysisVisIDX));
 		if (notDrawAnalysis ){	drawMseOverData(pa);}//draw mouse-over info if not showing calc analysis		 		
 	}//drawMapRectangleIndiv
 	/**
@@ -1062,9 +1062,9 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	 */
 	@Override
 	protected void drawPerFtrMap_Indiv(IRenderInterface pa) {
-		if(win.privFlags.getFlag(Straff_SOMMapUIWin.mapDrawPrdctFtrBMUsIDX)){				drawProductNodes(pa, curFtrMapImgIDX, true);}
-		if(win.privFlags.getFlag(Straff_SOMMapUIWin.mapDrawNonProdJPSegIDX)) {	 			drawNonProdJpSegments(pa,curAllJPToShowIDX);	}		
-		if(win.privFlags.getFlag(Straff_SOMMapUIWin.mapDrawNonProdJPGroupSegIDX)) { 			drawNonProdJPGroupSegments(pa,curAllJPToShowIDX);	}	
+		if(win.getPrivFlag(Straff_SOMMapUIWin.mapDrawPrdctFtrBMUsIDX)){				drawProductNodes(pa, curFtrMapImgIDX, true);}
+		if(win.getPrivFlag(Straff_SOMMapUIWin.mapDrawNonProdJPSegIDX)) {	 			drawNonProdJpSegments(pa,curAllJPToShowIDX);	}		
+		if(win.getPrivFlag(Straff_SOMMapUIWin.mapDrawNonProdJPGroupSegIDX)) { 			drawNonProdJPGroupSegments(pa,curAllJPToShowIDX);	}	
 	}
 	
 	@Override
@@ -1072,11 +1072,11 @@ public class Straff_SOMMapManager extends SOM_MapManager {
 	 * Instancing class-specific segments to render during UMatrix display
 	 */
 	protected void drawSegmentsUMatrixDispIndiv(IRenderInterface pa) {
-		if(win.privFlags.getFlag(Straff_SOMMapUIWin.mapDrawNonProdJPSegIDX)) {	 			drawAllNonProdJpSegments(pa);}
-		if(win.privFlags.getFlag(Straff_SOMMapUIWin.mapDrawNonProdJPGroupSegIDX)) { 			drawAllNonProdJPGroupSegments(pa);}
-		if(win.privFlags.getFlag(Straff_SOMMapUIWin.mapDrawPrdctFtrBMUsIDX)){				drawAllProductNodes(pa);}
+		if(win.getPrivFlag(Straff_SOMMapUIWin.mapDrawNonProdJPSegIDX)) {	 			drawAllNonProdJpSegments(pa);}
+		if(win.getPrivFlag(Straff_SOMMapUIWin.mapDrawNonProdJPGroupSegIDX)) { 			drawAllNonProdJPGroupSegments(pa);}
+		if(win.getPrivFlag(Straff_SOMMapUIWin.mapDrawPrdctFtrBMUsIDX)){				drawAllProductNodes(pa);}
 	}	
-	/*(win.privFlags.getFlag(Straff_SOMMapUIWin.xes around each node representing class-based segments that node 
+	/* Draw a region around each node representing class-based segments that node 
 	 * belongs to, with color strength proportional to probablity and 
 	 * different colors for each segment
 	 * pass class -label- not class index

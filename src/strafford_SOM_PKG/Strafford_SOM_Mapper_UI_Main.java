@@ -137,7 +137,7 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 				_winDescr = new String[] {"", "Visualize Prospect SOM Node Mapping"};
 
 		//instanced window dims when open and closed - only showing 1 open at a time - and init cam vals
-		float[][] _floatDims  = new float[][] {getDefaultWinDimOpen(), getDefaultWinDimClosed(), getInitCameraValues()};	
+		float[][] _floatDims  = getDefaultWinAndCameraDims();	
 		//Builds sidebar menu button config - application-wide menu button bar titles and button names
 		String[] menuBtnTitles = new String[]{"Raw Data Conversion/Processing","Load Post Proc Data","Console Exec Testing","Load Prebuilt Maps"};
 
@@ -190,7 +190,7 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 	//called from base class, once at start of program after vis init is called - set initial windows to show - always show UI Menu
 	protected void initOnce_Indiv(){
 		//which objects to initially show
-		setVisFlag(dispSOMMapIDX, true);
+		setWinVisFlag(dispSOMMapIDX, true);
 	}//	initOnce
 	
 	@Override
@@ -241,9 +241,6 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 		
 	}//handleNonNumberKeyPress
 
-	@Override
-	//gives multiplier based on whether shift, alt or cntl (or any combo) is pressed
-	public double clickValModMult(){return ((altIsPressed() ? .1 : 1.0) * (shiftIsPressed() ? 10.0 : 1.0));}	
 	//keys/criteria are present that means UI objects are modified by set values based on clicks (as opposed to dragging for variable values)
 	//to facilitate UI interaction non-mouse computers, set these to be single keys
 	@Override
@@ -261,7 +258,7 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 		//val is btn state before transition 
 		boolean bVal = (val == 1?  false : true);
 		switch(btn){
-			case 0 : {setVisFlag(dispSOMMapIDX, bVal);break;}
+			case 0 : {setWinVisFlag(dispSOMMapIDX, bVal);break;}
 			}
 		}
 	}//handleShowWin

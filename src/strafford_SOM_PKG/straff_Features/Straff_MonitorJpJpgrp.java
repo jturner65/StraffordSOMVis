@@ -352,7 +352,7 @@ public class Straff_MonitorJpJpgrp {
 		res += "\nNum Jps = " + numJps+ " "+str_sep+" Num  JpGrps = "+jpgrpsByIdx.length +"\n";
 		res += " Jp "+str_sep+ String.format(frmtStr,"Jp Name") +str_sep+" Jpgrp "+str_sep + String.format(frmtStrJPG,"Jpgrp Name") +" "+str_sep+"# Jp exs"+str_sep+"# in Cust"+str_sep+"# in Prspcts"+str_sep+"# in Prod"+str_sep;
 		int numEventTypes = Straff_EvtDataType.getNumVals();
-		for(int i=0;i<numEventTypes;++i) {		res+= String.format("# %6s"+str_sep,Straff_EvtDataType.getVal(i).name());		}
+		for(int i=0;i<numEventTypes;++i) {		res+= String.format("# %6s"+str_sep,Straff_EvtDataType.getEnumByIndex(i).name());		}
 		res += "   ** NOTES **   "+str_sep;
 		res +="\n";
 		int[] ttlNumJpOcc = new int[numEventTypes+numDispOffset];
@@ -401,7 +401,7 @@ public class Straff_MonitorJpJpgrp {
 				+ String.format(frmtStrJPG,dispStr) 
 				+ String.format(" "+str_sep+"%7d "+str_sep+" %7d "+str_sep+" %10d "+str_sep+" %7d",jpSeen,jpCustPrsSeen,jpTruPrsSeen,jpProdSeen);			
 			for(int i=0;i<numEventTypes;++i) {	
-				Integer count = jpPerEventSeenCount.get(Straff_EvtDataType.getVal(i)).get(jp);
+				Integer count = jpPerEventSeenCount.get(Straff_EvtDataType.getEnumByIndex(i)).get(jp);
 				if(count==null) {count=0;}//offset by 2 to hold spaces for pro
 				if((jpProdSeen != 0) && (count==0)&& (i==0)) {lastColPrintCode |= bitFlags[1];}//products without any orders
 				ttlNumJpOcc[i+numDispOffset]+=count;
@@ -418,7 +418,7 @@ public class Straff_MonitorJpJpgrp {
 			res += " " + str_sep+" "+finalLineStr+"\n";
 		}		
 		res += "Ttls : Seen : " + ttlNumJpOcc[0] + " "+str_sep+" Cust : "+ ttlNumJpOcc[1]+ " "+str_sep+" Prspct : "+ ttlNumJpOcc[2]+ " "+str_sep+" Products : "+ ttlNumJpOcc[3];
-		for(int i=0;i<numEventTypes;++i) {	res+= " "+str_sep+" "+Straff_EvtDataType.getVal(i).name()+" : " + ttlNumJpOcc[numDispOffset+i];}
+		for(int i=0;i<numEventTypes;++i) {	res+= " "+str_sep+" "+Straff_EvtDataType.getEnumByIndex(i).name()+" : " + ttlNumJpOcc[numDispOffset+i];}
 		res+=" "+str_sep+" # of JPs with products : " + numProdJPs;
 		res +="\n";
 		
@@ -426,7 +426,7 @@ public class Straff_MonitorJpJpgrp {
 		int numJPGs = jpgrpsByIdx.length;
 		ttlNumJpOcc = new int[numEventTypes+numDispOffset];
 		res +="\n"+str_sep+" Jpgrp "+str_sep + String.format(frmtStrJPG,"Jpgrp Name") +" "+str_sep+"# Jpg exs"+str_sep+"#in Custs"+str_sep+"#in Prspt"+str_sep+"#in Prods"+str_sep;
-		for(int i=0;i<numEventTypes;++i) {		res+= String.format("# %7s"+str_sep,Straff_EvtDataType.getVal(i).name());		}
+		for(int i=0;i<numEventTypes;++i) {		res+= String.format("# %7s"+str_sep,Straff_EvtDataType.getEnumByIndex(i).name());		}
 		res +="\n";
 		for (int jpGrpIdx = 0;jpGrpIdx<numJPGs;++jpGrpIdx) {
 			int jpGrp = jpgrpsByIdx[jpGrpIdx];
@@ -445,7 +445,7 @@ public class Straff_MonitorJpJpgrp {
 		}
 		res += "\nTtls : JPGroup Seen : " + ttlNumJpOcc[0] + " "+str_sep+" JPGroup Cust/Prspct : "+ ttlNumJpOcc[1]+ " "+str_sep+" JPGroup Cust/Prspct : "+ ttlNumJpOcc[2]+ " "+str_sep+" JPGroup Products : "+ ttlNumJpOcc[3];
 		for(int i=0;i<numEventTypes;++i) {	
-			res+= " "+str_sep+" "+Straff_EvtDataType.getVal(i).name()+" : " + ttlNumJpOcc[numDispOffset+i];	
+			res+= " "+str_sep+" "+Straff_EvtDataType.getEnumByIndex(i).name()+" : " + ttlNumJpOcc[numDispOffset+i];	
 		}
 		res +="\n";
 		return res;
@@ -515,7 +515,7 @@ abstract class JP_JPG_Data{
 		
 		jpPerEventSeenCount = new HashMap<Straff_EvtDataType, TreeMap<Integer, Integer>>(); //count of prospect train records having jp only seen in source events
 		int numEvTypes = Straff_EvtDataType.getNumVals();
-		for (int i=0;i<numEvTypes;++i) {jpPerEventSeenCount.put(Straff_EvtDataType.getVal(i), new TreeMap<Integer, Integer>());}//for	
+		for (int i=0;i<numEvTypes;++i) {jpPerEventSeenCount.put(Straff_EvtDataType.getEnumByIndex(i), new TreeMap<Integer, Integer>());}//for	
 		numFtrs = 0;
 		//msgObj.dispMessage("MonitorJpJpgrp::JP_JPG_Data("+type+")","init","Finish Init", MsgCodes.info5);
 	}//init() 
@@ -740,7 +740,7 @@ abstract class JP_JPG_Data{
 		csvResTmp.add(tmp);
 		tmp = "Jp,JpIDX,Jp Name,Jpgrp,JpgrpIDX,Jpgrp Name,# JpSeen, ";//# JpSourceSeen";
 		int numEventTypes = Straff_EvtDataType.getNumVals();
-		for(int i=0;i<numEventTypes;++i) {			tmp+= "# Jp"+Straff_EvtDataType.getVal(i).name()+"Seen,";		}
+		for(int i=0;i<numEventTypes;++i) {			tmp+= "# Jp"+Straff_EvtDataType.getEnumByIndex(i).name()+"Seen,";		}
 		csvResTmp.add(tmp);
 		for (int idx = 0;idx<numJps;++idx) {
 			int jp = jpByIdx[idx];
@@ -748,7 +748,7 @@ abstract class JP_JPG_Data{
 			int jpGrpIdx = jpgToIDX.get(jpGrp);
 			tmp = ""+jp+","+idx+","+ getNameNullChk(jp,jpNames);
 			tmp +=","+jpGrp+","+jpGrpIdx+","+ getNameNullChk(jpGrp,jpGrpNames)+","+getCountNullChk(jp,jpSeenCount)+",";			
-			for(int i=0;i<numEventTypes;++i) {			tmp+= ""+getCountNullChk(jp,jpPerEventSeenCount.get(Straff_EvtDataType.getVal(i))) +",";}
+			for(int i=0;i<numEventTypes;++i) {			tmp+= ""+getCountNullChk(jp,jpPerEventSeenCount.get(Straff_EvtDataType.getEnumByIndex(i))) +",";}
 			csvResTmp.add(tmp);
 		}		
 		fileIO.saveStrings(fileName, csvResTmp);	
@@ -803,7 +803,7 @@ abstract class JP_JPG_Data{
 					jpToIDX.put(jp, jpFtrIDX);			
 					jpSeenCount.put(jp, jpSeen);
 					for(int j=0;j<numEventTypes;++j) {		
-						TreeMap<Integer, Integer> PerEvtCountMap = jpPerEventSeenCount.get(Straff_EvtDataType.getVal(j));
+						TreeMap<Integer, Integer> PerEvtCountMap = jpPerEventSeenCount.get(Straff_EvtDataType.getEnumByIndex(j));
 						PerEvtCountMap.put(jp, Integer.parseInt(vals[7+j]));
 					}					
 					jpsToJpgs.put(jp, jpgrp);
@@ -833,7 +833,7 @@ abstract class JP_JPG_Data{
 		res += "\nJp/Jpgs from " + type +" Data : Num Jps = " + numJps+ " "+str_sep+" Num  JpGrps = "+jpGrpByIdx.length +"\n";
 		res += " Jp "+str_sep+"JpIDX"+str_sep + String.format(frmtStr,"Jp Name") +str_sep+" Jpgrp "+str_sep+" JpgIDX "+str_sep + String.format(frmtStrJPG,"Jpgrp Name") +" "+str_sep+"# Jp exs"+str_sep;//+"# in Cust"+str_sep+"# in Prod"+str_sep;
 		int numEventTypes = Straff_EvtDataType.getNumVals();
-		for(int i=0;i<numEventTypes;++i) {		res+= String.format("# %6s"+str_sep,Straff_EvtDataType.getVal(i).name());		}
+		for(int i=0;i<numEventTypes;++i) {		res+= String.format("# %6s"+str_sep,Straff_EvtDataType.getEnumByIndex(i).name());		}
 		res += "   ** NOTES **   "+str_sep;
 		res +="\n";
 		int[] ttlNumJpOcc = new int[numEventTypes+numDispOffset];
@@ -863,7 +863,7 @@ abstract class JP_JPG_Data{
 				+ String.format(frmtStrJPG,jpgName.substring(0, (jpgName.length() < frmtLenJPG ? jpgName.length() : frmtLenJPG))) 
 				+ String.format(" "+str_sep+"%7d",jpSeen);			
 			for(int i=0;i<numEventTypes;++i) {	
-				Integer count = jpPerEventSeenCount.get(Straff_EvtDataType.getVal(i)).get(jp);
+				Integer count = jpPerEventSeenCount.get(Straff_EvtDataType.getEnumByIndex(i)).get(jp);
 				if(count==null) {count=0;}//offset by 2 to hold spaces for pro
 				ttlNumJpOcc[i+numDispOffset]+=count;
 				perJPGrpCounts[i+numDispOffset]+=count;
@@ -873,14 +873,14 @@ abstract class JP_JPG_Data{
 			res += " " + str_sep+" \n";
 		}		
 		res += "Ttls : Seen : " + ttlNumJpOcc[0] + " "+str_sep+" Cust/Prspct : "+ ttlNumJpOcc[1]+ " "+str_sep+" Products : "+ ttlNumJpOcc[2];
-		for(int i=0;i<numEventTypes;++i) {	res+= " "+str_sep+" "+Straff_EvtDataType.getVal(i).name()+" : " + ttlNumJpOcc[numDispOffset+i];}
+		for(int i=0;i<numEventTypes;++i) {	res+= " "+str_sep+" "+Straff_EvtDataType.getEnumByIndex(i).name()+" : " + ttlNumJpOcc[numDispOffset+i];}
 		res +="\n";
 		
 		//show how many event-based records there are for each jp group
 		int numJPGs = jpGrpByIdx.length;
 		ttlNumJpOcc = new int[numEventTypes+numDispOffset];
 		res +="\n"+str_sep+" Jpgrp "+str_sep + String.format(frmtStrJPG,"Jpgrp Name") +" "+str_sep+"#Jpg exs"+str_sep;//+"#in Cust"+str_sep+"#in Prod"+str_sep;
-		for(int i=0;i<numEventTypes;++i) {		res+= String.format("# %6s"+str_sep,Straff_EvtDataType.getVal(i).name());		}
+		for(int i=0;i<numEventTypes;++i) {		res+= String.format("# %6s"+str_sep,Straff_EvtDataType.getEnumByIndex(i).name());		}
 		res +="\n";
 		for (int jpGrpIdx = 0;jpGrpIdx<numJPGs;++jpGrpIdx) {
 			int jpGrp = jpGrpByIdx[jpGrpIdx];
@@ -896,7 +896,7 @@ abstract class JP_JPG_Data{
 		}
 		res += "\nTtls : JPGroup Seen : " + ttlNumJpOcc[0] + " "+str_sep+" JPGroup Cust/Prspct : "+ ttlNumJpOcc[1]+ " "+str_sep+" JPGroup Products : "+ ttlNumJpOcc[2];
 		for(int i=0;i<numEventTypes;++i) {	
-			res+= " "+str_sep+" "+Straff_EvtDataType.getVal(i).name()+" : " + ttlNumJpOcc[numDispOffset+i];	
+			res+= " "+str_sep+" "+Straff_EvtDataType.getEnumByIndex(i).name()+" : " + ttlNumJpOcc[numDispOffset+i];	
 		}
 		res +="\n";
 		return res;
@@ -967,7 +967,7 @@ class prspctJP_JPG_Data extends JP_JPG_Data{
 				incrJPCounts(jp, jpSeenCount);
 				//idxs : 0==if in an order; 1==if in an opt, 2 == if is in link, 3==if in source event, 4 if in any non-source event (denotes action by customer),5 if in any event including source
 				boolean[] recMmbrship = ex.hasJP(jp);
-				for (int i=0;i<numEventTypes;++i) {			if (recMmbrship[i]){incrJPCounts(jp,jpPerEventSeenCount.get(Straff_EvtDataType.getVal(i)));}}
+				for (int i=0;i<numEventTypes;++i) {			if (recMmbrship[i]){incrJPCounts(jp,jpPerEventSeenCount.get(Straff_EvtDataType.getEnumByIndex(i)));}}
 				tmpSetAllJpsJpgs.add(jpgJp);
 				tmpSetPrspctJpsJpgs.add(new Tuple<Integer,Integer>(jpgJp));
 			}											//add all tuples to set already seen

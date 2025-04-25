@@ -93,17 +93,17 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	 */
 	@Override
 	protected final int initAllSOMPrivBtns_Indiv(ArrayList<Object[]> tmpBtnNamesArray) {
-		tmpBtnNamesArray.add(new Object[] {"Hide Non-Product Job Practices","Show Non-Product Job Practices", mapDrawNonProdJPSegIDX});          
-		tmpBtnNamesArray.add(new Object[] {"Hide Non-Product Job Practice Groups", "Show Non-Product Job Practice Groups", mapDrawNonProdJPGroupSegIDX});			
-		tmpBtnNamesArray.add(new Object[] {"Hide Products (ftr BMUs)","Show Products (ftr BMUs)", mapDrawPrdctFtrBMUsIDX});          
-		tmpBtnNamesArray.add(new Object[] {"Hide Cur Prod Zone (by ftrs)", "Show Cur Prod Zone (by ftrs)", mapDrawCurProdFtrBMUZoneIDX});	
-		tmpBtnNamesArray.add(new Object[] {"Show Calc Plot on Ftr JPs", "Show Calc Plot on All JPs", mapDrawCalcFtrOrAllVisIDX});     
-		tmpBtnNamesArray.add(new Object[] {"Hide Training Data Calc Plot", "Show Training Data Calc Plot", mapDrawTrainDataAnalysisVisIDX});
-		tmpBtnNamesArray.add(new Object[] {"Hide Cust Prspct Calc Plot", "Show Cust Prspct Calc Plot", mapDrawCustAnalysisVisIDX});     
-		tmpBtnNamesArray.add(new Object[] {"Hide True Prspct Calc Plot", "Show True Prspct Calc Plot", mapDrawTPAnalysisVisIDX});       
-		tmpBtnNamesArray.add(new Object[] {"Hide True Prospects on Map", "Show True Prospects on Map", mapDrawTruePspctIDX});           
-		tmpBtnNamesArray.add(new Object[] {"Mapping True Prospect BMUs", "Map True Prospect BMUs", procTruProspectsIDX});           
-		tmpBtnNamesArray.add(new Object[] {"Building/Saving Tru Prspct BMUs for loaded Map","Build/Save Tru Prspct BMUs for loaded Map", saveBMUMapsForTruPrspctsIDX}); 
+		tmpBtnNamesArray.add(uiObjInitAra_Btn(new String[] {"Hide Non-Product Job Practices","Show Non-Product Job Practices"}, mapDrawNonProdJPSegIDX));          
+		tmpBtnNamesArray.add(uiObjInitAra_Btn(new String[] {"Hide Non-Product Job Practice Groups", "Show Non-Product Job Practice Groups"}, mapDrawNonProdJPGroupSegIDX));			
+		tmpBtnNamesArray.add(uiObjInitAra_Btn(new String[] {"Hide Products (ftr BMUs)","Show Products (ftr BMUs)"}, mapDrawPrdctFtrBMUsIDX));          
+		tmpBtnNamesArray.add(uiObjInitAra_Btn(new String[] {"Hide Cur Prod Zone (by ftrs)", "Show Cur Prod Zone (by ftrs)"}, mapDrawCurProdFtrBMUZoneIDX));	
+		tmpBtnNamesArray.add(uiObjInitAra_Btn(new String[] {"Show Calc Plot on Ftr JPs", "Show Calc Plot on All JPs"}, mapDrawCalcFtrOrAllVisIDX));     
+		tmpBtnNamesArray.add(uiObjInitAra_Btn(new String[] {"Hide Training Data Calc Plot", "Show Training Data Calc Plot"}, mapDrawTrainDataAnalysisVisIDX));
+		tmpBtnNamesArray.add(uiObjInitAra_Btn(new String[] {"Hide Cust Prspct Calc Plot", "Show Cust Prspct Calc Plot"}, mapDrawCustAnalysisVisIDX));     
+		tmpBtnNamesArray.add(uiObjInitAra_Btn(new String[] {"Hide True Prspct Calc Plot", "Show True Prspct Calc Plot"}, mapDrawTPAnalysisVisIDX));       
+		tmpBtnNamesArray.add(uiObjInitAra_Btn(new String[] {"Hide True Prospects on Map", "Show True Prospects on Map"}, mapDrawTruePspctIDX));           
+		tmpBtnNamesArray.add(uiObjInitAra_Btn(new String[] {"Mapping True Prospect BMUs", "Map True Prospect BMUs"}, procTruProspectsIDX));           
+		tmpBtnNamesArray.add(uiObjInitAra_Btn(new String[] {"Building/Saving Tru Prspct BMUs for loaded Map","Build/Save Tru Prspct BMUs for loaded Map"}, saveBMUMapsForTruPrspctsIDX)); 
 		return 	this._numPrivFlags;
 
 	}//initAllSOMPrivBtns_Indiv
@@ -286,10 +286,10 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		tmpListObjVals.put(uiProdJPToDispIDX, new String[] {"Unknown"}); 
 		tmpListObjVals.put(uiAllJpSeenToDispIDX, new String[] {"Unknown"});
 		
-		tmpUIObjArray.put(uiRawDataSourceIDX, uiObjInitAra_List(new double[]{0.0, tmpListObjVals.get(uiRawDataSourceIDX).length-1, 1}, 0.0, "Raw Data Source", new boolean[]{true}));		//uiRawDataSourceIDX
-		tmpUIObjArray.put(uiProdJPToDispIDX, uiObjInitAra_List(new double[]{0.0, 260, 1.0}, 0.0, "Product JP to Show", new boolean[]{true}));			//uiProdJPToDispIDX	
-		tmpUIObjArray.put(uiProdZoneDistThreshIDX, uiObjInitAra_Float(new double[]{0.0, 5, .01}, 0.99, "Prod Max Sq Dist", new boolean[]{true}));		//uiProdZoneDistThreshIDX	
-		tmpUIObjArray.put(uiAllJpSeenToDispIDX, uiObjInitAra_List(new double[]{0.0, 260, 1.0}, 0.0, "All JP to Show (Calc Analysis)", new boolean[]{true}));			//uiAllJpSeenToDispIDX	
+		tmpUIObjArray.put(uiRawDataSourceIDX, uiObjInitAra_List(new double[]{0.0, tmpListObjVals.get(uiRawDataSourceIDX).length-1, 1}, 0.0, "Raw Data Source"));		//uiRawDataSourceIDX
+		tmpUIObjArray.put(uiProdJPToDispIDX, uiObjInitAra_List(new double[]{0.0, 260, 1.0}, 0.0, "Product JP to Show"));			//uiProdJPToDispIDX	
+		tmpUIObjArray.put(uiProdZoneDistThreshIDX, uiObjInitAra_Float(new double[]{0.0, 5, .01}, 0.99, "Prod Max Sq Dist"));		//uiProdZoneDistThreshIDX	
+		tmpUIObjArray.put(uiAllJpSeenToDispIDX, uiObjInitAra_List(new double[]{0.0, 260, 1.0}, 0.0, "All JP to Show (Calc Analysis)"));			//uiAllJpSeenToDispIDX	
 
 	}//setupGUIObjsArasIndiv
 	
@@ -319,7 +319,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		setUI_ClassListVals(classVals);
 		setUI_CategoryListVals(categoryVals);
 		//set product list values
-		setAllUIListValues(uiProdJPToDispIDX, prodVals);
+		setAllUIListValues(uiProdJPToDispIDX, prodVals, true);
 		//in super class
 		setClass_UIObj(false);
 	}//setUI_JPListMaxVals
@@ -333,7 +333,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	public void setUI_JPAllSeenListVals(String[] jpGrpVals, String[] jpVals) {
 		//refresh max size of guiobj - heavy handed, these values won't change often, and this is called -every draw frame-.
 		//guiObjs_Numeric[uiAllJpSeenToDispIDX].setNewMax(jpLen-1);
-		setAllUIListValues(uiAllJpSeenToDispIDX, jpVals);
+		setAllUIListValues(uiAllJpSeenToDispIDX, jpVals, true);
 		//guiObjs_Numeric[uiAllJpgSeenToDispIDX].setNewMax(jpGrpLen-1);	
 	}//setUI_JPListMaxVals
 	
@@ -466,7 +466,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		//int btn = curCustBtn[curCustBtnType];
 		switch(funcRow) {
 		case 0 : {//row 1 of menu side bar buttons
-			msgObj.dispMessage(className,"launchMenuBtnHndlr","Click Functions 1 in "+name+" : btn : " + btn, MsgCodes.info4);
+			msgObj.dispMessage(className,"launchMenuBtnHndlr","Click Functions 1 in "+getName()+" : btn : " + btn, MsgCodes.info4);
 			switch(btn){
 				case 0 : {	
 					//load all data from raw local csvs or sql from db
@@ -488,7 +488,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 			break;}//row 1 of menu side bar buttons 
 	
 		case 1 : {//row 2 of menu side bar buttons
-			msgObj.dispMessage(className,"launchMenuBtnHndlr","Click Functions 2 in "+name+" : btn : " + btn, MsgCodes.info4);//{"Ld&Bld SOM Data", "Load SOM Config", "Ld & Make Map", "Ld Prebuilt Map"},	//row 2
+			msgObj.dispMessage(className,"launchMenuBtnHndlr","Click Functions 2 in "+getName()+" : btn : " + btn, MsgCodes.info4);//{"Ld&Bld SOM Data", "Load SOM Config", "Ld & Make Map", "Ld Prebuilt Map"},	//row 2
 			//		{"Train Data","True Prspcts", "Prods", "SOM Cfg", "Func 14"},	//row 2
 
 			switch(btn){
@@ -515,7 +515,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 			}
 			break;}//row 2 of menu side bar buttons
 		case 2 : {//row 3 of menu side bar buttons
-			msgObj.dispMessage(className,"launchMenuBtnHndlr","Click Functions 3 in "+name+" : btn : " + btn, MsgCodes.info4);//{"Ld&Bld SOM Data", "Load SOM Config", "Ld & Make Map", "Ld Prebuilt Map"},	//row 2
+			msgObj.dispMessage(className,"launchMenuBtnHndlr","Click Functions 3 in "+getName()+" : btn : " + btn, MsgCodes.info4);//{"Ld&Bld SOM Data", "Load SOM Config", "Ld & Make Map", "Ld Prebuilt Map"},	//row 2
 			switch(btn){
 				case 0 : {	
 					mapMgr.loadTrainDataMapConfigAndBuildMap(false);
@@ -538,7 +538,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 			}
 			break;}//row 3 of menu side bar buttons
 		case 3 : {//row 3 of menu side bar buttons
-			msgObj.dispMessage(className,"launchMenuBtnHndlr","Click Functions 3 in "+name+" : btn : " + btn, MsgCodes.info4);//{"Ld&Bld SOM Data", "Load SOM Config", "Ld & Make Map", "Ld Prebuilt Map"},	//row 2
+			msgObj.dispMessage(className,"launchMenuBtnHndlr","Click Functions 3 in "+getName()+" : btn : " + btn, MsgCodes.info4);//{"Ld&Bld SOM Data", "Load SOM Config", "Ld & Make Map", "Ld Prebuilt Map"},	//row 2
 			switch(btn){
 				case 0 :
 				case 1 : 
@@ -546,7 +546,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 				case 3 : {//load all training data, default map config, and build map
 					int curPreBuiltMapIDX = btn;
 					mapMgr.setCurPreBuiltMapIDX(curPreBuiltMapIDX);
-					uiUpdateData.setIntValue(uiMapPreBuiltDirIDX, (int) this.setNewUIValue(uiMapPreBuiltDirIDX, curPreBuiltMapIDX));
+					getUIDataUpdater().setIntValue(uiMapPreBuiltDirIDX, (int) this.setNewUIValue(uiMapPreBuiltDirIDX, curPreBuiltMapIDX));
 					mapMgr.loadPretrainedExistingMap(btn, true);//runs in thread, button state reset there
 					resetButtonState();
 					break;}
