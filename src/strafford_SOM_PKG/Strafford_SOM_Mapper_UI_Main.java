@@ -124,7 +124,8 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 		setBaseFlagToShow_saveAnim(true); 
 		setBaseFlagToShow_runSim(false);
 		setBaseFlagToShow_singleStep(false);
-		setBaseFlagToShow_showRtSideMenu(true);
+		setBaseFlagToShow_showRtSideMenu(true);	
+		setBaseFlagToShow_showStatusBar(true);
 		setBaseFlagToShow_showDrawableCanvas(false);
 	}
 	
@@ -191,6 +192,7 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 	protected void initOnce_Indiv(){
 		//which objects to initially show
 		setWinVisFlag(dispSOMMapIDX, true);
+		setShowStatusBar(true);
 	}//	initOnce
 	
 	@Override
