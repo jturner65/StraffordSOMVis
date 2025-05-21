@@ -182,7 +182,7 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 					new int[] {120,120,120,255},new int[]{50,40,20,255},
 					new int[]{0,0,0,200},new int[]{255,255,255,255}});
 		
-		dispWinFrames[wIdx] = new Straff_SOMMapUIWin(ri, this, winInitVals[wIdx]);		
+		setDispWindow(wIdx, new Straff_SOMMapUIWin(ri, this, winInitVals[wIdx]));		
 		//specify windows that cannot be shown simultaneously here
 		initXORWins(new int[]{dispSOMMapIDX},new int[]{dispSOMMapIDX});
 	}//	initVisOnce_Priv
@@ -232,7 +232,7 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 	protected void handleKeyPress(char keyVal, int keyCode) {
 		switch (keyVal){
 			case ' ' : {toggleSimIsRunning(); break;}							//run sim
-			case 'f' : {dispWinFrames[curFocusWin].setInitCamView();break;}					//reset camera
+			case 'f' : {getCurFocusDispWindow().setInitCamView();break;}					//reset camera
 			case 'a' :
 			case 'A' : {toggleSaveAnim();break;}						//start/stop saving every frame for making into animation
 			case 's' :
