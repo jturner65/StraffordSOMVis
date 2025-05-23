@@ -252,20 +252,6 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 	}
 	
 	@Override
-	//these tie using the UI buttons to modify the window in with using the boolean tags - PITA but currently necessary
-	public void handleShowWin(int btn, int val, boolean callFlags){//display specific windows - multi-select/ always on if sel
-		if(!callFlags){//called from setflags - only sets button state in UI to avoid infinite loop
-			//setMenuBtnState(mySideBarMenu.btnShowWinIdx,btn, val);
-		} else {//called from clicking on buttons in UI
-		//val is btn state before transition 
-		boolean bVal = (val == 1?  false : true);
-		switch(btn){
-			case 0 : {setWinVisFlag(dispSOMMapIDX, bVal);break;}
-			}
-		}
-	}//handleShowWin
-	
-	@Override
 	//get the ui rect values of the "master" ui region (another window) -> this is so ui objects of one window can be made, clicked, and shown displaced from those of the parent windwo
 	public float[] getUIRectVals_Indiv(int idx, float[] menuClickDim){
 		//this.pr("In getUIRectVals for idx : " + idx);
