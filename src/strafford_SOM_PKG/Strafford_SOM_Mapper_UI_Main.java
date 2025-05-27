@@ -74,7 +74,7 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 	 * Called in pre-draw initial setup, before first init
 	 * potentially override setup variables on per-project basis.
 	 * Do not use for setting background color or Skybox anymore.
-	 *  	(Current settings in my_procApplet) 	
+	 *  	(Current settings in ProcessingRenderer) 	
 	 *  	strokeCap(PROJECT);
 	 *  	textSize(txtSz);
 	 *  	textureMode(NORMAL);			
@@ -93,7 +93,7 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 	protected int getNumDispWindows() {	return numVisWins;	}	
 
 	@Override
-	protected void setSmoothing() {		ri.setSmoothing(0);		}
+	public void setSmoothing() {		ri.setSmoothing(0);		}
 
 	@Override
 	public String getPrjNmLong() {return prjNmLong;}

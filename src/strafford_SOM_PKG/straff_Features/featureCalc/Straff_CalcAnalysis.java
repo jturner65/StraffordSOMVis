@@ -3,7 +3,7 @@ package strafford_SOM_PKG.straff_Features.featureCalc;
 import java.util.ArrayList;
 
 import base_Render_Interface.IRenderInterface;
-//import base_UI_Objects.my_procApplet;
+//import base_UI_Objects.renderer.ProcessingRenderer;
 
 //this class will hold analysis information for calculations to more clearly understand the results of the current calc object
 public class Straff_CalcAnalysis{//per JPWeightEquation analysis of data
