@@ -93,17 +93,17 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	 */
 	@Override
 	protected final int initAllSOMPrivBtns_Indiv(ArrayList<Object[]> tmpBtnNamesArray) {
-		tmpBtnNamesArray.add(uiObjInitAra_Btn(new String[] {"Hide Non-Product Job Practices","Show Non-Product Job Practices"}, mapDrawNonProdJPSegIDX));          
-		tmpBtnNamesArray.add(uiObjInitAra_Btn(new String[] {"Hide Non-Product Job Practice Groups", "Show Non-Product Job Practice Groups"}, mapDrawNonProdJPGroupSegIDX));			
-		tmpBtnNamesArray.add(uiObjInitAra_Btn(new String[] {"Hide Products (ftr BMUs)","Show Products (ftr BMUs)"}, mapDrawPrdctFtrBMUsIDX));          
-		tmpBtnNamesArray.add(uiObjInitAra_Btn(new String[] {"Hide Cur Prod Zone (by ftrs)", "Show Cur Prod Zone (by ftrs)"}, mapDrawCurProdFtrBMUZoneIDX));	
-		tmpBtnNamesArray.add(uiObjInitAra_Btn(new String[] {"Show Calc Plot on Ftr JPs", "Show Calc Plot on All JPs"}, mapDrawCalcFtrOrAllVisIDX));     
-		tmpBtnNamesArray.add(uiObjInitAra_Btn(new String[] {"Hide Training Data Calc Plot", "Show Training Data Calc Plot"}, mapDrawTrainDataAnalysisVisIDX));
-		tmpBtnNamesArray.add(uiObjInitAra_Btn(new String[] {"Hide Cust Prspct Calc Plot", "Show Cust Prspct Calc Plot"}, mapDrawCustAnalysisVisIDX));     
-		tmpBtnNamesArray.add(uiObjInitAra_Btn(new String[] {"Hide True Prspct Calc Plot", "Show True Prspct Calc Plot"}, mapDrawTPAnalysisVisIDX));       
-		tmpBtnNamesArray.add(uiObjInitAra_Btn(new String[] {"Hide True Prospects on Map", "Show True Prospects on Map"}, mapDrawTruePspctIDX));           
-		tmpBtnNamesArray.add(uiObjInitAra_Btn(new String[] {"Mapping True Prospect BMUs", "Map True Prospect BMUs"}, procTruProspectsIDX));           
-		tmpBtnNamesArray.add(uiObjInitAra_Btn(new String[] {"Building/Saving Tru Prspct BMUs for loaded Map","Build/Save Tru Prspct BMUs for loaded Map"}, saveBMUMapsForTruPrspctsIDX)); 
+		tmpBtnNamesArray.add(uiMgr.uiObjInitAra_Btn(new String[] {"Hide Non-Product Job Practices","Show Non-Product Job Practices"}, mapDrawNonProdJPSegIDX));          
+		tmpBtnNamesArray.add(uiMgr.uiObjInitAra_Btn(new String[] {"Hide Non-Product Job Practice Groups", "Show Non-Product Job Practice Groups"}, mapDrawNonProdJPGroupSegIDX));			
+		tmpBtnNamesArray.add(uiMgr.uiObjInitAra_Btn(new String[] {"Hide Products (ftr BMUs)","Show Products (ftr BMUs)"}, mapDrawPrdctFtrBMUsIDX));          
+		tmpBtnNamesArray.add(uiMgr.uiObjInitAra_Btn(new String[] {"Hide Cur Prod Zone (by ftrs)", "Show Cur Prod Zone (by ftrs)"}, mapDrawCurProdFtrBMUZoneIDX));	
+		tmpBtnNamesArray.add(uiMgr.uiObjInitAra_Btn(new String[] {"Show Calc Plot on Ftr JPs", "Show Calc Plot on All JPs"}, mapDrawCalcFtrOrAllVisIDX));     
+		tmpBtnNamesArray.add(uiMgr.uiObjInitAra_Btn(new String[] {"Hide Training Data Calc Plot", "Show Training Data Calc Plot"}, mapDrawTrainDataAnalysisVisIDX));
+		tmpBtnNamesArray.add(uiMgr.uiObjInitAra_Btn(new String[] {"Hide Cust Prspct Calc Plot", "Show Cust Prspct Calc Plot"}, mapDrawCustAnalysisVisIDX));     
+		tmpBtnNamesArray.add(uiMgr.uiObjInitAra_Btn(new String[] {"Hide True Prspct Calc Plot", "Show True Prspct Calc Plot"}, mapDrawTPAnalysisVisIDX));       
+		tmpBtnNamesArray.add(uiMgr.uiObjInitAra_Btn(new String[] {"Hide True Prospects on Map", "Show True Prospects on Map"}, mapDrawTruePspctIDX));           
+		tmpBtnNamesArray.add(uiMgr.uiObjInitAra_Btn(new String[] {"Mapping True Prospect BMUs", "Map True Prospect BMUs"}, procTruProspectsIDX));           
+		tmpBtnNamesArray.add(uiMgr.uiObjInitAra_Btn(new String[] {"Building/Saving Tru Prspct BMUs for loaded Map","Build/Save Tru Prspct BMUs for loaded Map"}, saveBMUMapsForTruPrspctsIDX)); 
 		return 	this._numPrivFlags;
 
 	}//initAllSOMPrivBtns_Indiv
@@ -149,10 +149,10 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		//for single jp detail display
 		((Straff_SOMMapManager) mapMgr).setAnalysisPerJPWidth((mapMgr.getMapWidth()*.1f));
 		//default to having calc objects display analysis on ftrs 
-		privFlags.setFlag(mapDrawCalcFtrOrAllVisIDX, true);
+		uiMgr.setPrivFlag(mapDrawCalcFtrOrAllVisIDX, true);
 		//dataFrmtToUseToTrain = (int)(this.guiObjs_Numeric[uiTrainDataFrmtIDX].getVal()); 
-		((Straff_SOMMapManager) mapMgr).setProdZoneDistThresh(this.getUIValue(uiProdZoneDistThreshIDX));
-		rawDataSource = (int)(this.getUIValue(uiRawDataSourceIDX));
+		((Straff_SOMMapManager) mapMgr).setProdZoneDistThresh(uiMgr.getUIValue(uiProdZoneDistThreshIDX));
+		rawDataSource = (int)(uiMgr.getUIValue(uiRawDataSourceIDX));
 
 		//moved from mapMgr ctor, to remove dependence on papplet in that object
 		mapMgr.initMapAras(1, 1);
@@ -202,8 +202,8 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 			
 			case mapDrawCustAnalysisVisIDX	: {//whether or not to draw feature calc analysis graphs  
 				if (val) {//if setting to true then aggregate data
-					privFlags.setFlag(mapDrawTPAnalysisVisIDX, false);
-					privFlags.setFlag(mapDrawTrainDataAnalysisVisIDX, false);					
+					uiMgr.setPrivFlag(mapDrawTPAnalysisVisIDX, false);
+					uiMgr.setPrivFlag(mapDrawTrainDataAnalysisVisIDX, false);					
 					((Straff_SOMMapManager) mapMgr).setCurCalcAnalysisSrcDataTypeIDX(Straff_WeightCalc.custCalcObjIDX);
 					((Straff_SOMMapManager) mapMgr).setAnalysisAllJPBarWidth(curVisScrDims[0]);	
 				} else {
@@ -212,8 +212,8 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 				break;}
 			case mapDrawTPAnalysisVisIDX	: {//whether or not to draw feature calc analysis graphs  
 				if (val) {//if setting to true then aggregate data
-					privFlags.setFlag(mapDrawCustAnalysisVisIDX, false);
-					privFlags.setFlag(mapDrawTrainDataAnalysisVisIDX, false);					
+					uiMgr.setPrivFlag(mapDrawCustAnalysisVisIDX, false);
+					uiMgr.setPrivFlag(mapDrawTrainDataAnalysisVisIDX, false);					
 					((Straff_SOMMapManager) mapMgr).setCurCalcAnalysisSrcDataTypeIDX(Straff_WeightCalc.tpCalcObjIDX);
 					((Straff_SOMMapManager) mapMgr).setAnalysisAllJPBarWidth(curVisScrDims[0]);	
 				} else {
@@ -223,8 +223,8 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 			
 			case mapDrawTrainDataAnalysisVisIDX : {
 				if (val) {//if setting to true then aggregate data
-					privFlags.setFlag(mapDrawCustAnalysisVisIDX, false);
-					privFlags.setFlag(mapDrawTPAnalysisVisIDX, false);					
+					uiMgr.setPrivFlag(mapDrawCustAnalysisVisIDX, false);
+					uiMgr.setPrivFlag(mapDrawTPAnalysisVisIDX, false);					
 					((Straff_SOMMapManager) mapMgr).setCurCalcAnalysisSrcDataTypeIDX(Straff_WeightCalc.trainCalcObjIDX);
 					((Straff_SOMMapManager) mapMgr).setAnalysisAllJPBarWidth(curVisScrDims[0]);	
 				}else {
@@ -286,10 +286,10 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		tmpListObjVals.put(uiProdJPToDispIDX, new String[] {"Unknown"}); 
 		tmpListObjVals.put(uiAllJpSeenToDispIDX, new String[] {"Unknown"});
 		
-		tmpUIObjArray.put(uiRawDataSourceIDX, uiObjInitAra_List(new double[]{0.0, tmpListObjVals.get(uiRawDataSourceIDX).length-1, 1}, 0.0, "Raw Data Source"));		//uiRawDataSourceIDX
-		tmpUIObjArray.put(uiProdJPToDispIDX, uiObjInitAra_List(new double[]{0.0, 260, 1.0}, 0.0, "Product JP to Show"));			//uiProdJPToDispIDX	
-		tmpUIObjArray.put(uiProdZoneDistThreshIDX, uiObjInitAra_Float(new double[]{0.0, 5, .01}, 0.99, "Prod Max Sq Dist"));		//uiProdZoneDistThreshIDX	
-		tmpUIObjArray.put(uiAllJpSeenToDispIDX, uiObjInitAra_List(new double[]{0.0, 260, 1.0}, 0.0, "All JP to Show (Calc Analysis)"));			//uiAllJpSeenToDispIDX	
+		tmpUIObjArray.put(uiRawDataSourceIDX, uiMgr.uiObjInitAra_List(new double[]{0.0, tmpListObjVals.get(uiRawDataSourceIDX).length-1, 1}, 0.0, "Raw Data Source"));		//uiRawDataSourceIDX
+		tmpUIObjArray.put(uiProdJPToDispIDX, uiMgr.uiObjInitAra_List(new double[]{0.0, 260, 1.0}, 0.0, "Product JP to Show"));			//uiProdJPToDispIDX	
+		tmpUIObjArray.put(uiProdZoneDistThreshIDX, uiMgr.uiObjInitAra_Float(new double[]{0.0, 5, .01}, 0.99, "Prod Max Sq Dist"));		//uiProdZoneDistThreshIDX	
+		tmpUIObjArray.put(uiAllJpSeenToDispIDX, uiMgr.uiObjInitAra_List(new double[]{0.0, 260, 1.0}, 0.0, "All JP to Show (Calc Analysis)"));			//uiAllJpSeenToDispIDX	
 
 	}//setupGUIObjsArasIndiv
 	
@@ -319,7 +319,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		setUI_ClassListVals(classVals);
 		setUI_CategoryListVals(categoryVals);
 		//set product list values
-		setAllUIListValues(uiProdJPToDispIDX, prodVals, true);
+		uiMgr.setAllUIListValues(uiProdJPToDispIDX, prodVals, true);
 		//in super class
 		setClass_UIObj(false);
 	}//setUI_JPListMaxVals
@@ -333,7 +333,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	public void setUI_JPAllSeenListVals(String[] jpGrpVals, String[] jpVals) {
 		//refresh max size of guiobj - heavy handed, these values won't change often, and this is called -every draw frame-.
 		//guiObjs_Numeric[uiAllJpSeenToDispIDX].setNewMax(jpLen-1);
-		setAllUIListValues(uiAllJpSeenToDispIDX, jpVals, true);
+		uiMgr.setAllUIListValues(uiAllJpSeenToDispIDX, jpVals, true);
 		//guiObjs_Numeric[uiAllJpgSeenToDispIDX].setNewMax(jpGrpLen-1);	
 	}//setUI_JPListMaxVals
 	
@@ -441,18 +441,18 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	@Override
 	//set flags that should be set on each frame - these are set at beginning of frame draw
 	protected void drawSetDispFlags() {
-		privFlags.setFlag(custExCalcedIDX, ((Straff_SOMMapManager) mapMgr).isFtrCalcDone(Straff_WeightCalc.custCalcObjIDX));
-		privFlags.setFlag(tpExCalcedIDX, ((Straff_SOMMapManager) mapMgr).isFtrCalcDone(Straff_WeightCalc.tpCalcObjIDX));	
-		privFlags.setFlag(trainExCalcedIDX,((Straff_SOMMapManager) mapMgr).isFtrCalcDone(Straff_WeightCalc.trainCalcObjIDX));	
+		uiMgr.setPrivFlag(custExCalcedIDX, ((Straff_SOMMapManager) mapMgr).isFtrCalcDone(Straff_WeightCalc.custCalcObjIDX));
+		uiMgr.setPrivFlag(tpExCalcedIDX, ((Straff_SOMMapManager) mapMgr).isFtrCalcDone(Straff_WeightCalc.tpCalcObjIDX));	
+		uiMgr.setPrivFlag(trainExCalcedIDX,((Straff_SOMMapManager) mapMgr).isFtrCalcDone(Straff_WeightCalc.trainCalcObjIDX));	
 		//checking flag to execute if true
-		if(privFlags.getFlag(procTruProspectsIDX)){	((Straff_SOMMapManager) mapMgr).buildAndSaveTrueProspectReport();privFlags.setFlag(procTruProspectsIDX,false);	}			
+		if(uiMgr.getPrivFlag(procTruProspectsIDX)){	((Straff_SOMMapManager) mapMgr).buildAndSaveTrueProspectReport();uiMgr.setPrivFlag(procTruProspectsIDX,false);	}			
 	}
 	
 	@Override
 	protected void drawMap_Indiv() {		
-		if (privFlags.getFlag(mapDrawCustAnalysisVisIDX)){	((Straff_SOMMapManager) mapMgr)._drawAnalysis(ri,custExCalcedIDX, mapDrawCustAnalysisVisIDX);	} 
-		else if (privFlags.getFlag(mapDrawTPAnalysisVisIDX)){((Straff_SOMMapManager) mapMgr)._drawAnalysis(ri,tpExCalcedIDX, mapDrawTPAnalysisVisIDX);}
-		else if (privFlags.getFlag(mapDrawTrainDataAnalysisVisIDX)) {((Straff_SOMMapManager) mapMgr)._drawAnalysis(ri,trainExCalcedIDX, mapDrawTrainDataAnalysisVisIDX);}
+		if (uiMgr.getPrivFlag(mapDrawCustAnalysisVisIDX)){	((Straff_SOMMapManager) mapMgr)._drawAnalysis(ri,custExCalcedIDX, mapDrawCustAnalysisVisIDX);	} 
+		else if (uiMgr.getPrivFlag(mapDrawTPAnalysisVisIDX)){((Straff_SOMMapManager) mapMgr)._drawAnalysis(ri,tpExCalcedIDX, mapDrawTPAnalysisVisIDX);}
+		else if (uiMgr.getPrivFlag(mapDrawTrainDataAnalysisVisIDX)) {((Straff_SOMMapManager) mapMgr)._drawAnalysis(ri,trainExCalcedIDX, mapDrawTrainDataAnalysisVisIDX);}
 	}	
 		
 	/**
@@ -470,7 +470,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 			switch(btn){
 				case 0 : {	
 					//load all data from raw local csvs or sql from db
-					((Straff_SOMMapManager) mapMgr).loadAndPreProcAllRawData((rawDataSource==0));//, privFlags.getFlag(useOnlyEvntsToTrainIDX));
+					((Straff_SOMMapManager) mapMgr).loadAndPreProcAllRawData((rawDataSource==0));//, uiMgr.getPrivFlag(useOnlyEvntsToTrainIDX));
 					resetButtonState();
 					break;}
 				case 1 : {	
@@ -546,7 +546,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 				case 3 : {//load all training data, default map config, and build map
 					int curPreBuiltMapIDX = btn;
 					mapMgr.setCurPreBuiltMapIDX(curPreBuiltMapIDX);
-					getUIDataUpdater().setIntValue(uiMapPreBuiltDirIDX, (int) this.setNewUIValue(uiMapPreBuiltDirIDX, curPreBuiltMapIDX));
+					getUIDataUpdater().setIntValue(uiMapPreBuiltDirIDX, (int) uiMgr.setNewUIValue(uiMapPreBuiltDirIDX, curPreBuiltMapIDX));
 					mapMgr.loadPretrainedExistingMap(btn, true);//runs in thread, button state reset there
 					resetButtonState();
 					break;}
@@ -642,13 +642,13 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	@Override
 	protected boolean hndlMouseMove_Indiv(int mouseX, int mouseY, myPoint mseClckInWorld){
 		boolean res = false;
-		if(privFlags.getFlag(mapDataLoadedIDX)){ res = checkMouseOvr(mouseX, mouseY);	}
+		if(uiMgr.getPrivFlag(mapDataLoadedIDX)){ res = checkMouseOvr(mouseX, mouseY);	}
 		return res;
 	}	
 	@Override
 	protected boolean hndlMouseClick_Indiv(int mouseX, int mouseY, myPoint mseClckInWorld, int mseBtn) {
 		boolean mod = false;			
-		if(privFlags.getFlag(mapDataLoadedIDX)){ mod = this.checkMouseClick(mouseX, mouseY, mseClckInWorld, mseBtn);}
+		if(uiMgr.getPrivFlag(mapDataLoadedIDX)){ mod = this.checkMouseClick(mouseX, mouseY, mseClckInWorld, mseBtn);}
 //		if(mod) {return mod;}
 //		else {return checkUIButtons(mouseX, mouseY);}
 		return mod;
@@ -656,12 +656,12 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	@Override
 	protected boolean hndlMouseDrag_Indiv(int mouseX, int mouseY,int pmouseX, int pmouseY, myPoint mouseClickIn3D, myVector mseDragInWorld, int mseBtn) {
 		boolean mod = false;	
-		if(privFlags.getFlag(mapDataLoadedIDX)){ mod = this.checkMouseDragMove(mouseX, mouseY, pmouseX, pmouseY, mouseClickIn3D, mseDragInWorld, mseBtn);}				
+		if(uiMgr.getPrivFlag(mapDataLoadedIDX)){ mod = this.checkMouseDragMove(mouseX, mouseY, pmouseX, pmouseY, mouseClickIn3D, mseDragInWorld, mseBtn);}				
 		return mod;
 	}
 	@Override
 	protected void hndlMouseRel_Indiv() {
-		if(privFlags.getFlag(mapDataLoadedIDX)){ this.checkMouseRelease();}		
+		if(uiMgr.getPrivFlag(mapDataLoadedIDX)){ this.checkMouseRelease();}		
 	}	
 
 	@Override
