@@ -6,12 +6,13 @@ import java.util.HashSet;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 
+import base_Math_Objects.MyMathUtils;
+import base_Math_Objects.vectorObjs.tuples.Tuple;
 import base_Render_Interface.IRenderInterface;
 import base_SOM_Objects.som_examples.base.SOM_Example;
 import base_SOM_Objects.som_examples.enums.SOM_ExDataType;
 import base_SOM_Objects.som_mapnodes.base.SOM_MapNode;
 import base_Utils_Objects.io.messaging.MsgCodes;
-import base_Math_Objects.vectorObjs.tuples.Tuple;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.Straff_TcTagData;
 import strafford_SOM_PKG.straff_SOM_Examples.Straff_SOMExample;
 import strafford_SOM_PKG.straff_SOM_Examples.convRawToTrain.Straff_TcTagRawToTrainData;
@@ -62,7 +63,7 @@ public class Straff_ProductExample extends Straff_SOMExample{
 	//initialize structures to manage product examples
 	@SuppressWarnings("unchecked")
 	private void initProdBMUMaps() {
-		prodClr = mapMgr.getRndClr();
+		prodClr = MyMathUtils.randomIntClrAra();
 		mapDrawRad = 3.0f;
 		prodClr[3]=255;
 		allMapNodesDists = new TreeMap[numFtrCompVals];

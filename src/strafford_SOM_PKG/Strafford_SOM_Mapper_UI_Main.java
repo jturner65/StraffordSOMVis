@@ -280,14 +280,4 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 		}
 	}//setFlags  
 
-
-	/**
-	 * any instancing-class-specific colors - colorVal set to be higher than IRenderInterface.gui_OffWhite
-	 * @param colorVal
-	 * @param alpha
-	 * @return
-	 */
-	@Override
-	public int[] getClr_Custom(int colorVal, int alpha) {	return new int[] {255,255,255,alpha};}
-
 }//class SOM_StraffordMain

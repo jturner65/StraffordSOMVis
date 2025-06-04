@@ -8,11 +8,11 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentSkipListMap;
 
+import base_Math_Objects.vectorObjs.tuples.Tuple;
+import base_SOM_Objects.som_managers.SOM_MapManager;
 import base_Utils_Objects.io.file.FileIOManager;
 import base_Utils_Objects.io.messaging.MessageObject;
 import base_Utils_Objects.io.messaging.MsgCodes;
-import base_Math_Objects.vectorObjs.tuples.Tuple;
-import base_SOM_Objects.som_managers.SOM_MapManager;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.Straff_JobPracticeData;
 import strafford_SOM_PKG.straff_RawDataHandling.raw_data.base.Straff_BaseRawData;
 import strafford_SOM_PKG.straff_SOM_Examples.Straff_EvtDataType;
