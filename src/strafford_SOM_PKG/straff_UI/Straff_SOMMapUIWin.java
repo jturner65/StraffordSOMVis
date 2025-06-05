@@ -79,34 +79,12 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		super(_p,_AppMgr, _winInitVals);
 		super.initThisWin(false);
 	}//ctor
-	
+
 	/**
-	 * Instancing class-specific (application driven) UI buttons to display are built 
-	 * in this function.  Add an entry to tmpBtnNamesArray for each button, in the order 
-	 * they are to be displayed
-	 * @param tmpBtnNamesArray array list of Object arrays, where in each object array : 
-	 * 			the first element is the true string label, 
-	 * 			the 2nd elem is false string array, and 
-	 * 			the 3rd element is integer flag idx 
-	 * @return total number of privBtnFlags in instancing class (including those not displayed)
+	 * Retrieve the total number of defined privFlags booleans (application-specific state bools and interactive buttons)
 	 */
 	@Override
-	protected final int initAllSOMPrivBtns_Indiv(TreeMap<Integer, Object[]> tmpBtnNamesArray) {
-		int idx=0;
-		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[] {"Hide Non-Product Job Practices","Show Non-Product Job Practices"}, mapDrawNonProdJPSegIDX));          
-		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[] {"Hide Non-Product Job Practice Groups", "Show Non-Product Job Practice Groups"}, mapDrawNonProdJPGroupSegIDX));			
-		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[] {"Hide Products (ftr BMUs)","Show Products (ftr BMUs)"}, mapDrawPrdctFtrBMUsIDX));          
-		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[] {"Hide Cur Prod Zone (by ftrs)", "Show Cur Prod Zone (by ftrs)"}, mapDrawCurProdFtrBMUZoneIDX));	
-		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[] {"Show Calc Plot on Ftr JPs", "Show Calc Plot on All JPs"}, mapDrawCalcFtrOrAllVisIDX));     
-		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[] {"Hide Training Data Calc Plot", "Show Training Data Calc Plot"}, mapDrawTrainDataAnalysisVisIDX));
-		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[] {"Hide Cust Prspct Calc Plot", "Show Cust Prspct Calc Plot"}, mapDrawCustAnalysisVisIDX));     
-		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[] {"Hide True Prspct Calc Plot", "Show True Prspct Calc Plot"}, mapDrawTPAnalysisVisIDX));       
-		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[] {"Hide True Prospects on Map", "Show True Prospects on Map"}, mapDrawTruePspctIDX));           
-		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[] {"Mapping True Prospect BMUs", "Map True Prospect BMUs"}, procTruProspectsIDX));           
-		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[] {"Building/Saving Tru Prspct BMUs for loaded Map","Build/Save Tru Prspct BMUs for loaded Map"}, saveBMUMapsForTruPrspctsIDX)); 
-		return 	this._numPrivFlags;
-
-	}//initAllSOMPrivBtns_Indiv
+	public int getTotalNumOfPrivBools() {		return _numPrivFlags;	}
 	/**
 	 * Instance class determines the true and false labels the class-category locking should use
 	 * @return array holding true(idx0) and false(idx1) labels for buttons to control display of whether 
@@ -266,21 +244,29 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	}//setPrivFlags_LockCatForClassSegs
 	
 	/**
-	 * Instancing class-specific (application driven) UI objects to be shown in left side bar menu 
-	 * for this window.  This is the first child class function called by initThisWin
+	 * Build all UI objects to be shown in left side bar menu for this window.  This is the first child class function called by initThisWin
 	 * @param tmpUIObjArray : map of object data, keyed by UI object idx, with array values being :                    
 	 *           the first element double array of min/max/mod values                                                   
 	 *           the 2nd element is starting value                                                                      
 	 *           the 3rd elem is label for object                                                                       
 	 *           the 4th element is object type (GUIObj_Type enum)
 	 *           the 5th element is boolean array of : (unspecified values default to false)
-	 *           	{value is sent to owning window, 
-	 *           	value is sent on any modifications (while being modified, not just on release), 
-	 *           	changes to value must be explicitly sent to consumer (are not automatically sent)}    
-	 * @param tmpListObjVals : map of list object possible selection values
+	 *           	idx 0: value is sent to owning window,  
+	 *           	idx 1: value is sent on any modifications (while being modified, not just on release), 
+	 *           	idx 2: changes to value must be explicitly sent to consumer (are not automatically sent),
+	 *           the 6th element is a boolean array of format values :(unspecified values default to false)
+	 *           	idx 0: whether multi-line(stacked) or not                                                  
+	 *              idx 1: if true, build prefix ornament                                                      
+	 *              idx 2: if true and prefix ornament is built, make it the same color as the text fill color.
+	 * @param tmpListObjVals : map of string arrays, keyed by UI object idx, with array values being each element in the list
+	 * @param firstBtnIDX : first index to place button objects in @tmpBtnNamesArray 
+	 * @param tmpBtnNamesArray : map of Object arrays to be built containing all button definitions, keyed by sequential value == objId
+	 * 				the first element is true label
+	 * 				the second element is false label
+	 * 				the third element is integer flag idx 
 	 */
 	@Override
-	protected final void setupGUIObjsAras_Indiv(TreeMap<Integer,Object[]> tmpUIObjArray, TreeMap<Integer, String[]> tmpListObjVals) {	
+	protected final void setupGUIObjsAras_Indiv(TreeMap<Integer,Object[]> tmpUIObjArray, TreeMap<Integer, String[]> tmpListObjVals, int firstBtnIDX, TreeMap<Integer,Object[]> tmpBtnNamesArray) {	
 		//per object entry : object array of {min,max,mod},stVal,lbl,bool ara
 		tmpListObjVals.put(uiRawDataSourceIDX,new String[] {"Prebuilt CSV Files","Data Tables Via SQL"});
 		tmpListObjVals.put(uiProdJPToDispIDX, new String[] {"Unknown"}); 
@@ -291,6 +277,19 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		tmpUIObjArray.put(uiProdZoneDistThreshIDX, uiMgr.uiObjInitAra_Float(new double[]{0.0, 5, .01}, 0.99, "Prod Max Sq Dist"));		//uiProdZoneDistThreshIDX	
 		tmpUIObjArray.put(uiAllJpSeenToDispIDX, uiMgr.uiObjInitAra_List(new double[]{0.0, 260, 1.0}, 0.0, "All JP to Show (Calc Analysis)"));			//uiAllJpSeenToDispIDX	
 
+		int idx=firstBtnIDX;
+		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[] {"Hide Non-Product Job Practices","Show Non-Product Job Practices"}, mapDrawNonProdJPSegIDX));          
+		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[] {"Hide Non-Product Job Practice Groups", "Show Non-Product Job Practice Groups"}, mapDrawNonProdJPGroupSegIDX));			
+		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[] {"Hide Products (ftr BMUs)","Show Products (ftr BMUs)"}, mapDrawPrdctFtrBMUsIDX));          
+		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[] {"Hide Cur Prod Zone (by ftrs)", "Show Cur Prod Zone (by ftrs)"}, mapDrawCurProdFtrBMUZoneIDX));	
+		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[] {"Show Calc Plot on Ftr JPs", "Show Calc Plot on All JPs"}, mapDrawCalcFtrOrAllVisIDX));     
+		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[] {"Hide Training Data Calc Plot", "Show Training Data Calc Plot"}, mapDrawTrainDataAnalysisVisIDX));
+		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[] {"Hide Cust Prspct Calc Plot", "Show Cust Prspct Calc Plot"}, mapDrawCustAnalysisVisIDX));     
+		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[] {"Hide True Prspct Calc Plot", "Show True Prspct Calc Plot"}, mapDrawTPAnalysisVisIDX));       
+		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[] {"Hide True Prospects on Map", "Show True Prospects on Map"}, mapDrawTruePspctIDX));           
+		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[] {"Mapping True Prospect BMUs", "Map True Prospect BMUs"}, procTruProspectsIDX));           
+		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[] {"Building/Saving Tru Prspct BMUs for loaded Map","Build/Save Tru Prspct BMUs for loaded Map"}, saveBMUMapsForTruPrspctsIDX)); 
+		
 	}//setupGUIObjsArasIndiv
 	
 	/**
