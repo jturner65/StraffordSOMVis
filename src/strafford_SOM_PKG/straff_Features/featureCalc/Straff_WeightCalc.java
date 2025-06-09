@@ -33,7 +33,7 @@ public class Straff_WeightCalc {
 	private FileIOManager fileIO;
 	//base file name, minus type and extension 
 	private String fileName;
-	//private String[] fileTypes = new String[] {"train","compare"};
+	//private String[] fileTypes = new String[]{"train","compare"};
 	public final Date now;
 	//arrays are for idxs of various eq components (mult, offset, decay) in the format file for 
 	//each component contributor (order, opt, link, source, source for comparison), in order.  0-idx (not listed in these arrays) is jp name or "default"

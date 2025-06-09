@@ -38,7 +38,7 @@ public class Straff_MonitorJpJpgrp {
 		custExJpsIDX = 1,		//jp/jpg for all customer and true prospects
 		prospectExJpsIDX = 2,	//jp/jpg for all customer and true prospects
 		productExJpsIDX = 3;	//jp/jpg data for all products
-	public static final String[] typeOfJpStrs = new String[] {"All", "Customer", "Prospect", "Product"};
+	public static final String[] typeOfJpStrs = new String[]{"All", "Customer", "Prospect", "Product"};
 	public static final int[] typeOfJpIDXs = new int[] {allExJpsIDX,custExJpsIDX, prospectExJpsIDX, productExJpsIDX};
 	private int[] numAllFtrTypes;
 	//map holding all allJP_JPG_Data for each type of record, and 
@@ -289,7 +289,7 @@ public class Straff_MonitorJpJpgrp {
 	
 	
 	private static final int[] bitFlags = new int[]{0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80};
-	private static final String[] jpFlagMsgs = new String[] {"JP has no Products", "JP has Product without Orders"};
+	private static final String[] jpFlagMsgs = new String[]{"JP has no Products", "JP has Product without Orders"};
 	
 	//prints all JP_JPG_Data structs' toString info sequentially
 	public String toStringAll() {

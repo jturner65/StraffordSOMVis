@@ -73,7 +73,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	};
 	//private final String[] dfltPreBltMapNames = {"Map 1","Map 2","Map 3","Map 4"};
 	//used to switch button name for 1st button to reflect whether performing csv-based load of raw data or sql query
-	private String[] menuLdRawFuncBtnNames = new String[] {"CSV", "SQL"};
+	private String[] menuLdRawFuncBtnNames = new String[]{"CSV", "SQL"};
 	
 	public Straff_SOMMapUIWin(IRenderInterface _p, GUI_AppManager _AppMgr, GUI_AppWinVals _winInitVals) {
 		super(_p,_AppMgr, _winInitVals);
@@ -91,27 +91,27 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	 * category should be locked to allow selection through within-category classes
 	 */
 	@Override
-	protected String[] getClassCatLockBtnTFLabels() {return new String[] {"JPGroup Changes with JP","Lock JPGroup; restrict JPs to JPG"};}
+	protected String[] getClassCatLockBtnTFLabels() {return new String[]{"JPGroup Changes with JP","Lock JPGroup; restrict JPs to JPG"};}
 
 	/**
 	 * Instance class determines the true and false labels the class buttons use - if empty then no classes used
 	 * @return array holding true(idx0) and false(idx1) labels for buttons to control display of class-based segment
 	 */
 	@Override
-	protected final String[] getClassBtnTFLabels() {	return new String[] {"Hide Order-Based JP Segments  ","Show Order-Based JP Segments  "};}
+	protected final String[] getClassBtnTFLabels() {	return new String[]{"Hide Order-Based JP Segments  ","Show Order-Based JP Segments  "};}
 	/**
 	 * Instance class determines the true and false labels the category buttons use - if empty then no categories used
 	 * @return array holding true(idx0) and false(idx1) labels for buttons to control display of category-based segment
 	 */
 	@Override
-	protected final String[] getCategoryBtnTFLabels() {	return new String[] {"Hide Order-Based JPGroup Segments", "Show Order-Based JPGroup Segments"};}	
+	protected final String[] getCategoryBtnTFLabels() {	return new String[]{"Hide Order-Based JPGroup Segments", "Show Order-Based JPGroup Segments"};}	
 	
 	/**
 	 * This will return instance class-based true and false labels for save segment data.  if empty then no segment saving possible
 	 * @return array holding true(idx0) and false(idx1) labels for buttons to control saving of segment data
 	 */
 	@Override
-	protected final String[] getSegmentSaveBtnTFLabels() {return new String[] {"Saving Class, Category and Feature weight segment BMUs", "Save Class, Category and Feature weight segment BMUs" };}
+	protected final String[] getSegmentSaveBtnTFLabels() {return new String[]{"Saving Class, Category and Feature weight segment BMUs", "Save Class, Category and Feature weight segment BMUs" };}
 
 	
 	/**
@@ -268,9 +268,9 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	@Override
 	protected final void setupGUIObjsAras_Indiv(TreeMap<Integer,Object[]> tmpUIObjArray, TreeMap<Integer, String[]> tmpListObjVals, int firstBtnIDX, TreeMap<Integer,Object[]> tmpBtnNamesArray) {	
 		//per object entry : object array of {min,max,mod},stVal,lbl,bool ara
-		tmpListObjVals.put(uiRawDataSourceIDX,new String[] {"Prebuilt CSV Files","Data Tables Via SQL"});
-		tmpListObjVals.put(uiProdJPToDispIDX, new String[] {"Unknown"}); 
-		tmpListObjVals.put(uiAllJpSeenToDispIDX, new String[] {"Unknown"});
+		tmpListObjVals.put(uiRawDataSourceIDX,new String[]{"Prebuilt CSV Files","Data Tables Via SQL"});
+		tmpListObjVals.put(uiProdJPToDispIDX, new String[]{"Unknown"}); 
+		tmpListObjVals.put(uiAllJpSeenToDispIDX, new String[]{"Unknown"});
 		
 		tmpUIObjArray.put(uiRawDataSourceIDX, uiMgr.uiObjInitAra_List(new double[]{0.0, tmpListObjVals.get(uiRawDataSourceIDX).length-1, 1}, 0.0, "Raw Data Source"));		//uiRawDataSourceIDX
 		tmpUIObjArray.put(uiProdJPToDispIDX, uiMgr.uiObjInitAra_List(new double[]{0.0, 260, 1.0}, 0.0, "Product JP to Show"));			//uiProdJPToDispIDX	
@@ -278,17 +278,17 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		tmpUIObjArray.put(uiAllJpSeenToDispIDX, uiMgr.uiObjInitAra_List(new double[]{0.0, 260, 1.0}, 0.0, "All JP to Show (Calc Analysis)"));			//uiAllJpSeenToDispIDX	
 
 		int idx=firstBtnIDX;
-		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[] {"Hide Non-Product Job Practices","Show Non-Product Job Practices"}, mapDrawNonProdJPSegIDX));          
-		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[] {"Hide Non-Product Job Practice Groups", "Show Non-Product Job Practice Groups"}, mapDrawNonProdJPGroupSegIDX));			
-		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[] {"Hide Products (ftr BMUs)","Show Products (ftr BMUs)"}, mapDrawPrdctFtrBMUsIDX));          
-		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[] {"Hide Cur Prod Zone (by ftrs)", "Show Cur Prod Zone (by ftrs)"}, mapDrawCurProdFtrBMUZoneIDX));	
-		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[] {"Show Calc Plot on Ftr JPs", "Show Calc Plot on All JPs"}, mapDrawCalcFtrOrAllVisIDX));     
-		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[] {"Hide Training Data Calc Plot", "Show Training Data Calc Plot"}, mapDrawTrainDataAnalysisVisIDX));
-		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[] {"Hide Cust Prspct Calc Plot", "Show Cust Prspct Calc Plot"}, mapDrawCustAnalysisVisIDX));     
-		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[] {"Hide True Prspct Calc Plot", "Show True Prspct Calc Plot"}, mapDrawTPAnalysisVisIDX));       
-		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[] {"Hide True Prospects on Map", "Show True Prospects on Map"}, mapDrawTruePspctIDX));           
-		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[] {"Mapping True Prospect BMUs", "Map True Prospect BMUs"}, procTruProspectsIDX));           
-		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[] {"Building/Saving Tru Prspct BMUs for loaded Map","Build/Save Tru Prspct BMUs for loaded Map"}, saveBMUMapsForTruPrspctsIDX)); 
+		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[]{"Hide Non-Product Job Practices","Show Non-Product Job Practices"}, mapDrawNonProdJPSegIDX));          
+		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[]{"Hide Non-Product Job Practice Groups", "Show Non-Product Job Practice Groups"}, mapDrawNonProdJPGroupSegIDX));			
+		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[]{"Hide Products (ftr BMUs)","Show Products (ftr BMUs)"}, mapDrawPrdctFtrBMUsIDX));          
+		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[]{"Hide Cur Prod Zone (by ftrs)", "Show Cur Prod Zone (by ftrs)"}, mapDrawCurProdFtrBMUZoneIDX));	
+		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[]{"Show Calc Plot on Ftr JPs", "Show Calc Plot on All JPs"}, mapDrawCalcFtrOrAllVisIDX));     
+		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[]{"Hide Training Data Calc Plot", "Show Training Data Calc Plot"}, mapDrawTrainDataAnalysisVisIDX));
+		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[]{"Hide Cust Prspct Calc Plot", "Show Cust Prspct Calc Plot"}, mapDrawCustAnalysisVisIDX));     
+		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[]{"Hide True Prspct Calc Plot", "Show True Prspct Calc Plot"}, mapDrawTPAnalysisVisIDX));       
+		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[]{"Hide True Prospects on Map", "Show True Prospects on Map"}, mapDrawTruePspctIDX));           
+		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[]{"Mapping True Prospect BMUs", "Map True Prospect BMUs"}, procTruProspectsIDX));           
+		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[]{"Building/Saving Tru Prspct BMUs for loaded Map","Build/Save Tru Prspct BMUs for loaded Map"}, saveBMUMapsForTruPrspctsIDX)); 
 		
 	}//setupGUIObjsArasIndiv
 	

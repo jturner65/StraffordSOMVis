@@ -38,7 +38,7 @@ public class Straff_JPWeightEquation {
 			srcCompareCoeffIDX = 4;
 	public static final int numEqs = 5;
 	//these names must match order and number of component idxs above
-	public static final String[] calcNames = new String[] {"Order","Opt","Link","Source", "SrcForComp"};
+	public static final String[] calcNames = new String[]{"Order","Opt","Link","Source", "SrcForComp"};
 	
 	//ftr calc coefficients : 
 	protected final Float[] FtrMult;						//multiplier for membership functions

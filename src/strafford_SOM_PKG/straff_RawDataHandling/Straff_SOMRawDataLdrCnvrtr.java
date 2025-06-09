@@ -44,7 +44,7 @@ public class Straff_SOMRawDataLdrCnvrtr {
 	//idxs for each type of data in arrays holding relevant data info
 	public static final int prspctIDX = 0, orderEvntIDX = 1, optEvntIDX = 2, linkEvntIDX = 3, srcEvntIDX = 4, tcTagsIDX = 5, jpDataIDX = 6, jpgDataIDX = 7;
 	//directory names where raw data files can be found - also use as key in rawDataArrays to access arrays of raw objects
-	private static final String[] straffDataDirNames = new String[] {"prospect_objects", "order_event_objects", "opt_event_objects", "link_event_objects", "source_event_objects", "tc_taggings", "jp_data", "jpg_data"};
+	private static final String[] straffDataDirNames = new String[]{"prospect_objects", "order_event_objects", "opt_event_objects", "link_event_objects", "source_event_objects", "tc_taggings", "jp_data", "jpg_data"};
 	//idxs of string keys in rawDataArrays corresponding to EVENTS (from xxx_event_objects tables)
 	private static final int[] straffEventDataIDXs = new int[] {orderEvntIDX, optEvntIDX, linkEvntIDX, srcEvntIDX};
 	//list of idxs related to each table for data
@@ -63,7 +63,7 @@ public class Straff_SOMRawDataLdrCnvrtr {
 	//string to hold package trail to where data loaders reside - REMEMBER TO INCLUDE TRAILING PERIOD!!!
 	private static final String _baseStraffDataLdrsLoc = "strafford_SOM_PKG.straff_RawDataHandling.data_loaders.";
 	//list of class names used to build array of object loaders
-	private static final String[] straffClassLdrNames = new String[] {
+	private static final String[] straffClassLdrNames = new String[]{
 			"Straff_ProspectDataLoader","Straff_OrderEventDataLoader","Straff_OptEventDataLoader","Straff_LinkEventDataLoader","Straff_SourceEventDataLoader","Straff_TcTagDataLoader", "Straff_JpDataLoader", "Straff_JpgrpDataLoader"
 		};	
 	

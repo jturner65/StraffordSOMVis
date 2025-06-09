@@ -135,7 +135,7 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 		showInfo = true;	
 		//titles and descs, need to be set before sidebar menu is defined
 		String[] _winTitles = new String[]{"","SOM Map UI"},
-				_winDescr = new String[] {"", "Visualize Prospect SOM Node Mapping"};
+				_winDescr = new String[]{"", "Visualize Prospect SOM Node Mapping"};
 
 		//instanced window dims when open and closed - only showing 1 open at a time - and init cam vals
 		float[][] _floatDims  = getDefaultWinAndCameraDims();	
@@ -149,7 +149,7 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
 			{"Map 1","Map 2","Map 3","Map 4"},
 			{"Raw","Proced","JpJpg","MapDat","---"}	
 		};
-		String[] dbgBtnNames = new String[] {"Debug 0","Debug 1","Debug 2","Debug 3","Debug 4"};	
+		String[] dbgBtnNames = new String[]{"Debug 0","Debug 1","Debug 2","Debug 3","Debug 4"};	
 		buildSideBarMenu(_winTitles,menuBtnTitles, menuBtnNames, dbgBtnNames, false, true);//new Straff_SOMMapUISideBarMenu(this, winTitles[wIdx], fIdx, winFillClrs[wIdx], winStrkClrs[wIdx], winRectDimOpen[wIdx], winRectDimClose[wIdx], winDescr[wIdx]);	
 
 		//define windows

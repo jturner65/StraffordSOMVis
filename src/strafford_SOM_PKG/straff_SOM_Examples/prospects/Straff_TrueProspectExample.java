@@ -24,11 +24,11 @@ public class Straff_TrueProspectExample extends Straff_ProspectExample{
 	//column names for csv of this SOM example - won't have events
 	private static final String csvColDescrPrfx = "OID,Prospect_LU_Date,Num Opt Event Dates,Num Link Event Dates,Num Src Event Dates";
 	//all kinds of events present
-	public static final String[] jpOccTypeKeys = new String[] {"opts", "links", "sources"};
+	public static final String[] jpOccTypeKeys = new String[]{"opts", "links", "sources"};
 	//event mappings use the occurrence data value (opt/source)
 	public static final boolean[] jpOccMapUseOccData = new boolean[] {true,false,true};
 	//csv labels
-	private static final String[] CSVSentinelLbls = new String[] {"OPT|,", "LNK|,", "SRC|," };
+	private static final String[] CSVSentinelLbls = new String[]{"OPT|,", "LNK|,", "SRC|," };
 	
 	//build this object based on prospectData object 
 	public Straff_TrueProspectExample(Straff_SOMMapManager _map,Straff_ProspectData _prspctData) {	super(_map,SOM_ExDataType.Validation,_prspctData);	}//prospectData ctor

@@ -38,14 +38,14 @@ public class Straff_CustProspectExample extends Straff_ProspectExample {
 	// Training data description
 	//////////////////////////////////////
 	// all kinds of events present
-	public static final String[] jpOccTypeKeys = new String[] { "orders", "opts", "links", "sources" };
+	public static final String[] jpOccTypeKeys = new String[]{"orders", "opts", "links", "sources" };
 	// events allowable for training (source info can be used if jps present in
 	// other events as well, but should be ignored otherwise)
-	private static final String[] trainingEventMapTypeKeys = new String[] { "orders", "opts", "links" };// events used only to determine training
+	private static final String[] trainingEventMapTypeKeys = new String[]{"orders", "opts", "links" };// events used only to determine training
 	// event mappings use the occurrence data value (opt/source)
 	protected static final boolean[] jpOccMapUseOccData = new boolean[] { false, true, false, true };
 	// csv labels
-	private static final String[] CSVSentinelLbls = new String[] { "ORD|,", "OPT|,", "LNK|,", "SRC|," };
+	private static final String[] CSVSentinelLbls = new String[]{"ORD|,", "OPT|,", "LNK|,", "SRC|," };
 
 	// array of individual order training examples corresponding to this
 	// customer-prospect's order history - these examples will be used for -training

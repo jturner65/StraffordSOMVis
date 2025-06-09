@@ -24,7 +24,7 @@ public class Straff_CalcAnalysis{//per JPWeightEquation analysis of data
 		stdOptIDX = 4;			//only non-opt-out
 	protected static final int numCalcStats = 5;
 	//titles of each stat-of-interest disp bar
-	protected static final String[] calcStatTitles = new String[] {"Ratios", "Means", "Means w/Opts", "Stds","Stds w/Opts"};
+	protected static final String[] calcStatTitles = new String[]{"Ratios", "Means", "Means w/Opts", "Stds","Stds w/Opts"};
 	//descriptive text under each detail display bar
 	protected String[][] calcStatDispDetail;
 	//perStat perCalcEqType Descriptive string of value being represented in bar
@@ -139,11 +139,11 @@ public class Straff_CalcAnalysis{//per JPWeightEquation analysis of data
 		float ttlMeanWithOpt = ttlVal/numExamplesWithJP;
 		float ttlStdNoOpt = (float) Math.sqrt((ttlSqVal/numExamplesNoOptOut)  - (ttlMeanNoOpt * ttlMeanNoOpt));
 		float ttlStdWithOpt = (float) Math.sqrt((ttlSqVal/numExamplesWithJP)  - (ttlMeanWithOpt * ttlMeanWithOpt));
-		calcStatDispDetail[ratioIDX] = new String[] {String.format("Ratio of Opts To Ttl : %.5f",ratioOptOut), String.format("# of examples : %05d",numExamplesWithJP),String.format("# of ex w/o Opt out : %05d",numExamplesNoOptOut)};
-		calcStatDispDetail[meanIDX] = new String[] {String.format("Mean : %.5f",ttlMeanNoOpt)};
-		calcStatDispDetail[meanOptIDX] = new String[] {String.format("Mean w/opts : %.5f", ttlMeanWithOpt)};
-		calcStatDispDetail[stdIDX] = new String[] {String.format("Stds : %.5f",ttlStdNoOpt)};
-		calcStatDispDetail[stdOptIDX] = new String[] {String.format("Std w/opts : %.5f",ttlStdWithOpt)};		
+		calcStatDispDetail[ratioIDX] = new String[]{String.format("Ratio of Opts To Ttl : %.5f",ratioOptOut), String.format("# of examples : %05d",numExamplesWithJP),String.format("# of ex w/o Opt out : %05d",numExamplesNoOptOut)};
+		calcStatDispDetail[meanIDX] = new String[]{String.format("Mean : %.5f",ttlMeanNoOpt)};
+		calcStatDispDetail[meanOptIDX] = new String[]{String.format("Mean w/opts : %.5f", ttlMeanWithOpt)};
+		calcStatDispDetail[stdIDX] = new String[]{String.format("Stds : %.5f",ttlStdNoOpt)};
+		calcStatDispDetail[stdOptIDX] = new String[]{String.format("Std w/opts : %.5f",ttlStdWithOpt)};		
 		
 		analysisRes.add("FTR IDX : "+String.format("%03d", jpIDXara[0])+"ALL JP IDX : "+String.format("%03d", jpIDXara[1])+"|JP : "+String.format("%03d", eq.jp)+"|% opt:"+String.format("%.5f",ratioOptOut)
 					+"|MU : " + String.format("%.5f",ttlMeanNoOpt)+"|Std : " + String.format("%.5f",ttlStdNoOpt) 
@@ -233,7 +233,7 @@ public class Straff_CalcAnalysis{//per JPWeightEquation analysis of data
 			drawDetailFtrVec(p,height,width, analysisCalcStats[i], ttlCalcStats_Vis[i], calcStatTitles[i], analysisCalcValStrs[i], calcStatDispDetail[i]);
 			p.translate(width*1.5f, 0.0f, 0.0f);
 		}	
-		drawDetailFtrVec(p,height,width, legendSizes, 1.0f, "Legend", legendDatStrAra, new String[] {});
+		drawDetailFtrVec(p,height,width, legendSizes, 1.0f, "Legend", legendDatStrAra, new String[]{});
 		//drawLegend(p,height,width, legendSizes, 1.0f);
 		p.popMatState();	
 	}//drawIndivFtrVec
