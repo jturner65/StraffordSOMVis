@@ -11,6 +11,7 @@ import base_SOM_Objects.som_ui.win_disp_ui.SOM_MapUIWin;
 import base_SOM_Objects.som_ui.win_disp_ui.SOM_MseOvrDispTypeVals;
 import base_UI_Objects.GUI_AppManager;
 import base_UI_Objects.windowUI.base.GUI_AppWinVals;
+import base_UI_Objects.windowUI.uiObjs.base.GUIObj_Params;
 import base_Utils_Objects.io.messaging.MsgCodes;
 import strafford_SOM_PKG.straff_Features.featureCalc.Straff_WeightCalc;
 import strafford_SOM_PKG.straff_SOM_Mapping.Straff_SOMMapManager;
@@ -51,10 +52,10 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	
 	//	//GUI Objects	
 	public final static int //offset from end of base class SOM UI objs
-		uiRawDataSourceIDX 			= numSOMBaseGUIObjs + 0,			//source of raw data to be preprocced and used to train the map
-		uiProdJPToDispIDX			= numSOMBaseGUIObjs + 1,			//choose current product/zone to show
-		uiProdZoneDistThreshIDX		= numSOMBaseGUIObjs + 2,			//max distance from a product that a map node should be considered to be covered by that product
-		uiAllJpSeenToDispIDX		= numSOMBaseGUIObjs + 3;			//choose jp to show based on all jps seen
+		gIDX_RawDataSourceIDX 			= numSOMBaseGUIObjs + 0,			//source of raw data to be preprocced and used to train the map
+		gIDX_ProdJPToDispIDX			= numSOMBaseGUIObjs + 1,			//choose current product/zone to show
+		gIDX_ProdZoneDistThreshIDX		= numSOMBaseGUIObjs + 2,			//max distance from a product that a map node should be considered to be covered by that product
+		gIDX_AllJpSeenToDispIDX			= numSOMBaseGUIObjs + 3;			//choose jp to show based on all jps seen
 	
 	//public final int numGUIObjs = numSOMBaseGUIObjs + 4;
 	
@@ -129,8 +130,8 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		//default to having calc objects display analysis on ftrs 
 		uiMgr.setPrivFlag(mapDrawCalcFtrOrAllVisIDX, true);
 		//dataFrmtToUseToTrain = (int)(this.guiObjs_Numeric[uiTrainDataFrmtIDX].getVal()); 
-		((Straff_SOMMapManager) mapMgr).setProdZoneDistThresh(uiMgr.getUIValue(uiProdZoneDistThreshIDX));
-		rawDataSource = (int)(uiMgr.getUIValue(uiRawDataSourceIDX));
+		((Straff_SOMMapManager) mapMgr).setProdZoneDistThresh(uiMgr.getUIValue(gIDX_ProdZoneDistThreshIDX));
+		rawDataSource = (int)(uiMgr.getUIValue(gIDX_RawDataSourceIDX));
 
 		//moved from mapMgr ctor, to remove dependence on papplet in that object
 		mapMgr.initMapAras(1, 1);
@@ -241,55 +242,56 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		} else {
 			
 		}		
-	}//setPrivFlags_LockCatForClassSegs
+	}//setPrivFlags_LockCatForClassSegs	
 	
 	/**
 	 * Build all UI objects to be shown in left side bar menu for this window.  This is the first child class function called by initThisWin
-	 * @param tmpUIObjArray : map of object data, keyed by UI object idx, with array values being :                    
-	 *           the first element double array of min/max/mod values                                                   
-	 *           the 2nd element is starting value                                                                      
-	 *           the 3rd elem is label for object                                                                       
-	 *           the 4th element is object type (GUIObj_Type enum)
-	 *           the 5th element is boolean array of : (unspecified values default to false)
+	 * @param tmpUIObjMap : map of GUIObj_Params, keyed by unique string, with values describing the UI object
+	 * 			- The object IDX                   
+	 *          - A double array of min/max/mod values                                                   
+	 *          - The starting value                                                                      
+	 *          - The label for object                                                                       
+	 *          - The object type (GUIObj_Type enum)
+	 *          - A boolean array of behavior configuration values : (unspecified values default to false)
 	 *           	idx 0: value is sent to owning window,  
 	 *           	idx 1: value is sent on any modifications (while being modified, not just on release), 
 	 *           	idx 2: changes to value must be explicitly sent to consumer (are not automatically sent),
-	 *           the 6th element is a boolean array of format values :(unspecified values default to false)
+	 *          - A boolean array of renderer format values :(unspecified values default to false)
 	 *           	idx 0: whether multi-line(stacked) or not                                                  
 	 *              idx 1: if true, build prefix ornament                                                      
 	 *              idx 2: if true and prefix ornament is built, make it the same color as the text fill color.
-	 * @param tmpListObjVals : map of string arrays, keyed by UI object idx, with array values being each element in the list
-	 * @param firstBtnIDX : first index to place button objects in @tmpBtnNamesArray 
-	 * @param tmpBtnNamesArray : map of Object arrays to be built containing all button definitions, keyed by sequential value == objId
-	 * 				the first element is true label
-	 * 				the second element is false label
-	 * 				the third element is integer flag idx 
 	 */
 	@Override
-	protected final void setupGUIObjsAras_Indiv(TreeMap<Integer,Object[]> tmpUIObjArray, TreeMap<Integer, String[]> tmpListObjVals, int firstBtnIDX, TreeMap<Integer,Object[]> tmpBtnNamesArray) {	
-		//per object entry : object array of {min,max,mod},stVal,lbl,bool ara
-		tmpListObjVals.put(uiRawDataSourceIDX,new String[]{"Prebuilt CSV Files","Data Tables Via SQL"});
-		tmpListObjVals.put(uiProdJPToDispIDX, new String[]{"Unknown"}); 
-		tmpListObjVals.put(uiAllJpSeenToDispIDX, new String[]{"Unknown"});
-		
-		tmpUIObjArray.put(uiRawDataSourceIDX, uiMgr.uiObjInitAra_List(new double[]{0.0, tmpListObjVals.get(uiRawDataSourceIDX).length-1, 1}, 0.0, "Raw Data Source"));		//uiRawDataSourceIDX
-		tmpUIObjArray.put(uiProdJPToDispIDX, uiMgr.uiObjInitAra_List(new double[]{0.0, 260, 1.0}, 0.0, "Product JP to Show"));			//uiProdJPToDispIDX	
-		tmpUIObjArray.put(uiProdZoneDistThreshIDX, uiMgr.uiObjInitAra_Float(new double[]{0.0, 5, .01}, 0.99, "Prod Max Sq Dist"));		//uiProdZoneDistThreshIDX	
-		tmpUIObjArray.put(uiAllJpSeenToDispIDX, uiMgr.uiObjInitAra_List(new double[]{0.0, 260, 1.0}, 0.0, "All JP to Show (Calc Analysis)"));			//uiAllJpSeenToDispIDX	
-
-		int idx=firstBtnIDX;
-		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[]{"Hide Non-Product Job Practices","Show Non-Product Job Practices"}, mapDrawNonProdJPSegIDX));          
-		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[]{"Hide Non-Product Job Practice Groups", "Show Non-Product Job Practice Groups"}, mapDrawNonProdJPGroupSegIDX));			
-		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[]{"Hide Products (ftr BMUs)","Show Products (ftr BMUs)"}, mapDrawPrdctFtrBMUsIDX));          
-		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[]{"Hide Cur Prod Zone (by ftrs)", "Show Cur Prod Zone (by ftrs)"}, mapDrawCurProdFtrBMUZoneIDX));	
-		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[]{"Show Calc Plot on Ftr JPs", "Show Calc Plot on All JPs"}, mapDrawCalcFtrOrAllVisIDX));     
-		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[]{"Hide Training Data Calc Plot", "Show Training Data Calc Plot"}, mapDrawTrainDataAnalysisVisIDX));
-		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[]{"Hide Cust Prspct Calc Plot", "Show Cust Prspct Calc Plot"}, mapDrawCustAnalysisVisIDX));     
-		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[]{"Hide True Prspct Calc Plot", "Show True Prspct Calc Plot"}, mapDrawTPAnalysisVisIDX));       
-		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[]{"Hide True Prospects on Map", "Show True Prospects on Map"}, mapDrawTruePspctIDX));           
-		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[]{"Mapping True Prospect BMUs", "Map True Prospect BMUs"}, procTruProspectsIDX));           
-		tmpBtnNamesArray.put(idx++, uiMgr.uiObjInitAra_Btn(new String[]{"Building/Saving Tru Prspct BMUs for loaded Map","Build/Save Tru Prspct BMUs for loaded Map"}, saveBMUMapsForTruPrspctsIDX)); 
-		
+	protected final void setupGUIObjsAras_Indiv(TreeMap<String, GUIObj_Params> tmpUIObjMap) {
+		tmpUIObjMap.put("gIDX_RawDataSourceIDX", uiMgr.uiObjInitAra_List(gIDX_RawDataSourceIDX, 0.0, "Raw Data Source", new String[]{"Prebuilt CSV Files","Data Tables Via SQL"}));		//gIDX_RawDataSourceIDX
+		tmpUIObjMap.put("gIDX_ProdJPToDispIDX", uiMgr.uiObjInitAra_List(gIDX_ProdJPToDispIDX, 0.0, "Product JP to Show", new String[]{"Unknown"}));			//gIDX_ProdJPToDispIDX	
+		tmpUIObjMap.put("gIDX_ProdZoneDistThreshIDX", uiMgr.uiObjInitAra_Float(gIDX_ProdZoneDistThreshIDX, new double[]{0.0, 5, .01}, 0.99, "Prod Max Sq Dist"));		//gIDX_ProdZoneDistThreshIDX	
+		tmpUIObjMap.put("gIDX_AllJpSeenToDispIDX", uiMgr.uiObjInitAra_List(gIDX_AllJpSeenToDispIDX, 0.0, "All JP to Show (Calc Analysis)", new String[]{"Unknown"}));			//gIDX_AllJpSeenToDispIDX
+	}
+	
+	/**
+	 * Build all UI buttons to be shown in left side bar menu for this window. This is for instancing windows to add to button region
+	 * USE tmpUIBtnObjMap.size() for start idx
+	 * @param tmpUIBtnObjMap : map of GUIObj_Params to be built containing all button definitions, keyed by sequential value == objId
+	 * 				the first element is the object index
+	 * 				the second element is true label
+	 * 				the third element is false label
+	 * 				the final element is integer flag idx 
+	 */
+	protected final void setupGUIBtnAras_Indiv(TreeMap<String, GUIObj_Params> tmpUIBtnObjMap) {
+		//Adding 1 because we do not have a debug button
+		int idx=tmpUIBtnObjMap.size()+1;
+		tmpUIBtnObjMap.put("Button_"+idx, uiMgr.uiObjInitAra_Btn(idx++, "button_"+idx, "Hide Non-Product Job Practices","Show Non-Product Job Practices", mapDrawNonProdJPSegIDX));          
+		tmpUIBtnObjMap.put("Button_"+idx, uiMgr.uiObjInitAra_Btn(idx++, "button_"+idx, "Hide Non-Product Job Practice Groups", "Show Non-Product Job Practice Groups", mapDrawNonProdJPGroupSegIDX));			
+		tmpUIBtnObjMap.put("Button_"+idx, uiMgr.uiObjInitAra_Btn(idx++, "button_"+idx, "Hide Products (ftr BMUs)","Show Products (ftr BMUs)", mapDrawPrdctFtrBMUsIDX));          
+		tmpUIBtnObjMap.put("Button_"+idx, uiMgr.uiObjInitAra_Btn(idx++, "button_"+idx, "Hide Cur Prod Zone (by ftrs)", "Show Cur Prod Zone (by ftrs)", mapDrawCurProdFtrBMUZoneIDX));	
+		tmpUIBtnObjMap.put("Button_"+idx, uiMgr.uiObjInitAra_Btn(idx++, "button_"+idx, "Show Calc Plot on Ftr JPs", "Show Calc Plot on All JPs", mapDrawCalcFtrOrAllVisIDX));     
+		tmpUIBtnObjMap.put("Button_"+idx, uiMgr.uiObjInitAra_Btn(idx++, "button_"+idx, "Hide Training Data Calc Plot", "Show Training Data Calc Plot", mapDrawTrainDataAnalysisVisIDX));
+		tmpUIBtnObjMap.put("Button_"+idx, uiMgr.uiObjInitAra_Btn(idx++, "button_"+idx, "Hide Cust Prspct Calc Plot", "Show Cust Prspct Calc Plot", mapDrawCustAnalysisVisIDX));     
+		tmpUIBtnObjMap.put("Button_"+idx, uiMgr.uiObjInitAra_Btn(idx++, "button_"+idx, "Hide True Prspct Calc Plot", "Show True Prspct Calc Plot", mapDrawTPAnalysisVisIDX));       
+		tmpUIBtnObjMap.put("Button_"+idx, uiMgr.uiObjInitAra_Btn(idx++, "button_"+idx, "Hide True Prospects on Map", "Show True Prospects on Map", mapDrawTruePspctIDX));           
+		tmpUIBtnObjMap.put("Button_"+idx, uiMgr.uiObjInitAra_Btn(idx++, "button_"+idx, "Mapping True Prospect BMUs", "Map True Prospect BMUs", procTruProspectsIDX));           
+		tmpUIBtnObjMap.put("Button_"+idx, uiMgr.uiObjInitAra_Btn(idx++, "button_"+idx, "Building/Saving Tru Prspct BMUs for loaded Map","Build/Save Tru Prspct BMUs for loaded Map", saveBMUMapsForTruPrspctsIDX)); 		
 	}//setupGUIObjsArasIndiv
 	
 	/**
@@ -318,7 +320,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 		setUI_ClassListVals(classVals);
 		setUI_CategoryListVals(categoryVals);
 		//set product list values
-		uiMgr.setAllUIListValues(uiProdJPToDispIDX, prodVals, true);
+		uiMgr.setAllUIListValues(gIDX_ProdJPToDispIDX, prodVals, true);
 		//in super class
 		setClass_UIObj(false);
 	}//setUI_JPListMaxVals
@@ -331,8 +333,8 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	 */
 	public void setUI_JPAllSeenListVals(String[] jpGrpVals, String[] jpVals) {
 		//refresh max size of guiobj - heavy handed, these values won't change often, and this is called -every draw frame-.
-		//guiObjs_Numeric[uiAllJpSeenToDispIDX].setNewMax(jpLen-1);
-		uiMgr.setAllUIListValues(uiAllJpSeenToDispIDX, jpVals, true);
+		//guiObjs_Numeric[gIDX_AllJpSeenToDispIDX].setNewMax(jpLen-1);
+		uiMgr.setAllUIListValues(gIDX_AllJpSeenToDispIDX, jpVals, true);
 		//guiObjs_Numeric[uiAllJpgSeenToDispIDX].setNewMax(jpGrpLen-1);	
 	}//setUI_JPListMaxVals
 	
@@ -364,37 +366,37 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 //	//handle instance-specific UI components
 //	protected void setUIWinVals_Indiv(int UIidx) {
 //		switch(UIidx){
-//			case uiRawDataSourceIDX  : {//source of raw data
-//				rawDataSource = (int)(this.guiObjs_Numeric[uiRawDataSourceIDX].getVal());
+//			case gIDX_RawDataSourceIDX  : {//source of raw data
+//				rawDataSource = (int)(this.guiObjs_Numeric[gIDX_RawDataSourceIDX].getVal());
 //				//change button display
 //				setCustMenuBtnNames();
-//				msgObj.dispMessage(className,"setUIWinVals","uiRawDataSourceIDX : rawDataSource set to : " + rawDataSource, MsgCodes.info1);
+//				msgObj.dispMessage(className,"setUIWinVals","gIDX_RawDataSourceIDX : rawDataSource set to : " + rawDataSource, MsgCodes.info1);
 //				break;}					
-//			case uiProdJPToDispIDX : {//product to display, for product influence zones
-//				((Straff_SOMMapManager) mapMgr).setCurProdToShowIDX((int)guiObjs_Numeric[uiProdJPToDispIDX].getVal());				
+//			case gIDX_ProdJPToDispIDX : {//product to display, for product influence zones
+//				((Straff_SOMMapManager) mapMgr).setCurProdToShowIDX((int)guiObjs_Numeric[gIDX_ProdJPToDispIDX].getVal());				
 //				break;}
-//			case uiProdZoneDistThreshIDX : {//max distance for a node to be considered a part of a product's "region" of influence		
-//				((Straff_SOMMapManager) mapMgr).setProdZoneDistThresh(this.guiObjs_Numeric[uiProdZoneDistThreshIDX].getVal());			
+//			case gIDX_ProdZoneDistThreshIDX : {//max distance for a node to be considered a part of a product's "region" of influence		
+//				((Straff_SOMMapManager) mapMgr).setProdZoneDistThresh(this.guiObjs_Numeric[gIDX_ProdZoneDistThreshIDX].getVal());			
 //				break;}
 //	
-//			case uiAllJpSeenToDispIDX		: {
-//				((Straff_SOMMapManager) mapMgr).setCurAllJPToShowIDX((int)guiObjs_Numeric[uiAllJpSeenToDispIDX].getVal());
+//			case gIDX_AllJpSeenToDispIDX		: {
+//				((Straff_SOMMapManager) mapMgr).setCurAllJPToShowIDX((int)guiObjs_Numeric[gIDX_AllJpSeenToDispIDX].getVal());
 //				break;}	
 //		}		
 //	}//setUIWinValsIndiv	
 	@Override
 	protected boolean setUI_IntValsCustom_Indiv(int UIidx, int ival, int oldVal) {
 		switch(UIidx){
-			case uiRawDataSourceIDX  : {//source of raw data
+			case gIDX_RawDataSourceIDX  : {//source of raw data
 				rawDataSource = ival;
 				//change button display
 				setCustMenuBtnLabels();
-				msgObj.dispMessage(className,"setUIWinVals","uiRawDataSourceIDX : rawDataSource set to : " + rawDataSource, MsgCodes.info1);
+				msgObj.dispMessage(className,"setUIWinVals","gIDX_RawDataSourceIDX : rawDataSource set to : " + rawDataSource, MsgCodes.info1);
 				return true;}					
-			case uiProdJPToDispIDX : {//product to display, for product influence zones
+			case gIDX_ProdJPToDispIDX : {//product to display, for product influence zones
 				((Straff_SOMMapManager) mapMgr).setCurProdToShowIDX(ival);				
 				return true;}
-			case uiAllJpSeenToDispIDX		: {
+			case gIDX_AllJpSeenToDispIDX		: {
 				((Straff_SOMMapManager) mapMgr).setCurAllJPToShowIDX(ival);
 				return true;}	
 		}		
@@ -404,7 +406,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	@Override
 	protected boolean setUI_FloatValsCustom_Indiv(int UIidx, float val, float oldVal) {
 			switch(UIidx){
-			case uiProdZoneDistThreshIDX : {//max distance for a node to be considered a part of a product's "region" of influence		
+			case gIDX_ProdZoneDistThreshIDX : {//max distance for a node to be considered a part of a product's "region" of influence		
 				((Straff_SOMMapManager) mapMgr).setProdZoneDistThresh(val);			
 				break;}
 			}
@@ -545,7 +547,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 				case 3 : {//load all training data, default map config, and build map
 					int curPreBuiltMapIDX = btn;
 					mapMgr.setCurPreBuiltMapIDX(curPreBuiltMapIDX);
-					getUIDataUpdater().setIntValue(uiMapPreBuiltDirIDX, (int) uiMgr.setNewUIValue(uiMapPreBuiltDirIDX, curPreBuiltMapIDX));
+					getUIDataUpdater().setIntValue(gIDX_MapPreBuiltDirIDX, (int) uiMgr.setNewUIValue(gIDX_MapPreBuiltDirIDX, curPreBuiltMapIDX));
 					mapMgr.loadPretrainedExistingMap(btn, true);//runs in thread, button state reset there
 					resetButtonState();
 					break;}
