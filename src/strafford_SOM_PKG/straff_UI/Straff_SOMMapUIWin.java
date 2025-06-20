@@ -245,7 +245,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	}//setPrivFlags_LockCatForClassSegs	
 	
 	/**
-	 * Build all UI objects to be shown in left side bar menu for this window.  This is the first child class function called by initThisWin
+	 * Build all UI objects to be shown in left side bar menu for this window. This is the first child class function called by initThisWin
 	 * @param tmpUIObjMap : map of GUIObj_Params, keyed by unique string, with values describing the UI object
 	 * 			- The object IDX                   
 	 *          - A double array of min/max/mod values                                                   
@@ -256,10 +256,13 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	 *           	idx 0: value is sent to owning window,  
 	 *           	idx 1: value is sent on any modifications (while being modified, not just on release), 
 	 *           	idx 2: changes to value must be explicitly sent to consumer (are not automatically sent),
-	 *          - A boolean array of renderer format values :(unspecified values default to false)
-	 *           	idx 0: whether multi-line(stacked) or not                                                  
-	 *              idx 1: if true, build prefix ornament                                                      
-	 *              idx 2: if true and prefix ornament is built, make it the same color as the text fill color.
+	 *          - A boolean array of renderer format values :(unspecified values default to false) - Behavior Boolean array must also be provided!
+	 * 				idx 0 : Should be multiline
+	 * 				idx 1 : One object per row in UI space (i.e. default for multi-line and btn objects is false, single line non-buttons is true)
+	 * 				idx 2 : Text should be centered (default is false)
+	 * 				idx 3 : Object should be rendered with outline (default for btns is true, for non-buttons is false)
+	 * 				idx 4 : Should have ornament
+	 * 				idx 5 : Ornament color should match label color 
 	 */
 	@Override
 	protected final void setupGUIObjsAras_Indiv(TreeMap<String, GUIObj_Params> tmpUIObjMap) {
@@ -361,29 +364,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	 */
 	@Override
 	protected final int getCategoryLabelFromIDX(int _idx) {	return ((Straff_SOMMapManager) mapMgr).getFtrJpGroupByIdx(_idx);}
-	
-//	@Override 
-//	//handle instance-specific UI components
-//	protected void setUIWinVals_Indiv(int UIidx) {
-//		switch(UIidx){
-//			case gIDX_RawDataSourceIDX  : {//source of raw data
-//				rawDataSource = (int)(this.guiObjs_Numeric[gIDX_RawDataSourceIDX].getVal());
-//				//change button display
-//				setCustMenuBtnNames();
-//				msgObj.dispMessage(className,"setUIWinVals","gIDX_RawDataSourceIDX : rawDataSource set to : " + rawDataSource, MsgCodes.info1);
-//				break;}					
-//			case gIDX_ProdJPToDispIDX : {//product to display, for product influence zones
-//				((Straff_SOMMapManager) mapMgr).setCurProdToShowIDX((int)guiObjs_Numeric[gIDX_ProdJPToDispIDX].getVal());				
-//				break;}
-//			case gIDX_ProdZoneDistThreshIDX : {//max distance for a node to be considered a part of a product's "region" of influence		
-//				((Straff_SOMMapManager) mapMgr).setProdZoneDistThresh(this.guiObjs_Numeric[gIDX_ProdZoneDistThreshIDX].getVal());			
-//				break;}
-//	
-//			case gIDX_AllJpSeenToDispIDX		: {
-//				((Straff_SOMMapManager) mapMgr).setCurAllJPToShowIDX((int)guiObjs_Numeric[gIDX_AllJpSeenToDispIDX].getVal());
-//				break;}	
-//		}		
-//	}//setUIWinValsIndiv	
+
 	@Override
 	protected boolean setUI_IntValsCustom_Indiv(int UIidx, int ival, int oldVal) {
 		switch(UIidx){
