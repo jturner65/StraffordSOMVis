@@ -25,7 +25,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	public static final int 
 		custExCalcedIDX					= numSOMBasePrivFlags + 0,			//whether customer prospect examples have been loaded and ftrs have been calculated or not  StraffWeightCalc.bndAra_ProdJPsIDX StraffWeightCalc.bndAra_AllJPsIDX
 		tpExCalcedIDX					= numSOMBasePrivFlags + 1,			//whether true propsect examples have been loaded and ftrs have been calculated or not
-		trainExCalcedIDX				= numSOMBasePrivFlags + 2,			//whether training data examples have been loaded and ftrs have been calculated or not - these are per-order training examples
+		trainExCalcedIDX					= numSOMBasePrivFlags + 2,			//whether training data examples have been loaded and ftrs have been calculated or not - these are per-order training examples
 		
 		mapDrawPrdctFtrBMUsIDX 			= numSOMBasePrivFlags + 3,			//draw product bmu as calculated by ftrs
 		mapDrawCurProdFtrBMUZoneIDX	 	= numSOMBasePrivFlags + 4,			//show currently selected prod jps' products and influence zones, as calculated by ftrs
@@ -41,7 +41,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 						
 		mapDrawCalcFtrOrAllVisIDX		= numSOMBasePrivFlags + 11,			//whether to draw calc obj for ftr-related jps, or all jps present		
 		
-		showSelJPIDX					= numSOMBasePrivFlags + 12, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
+		showSelJPIDX						= numSOMBasePrivFlags + 12, 			//if showSelRegionIDX == true, then this will show either a selected jp or jpgroup
 		//train/test data managemen
 		procTruProspectsIDX				= numSOMBasePrivFlags + 13,			//this will process true prospects, and load them if they haven't been loaded
 		saveBMUMapsForTruPrspctsIDX		= numSOMBasePrivFlags + 14;			//this will save all the product data for the currently selected prod JP
@@ -53,7 +53,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	//	//GUI Objects	
 	public final static int //offset from end of base class SOM UI objs
 		gIDX_RawDataSourceIDX 			= numSOMBaseGUIObjs + 0,			//source of raw data to be preprocced and used to train the map
-		gIDX_ProdJPToDispIDX			= numSOMBaseGUIObjs + 1,			//choose current product/zone to show
+		gIDX_ProdJPToDispIDX				= numSOMBaseGUIObjs + 1,			//choose current product/zone to show
 		gIDX_ProdZoneDistThreshIDX		= numSOMBaseGUIObjs + 2,			//max distance from a product that a map node should be considered to be covered by that product
 		gIDX_AllJpSeenToDispIDX			= numSOMBaseGUIObjs + 3;			//choose jp to show based on all jps seen
 	
@@ -274,27 +274,28 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 	
 	/**
 	 * Build all UI buttons to be shown in left side bar menu for this window. This is for instancing windows to add to button region
-	 * USE tmpUIBoolSwitchObjMap.size() for start idx
+	 * @param firstIdx : the first index to use in the map/as the objIdx
 	 * @param tmpUIBoolSwitchObjMap : map of GUIObj_Params to be built containing all flag-backed boolean switch definitions, keyed by sequential value == objId
 	 * 				the first element is the object index
 	 * 				the second element is true label
 	 * 				the third element is false label
 	 * 				the final element is integer flag idx 
 	 */
-	protected final void setupGUIBoolSwitchAras_Indiv(TreeMap<String, GUIObj_Params> tmpUIBoolSwitchObjMap) {
+	@Override
+	protected final void setupGUIBoolSwitchAras_Indiv(int firstIdx, TreeMap<String, GUIObj_Params> tmpUIBoolSwitchObjMap) {
 		//Adding 1 because we do not have a debug button
-		int idx=tmpUIBoolSwitchObjMap.size()+1;
-		tmpUIBoolSwitchObjMap.put("Button_"+idx, uiMgr.uiObjInitAra_Switch(idx++, "button_"+idx, "Hide Non-Product Job Practices","Show Non-Product Job Practices", mapDrawNonProdJPSegIDX));          
-		tmpUIBoolSwitchObjMap.put("Button_"+idx, uiMgr.uiObjInitAra_Switch(idx++, "button_"+idx, "Hide Non-Product Job Practice Groups", "Show Non-Product Job Practice Groups", mapDrawNonProdJPGroupSegIDX));			
-		tmpUIBoolSwitchObjMap.put("Button_"+idx, uiMgr.uiObjInitAra_Switch(idx++, "button_"+idx, "Hide Products (ftr BMUs)","Show Products (ftr BMUs)", mapDrawPrdctFtrBMUsIDX));          
-		tmpUIBoolSwitchObjMap.put("Button_"+idx, uiMgr.uiObjInitAra_Switch(idx++, "button_"+idx, "Hide Cur Prod Zone (by ftrs)", "Show Cur Prod Zone (by ftrs)", mapDrawCurProdFtrBMUZoneIDX));	
-		tmpUIBoolSwitchObjMap.put("Button_"+idx, uiMgr.uiObjInitAra_Switch(idx++, "button_"+idx, "Show Calc Plot on Ftr JPs", "Show Calc Plot on All JPs", mapDrawCalcFtrOrAllVisIDX));     
-		tmpUIBoolSwitchObjMap.put("Button_"+idx, uiMgr.uiObjInitAra_Switch(idx++, "button_"+idx, "Hide Training Data Calc Plot", "Show Training Data Calc Plot", mapDrawTrainDataAnalysisVisIDX));
-		tmpUIBoolSwitchObjMap.put("Button_"+idx, uiMgr.uiObjInitAra_Switch(idx++, "button_"+idx, "Hide Cust Prspct Calc Plot", "Show Cust Prspct Calc Plot", mapDrawCustAnalysisVisIDX));     
-		tmpUIBoolSwitchObjMap.put("Button_"+idx, uiMgr.uiObjInitAra_Switch(idx++, "button_"+idx, "Hide True Prspct Calc Plot", "Show True Prspct Calc Plot", mapDrawTPAnalysisVisIDX));       
-		tmpUIBoolSwitchObjMap.put("Button_"+idx, uiMgr.uiObjInitAra_Switch(idx++, "button_"+idx, "Hide True Prospects on Map", "Show True Prospects on Map", mapDrawTruePspctIDX));           
-		tmpUIBoolSwitchObjMap.put("Button_"+idx, uiMgr.uiObjInitAra_Switch(idx++, "button_"+idx, "Mapping True Prospect BMUs", "Map True Prospect BMUs", procTruProspectsIDX));           
-		tmpUIBoolSwitchObjMap.put("Button_"+idx, uiMgr.uiObjInitAra_Switch(idx++, "button_"+idx, "Building/Saving Tru Prspct BMUs for loaded Map","Build/Save Tru Prspct BMUs for loaded Map", saveBMUMapsForTruPrspctsIDX)); 		
+		int idx=firstIdx;
+		tmpUIBoolSwitchObjMap.put("Button_"+idx, uiMgr.uiObjInitAra_Switch(idx, "button_"+idx++, "Hide Non-Product Job Practices","Show Non-Product Job Practices", mapDrawNonProdJPSegIDX));          
+		tmpUIBoolSwitchObjMap.put("Button_"+idx, uiMgr.uiObjInitAra_Switch(idx, "button_"+idx++, "Hide Non-Product Job Practice Groups", "Show Non-Product Job Practice Groups", mapDrawNonProdJPGroupSegIDX));			
+		tmpUIBoolSwitchObjMap.put("Button_"+idx, uiMgr.uiObjInitAra_Switch(idx, "button_"+idx++, "Hide Products (ftr BMUs)","Show Products (ftr BMUs)", mapDrawPrdctFtrBMUsIDX));          
+		tmpUIBoolSwitchObjMap.put("Button_"+idx, uiMgr.uiObjInitAra_Switch(idx, "button_"+idx++, "Hide Cur Prod Zone (by ftrs)", "Show Cur Prod Zone (by ftrs)", mapDrawCurProdFtrBMUZoneIDX));	
+		tmpUIBoolSwitchObjMap.put("Button_"+idx, uiMgr.uiObjInitAra_Switch(idx, "button_"+idx++, "Show Calc Plot on Ftr JPs", "Show Calc Plot on All JPs", mapDrawCalcFtrOrAllVisIDX));     
+		tmpUIBoolSwitchObjMap.put("Button_"+idx, uiMgr.uiObjInitAra_Switch(idx, "button_"+idx++, "Hide Training Data Calc Plot", "Show Training Data Calc Plot", mapDrawTrainDataAnalysisVisIDX));
+		tmpUIBoolSwitchObjMap.put("Button_"+idx, uiMgr.uiObjInitAra_Switch(idx, "button_"+idx++, "Hide Cust Prspct Calc Plot", "Show Cust Prspct Calc Plot", mapDrawCustAnalysisVisIDX));     
+		tmpUIBoolSwitchObjMap.put("Button_"+idx, uiMgr.uiObjInitAra_Switch(idx, "button_"+idx++, "Hide True Prspct Calc Plot", "Show True Prspct Calc Plot", mapDrawTPAnalysisVisIDX));       
+		tmpUIBoolSwitchObjMap.put("Button_"+idx, uiMgr.uiObjInitAra_Switch(idx, "button_"+idx++, "Hide True Prospects on Map", "Show True Prospects on Map", mapDrawTruePspctIDX));           
+		tmpUIBoolSwitchObjMap.put("Button_"+idx, uiMgr.uiObjInitAra_Switch(idx, "button_"+idx++, "Mapping True Prospect BMUs", "Map True Prospect BMUs", procTruProspectsIDX));           
+		tmpUIBoolSwitchObjMap.put("Button_"+idx, uiMgr.uiObjInitAra_Switch(idx, "button_"+idx++, "Building/Saving Tru Prspct BMUs for loaded Map","Build/Save Tru Prspct BMUs for loaded Map", saveBMUMapsForTruPrspctsIDX)); 		
 	}//setupGUIObjsArasIndiv
 	
 	/**
