@@ -6,17 +6,17 @@ import base_Utils_Objects.io.messaging.MessageObject;
 
 //class to hold a raw record of jp group data
 public class Straff_JpgrpDescData extends Straff_JobPracticeData{
-	 //keys in json relevant for this data
-	 private static final String[] relevantExactKeys = {"name"};
-	 
-	 public Straff_JpgrpDescData(MessageObject _msgObj,String _id, String _json, ObjectMapper _mapper, boolean hasJson) { super(_msgObj,_id, _json, _mapper,"jpgrpDesc",hasJson);}
-	 @Override
-	 public String[] getRelevantExactKeys() {        return relevantExactKeys;}
-	 @Override
-	 public String toString() {
-	     String res = super.toString() ;
-	     res +="JpGrp : " + ID + " | Name : " + name ;
-	     return res;
-	 }
-	 
+     //keys in json relevant for this data
+     private static final String[] relevantExactKeys = {"name"};
+     
+     public Straff_JpgrpDescData(MessageObject _msgObj,String _id, String _json, ObjectMapper _mapper, boolean hasJson) { super(_msgObj,_id, _json, _mapper,"jpgrpDesc",hasJson);}
+     @Override
+     public String[] getRelevantExactKeys() {        return relevantExactKeys;}
+     @Override
+     public String toString() {
+         String res = super.toString() ;
+         res +="JpGrp : " + ID + " | Name : " + name ;
+         return res;
+     }
+     
 }//class jpgDescData

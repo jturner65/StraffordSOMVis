@@ -1,0 +1,25 @@
+# This file holds description of SOM map experiment execution settings
+# It should be used to build a SOM_MapDat object which then is consumed to control the execution of the SOM.
+# Base Vars
+isSparse,true
+SOM_instanceDirName,StraffSOM_2025_06_20_18_33
+trainDataDenseFN,Train_straff_Smp_291419_of_291419_typ_perFtrNorm_Dt_06_20_18_33.lrn
+trainDataSparseFN,Train_straff_Smp_291419_of_291419_typ_perFtrNorm_Dt_06_20_18_33.svm
+outFilesPrefix,Out_straff_Smp_291419_x10_y10_k2
+# somExeArgs_Ints descriptors
+mapCols,10
+mapStRad,20
+mapRows,10
+mapEndRad,1
+mapEpochs,10
+mapKType,2
+# somExeArgs_Floats descriptors
+mapStLrnRate,1.000000
+mapEndLrnRate,0.100000
+# somExeArgs_Strings descriptors
+mapBounds,toroid
+mapNHood,gaussian
+mapLearnCool,linear
+mapGridShape,rectangular
+mapRadCool,linear
+# End Descriptor Data
