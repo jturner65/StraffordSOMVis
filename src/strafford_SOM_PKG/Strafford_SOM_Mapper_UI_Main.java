@@ -185,7 +185,14 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
         setDispWindow(wIdx, new Straff_SOMMapUIWin(ri, this, winInitVals[wIdx]));        
         //specify windows that cannot be shown simultaneously here
         initXORWins(new int[]{dispSOMMapIDX},new int[]{dispSOMMapIDX});
-    }//    initVisOnce_Priv
+    }//initAllDispWindows
+    /**
+     * Map indexed by window ID, holding an array of the titles (idx 0) and descriptions (idx 1) for every sub window
+     * return null if none exist, and only put an entry in the map if one exists for that window
+     * @return
+     */
+    @Override
+    protected final HashMap<Integer, String[]> getSubWindowTitles(){ return null;}
     
     @Override
     //called from base class, once at start of program after vis init is called - set initial windows to show - always show UI Menu
