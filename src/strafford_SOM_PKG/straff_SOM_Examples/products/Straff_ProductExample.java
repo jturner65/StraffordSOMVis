@@ -8,7 +8,7 @@ import java.util.TreeMap;
 
 import base_Math_Objects.MyMathUtils;
 import base_Math_Objects.vectorObjs.tuples.Tuple;
-import base_Render_Interface.IRenderInterface;
+import base_Render_Interface.IGraphicsAppInterface;
 import base_SOM_Objects.som_examples.base.SOM_Example;
 import base_SOM_Objects.som_examples.enums.SOM_ExDataType;
 import base_SOM_Objects.som_mapnodes.base.SOM_MapNode;
@@ -311,7 +311,7 @@ public class Straff_ProductExample extends Straff_SOMExample{
     /////////////////////////
     // draw code
     //draw all map nodes this product exerts influence on, with color alpha reflecting inverse distance, above threshold value set when nodesToDraw map was built
-    public void drawProdMapExtent(IRenderInterface p, int distType, int numProds, double _maxDist) {
+    public void drawProdMapExtent(IGraphicsAppInterface p, int distType, int numProds, double _maxDist) {
         p.pushMatState();        
         NavigableMap<Double, ArrayList<SOM_MapNode>> subMap = allMapNodesDists[distType].headMap(_maxDist, true);
         //float mult = 255.0f/(numProds);//with multiple products maybe scale each product individually by total #?

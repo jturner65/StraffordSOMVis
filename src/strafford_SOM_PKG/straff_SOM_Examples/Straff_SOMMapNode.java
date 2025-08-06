@@ -6,7 +6,7 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import base_Math_Objects.vectorObjs.tuples.Tuple;
-import base_Render_Interface.IRenderInterface;
+import base_Render_Interface.IGraphicsAppInterface;
 import base_SOM_Objects.som_examples.base.SOM_Example;
 import base_SOM_Objects.som_examples.enums.SOM_FtrDataType;
 import base_SOM_Objects.som_managers.SOM_MapManager;
@@ -204,10 +204,10 @@ public class Straff_SOMMapNode extends SOM_MapNode{
     
     
     //draw class pop segment contribution 
-    public final void drawMeNonProdJPSegClr(IRenderInterface p, Integer cls) {nonProdJPSegManager.drawMeSegClr(p,  cls);    }//drawMeFtrWtSegClr
+    public final void drawMeNonProdJPSegClr(IGraphicsAppInterface p, Integer cls) {nonProdJPSegManager.drawMeSegClr(p,  cls);    }//drawMeFtrWtSegClr
     
     //draw category segment contribution - collection of classes
-    public final void drawMeNonProdJpGroupSegClr(IRenderInterface p, Integer category) { nonProdJPGroupSegManager.drawMeSegClr(p, category);}//drawMeFtrWtSegClr
+    public final void drawMeNonProdJpGroupSegClr(IGraphicsAppInterface p, Integer category) { nonProdJPGroupSegManager.drawMeSegClr(p, category);}//drawMeFtrWtSegClr
     
     //by here ftrs for this map node have been built
     @Override

@@ -8,7 +8,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import base_Math_Objects.vectorObjs.tuples.Tuple;
-import base_Render_Interface.IRenderInterface;
+import base_Render_Interface.IGraphicsAppInterface;
 import base_SOM_Objects.som_utils.SOM_ProjConfigData;
 import base_Utils_Objects.io.file.FileIOManager;
 import base_Utils_Objects.io.messaging.MessageObject;
@@ -421,11 +421,11 @@ public class Straff_WeightCalc {
     // calc analysis display routines    
     
     //draw res of all calcs as single rectangle of height ht and width barWidth*num eqs
-    public void drawAllCalcRes(IRenderInterface p, float ht, float barWidth, int curJPIdx,int _exampleType) {_drawCalcRes(p, ht, barWidth,curJPIdx,_exampleType, bndAra_AllJPsIDX, allEqs);}//draw analysis res for each graphically    
+    public void drawAllCalcRes(IGraphicsAppInterface p, float ht, float barWidth, int curJPIdx,int _exampleType) {_drawCalcRes(p, ht, barWidth,curJPIdx,_exampleType, bndAra_AllJPsIDX, allEqs);}//draw analysis res for each graphically    
     //draw only ftr JP calc res
-    public void drawFtrCalcRes(IRenderInterface p, float ht, float barWidth, int curJPIdx,int _exampleType) {_drawCalcRes(p, ht, barWidth,curJPIdx,_exampleType, bndAra_ProdJPsIDX, ftrEqs);}//draw analysis res for each graphically
+    public void drawFtrCalcRes(IGraphicsAppInterface p, float ht, float barWidth, int curJPIdx,int _exampleType) {_drawCalcRes(p, ht, barWidth,curJPIdx,_exampleType, bndAra_ProdJPsIDX, ftrEqs);}//draw analysis res for each graphically
     
-    private void _drawCalcRes(IRenderInterface p, float ht, float barWidth, int curJPIdx,int _exampleType, int _jpType, TreeMap<Integer, Straff_JPWeightEquation> _eqMap) {
+    private void _drawCalcRes(IGraphicsAppInterface p, float ht, float barWidth, int curJPIdx,int _exampleType, int _jpType, TreeMap<Integer, Straff_JPWeightEquation> _eqMap) {
         p.pushMatState();        
         for(Straff_JPWeightEquation jpEq:_eqMap.values()) {    //only draw eqs that calculated actual feature values (jps found in products)
             //draw bar
@@ -437,7 +437,7 @@ public class Straff_WeightCalc {
     }//_drawCalcRes
     
     //draw single detailed feature eq detailed analysis
-    public void drawSingleFtr(IRenderInterface p, float ht, float width, Integer jp,int _exampleType) {
+    public void drawSingleFtr(IGraphicsAppInterface p, float ht, float width, Integer jp,int _exampleType) {
         p.pushMatState();        
         //draw detailed analysis
         allEqs.get(jp).drawIndivFtrVec(p, ht, width,_exampleType);

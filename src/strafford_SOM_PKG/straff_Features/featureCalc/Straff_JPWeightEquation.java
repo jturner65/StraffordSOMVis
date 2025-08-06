@@ -9,7 +9,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
-import base_Render_Interface.IRenderInterface;
+import base_Render_Interface.IGraphicsAppInterface;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_JP_OccurrenceData;
 import strafford_SOM_PKG.straff_SOM_Examples.prospects.Straff_ProspectExample;
 
@@ -250,8 +250,8 @@ public class Straff_JPWeightEquation {
     public ArrayList<String> getCalcRes(int _exampleType){return ftrCalcStats[_exampleType].getCalcRes();}    
     
     
-    public void drawIndivFtrVec(IRenderInterface p, float height, float width, int _exampleType) {ftrCalcStats[_exampleType].drawIndivFtrVec(p, height, width);    }
-    public void drawFtrVec(IRenderInterface p, float height, float width, boolean selected, int eqDispType, int _exampleType){ftrCalcStats[_exampleType].drawFtrVec(p, height, width,eqDispType, selected);}
+    public void drawIndivFtrVec(IGraphicsAppInterface p, float height, float width, int _exampleType) {ftrCalcStats[_exampleType].drawIndivFtrVec(p, height, width);    }
+    public void drawFtrVec(IGraphicsAppInterface p, float height, float width, boolean selected, int eqDispType, int _exampleType){ftrCalcStats[_exampleType].drawFtrVec(p, height, width,eqDispType, selected);}
     
     //string rep of this calc
     public String toString() {

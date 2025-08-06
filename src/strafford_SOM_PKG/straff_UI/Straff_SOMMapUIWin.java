@@ -5,7 +5,7 @@ import java.util.LinkedHashMap;
 
 import base_Math_Objects.vectorObjs.doubles.myPoint;
 import base_Math_Objects.vectorObjs.doubles.myVector;
-import base_Render_Interface.IRenderInterface;
+import base_Render_Interface.IGraphicsAppInterface;
 import base_SOM_Objects.som_managers.SOM_MapManager;
 import base_SOM_Objects.som_ui.win_disp_ui.SOM_MapUIWin;
 import base_SOM_Objects.som_ui.win_disp_ui.SOM_MseOvrDispTypeVals;
@@ -76,9 +76,9 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
     //used to switch button name for 1st button to reflect whether performing csv-based load of raw data or sql query
     private String[] menuLdRawFuncBtnNames = new String[]{"CSV", "SQL"};
     
-    public Straff_SOMMapUIWin(IRenderInterface _p, GUI_AppManager _AppMgr, GUI_AppWinVals _winInitVals) {
+    public Straff_SOMMapUIWin(IGraphicsAppInterface _p, GUI_AppManager _AppMgr, GUI_AppWinVals _winInitVals) {
         super(_p,_AppMgr, _winInitVals);
-        super.initThisWin(false);
+        
     }//ctor
 
     /**

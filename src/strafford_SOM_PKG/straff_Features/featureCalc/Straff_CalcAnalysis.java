@@ -2,7 +2,7 @@ package strafford_SOM_PKG.straff_Features.featureCalc;
 
 import java.util.ArrayList;
 
-import base_Render_Interface.IRenderInterface;
+import base_Render_Interface.IGraphicsAppInterface;
 //import base_UI_Objects.renderer.ProcessingRenderer;
 
 //this class will hold analysis information for calculations to more clearly understand the results of the current calc object
@@ -152,7 +152,7 @@ public class Straff_CalcAnalysis{//per JPWeightEquation analysis of data
     }//aggregateCalcVals
     
     
-    public void showOffsetText2D(IRenderInterface p, float d, int tclr, String txt){
+    public void showOffsetText2D(IGraphicsAppInterface p, float d, int tclr, String txt){
         p.setColorValFill(tclr, 255);p.setColorValStroke(tclr, 255);
         p.showText(txt, d, d,0); 
     }
@@ -161,37 +161,37 @@ public class Straff_CalcAnalysis{//per JPWeightEquation analysis of data
     //this will display a vertical bar corresponding to the performance of the analyzed calculation.
     //each component of calc object will have a different color
     //height - the height of the bar.  start each vertical bar at upper left corner, put text beneath bar
-    public void drawFtrVec(IRenderInterface p, float height, float width, int eqDispType, boolean selected){
+    public void drawFtrVec(IGraphicsAppInterface p, float height, float width, int eqDispType, boolean selected){
         p.pushMatState();
         float rCompHeight, rYSt = 0.0f;
         for(int i =0;i<analysisCalcStats[ratioIDX].length;++i) {
-            p.setColorValFill(IRenderInterface.gui_LightRed+i, 255);
+            p.setColorValFill(IGraphicsAppInterface.gui_LightRed+i, 255);
             rCompHeight = height * analysisCalcStats[ratioIDX][i];
             p.drawRect(new float[] {0.0f, rYSt, width, rCompHeight});
             rYSt+=rCompHeight;
         }
         if (selected) {
-            p.setColorValFill(IRenderInterface.gui_White, 100);
+            p.setColorValFill(IGraphicsAppInterface.gui_White, 100);
             p.drawRect(new float[] {-1.0f, -1.0f, width+2, height+2});
         } 
 
         p.translate(0.0f, height+txtYOff, 0.0f);
         p.translate(0.0f, dispIDXAra[eqDispType]*txtYOff, 0.0f);
-        showOffsetText2D(p,0.0f, IRenderInterface.gui_White, ""+eq.jp);
+        showOffsetText2D(p,0.0f, IGraphicsAppInterface.gui_White, ""+eq.jp);
         p.popMatState();
     }//drawFtrVec
     
     //draw vertical bar describing per-comp values with
-    protected void drawDetailFtrVec(IRenderInterface p, float height, float width, float[] vals, float denom, String valTtl, String[] dispStrAra, String[] valDesc) {
+    protected void drawDetailFtrVec(IGraphicsAppInterface p, float height, float width, float[] vals, float denom, String valTtl, String[] dispStrAra, String[] valDesc) {
         p.pushMatState();
             p.translate(0.0f, txtYOff, 0.0f);
-            showOffsetText2D(p,0.0f, IRenderInterface.gui_White, valTtl);
+            showOffsetText2D(p,0.0f, IGraphicsAppInterface.gui_White, valTtl);
             p.translate(0.0f, txtYOff, 0.0f);
             p.pushMatState();
                 float rCompHeight, rYSt = 0.0f, htMult = height/denom;
                 for(int i =0;i<vals.length;++i) {
                     if (vals[i] > 0.0f) {
-                        p.setColorValFill(IRenderInterface.gui_LightRed+i, 255);
+                        p.setColorValFill(IGraphicsAppInterface.gui_LightRed+i, 255);
                         rCompHeight = htMult * vals[i];
                         p.drawRect(new float[] {0.0f, rYSt, width, rCompHeight});
                         rYSt+=rCompHeight;
@@ -205,7 +205,7 @@ public class Straff_CalcAnalysis{//per JPWeightEquation analysis of data
                         rCompHeight = htMult * vals[i];
                         p.pushMatState();
                         p.translate(10.0f, rYSt+(rCompHeight/2.0f)+5, 0.0f);
-                        if(null!= dispStrAra[i]) {            showOffsetText2D(p,0.0f, IRenderInterface.gui_Black, dispStrAra[i]);}
+                        if(null!= dispStrAra[i]) {            showOffsetText2D(p,0.0f, IGraphicsAppInterface.gui_Black, dispStrAra[i]);}
                         p.popMatState();
                         rYSt+=rCompHeight;
                     }
@@ -214,7 +214,7 @@ public class Straff_CalcAnalysis{//per JPWeightEquation analysis of data
             p.translate(0.0f, height+txtYOff, 0.0f);
             if(valDesc != null) {
                 for(String s : valDesc) {
-                    showOffsetText2D(p,0.0f, IRenderInterface.gui_White, s);
+                    showOffsetText2D(p,0.0f, IGraphicsAppInterface.gui_White, s);
                     p.translate(0.0f, txtYOff, 0.0f);
                 }
             }
@@ -224,10 +224,10 @@ public class Straff_CalcAnalysis{//per JPWeightEquation analysis of data
 
     //draw a single ftr vector as a wide bar; include text for descriptions
     //width is per bar
-    public void drawIndivFtrVec(IRenderInterface p, float height, float width){
+    public void drawIndivFtrVec(IGraphicsAppInterface p, float height, float width){
         p.pushMatState();
         //title here?
-        showOffsetText2D(p,0.0f, IRenderInterface.gui_White, "Calc Values for ftr idx : " +jpIDXara[0] +"," +jpIDXara[1]+ " jp "+eq.jp + " : " + eq.jpName);//p.drawText("Calc Values for ftr idx : " +eq.jpIdx + " jp "+eq.jp, 0, 0, 0, p.gui_White);
+        showOffsetText2D(p,0.0f, IGraphicsAppInterface.gui_White, "Calc Values for ftr idx : " +jpIDXara[0] +"," +jpIDXara[1]+ " jp "+eq.jp + " : " + eq.jpName);//p.drawText("Calc Values for ftr idx : " +eq.jpIdx + " jp "+eq.jp, 0, 0, 0, p.gui_White);
         p.translate(0.0f, txtYOff, 0.0f);
         for(int i=0;i<analysisCalcStats.length;++i) {
             drawDetailFtrVec(p,height,width, analysisCalcStats[i], ttlCalcStats_Vis[i], calcStatTitles[i], analysisCalcValStrs[i], calcStatDispDetail[i]);
