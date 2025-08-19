@@ -10,6 +10,7 @@ import base_SOM_Objects.som_managers.SOM_MapManager;
 import base_SOM_Objects.som_ui.win_disp_ui.SOM_MapUIWin;
 import base_SOM_Objects.som_ui.win_disp_ui.SOM_MseOvrDispTypeVals;
 import base_UI_Objects.GUI_AppManager;
+import base_UI_Objects.baseApp.GUI_AppUIFlags;
 import base_UI_Objects.windowUI.base.GUI_AppWinVals;
 import base_UI_Objects.windowUI.uiObjs.base.GUIObj_Params;
 import base_Utils_Objects.io.messaging.MsgCodes;
@@ -116,10 +117,12 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
 
     
     /**
-     * Initialize any UI control flags appropriate for specific instanced SOM mapUI window
+     * Initialize any UI control flags appropriate for specific instanced SOM Animation window
+     * @param appUIFlags Snapshot of the initial flags structure for the application. 
+     * Will not reflect future changes, so should not be retained
      */
     @Override
-    protected final void initDispFlags_Indiv() {}
+    protected final void initDispFlags_Indiv(GUI_AppUIFlags appUIFlags) {}
     
     @Override
     protected void initMe_Indiv() {
@@ -136,7 +139,19 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
         //moved from mapMgr ctor, to remove dependence on papplet in that object
         mapMgr.initMapAras(1, 1);
     }//initMe_Indiv()
-        
+    /**
+     * Implementation-specific flags to initialize to true
+     * @param flagIDXs
+     * @return
+     */
+    @Override
+    protected final int[] getFlagIDXsToInitToTrue_Indiv(int[] flagIDXs) {
+        int[] res = new int[flagIDXs.length + 1];
+        for(int i=0;i<flagIDXs.length;++i) {res[i]=flagIDXs[i];}
+        res[flagIDXs.length]=mapDrawCalcFtrOrAllVisIDX;
+        return res;
+    }//getFlagIDXsToInitToTrue_Indiv
+    
     @Override
     //SOM_mapDims is built by base class initMe
     protected SOM_MapManager buildMapMgr() {
@@ -325,7 +340,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
         setUI_ClassListVals(classVals);
         setUI_CategoryListVals(categoryVals);
         //set product list values
-        uiMgr.setAllUIListValues(gIDX_ProdJPToDispIDX, prodVals, true);
+        uiMgr.forceNewUIAllListValues(gIDX_ProdJPToDispIDX, prodVals, true);
         //in super class
         setClass_UIObj(false);
     }//setUI_JPListMaxVals
@@ -339,7 +354,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
     public void setUI_JPAllSeenListVals(String[] jpGrpVals, String[] jpVals) {
         //refresh max size of guiobj - heavy handed, these values won't change often, and this is called -every draw frame-.
         //guiObjs_Numeric[gIDX_AllJpSeenToDispIDX].setNewMax(jpLen-1);
-        uiMgr.setAllUIListValues(gIDX_AllJpSeenToDispIDX, jpVals, true);
+        uiMgr.forceNewUIAllListValues(gIDX_AllJpSeenToDispIDX, jpVals, true);
         //guiObjs_Numeric[uiAllJpgSeenToDispIDX].setNewMax(jpGrpLen-1);    
     }//setUI_JPListMaxVals
     
@@ -414,7 +429,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
     @Override
     public void initDrwnTraj_Indiv(){}
     @Override
-    public void drawCustMenuObjs(float animTimeMod){}
+    public void drawCustMenuObjs(float animTimeMod, boolean isGlblAppDebug){}
     @Override
     protected boolean simMe(float modAmtSec) {return false;}
     //set camera to custom location - only used if dispFlag set
@@ -423,7 +438,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
     @Override
     protected void stopMe() {}        
     @Override
-    protected void drawOnScreenStuffPriv(float modAmtMillis) {}
+    protected void drawOnScreenStuffPriv(float modAmtMillis, boolean isGlblAppDebug) {}
     
     @Override
     //set flags that should be set on each frame - these are set at beginning of frame draw
@@ -436,7 +451,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
     }
     
     @Override
-    protected void drawMap_Indiv() {        
+    protected void drawMap_Indiv(boolean isGlblAppDebug) {        
         if (uiMgr.getPrivFlag(mapDrawCustAnalysisVisIDX)){    ((Straff_SOMMapManager) mapMgr)._drawAnalysis(ri,custExCalcedIDX, mapDrawCustAnalysisVisIDX);    } 
         else if (uiMgr.getPrivFlag(mapDrawTPAnalysisVisIDX)){((Straff_SOMMapManager) mapMgr)._drawAnalysis(ri,tpExCalcedIDX, mapDrawTPAnalysisVisIDX);}
         else if (uiMgr.getPrivFlag(mapDrawTrainDataAnalysisVisIDX)) {((Straff_SOMMapManager) mapMgr)._drawAnalysis(ri,trainExCalcedIDX, mapDrawTrainDataAnalysisVisIDX);}
@@ -533,7 +548,7 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
                 case 3 : {//load all training data, default map config, and build map
                     int curPreBuiltMapIDX = btn;
                     mapMgr.setCurPreBuiltMapIDX(curPreBuiltMapIDX);
-                    getUIDataUpdater().setIntValue(gIDX_MapPreBuiltDirIDX, (int) uiMgr.setNewUIValue(gIDX_MapPreBuiltDirIDX, curPreBuiltMapIDX));
+                    getUIDataUpdater().setIntValue(gIDX_MapPreBuiltDirIDX, (int) uiMgr.forceNewUIValue(gIDX_MapPreBuiltDirIDX, curPreBuiltMapIDX));
                     mapMgr.loadPretrainedExistingMap(btn, true);//runs in thread, button state reset there
                     resetButtonState();
                     break;}

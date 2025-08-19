@@ -114,25 +114,27 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
      */
     @Override
     protected final MsgCodes getMinLogMsgCodes() {return null;}
-
-    /**
-     * determine which main flags to show at upper left of menu 
-     */
+   
     @Override
-    protected void initBaseFlags_Indiv() {
-        setBaseFlagToShow_debugMode(false);
-        setBaseFlagToShow_saveAnim(true); 
-        setBaseFlagToShow_runSim(false);
-        setBaseFlagToShow_singleStep(false);
-        setBaseFlagToShow_showRtSideMenu(true);    
-        setBaseFlagToShow_showStatusBar(true);
-        setBaseFlagToShow_showDrawableCanvas(false);
-    }
+    protected boolean hideAppFlag_DebugMode() {             return true;}
+    @Override
+    protected boolean hideAppFlag_SaveAnim() {              return false;}
+    @Override
+    protected boolean hideAppFlag_RunSim() {                return true;}
+    @Override
+    protected boolean hideAppFlag_SingleStep() {            return true;}
+    @Override
+    protected boolean hideAppFlag_showRtSideInfoDisp() {    return false;}
+    @Override
+    protected boolean hideAppFlag_showStatusBar() {         return false;}
+    @Override
+    protected boolean hideAppFlag_showCanvas() {            return true;}
+    
+    
     
     @Override
     //build windows here
     protected void initAllDispWindows() {
-        showInfo = true;    
         //titles and descs, need to be set before sidebar menu is defined
         String[] _winTitles = new String[]{"","SOM Map UI"},
                 _winDescr = new String[]{"", "Visualize Prospect SOM Node Mapping"};
@@ -199,7 +201,6 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
     protected void initOnce_Indiv(){
         //which objects to initially show
         setWinVisFlag(dispSOMMapIDX, true);
-        setShowStatusBar(true);
     }//    initOnce
     
     @Override
@@ -213,7 +214,7 @@ public class Strafford_SOM_Mapper_UI_Main extends GUI_AppManager {
      * @param is3DDraw
      */
     @Override
-    protected void drawMePost_Indiv(float modAmtMillis, boolean is3DDraw) {}
+    protected void drawMePost_Indiv(float modAmtMillis, boolean is3DDraw, boolean isGlblAppDebug) {}
     
     /**
      * present an application-specific array of mouse over btn names 
