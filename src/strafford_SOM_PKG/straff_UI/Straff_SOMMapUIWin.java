@@ -3,8 +3,6 @@ package strafford_SOM_PKG.straff_UI;
 import java.io.File;
 import java.util.LinkedHashMap;
 
-import base_Math_Objects.vectorObjs.doubles.myPoint;
-import base_Math_Objects.vectorObjs.doubles.myVector;
 import base_Render_Interface.IGraphicsAppInterface;
 import base_SOM_Objects.som_managers.SOM_MapManager;
 import base_SOM_Objects.som_ui.win_disp_ui.SOM_MapUIWin;
@@ -642,23 +640,23 @@ public class Straff_SOMMapUIWin extends SOM_MapUIWin {
     
     //handle mouseover 
     @Override
-    protected boolean hndlMouseMove_Indiv(int mouseX, int mouseY, myPoint mseClckInWorld){
+    protected boolean hndlMouseMove_Indiv(int mouseX, int mouseY){
         boolean res = false;
         if(uiMgr.getPrivFlag(mapDataLoadedIDX)){ res = checkMouseOvr(mouseX, mouseY);    }
         return res;
     }    
     @Override
-    protected boolean hndlMouseClick_Indiv(int mouseX, int mouseY, myPoint mseClckInWorld, int mseBtn) {
+    protected boolean hndlMouseClick_Indiv(int mouseX, int mouseY, int mseBtn) {
         boolean mod = false;            
-        if(uiMgr.getPrivFlag(mapDataLoadedIDX)){ mod = this.checkMouseClick(mouseX, mouseY, mseClckInWorld, mseBtn);}
+        if(uiMgr.getPrivFlag(mapDataLoadedIDX)){ mod = this.checkMouseClick(mouseX, mouseY, mseBtn);}
 //        if(mod) {return mod;}
 //        else {return checkUIButtons(mouseX, mouseY);}
         return mod;
     }
     @Override
-    protected boolean hndlMouseDrag_Indiv(int mouseX, int mouseY,int pmouseX, int pmouseY, myPoint mouseClickIn3D, myVector mseDragInWorld, int mseBtn) {
+    protected boolean hndlMouseDrag_Indiv(int mouseX, int mouseY, int pmouseX, int pmouseY, int mseBtn) {
         boolean mod = false;    
-        if(uiMgr.getPrivFlag(mapDataLoadedIDX)){ mod = this.checkMouseDragMove(mouseX, mouseY, pmouseX, pmouseY, mouseClickIn3D, mseDragInWorld, mseBtn);}                
+        if(uiMgr.getPrivFlag(mapDataLoadedIDX)){ mod = this.checkMouseDragMove(mouseX, mouseY, pmouseX, pmouseY, mseBtn);}                
         return mod;
     }
     @Override

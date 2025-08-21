@@ -10,8 +10,6 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.Future;
 
-import base_Math_Objects.vectorObjs.doubles.myPoint;
-import base_Math_Objects.vectorObjs.doubles.myVector;
 import base_Math_Objects.vectorObjs.floats.myPointf;
 import base_Math_Objects.vectorObjs.tuples.Tuple;
 import base_Render_Interface.IGraphicsAppInterface;
@@ -991,13 +989,13 @@ public class Straff_SOMMapManager extends SOM_MapManager {
     
     @Override
     //in base class function, clicking on map selects or deselects the closest node
-    protected boolean checkMouseClick_Indiv(int mouseX, int mouseY, float mapX, float mapY, SOM_MapNode nearestNode,myPoint mseClckInWorld, int btn, boolean _wasSelNotDeSel) {
+    protected boolean checkMouseClick_Indiv(int mouseX, int mouseY, float mapX, float mapY, SOM_MapNode nearestNode, int btn, boolean _wasSelNotDeSel) {
         // TODO Auto-generated method stub
         return _wasSelNotDeSel;
     }
 
     @Override
-    public boolean checkMouseDragMove_Indiv(int mouseX, int mouseY, int pmouseX, int pmouseY, myPoint mouseClickIn3D,myVector mseDragInWorld, int mseBtn) {
+    public boolean checkMouseDragMove_Indiv(int mouseX, int mouseY, int pmouseX, int pmouseY, int mseBtn) {
         // TODO Auto-generated method stub
         return false;
     }
